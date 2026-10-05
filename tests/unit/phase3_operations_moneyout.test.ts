@@ -122,3 +122,67 @@ test('Phase 3: launch readiness remains blocked without durable certification ev
   assert.equal(readiness.ready, false);
   assert.ok(readiness.blockers.length > 0);
 });
+
+
+test('Phase 3: failed provider callbacks are terminal and identical retries are idempotent', async () => {
+  process.env.PAYOUT_DESTINATION_ENCRYPTION_KEY = randomBytes(32).toString('base64');
+  const destination = await disbursementService.createDestination({
+    ownerType: 'RIDER',
+    ownerId: 'phase3-terminal-rider',
+    method: 'MPESA_B2C',
+    provider: 'SAFARICOM',
+    beneficiaryReference: '+254700999111',
+    maskedDestination: '+2547***9111',
+    createdBy: 'phase3-finance',
+  });
+  const attempt = await disbursementRepository.createAttempt({
+    resource_type: 'PAYOUT',
+    resource_id: randomUUID(),
+    destination_id: destination.id,
+    provider: 'SAFARICOM',
+    amount_minor: 15000,
+    currency: 'KES',
+    status: 'SUBMITTED',
+    idempotency_key: `phase3-terminal-${randomUUID()}`,
+    provider_request_id: `provider-request-${randomUUID()}`,
+    initiated_by: 'phase3-finance',
+  });
+
+  const failedPayload = {
+    provider: 'SAFARICOM',
+    provider_request_id: attempt.provider_request_id,
+    status: 'FAILED',
+    failure_code: 'RECIPIENT_INVALID',
+  };
+
+  const failed = await disbursementService.applyProviderResult({
+    provider: 'SAFARICOM',
+    providerRequestId: attempt.provider_request_id!,
+    succeeded: false,
+    failureCode: 'RECIPIENT_INVALID',
+    failureReason: 'Recipient rejected',
+    rawPayload: failedPayload,
+  });
+  assert.equal(failed.status, 'FAILED');
+
+  const repeated = await disbursementService.applyProviderResult({
+    provider: 'SAFARICOM',
+    providerRequestId: attempt.provider_request_id!,
+    succeeded: false,
+    failureCode: 'RECIPIENT_INVALID',
+    failureReason: 'Recipient rejected',
+    rawPayload: failedPayload,
+  });
+  assert.equal(repeated.id, failed.id);
+
+  await assert.rejects(
+    () => disbursementService.applyProviderResult({
+      provider: 'SAFARICOM',
+      providerRequestId: attempt.provider_request_id!,
+      succeeded: true,
+      providerReference: 'LATE-SUCCESS-REF',
+      rawPayload: { ...failedPayload, status: 'SUCCEEDED', provider_reference: 'LATE-SUCCESS-REF' },
+    }),
+    (error: any) => error?.code === 'DISBURSEMENT_TERMINAL_CONFLICT',
+  );
+});
