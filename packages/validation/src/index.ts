@@ -708,7 +708,6 @@ export const RiderCompleteDeliverySchema = z.object({
   otp: z.string().min(4).max(8).optional(),
   verification_code: z.string().min(4).max(8).optional(),
   photo_media_id: z.string().uuid().optional(),
-  photo_url: z.string().max(2048).optional(),
   signature_data: z.string().max(10000).optional(),
   note: z.string().max(500).optional(),
   latitude: z.number().min(-90).max(90).optional(),
