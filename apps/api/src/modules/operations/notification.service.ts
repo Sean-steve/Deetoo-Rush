@@ -1,4 +1,4 @@
-import { transactionalService } from '../../db/transaction';
+import { transactionalService, withTransaction } from '../../db/transaction';
 import { requireSimulationMode } from '../../db/storage-policy';
 import { config } from '@deetoo/config';
 import { externalNotificationProvider } from './external-notification.provider';
@@ -242,7 +242,11 @@ export class NotificationService {
   public async processPendingBatch(limit = 25): Promise<number> {
     const claimed = await operationsRepository.claimPendingNotifications(limit);
     for (const record of claimed) {
-      await this.dispatch(record);
+      if (config.storage.mode === 'postgres') {
+        await withTransaction(() => this.dispatch(record));
+      } else {
+        await this.dispatch(record);
+      }
     }
     return claimed.length;
   }
