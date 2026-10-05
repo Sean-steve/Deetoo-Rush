@@ -784,3 +784,92 @@ test('Phase 3 database prevents one order being claimed by two merchant settleme
     /uq_merchant_settlement_order_claim|duplicate key/i,
   );
 });
+
+
+test('Phase 3 database makes provider request identity unique', async () => {
+  const { disbursementService } = await import('../../apps/api/src/modules/finance/disbursement.service');
+  const { disbursementRepository } = await import('../../apps/api/src/modules/finance/disbursement.repository');
+  process.env.PAYOUT_DESTINATION_ENCRYPTION_KEY = Buffer.alloc(32, 23).toString('base64');
+
+  const financeUser = randomUUID();
+  await authRepository.createUser({
+    id: financeUser,
+    email: `phase3-callback-${financeUser}@example.test`,
+    phone_e164: null,
+    password_hash: 'unused',
+    status: UserStatus.ACTIVE,
+  });
+  await authRepository.setUserRoles(financeUser, [UserRole.FINANCE]);
+
+  const riderId = randomUUID();
+  const destination = await disbursementService.createDestination({
+    ownerType: 'RIDER',
+    ownerId: riderId,
+    method: 'MPESA_B2C',
+    provider: 'SAFARICOM',
+    beneficiaryReference: '+254700111222',
+    maskedDestination: '+2547***1222',
+    createdBy: financeUser,
+  });
+  const providerRequestId = `phase3-provider-${randomUUID()}`;
+
+  await disbursementRepository.createAttempt({
+    resource_type: 'PAYOUT',
+    resource_id: randomUUID(),
+    destination_id: destination.id,
+    provider: 'SAFARICOM',
+    amount_minor: 1000,
+    currency: 'KES',
+    status: 'SUBMITTED',
+    idempotency_key: `phase3-provider-attempt-a-${randomUUID()}`,
+    provider_request_id: providerRequestId,
+    initiated_by: financeUser,
+  });
+  await assert.rejects(
+    disbursementRepository.createAttempt({
+      resource_type: 'PAYOUT',
+      resource_id: randomUUID(),
+      destination_id: destination.id,
+      provider: 'SAFARICOM',
+      amount_minor: 1000,
+      currency: 'KES',
+      status: 'SUBMITTED',
+      idempotency_key: `phase3-provider-attempt-b-${randomUUID()}`,
+      provider_request_id: providerRequestId,
+      initiated_by: financeUser,
+    }),
+    /uq_disbursement_provider_request|duplicate key/i,
+  );
+});
+
+test('Phase 3 Merchant cannot advance to LIVE before onboarding readiness is complete', async () => {
+  const { merchantOnboardingService } = await import('../../apps/api/src/modules/merchant/merchant-onboarding.service');
+  const merchantId = randomUUID();
+  const adminUser = randomUUID();
+  await authRepository.createUser({
+    id: adminUser,
+    email: `phase3-onboarding-${adminUser}@example.test`,
+    phone_e164: null,
+    password_hash: 'unused',
+    status: UserStatus.ACTIVE,
+  });
+  await authRepository.setUserRoles(adminUser, [UserRole.ADMIN]);
+  await getDbPool().query(
+    `INSERT INTO merchants(id,legal_name,display_name,status,approval_status,commission_bps,settlement_schedule)
+     VALUES($1,'Onboarding Merchant','Onboarding Merchant','DISABLED','DRAFT',2000,'WEEKLY')`,
+    [merchantId],
+  );
+
+  const readiness = await merchantOnboardingService.readiness(merchantId);
+  assert.equal(readiness.ready_for_live, false);
+  await assert.rejects(
+    merchantOnboardingService.update(merchantId, 'LIVE', adminUser, 'Must not bypass readiness'),
+    (error: any) => error?.code === 'MERCHANT_ONBOARDING_INCOMPLETE',
+  );
+  const merchant = (await getDbPool().query(
+    'SELECT status,approval_status FROM merchants WHERE id=$1',
+    [merchantId],
+  )).rows[0];
+  assert.equal(merchant.status, 'DISABLED');
+  assert.equal(merchant.approval_status, 'DRAFT');
+});
