@@ -8,7 +8,7 @@ CREATE TABLE IF NOT EXISTS payout_destinations (
   owner_id UUID NOT NULL,
   method VARCHAR(30) NOT NULL CHECK (method IN ('MPESA_B2C','BANK_GATEWAY')),
   provider VARCHAR(50) NOT NULL,
-  provider_beneficiary_ref VARCHAR(255) NOT NULL,
+  provider_beneficiary_ciphertext TEXT NOT NULL,
   masked_destination VARCHAR(120) NOT NULL,
   currency CHAR(3) NOT NULL DEFAULT 'KES',
   active BOOLEAN NOT NULL DEFAULT TRUE,
