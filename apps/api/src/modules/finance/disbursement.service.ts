@@ -124,7 +124,17 @@ class DisbursementService {
     if(!attempt) throw new AppError(404,'DISBURSEMENT_ATTEMPT_NOT_FOUND','Unknown provider disbursement request');
     if(attempt.status==='SUCCEEDED'){
       if(!input.succeeded) throw new AppError(409,'DISBURSEMENT_TERMINAL_CONFLICT','Successful disbursement cannot later fail');
+      if(input.providerReference && attempt.provider_reference && input.providerReference !== attempt.provider_reference){
+        throw new AppError(409,'DISBURSEMENT_REFERENCE_CONFLICT','Successful disbursement callback reference does not match the recorded provider reference');
+      }
       return attempt;
+    }
+    if(attempt.status==='FAILED'){
+      throw new AppError(
+        409,
+        'DISBURSEMENT_TERMINAL_CONFLICT',
+        'Failed disbursement attempt is terminal; reconcile or retry with a new attempt instead of changing its provider result',
+      );
     }
     const now=new Date().toISOString();
     if(input.succeeded){
