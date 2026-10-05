@@ -676,3 +676,200 @@ test('Phase 2 native fulfilment records survive PostgreSQL reconnect and notific
   await closeDbPool();
   assert.equal((await deviceRegistrationRepository.listActiveTokens(userId)).length, 0);
 });
+
+
+test('Phase 3 durable money-out records and launch gates survive PostgreSQL reconnect', async () => {
+  const { disbursementService } = await import('../../apps/api/src/modules/finance/disbursement.service');
+  const { disbursementRepository } = await import('../../apps/api/src/modules/finance/disbursement.repository');
+  const { launchReadinessService } = await import('../../apps/api/src/modules/operations/launch-readiness.service');
+
+  process.env.PAYOUT_DESTINATION_ENCRYPTION_KEY = Buffer.alloc(32, 17).toString('base64');
+
+  const financeUser = randomUUID();
+  await authRepository.createUser({
+    id: financeUser,
+    email: `phase3-finance-${financeUser}@example.test`,
+    phone_e164: null,
+    password_hash: 'unused',
+    status: UserStatus.ACTIVE,
+  });
+  await authRepository.setUserRoles(financeUser, [UserRole.FINANCE]);
+
+  const merchantId = randomUUID();
+  await getDbPool().query(
+    `INSERT INTO merchants(id,legal_name,display_name,status,approval_status,commission_bps,settlement_schedule)
+     VALUES($1,'Phase 3 Merchant','Phase 3 Merchant','ACTIVE','APPROVED',2000,'WEEKLY')`,
+    [merchantId],
+  );
+
+  const beneficiary = 'bank-beneficiary-token-phase3';
+  const destination = await disbursementService.createDestination({
+    ownerType: 'MERCHANT',
+    ownerId: merchantId,
+    method: 'BANK_GATEWAY',
+    provider: 'TEST_BANK_GATEWAY',
+    beneficiaryReference: beneficiary,
+    maskedDestination: 'Bank •••• 4242',
+    createdBy: financeUser,
+  });
+  const stored = (await getDbPool().query(
+    'SELECT provider_beneficiary_ciphertext FROM payout_destinations WHERE id=$1',
+    [destination.id],
+  )).rows[0];
+  assert.ok(stored.provider_beneficiary_ciphertext);
+  assert.equal(stored.provider_beneficiary_ciphertext.includes(beneficiary), false);
+
+  const attempt = await disbursementRepository.createAttempt({
+    resource_type: 'SETTLEMENT',
+    resource_id: randomUUID(),
+    destination_id: destination.id,
+    provider: destination.provider,
+    amount_minor: 12345,
+    currency: 'KES',
+    status: 'CREATED',
+    idempotency_key: `foundation-phase3-${randomUUID()}`,
+    initiated_by: financeUser,
+  });
+  await closeDbPool();
+  assert.equal((await disbursementRepository.getAttempt(attempt.id))?.amount_minor, 12345);
+
+  const gates = await getDbPool().query('SELECT count(*)::int AS n FROM launch_readiness_gates');
+  assert.equal(gates.rows[0].n, 9);
+  await launchReadinessService.updateGate(
+    'BACKUP_RESTORE_CERTIFIED',
+    'PASSED',
+    financeUser,
+    'foundation-restore-proof',
+    'Foundation durability proof',
+  );
+  await closeDbPool();
+  const restoredGate = (await getDbPool().query(
+    "SELECT status,evidence_reference FROM launch_readiness_gates WHERE gate_key='BACKUP_RESTORE_CERTIFIED'",
+  )).rows[0];
+  assert.equal(restoredGate.status, 'PASSED');
+  assert.equal(restoredGate.evidence_reference, 'foundation-restore-proof');
+});
+
+test('Phase 3 database prevents one order being claimed by two merchant settlements', async () => {
+  const merchantId = randomUUID();
+  await getDbPool().query(
+    `INSERT INTO merchants(id,legal_name,display_name,status,approval_status,commission_bps,settlement_schedule)
+     VALUES($1,'Claim Merchant','Claim Merchant','ACTIVE','APPROVED',2000,'WEEKLY')`,
+    [merchantId],
+  );
+  const first = randomUUID(), second = randomUUID(), orderRef = randomUUID();
+  const start = new Date(Date.now() - 86400000).toISOString();
+  const end = new Date().toISOString();
+  for (const [id, number] of [[first, 'STL-CLAIM-A'], [second, 'STL-CLAIM-B']] as const) {
+    await getDbPool().query(
+      `INSERT INTO merchant_settlements(
+        id,settlement_number,merchant_id,currency,period_start,period_end,net_settlement_amount_minor,status
+      ) VALUES($1,$2,$3,'KES',$4,$5,1000,'CALCULATED')`,
+      [id, `${number}-${id.slice(0,6)}`, merchantId, start, end],
+    );
+  }
+  await getDbPool().query(
+    `INSERT INTO merchant_settlement_lines(
+      id,settlement_id,entry_type,reference_id,gross_amount_minor,commission_amount_minor,net_amount_minor
+    ) VALUES($1,$2,'ORDER',$3,1200,200,1000)`,
+    [randomUUID(), first, orderRef],
+  );
+  await assert.rejects(
+    getDbPool().query(
+      `INSERT INTO merchant_settlement_lines(
+        id,settlement_id,entry_type,reference_id,gross_amount_minor,commission_amount_minor,net_amount_minor
+      ) VALUES($1,$2,'ORDER',$3,1200,200,1000)`,
+      [randomUUID(), second, orderRef],
+    ),
+    /uq_merchant_settlement_order_claim|duplicate key/i,
+  );
+});
+
+
+test('Phase 3 database makes provider request identity unique', async () => {
+  const { disbursementService } = await import('../../apps/api/src/modules/finance/disbursement.service');
+  const { disbursementRepository } = await import('../../apps/api/src/modules/finance/disbursement.repository');
+  process.env.PAYOUT_DESTINATION_ENCRYPTION_KEY = Buffer.alloc(32, 23).toString('base64');
+
+  const financeUser = randomUUID();
+  await authRepository.createUser({
+    id: financeUser,
+    email: `phase3-callback-${financeUser}@example.test`,
+    phone_e164: null,
+    password_hash: 'unused',
+    status: UserStatus.ACTIVE,
+  });
+  await authRepository.setUserRoles(financeUser, [UserRole.FINANCE]);
+
+  const riderId = randomUUID();
+  const destination = await disbursementService.createDestination({
+    ownerType: 'RIDER',
+    ownerId: riderId,
+    method: 'MPESA_B2C',
+    provider: 'SAFARICOM',
+    beneficiaryReference: '+254700111222',
+    maskedDestination: '+2547***1222',
+    createdBy: financeUser,
+  });
+  const providerRequestId = `phase3-provider-${randomUUID()}`;
+
+  await disbursementRepository.createAttempt({
+    resource_type: 'PAYOUT',
+    resource_id: randomUUID(),
+    destination_id: destination.id,
+    provider: 'SAFARICOM',
+    amount_minor: 1000,
+    currency: 'KES',
+    status: 'SUBMITTED',
+    idempotency_key: `phase3-provider-attempt-a-${randomUUID()}`,
+    provider_request_id: providerRequestId,
+    initiated_by: financeUser,
+  });
+  await assert.rejects(
+    disbursementRepository.createAttempt({
+      resource_type: 'PAYOUT',
+      resource_id: randomUUID(),
+      destination_id: destination.id,
+      provider: 'SAFARICOM',
+      amount_minor: 1000,
+      currency: 'KES',
+      status: 'SUBMITTED',
+      idempotency_key: `phase3-provider-attempt-b-${randomUUID()}`,
+      provider_request_id: providerRequestId,
+      initiated_by: financeUser,
+    }),
+    /uq_disbursement_provider_request|duplicate key/i,
+  );
+});
+
+test('Phase 3 Merchant cannot advance to LIVE before onboarding readiness is complete', async () => {
+  const { merchantOnboardingService } = await import('../../apps/api/src/modules/merchant/merchant-onboarding.service');
+  const merchantId = randomUUID();
+  const adminUser = randomUUID();
+  await authRepository.createUser({
+    id: adminUser,
+    email: `phase3-onboarding-${adminUser}@example.test`,
+    phone_e164: null,
+    password_hash: 'unused',
+    status: UserStatus.ACTIVE,
+  });
+  await authRepository.setUserRoles(adminUser, [UserRole.ADMIN]);
+  await getDbPool().query(
+    `INSERT INTO merchants(id,legal_name,display_name,status,approval_status,commission_bps,settlement_schedule)
+     VALUES($1,'Onboarding Merchant','Onboarding Merchant','DISABLED','DRAFT',2000,'WEEKLY')`,
+    [merchantId],
+  );
+
+  const readiness = await merchantOnboardingService.readiness(merchantId);
+  assert.equal(readiness.ready_for_live, false);
+  await assert.rejects(
+    merchantOnboardingService.update(merchantId, 'LIVE', adminUser, 'Must not bypass readiness'),
+    (error: any) => error?.code === 'MERCHANT_ONBOARDING_INCOMPLETE',
+  );
+  const merchant = (await getDbPool().query(
+    'SELECT status,approval_status FROM merchants WHERE id=$1',
+    [merchantId],
+  )).rows[0];
+  assert.equal(merchant.status, 'DISABLED');
+  assert.equal(merchant.approval_status, 'DRAFT');
+});

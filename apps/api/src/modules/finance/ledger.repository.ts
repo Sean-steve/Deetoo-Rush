@@ -626,6 +626,17 @@ export class LedgerRepository {
     }
   }
 
+  public async findRiderEarningById(id: string): Promise<RiderEarning | null> {
+    if (config.storage.mode === "memory") return this.riderEarnings.get(id) || null;
+    try {
+      const res = await pool.query('SELECT * FROM rider_earnings WHERE id=$1', [id]);
+      return res.rows[0] ? this.mapRiderEarning(res.rows[0]) : null;
+    } catch {
+      allowMemoryAdapter();
+      return null;
+    }
+  }
+
   public async saveRiderEarning(earning: RiderEarning): Promise<RiderEarning> {
     this.riderEarnings.set(earning.id, earning);
     try {
@@ -671,9 +682,9 @@ export class LedgerRepository {
       try {
         await client.query('BEGIN');
         await client.query(
-          `INSERT INTO merchant_settlements (id, settlement_number, merchant_id, currency, period_start, period_end, gross_order_value_minor, commission_amount_minor, promotion_amount_minor, refund_amount_minor, adjustment_amount_minor, net_settlement_amount_minor, status, calculated_by, approved_by, approved_at, paid_at, payment_reference, failure_reason, created_at)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20)
-           ON CONFLICT (id) DO UPDATE SET status = EXCLUDED.status, approved_by = EXCLUDED.approved_by, approved_at = EXCLUDED.approved_at, paid_at = EXCLUDED.paid_at, payment_reference = EXCLUDED.payment_reference, failure_reason = EXCLUDED.failure_reason`,
+          `INSERT INTO merchant_settlements (id, settlement_number, merchant_id, currency, period_start, period_end, gross_order_value_minor, commission_amount_minor, promotion_amount_minor, refund_amount_minor, adjustment_amount_minor, net_settlement_amount_minor, status, calculated_by, approved_by, approved_at, initiated_by, processing_at, paid_at, failed_at, payment_reference, failure_reason, created_at)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23)
+           ON CONFLICT (id) DO UPDATE SET status = EXCLUDED.status, approved_by = EXCLUDED.approved_by, approved_at = EXCLUDED.approved_at, initiated_by = EXCLUDED.initiated_by, processing_at = EXCLUDED.processing_at, paid_at = EXCLUDED.paid_at, failed_at = EXCLUDED.failed_at, payment_reference = EXCLUDED.payment_reference, failure_reason = EXCLUDED.failure_reason`,
           [
             settlement.id,
             settlement.settlement_number,
@@ -691,7 +702,10 @@ export class LedgerRepository {
             settlement.calculated_by || null,
             settlement.approved_by || null,
             settlement.approved_at || null,
+            settlement.initiated_by || null,
+            settlement.processing_at || null,
             settlement.paid_at || null,
+            settlement.failed_at || null,
             settlement.payment_reference || null,
             settlement.failure_reason || null,
             settlement.created_at,
@@ -799,9 +813,9 @@ export class LedgerRepository {
       try {
         await client.query('BEGIN');
         await client.query(
-          `INSERT INTO rider_payouts (id, payout_number, rider_id, currency, amount_minor, period_start, period_end, status, provider, provider_reference, calculated_by, approved_by, approved_at, paid_at, failed_at, failure_reason, created_at)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
-           ON CONFLICT (id) DO UPDATE SET status = EXCLUDED.status, approved_by = EXCLUDED.approved_by, approved_at = EXCLUDED.approved_at, paid_at = EXCLUDED.paid_at, failed_at = EXCLUDED.failed_at, failure_reason = EXCLUDED.failure_reason, provider_reference = EXCLUDED.provider_reference`,
+          `INSERT INTO rider_payouts (id, payout_number, rider_id, currency, amount_minor, period_start, period_end, status, provider, provider_reference, calculated_by, approved_by, approved_at, initiated_by, processing_at, paid_at, failed_at, failure_reason, created_at)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)
+           ON CONFLICT (id) DO UPDATE SET status = EXCLUDED.status, approved_by = EXCLUDED.approved_by, approved_at = EXCLUDED.approved_at, initiated_by = EXCLUDED.initiated_by, processing_at = EXCLUDED.processing_at, paid_at = EXCLUDED.paid_at, failed_at = EXCLUDED.failed_at, failure_reason = EXCLUDED.failure_reason, provider_reference = EXCLUDED.provider_reference`,
           [
             payout.id,
             payout.payout_number,
@@ -816,6 +830,8 @@ export class LedgerRepository {
             payout.calculated_by || null,
             payout.approved_by || null,
             payout.approved_at || null,
+            payout.initiated_by || null,
+            payout.processing_at || null,
             payout.paid_at || null,
             payout.failed_at || null,
             payout.failure_reason || null,
@@ -1036,33 +1052,51 @@ export class LedgerRepository {
     this.adjustments.set(adj.id, adj);
     try {
       await pool.query(
-        `INSERT INTO financial_adjustments (id, reason_code, target_account_id, offset_account_id, direction, amount_minor, currency, note, requested_by, approved_by, ledger_transaction_id, created_at)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
-        [
-          adj.id,
-          adj.reason_code,
-          adj.target_account_id,
-          adj.offset_account_id,
-          adj.direction,
-          adj.amount_minor,
-          adj.currency,
-          adj.note,
-          adj.requested_by,
-          adj.approved_by || null,
-          adj.ledger_transaction_id || null,
-          adj.created_at,
-        ]
+        `INSERT INTO financial_adjustments (
+          id,reason_code,target_account_id,offset_account_id,direction,amount_minor,currency,note,
+          requested_by,approved_by,approved_at,status,rejected_at,rejection_reason,ledger_transaction_id,created_at
+        ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)
+        ON CONFLICT(id) DO UPDATE SET approved_by=EXCLUDED.approved_by,approved_at=EXCLUDED.approved_at,
+          status=EXCLUDED.status,rejected_at=EXCLUDED.rejected_at,rejection_reason=EXCLUDED.rejection_reason,
+          ledger_transaction_id=EXCLUDED.ledger_transaction_id`,
+        [adj.id,adj.reason_code,adj.target_account_id,adj.offset_account_id,adj.direction,adj.amount_minor,
+          adj.currency,adj.note,adj.requested_by,adj.approved_by||null,adj.approved_at||null,
+          adj.status||'REQUESTED',adj.rejected_at||null,adj.rejection_reason||null,
+          adj.ledger_transaction_id||null,adj.created_at]
       );
     } catch {
       allowMemoryAdapter();
-      // Memory fallback
     }
     return adj;
+  }
+
+  public async findAdjustmentById(id:string):Promise<FinancialAdjustment|null>{
+    if(config.storage.mode==="memory") return this.adjustments.get(id)||null;
+    const res=await pool.query('SELECT * FROM financial_adjustments WHERE id=$1',[id]);
+    return res.rows[0]?this.mapAdjustment(res.rows[0]):null;
+  }
+
+  public async listAdjustments():Promise<FinancialAdjustment[]>{
+    if(config.storage.mode==="memory") return Array.from(this.adjustments.values());
+    const res=await pool.query('SELECT * FROM financial_adjustments ORDER BY created_at DESC LIMIT 200');
+    return res.rows.map((r:any)=>this.mapAdjustment(r));
   }
 
   // ==========================================================================
   // HELPERS & MAPPERS
   // ==========================================================================
+
+  private mapAdjustment(row:any):FinancialAdjustment {
+    return {
+      id:row.id,reason_code:row.reason_code,target_account_id:row.target_account_id,
+      offset_account_id:row.offset_account_id,direction:row.direction,amount_minor:Number(row.amount_minor),
+      currency:row.currency,note:row.note,requested_by:row.requested_by,approved_by:row.approved_by,
+      approved_at:row.approved_at?new Date(row.approved_at).toISOString():null,status:row.status,
+      rejected_at:row.rejected_at?new Date(row.rejected_at).toISOString():null,
+      rejection_reason:row.rejection_reason,ledger_transaction_id:row.ledger_transaction_id,
+      created_at:new Date(row.created_at).toISOString()
+    };
+  }
 
   private mapAccount(row: any): LedgerAccount {
     return {
@@ -1146,7 +1180,10 @@ export class LedgerRepository {
       calculated_by: row.calculated_by,
       approved_by: row.approved_by,
       approved_at: row.approved_at ? new Date(row.approved_at).toISOString() : null,
+      initiated_by: row.initiated_by,
+      processing_at: row.processing_at ? new Date(row.processing_at).toISOString() : null,
       paid_at: row.paid_at ? new Date(row.paid_at).toISOString() : null,
+      failed_at: row.failed_at ? new Date(row.failed_at).toISOString() : null,
       payment_reference: row.payment_reference,
       failure_reason: row.failure_reason,
       created_at: new Date(row.created_at).toISOString(),
@@ -1182,6 +1219,8 @@ export class LedgerRepository {
       calculated_by: row.calculated_by,
       approved_by: row.approved_by,
       approved_at: row.approved_at ? new Date(row.approved_at).toISOString() : null,
+      initiated_by: row.initiated_by,
+      processing_at: row.processing_at ? new Date(row.processing_at).toISOString() : null,
       paid_at: row.paid_at ? new Date(row.paid_at).toISOString() : null,
       failed_at: row.failed_at ? new Date(row.failed_at).toISOString() : null,
       failure_reason: row.failure_reason,

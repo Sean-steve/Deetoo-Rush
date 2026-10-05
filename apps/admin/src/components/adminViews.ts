@@ -148,7 +148,7 @@ export const adminViews: Record<string, TableConfig> = {
   accounts: {
     toolbar: [
       {
-        label: "Post adjustment",
+        label: "Request adjustment",
         endpoint: () => "/finance/adjustments",
         schema: FinancialAdjustmentCreateSchema,
         fields: [
@@ -262,9 +262,9 @@ export const adminViews: Record<string, TableConfig> = {
         when: (r) => ["CALCULATED", "DRAFT"].includes(r.status),
       },
       {
-        label: "Record payment",
+        label: "Initiate disbursement",
         endpoint: (r) => `/finance/settlements/${id(r)}/pay`,
-        fields: [{ key: "paymentReference", label: "Payment reference" }],
+        fields: [{ key: "destination_id", label: "Payout destination ID" }],
         when: (r) => r.status === "APPROVED",
       },
     ],
@@ -299,9 +299,9 @@ export const adminViews: Record<string, TableConfig> = {
         when: (r) => ["CALCULATED", "DRAFT"].includes(r.status),
       },
       {
-        label: "Pay rider",
+        label: "Initiate payout",
         endpoint: (r) => `/finance/payouts/${id(r)}/pay`,
-        fields: [{ key: "providerReference", label: "Provider reference" }],
+        fields: [{ key: "destination_id", label: "Payout destination ID" }],
         when: (r) => r.status === "APPROVED",
       },
     ],
@@ -399,6 +399,111 @@ export const adminViews: Record<string, TableConfig> = {
       {
         label: "Retry job",
         endpoint: (r) => `/admin/operations/dead-letter-jobs/${id(r)}/retry`,
+      },
+    ],
+  },
+  onboarding: {
+    title: "Merchant onboarding pipeline",
+    endpoint: "/admin/merchants/onboarding",
+    columns: [
+      { key: "display_name", label: "Merchant" },
+      { key: "stage", label: "Stage" },
+      { key: "approval_status", label: "Approval" },
+      { key: "status", label: "Merchant status" },
+    ],
+    actions: [
+      {
+        label: "Advance / update stage",
+        endpoint: (r) => `/admin/merchants/${encodeURIComponent(r.merchant_id)}/onboarding`,
+        method: "PATCH",
+        fields: [
+          {
+            key: "stage",
+            label: "Stage",
+            options: ["APPLICATION","DOCUMENTS_PENDING","COMMERCIAL_TERMS","CONTENT_SETUP","MENU_QA","STAFF_TRAINING","READY_FOR_REVIEW","APPROVED","LIVE","BLOCKED"],
+          },
+          { key: "note", label: "Operational note" },
+        ],
+      },
+    ],
+  },
+  destinations: {
+    title: "Verified payout destinations",
+    endpoint: "/finance/disbursements/destinations",
+    listKey: "destinations",
+    columns: [
+      { key: "owner_type", label: "Owner type" },
+      { key: "owner_id", label: "Owner" },
+      { key: "method", label: "Method" },
+      { key: "masked_destination", label: "Destination" },
+      { key: "verified_at", label: "Verified" },
+    ],
+    toolbar: [
+      {
+        label: "Add / replace destination",
+        endpoint: () => "/finance/disbursements/destinations",
+        fields: [
+          { key: "owner_type", label: "Owner type", options: ["MERCHANT","RIDER"] },
+          { key: "owner_id", label: "Owner ID" },
+          { key: "method", label: "Method", options: ["BANK_GATEWAY","MPESA_B2C"] },
+          { key: "provider", label: "Provider" },
+          { key: "beneficiary_reference", label: "Provider beneficiary reference" },
+          { key: "masked_destination", label: "Masked destination" },
+          { key: "currency", label: "Currency" },
+        ],
+      },
+    ],
+  },
+  disbursements: {
+    title: "Money-out attempts",
+    endpoint: "/finance/disbursements",
+    listKey: "attempts",
+    columns: [
+      { key: "resource_type", label: "Type" },
+      { key: "resource_id", label: "Batch" },
+      { key: "provider", label: "Provider" },
+      status,
+      { key: "amount_minor", label: "Amount", money: true },
+      { key: "provider_reference", label: "Provider reference" },
+    ],
+  },
+  adjustments: {
+    toolbar: [
+      {
+        label: "Request adjustment",
+        endpoint: () => "/finance/adjustments",
+        schema: FinancialAdjustmentCreateSchema,
+        fields: [
+          { key: "targetAccountId", label: "Target account ID" },
+          { key: "offsetAccountId", label: "Offset account ID" },
+          { key: "direction", label: "Direction", options: ["DEBIT","CREDIT"] },
+          { key: "amountMinor", label: "Amount (minor units)", type: "number" },
+          { key: "reasonCode", label: "Reason", options: ["MERCHANT_CORRECTION","RIDER_CORRECTION","CUSTOMER_REFUND_ADJUSTMENT","PAYMENT_PROCESSOR_ADJUSTMENT","MANUAL_FINANCE_CORRECTION"] },
+          { key: "note", label: "Audit note" },
+        ],
+      },
+    ],
+    title: "Financial adjustment approvals",
+    endpoint: "/finance/adjustments",
+    listKey: "adjustments",
+    columns: [
+      { key: "id", label: "Adjustment" },
+      { key: "reason_code", label: "Reason" },
+      status,
+      { key: "amount_minor", label: "Amount", money: true },
+      { key: "requested_by", label: "Requested by" },
+    ],
+    actions: [
+      {
+        label: "Approve & post",
+        endpoint: (r) => `/finance/adjustments/${id(r)}/approve`,
+        when: (r) => r.status === "REQUESTED",
+      },
+      {
+        label: "Reject",
+        endpoint: (r) => `/finance/adjustments/${id(r)}/reject`,
+        fields: [{ key: "reason", label: "Rejection reason" }],
+        when: (r) => r.status === "REQUESTED",
       },
     ],
   },

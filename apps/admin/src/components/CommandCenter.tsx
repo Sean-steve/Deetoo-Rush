@@ -14,7 +14,8 @@ import { adminViews } from "./adminViews";
 export function CommandCenter() {
   const { hasRole } = useAuth();
   const canDispatch = hasRole("admin" as any) || hasRole("ops" as any);
-  const overview = useResource<any>("/admin/operations/overview", 5000);
+  const overview = useResource<any>("/admin/operations/control-tower", 5000);
+  const supply = useResource<any[]>("/admin/operations/supply", 10000);
   const deliveries = useResource<any[]>(
     "/admin/dispatch/deliveries?limit=100",
     5000,
@@ -62,6 +63,7 @@ export function CommandCenter() {
               void overview.refresh();
               void deliveries.refresh();
               void incidents.refresh();
+              void supply.refresh();
             }}
           >
             Refresh grid
@@ -71,22 +73,14 @@ export function CommandCenter() {
       <ResourceState resource={overview}>
         {overview.data && (
           <div className="grid sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
-            <MetricCard
-              label="Open incidents"
-              value={overview.data.incidents.totalOpen}
-            />
-            <MetricCard
-              label="Critical incidents"
-              value={overview.data.incidents.critical}
-            />
-            <MetricCard
-              label="Open support cases"
-              value={overview.data.supportCases.totalOpen}
-            />
-            <MetricCard
-              label="Open risk signals"
-              value={overview.data.riskSignals.totalOpen}
-            />
+            <MetricCard label="Active orders" value={overview.data.orders.active} />
+            <MetricCard label="Unassigned deliveries" value={overview.data.deliveries.unassigned} />
+            <MetricCard label="Available riders" value={overview.data.riders.available} />
+            <MetricCard label="Delayed deliveries" value={overview.data.deliveries.delayed} />
+            <MetricCard label="Orders today" value={overview.data.orders.today} />
+            <MetricCard label="Completed today" value={overview.data.orders.completed_today} />
+            <MetricCard label="Open incidents" value={overview.data.operational.open_incidents} />
+            <MetricCard label="Open support cases" value={overview.data.operational.open_support_cases} />
           </div>
         )}
       </ResourceState>
@@ -98,6 +92,25 @@ export function CommandCenter() {
               <LocationMap points={points} />
             </ResourceState>
           </Card>
+          <Card className="mb-5">
+            <h2 className="text-xl font-bold mb-4">Zone supply / demand</h2>
+            <ResourceState resource={supply}>
+              <div className="space-y-2">
+                {(supply.data || []).map((zone: any) => (
+                  <div key={zone.zone_id} className="grid grid-cols-5 gap-3 rounded-xl bg-stone-50 p-3 text-sm">
+                    <strong>{zone.name}</strong>
+                    <span>Available {zone.available_riders}</span>
+                    <span>Busy {zone.busy_riders}</span>
+                    <span>Unassigned {zone.unassigned_deliveries}</span>
+                    <span className={Number(zone.supply_gap) < 0 ? "text-rose-700 font-bold" : "text-emerald-700"}>
+                      Gap {zone.supply_gap}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </ResourceState>
+          </Card>
+
           <ResourceTable
             config={{
               ...adminViews.dispatch,

@@ -7,6 +7,7 @@ import { CommandCenter } from "./components/CommandCenter";
 import { ResourceTable } from "./components/ResourceTable";
 import { adminViews } from "./components/adminViews";
 import { OperationsConfig } from "./components/OperationsConfig";
+import { LaunchReadiness } from "./components/LaunchReadiness";
 /**
  * DEETOO - Admin & Operations Application Shell
  * Central operations console: User management, RBAC, live audit trail, zones, health
@@ -420,6 +421,7 @@ function AdminAppInner() {
     ...(operationsAccess
       ? [
           { id: "merchants", label: "Merchants & approvals" },
+          { id: "onboarding", label: "Merchant onboarding" },
           { id: "branches", label: "Branches" },
           { id: "zones", label: "Service zones" },
           { id: "users", label: "Users & access" },
@@ -434,6 +436,9 @@ function AdminAppInner() {
       ? [
           { id: "ledger", label: "Financial ledger" },
           { id: "accounts", label: "Ledger accounts" },
+          { id: "adjustments", label: "Financial adjustments" },
+          { id: "destinations", label: "Payout destinations" },
+          { id: "disbursements", label: "Disbursement attempts" },
           { id: "settlements", label: "Merchant settlements" },
           { id: "payouts", label: "Rider payouts" },
         ]
@@ -444,6 +449,7 @@ function AdminAppInner() {
     ...(operationsAccess
       ? [
           { id: "configuration", label: "Dispatch & controls" },
+          { id: "launch", label: "Launch readiness" },
           { id: "audit", label: "Audit trail" },
         ]
       : []),
@@ -483,7 +489,7 @@ function AdminAppInner() {
                   "risk",
                 ].includes(selectedView) ||
                 (financeAccess &&
-                  ["accounts", "ledger", "settlements", "payouts"].includes(
+                  ["accounts", "ledger", "adjustments", "destinations", "disbursements", "settlements", "payouts"].includes(
                     selectedView,
                   ))
                   ? adminViews[selectedView].actions
@@ -492,6 +498,7 @@ function AdminAppInner() {
           />
         )}
         {selectedView === "configuration" && <OperationsConfig />}
+        {selectedView === "launch" && <LaunchReadiness />}
         {/* TAB 1: OVERVIEW & HEALTH PROBES */}
         {selectedView === "overview" && (
           <div className="flex flex-col gap-6">

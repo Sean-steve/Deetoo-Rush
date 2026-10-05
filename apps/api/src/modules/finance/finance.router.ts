@@ -32,6 +32,8 @@ import { riderPayoutService } from "./rider-payout.service";
 import { profitabilityService } from "./profitability.service";
 import { reconciliationService } from "./reconciliation.service";
 import { financialPostingService } from "./financial-posting.service";
+import { financialAdjustmentService } from "./financial-adjustment.service";
+import { disbursementService } from "./disbursement.service";
 
 export const financeRouter = Router();
 async function financeMerchant(req: AuthenticatedRequest, optional = false) {
@@ -161,6 +163,17 @@ financeRouter.get(
  * POST /api/v1/finance/adjustments
  * Post a manual financial adjustment between two ledger accounts
  */
+financeRouter.get(
+  "/adjustments",
+  requireAuth,
+  requireRole(UserRole.ADMIN, UserRole.FINANCE),
+  async (_req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      res.status(200).json({ adjustments: await financialAdjustmentService.list() });
+    } catch (error) { next(error); }
+  },
+);
+
 financeRouter.post(
   "/adjustments",
   requireAuth,
@@ -168,27 +181,46 @@ financeRouter.post(
   async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
       const parsed = FinancialAdjustmentCreateSchema.parse(req.body);
-      const adjId = `adj_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
-
-      const adj = {
-        id: adjId,
-        reason_code: parsed.reasonCode as any,
-        target_account_id: parsed.targetAccountId,
-        offset_account_id: parsed.offsetAccountId,
+      const adj = await financialAdjustmentService.request({
+        targetAccountId: parsed.targetAccountId,
+        offsetAccountId: parsed.offsetAccountId,
         direction: parsed.direction as any,
-        amount_minor: parsed.amountMinor,
+        amountMinor: parsed.amountMinor,
         currency: parsed.currency || "KES",
+        reasonCode: parsed.reasonCode,
         note: parsed.note,
-        requested_by: req.user!.id,
-        approved_by: req.user!.id,
-        created_at: new Date().toISOString(),
-      };
-
-      await financialPostingService.postFinancialAdjustment(adj);
+        requestedBy: req.user!.id,
+      });
       return res.status(201).json({ adjustment: adj });
-    } catch (error) {
-      next(error);
-    }
+    } catch (error) { next(error); }
+  },
+);
+
+financeRouter.post(
+  "/adjustments/:id/approve",
+  requireAuth,
+  requireRole(UserRole.ADMIN, UserRole.FINANCE),
+  async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      const adjustment = await financialAdjustmentService.approve(req.params.id, req.user!.id);
+      return res.status(200).json({ adjustment });
+    } catch (error) { next(error); }
+  },
+);
+
+financeRouter.post(
+  "/adjustments/:id/reject",
+  requireAuth,
+  requireRole(UserRole.ADMIN, UserRole.FINANCE),
+  async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      const adjustment = await financialAdjustmentService.reject(
+        req.params.id,
+        req.user!.id,
+        String(req.body?.reason || "Rejected by finance reviewer"),
+      );
+      return res.status(200).json({ adjustment });
+    } catch (error) { next(error); }
   },
 );
 
@@ -275,12 +307,12 @@ financeRouter.post(
   requireRole(UserRole.ADMIN, UserRole.FINANCE),
   async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
-      const parsed = SettlementPaySchema.parse(req.body);
-      const settlement = await settlementService.paySettlement(
+      const result = await disbursementService.initiateSettlement(
         req.params.id,
-        parsed.paymentReference,
+        req.user!.id,
+        req.body?.destination_id ? String(req.body.destination_id) : undefined,
       );
-      return res.status(200).json({ settlement });
+      return res.status(202).json(result);
     } catch (error) {
       next(error);
     }
@@ -370,12 +402,12 @@ financeRouter.post(
   requireRole(UserRole.ADMIN, UserRole.FINANCE),
   async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
-      const parsed = RiderPayoutPaySchema.parse(req.body);
-      const payout = await riderPayoutService.payPayout(
+      const result = await disbursementService.initiatePayout(
         req.params.id,
-        parsed.providerReference,
+        req.user!.id,
+        req.body?.destination_id ? String(req.body.destination_id) : undefined,
       );
-      return res.status(200).json({ payout });
+      return res.status(202).json(result);
     } catch (error) {
       next(error);
     }

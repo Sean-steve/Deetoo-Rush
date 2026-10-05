@@ -2284,6 +2284,21 @@ paths:
       security:
       - bearerAuth: []
   /finance/adjustments:
+    get:
+      summary: List financial adjustments awaiting or completing review
+      tags: [Finance]
+      responses:
+        '200':
+          description: Financial adjustments
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseGeneric'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+      operationId: finance_get_finance_adjustments
+      security:
+      - bearerAuth: []
     post:
       summary: STUB - POST /finance/adjustments (registered, not yet individually specified)
       tags:
@@ -6094,6 +6109,247 @@ paths:
       operationId: rider_post_rider_deliveries_id_fail
       security:
       - bearerAuth: []
+  /admin/control-tower:
+    get:
+      summary: Phase 3 marketplace control tower snapshot
+      tags: [Operations (Admin/Ops)]
+      responses:
+        '200':
+          description: Current marketplace operations snapshot
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseGeneric'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+      operationId: operations_get_admin_control_tower
+      security:
+      - bearerAuth: []
+  /admin/supply:
+    get:
+      summary: Phase 3 rider supply and delivery demand by service zone
+      tags: [Operations (Admin/Ops)]
+      responses:
+        '200':
+          description: Supply-demand rows by active service zone
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseGeneric'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+      operationId: operations_get_admin_supply
+      security:
+      - bearerAuth: []
+  /admin/merchants/onboarding:
+    get:
+      summary: List merchant onboarding pipeline
+      tags: [Admin]
+      responses:
+        '200':
+          description: Merchant onboarding work queue
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseGeneric'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+      operationId: admin_get_merchants_onboarding
+      security:
+      - bearerAuth: []
+  /admin/merchants/{id}/onboarding:
+    patch:
+      summary: Update merchant onboarding stage
+      tags: [Admin]
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema: { type: string }
+      responses:
+        '200':
+          description: Updated merchant onboarding state
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseGeneric'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+      operationId: admin_patch_merchants_id_onboarding
+      security:
+      - bearerAuth: []
+  /admin/dispatch/deliveries/{id}/candidates:
+    get:
+      summary: Inspect currently eligible dispatch candidates
+      tags: [Admin]
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema: { type: string }
+      responses:
+        '200':
+          description: Ranked eligible rider candidates
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseGeneric'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+      operationId: admin_get_dispatch_delivery_candidates
+      security:
+      - bearerAuth: []
+  /finance/adjustments/{id}/approve:
+    post:
+      summary: Approve and post a requested financial adjustment
+      tags: [Finance]
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema: { type: string }
+      responses:
+        '200':
+          description: Posted adjustment
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseGeneric'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+      operationId: finance_post_adjustments_id_approve
+      security:
+      - bearerAuth: []
+  /finance/adjustments/{id}/reject:
+    post:
+      summary: Reject a requested financial adjustment
+      tags: [Finance]
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema: { type: string }
+      responses:
+        '200':
+          description: Rejected adjustment
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseGeneric'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+      operationId: finance_post_adjustments_id_reject
+      security:
+      - bearerAuth: []
+  /finance/disbursements:
+    get:
+      summary: List durable money-out attempts
+      tags: [Finance]
+      responses:
+        '200':
+          description: Disbursement attempts
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseGeneric'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+      operationId: finance_get_disbursements
+      security:
+      - bearerAuth: []
+  /finance/disbursements/destinations:
+    get:
+      summary: List verified payout destinations
+      tags: [Finance]
+      responses:
+        '200':
+          description: Payout destinations with secrets omitted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseGeneric'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+      operationId: finance_get_disbursement_destinations
+      security:
+      - bearerAuth: []
+    post:
+      summary: Create or replace a verified payout destination
+      tags: [Finance]
+      responses:
+        '201':
+          description: Payout destination created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseGeneric'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+      operationId: finance_post_disbursement_destinations
+      security:
+      - bearerAuth: []
+  /finance/disbursements/callback:
+    post:
+      summary: Trusted payout gateway callback
+      tags: [Finance]
+      responses:
+        '200':
+          description: Provider result accepted idempotently
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseGeneric'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+      operationId: finance_post_disbursement_callback
+      security: []
+
+  /admin/launch-readiness:
+    get:
+      summary: Evaluate production launch readiness and evidence gates
+      tags: [Operations (Admin/Ops)]
+      responses:
+        '200':
+          description: Launch readiness snapshot
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseGeneric'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+      operationId: operations_get_admin_launch_readiness
+      security:
+      - bearerAuth: []
+  /admin/launch-readiness/{gate}:
+    patch:
+      summary: Update a production launch evidence gate
+      tags: [Operations (Admin/Ops)]
+      parameters:
+      - name: gate
+        in: path
+        required: true
+        schema: { type: string }
+      responses:
+        '200':
+          description: Updated launch gate
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseGeneric'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+      operationId: operations_patch_admin_launch_readiness_gate
+      security:
+      - bearerAuth: []
+
 components:
   securitySchemes:
     bearerAuth:
