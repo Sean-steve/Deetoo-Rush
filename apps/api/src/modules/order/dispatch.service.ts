@@ -1346,7 +1346,6 @@ export class DispatchService {
           firstName: riderProfile.firstName,
           vehicleType: riderProfile.vehicleType,
           vehicleRegistrationMasked: maskedReg,
-          phoneProxy: '+254 700 000 000 ext 303',
         };
 
         // Live location from Redis/InMemory store
