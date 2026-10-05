@@ -722,70 +722,60 @@ export class DispatchService {
       // Free up rider work status
       await riderRepository.updateWorkStatus(riderProfile.id, RiderWorkStatus.ONLINE_AVAILABLE);
 
-      // Transition order to COMPLETED
-      try {
-        const order = await orderRepository.findById(delivery.order_id);
-        if (order && order.status !== OrderStatus.COMPLETED) {
-          const orderTransition = orderStateMachine.transition(order, {
-            targetStatus: OrderStatus.COMPLETED,
-            actorType: 'SYSTEM',
-            actorName: 'Dispatch Engine',
-            note: `Delivery confirmed completed by courier ${riderProfile.firstName}`,
-          });
-
-          await orderRepository.updateOrderStatus(
-            order.id,
-            orderTransition.newStatus,
-            orderTransition.updatedOrderFields,
-            orderTransition.timelineEntry
-          );
-
-          await this.publishRealtimeEvent(`order:${order.id}`, 'order.completed', {
-            order_id: order.id,
-            order_number: order.order_number,
-            status: OrderStatus.COMPLETED,
-            completed_at: new Date().toISOString(),
-          });
-        }
-      } catch (err) {
-        logger.error('Failed to transition order to COMPLETED upon delivery', {
-          service: 'dispatch-engine',
-          error: (err as Error).message,
-        });
+      // Order completion and Rider earning are part of the same transactional command.
+      // A delivery cannot commit DELIVERED while either durable business effect is missing.
+      const order = await orderRepository.findById(delivery.order_id);
+      if (!order) {
+        throw new Error('Cannot complete delivery because its order is missing');
       }
+      if (order.status !== OrderStatus.COMPLETED) {
+        const orderTransition = orderStateMachine.transition(order, {
+          targetStatus: OrderStatus.COMPLETED,
+          actorType: 'SYSTEM',
+          actorName: 'Dispatch Engine',
+          note: `Delivery confirmed completed by courier ${riderProfile.firstName}`,
+        });
 
-      // Calculate courier earnings and post to double-entry ledger (Sprint 12)
-      try {
-        const pickupLat = delivery.pickup_location?.lat ?? delivery.pickup_location?.latitude;
-        const pickupLng = delivery.pickup_location?.lng ?? delivery.pickup_location?.longitude;
-        const dropoffLat = delivery.dropoff_location?.lat ?? delivery.dropoff_location?.latitude;
-        const dropoffLng = delivery.dropoff_location?.lng ?? delivery.dropoff_location?.longitude;
-        if (
-          ![pickupLat, pickupLng, dropoffLat, dropoffLng].every(
-            (value) => typeof value === 'number' && Number.isFinite(value),
-          )
-        ) {
-          throw new Error('Cannot calculate Rider earning without authoritative pickup/drop-off coordinates');
-        }
-        const distanceMeters = calculateDistanceMeters(
-          pickupLat as number,
-          pickupLng as number,
-          dropoffLat as number,
-          dropoffLng as number,
+        await orderRepository.updateOrderStatus(
+          order.id,
+          orderTransition.newStatus,
+          orderTransition.updatedOrderFields,
+          orderTransition.timelineEntry
         );
 
-        const earning = await riderEarningsService.calculateAndRecordEarning({
-          riderId: riderProfile.id,
-          deliveryId: delivery.id,
-          orderId: delivery.order_id,
-          distanceMeters,
-        });
-        await financialPostingService.postRiderEarning(earning);
-      } catch (finErr) {
-        logger.error('Failed to post rider earnings to financial ledger', {
-          error: finErr,
+        await this.publishRealtimeEvent(`order:${order.id}`, 'order.completed', {
+          order_id: order.id,
+          order_number: order.order_number,
+          status: OrderStatus.COMPLETED,
+          completed_at: new Date().toISOString(),
         });
       }
+
+      const pickupLat = delivery.pickup_location?.lat ?? delivery.pickup_location?.latitude;
+      const pickupLng = delivery.pickup_location?.lng ?? delivery.pickup_location?.longitude;
+      const dropoffLat = delivery.dropoff_location?.lat ?? delivery.dropoff_location?.latitude;
+      const dropoffLng = delivery.dropoff_location?.lng ?? delivery.dropoff_location?.longitude;
+      if (
+        ![pickupLat, pickupLng, dropoffLat, dropoffLng].every(
+          (value) => typeof value === 'number' && Number.isFinite(value),
+        )
+      ) {
+        throw new Error('Cannot calculate Rider earning without authoritative pickup/drop-off coordinates');
+      }
+      const distanceMeters = calculateDistanceMeters(
+        pickupLat as number,
+        pickupLng as number,
+        dropoffLat as number,
+        dropoffLng as number,
+      );
+
+      const earning = await riderEarningsService.calculateAndRecordEarning({
+        riderId: riderProfile.id,
+        deliveryId: delivery.id,
+        orderId: delivery.order_id,
+        distanceMeters,
+      });
+      await financialPostingService.postRiderEarning(earning);
     }
 
     // Publish multi-channel status update
