@@ -71,6 +71,9 @@ jobs:
       - name: Run Phase 2 fulfilment regressions
         run: pnpm test:phase2
 
+      - name: Validate Rider Android native prebuild
+        run: pnpm prebuild:rider-android
+
       - name: Build Rider Android bundle
         run: pnpm build:rider-android
 
