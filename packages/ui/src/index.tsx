@@ -259,7 +259,7 @@ export const Checkbox: React.FC<
     <input
       type="checkbox"
       id={id}
-      className={`h-4 w-4 rounded border-slate-300 text-[#00A651] focus:ring-brand cursor-pointer ${className}`}
+      className={`h-4 w-4 rounded border-slate-300 text-[#00BF62] focus:ring-brand cursor-pointer ${className}`}
       {...props}
     />
     {label && <span>{label}</span>}
@@ -273,7 +273,7 @@ export const Radio: React.FC<
     <input
       type="radio"
       id={id}
-      className={`h-4 w-4 border-slate-300 text-[#00A651] focus:ring-brand cursor-pointer ${className}`}
+      className={`h-4 w-4 border-slate-300 text-[#00BF62] focus:ring-brand cursor-pointer ${className}`}
       {...props}
     />
     {label && <span>{label}</span>}
