@@ -72,6 +72,22 @@ export function securityHeadersMiddleware(req: Request, res: Response, next: Nex
   }
 
   const origin = req.headers.origin;
+  if (
+    origin &&
+    isUnsafeMethod(req.method) &&
+    req.path.startsWith('/api/v1/auth/') &&
+    !isAllowedOrigin(origin)
+  ) {
+    res.status(403).json({
+      error: {
+        code: 'ORIGIN_NOT_ALLOWED',
+        message: 'Request origin is not allowed',
+        request_id: req.headers['x-request-id'] || null,
+      },
+    });
+    return;
+  }
+
   if (origin && isAllowedOrigin(origin)) {
     res.setHeader('Access-Control-Allow-Origin', origin);
     res.setHeader('Access-Control-Allow-Credentials', 'true');
