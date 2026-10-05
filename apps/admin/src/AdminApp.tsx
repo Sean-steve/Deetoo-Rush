@@ -8,6 +8,12 @@ import { ResourceTable } from "./components/ResourceTable";
 import { adminViews } from "./components/adminViews";
 import { OperationsConfig } from "./components/OperationsConfig";
 import { LaunchReadiness } from "./components/LaunchReadiness";
+
+function adminTabFromPath(){
+  const path=window.location.pathname.replace(/^\/ops/,"").replace(/\/+$/,"");
+  return path&&path!=="/"?path.replace(/^\//,""):"command";
+}
+function adminTabPath(tab:string){const prefix=window.location.pathname.startsWith("/ops")?"/ops":"";return `${prefix}/${tab}`;}
 /**
  * DEETOO - Admin & Operations Application Shell
  * Central operations console: User management, RBAC, live audit trail, zones, health
@@ -55,6 +61,7 @@ import {
   Bike,
   Car,
   Radio,
+  Store,
 } from "lucide-react";
 
 export function AdminApp() {
@@ -77,7 +84,17 @@ function AdminAppInner() {
     apiClient,
   } = useAuth();
 
-  const [activeTab, setActiveTab] = useState<string>("command");
+  const [activeTab, setActiveTabState] = useState<string>(()=>adminTabFromPath());
+  const setActiveTab=(tab:string)=>{
+    setActiveTabState(tab);
+    const next=adminTabPath(tab);
+    if(window.location.pathname!==next)window.history.pushState({}, "", next);
+  };
+  useEffect(()=>{
+    const sync=()=>setActiveTabState(adminTabFromPath());
+    window.addEventListener("popstate",sync);
+    return()=>window.removeEventListener("popstate",sync);
+  },[]);
   const [healthData, setHealthData] = useState<SystemHealthResponse | null>(
     null,
   );
@@ -321,19 +338,19 @@ function AdminAppInner() {
   // 1. UNAUTHENTICATED STATE: Admin Login View
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen bg-canvas flex flex-col justify-center items-center p-4 font-sans text-ink">
-        <div className="max-w-md w-full">
+      <div className="portal-login-shell min-h-screen bg-canvas flex flex-col justify-center items-center p-4 font-sans text-ink">
+        <div className="portal-login-wrap max-w-md w-full">
           <div className="text-center mb-8">
             <DeetooLogo className="h-10 mx-auto  mb-3" />
             <h1 className="text-xl font-bold text-ink tracking-tight">
-              Operations & Administration Console
+              DeeToo Operations
             </h1>
             <p className="text-xs text-slate-600 mt-1">
-              Manage Deetoo operations and account access.
+              Live marketplace control for orders, riders, restaurants, payments and platform health.
             </p>
           </div>
 
-          <Card className="bg-canvas border-stone-200 p-6 text-ink shadow-2xl">
+          <Card className="portal-login-card bg-white border-stone-200 p-6 text-ink shadow-2xl">
             <form onSubmit={handleLogin} className="space-y-4">
               {authError && (
                 <div className="p-3 bg-rose-950/80 border border-rose-800 rounded text-rose-300 text-xs flex items-center gap-2">
@@ -381,7 +398,7 @@ function AdminAppInner() {
   // 2. FORBIDDEN ROLE STATE
   if (!isAdminAuthorized) {
     return (
-      <div className="min-h-screen bg-canvas flex flex-col justify-center items-center p-4 font-sans text-ink">
+      <div className="portal-login-shell min-h-screen bg-canvas flex flex-col justify-center items-center p-4 font-sans text-ink">
         <Card className="max-w-md w-full bg-canvas border-stone-200 p-6 text-center">
           <Lock size={36} className="mx-auto text-rose-500 mb-3" />
           <h2 className="text-base font-bold text-ink">
@@ -412,48 +429,48 @@ function AdminAppInner() {
   const navigation = [
     ...(operationalRead
       ? [
-          { id: "command", label: "Overview / pulse" },
-          { id: "dispatch", label: "Live dispatch & fleet" },
-          { id: "orders", label: "Orders & deliveries" },
-          { id: "riders", label: "Riders" },
+          { id: "command", label: "Overview / pulse", icon:<Activity size={16}/>, group:"Live operations" },
+          { id: "dispatch", label: "Live dispatch & fleet", icon:<Radio size={16}/>, group:"Live operations" },
+          { id: "orders", label: "Orders & deliveries", icon:<FileText size={16}/>, group:"Live operations" },
+          { id: "riders", label: "Riders", icon:<Bike size={16}/>, group:"Live operations" },
         ]
       : []),
     ...(operationsAccess
       ? [
-          { id: "merchants", label: "Merchants & approvals" },
-          { id: "onboarding", label: "Merchant onboarding" },
-          { id: "branches", label: "Branches" },
-          { id: "zones", label: "Service zones" },
-          { id: "users", label: "Users & access" },
+          { id: "merchants", label: "Merchants & approvals", icon:<Store size={16}/>, group:"Marketplace" },
+          { id: "onboarding", label: "Merchant onboarding", icon:<CheckCircle2 size={16}/>, group:"Marketplace" },
+          { id: "branches", label: "Branches", icon:<MapPin size={16}/>, group:"Marketplace" },
+          { id: "zones", label: "Service zones", icon:<MapPin size={16}/>, group:"Marketplace" },
+          { id: "users", label: "Users & access", icon:<Users size={16}/>, group:"Marketplace" },
         ]
       : []),
-    { id: "incidents", label: "Fleet & incidents" },
-    { id: "support", label: "Support cases" },
+    { id: "incidents", label: "Fleet & incidents", icon:<AlertTriangle size={16}/>, group:"Care & risk" },
+    { id: "support", label: "Support cases", icon:<User size={16}/>, group:"Care & risk" },
     ...(operationalRead
-      ? [{ id: "payments", label: "M-PESA, cards & refunds" }]
+      ? [{ id: "payments", label: "M-PESA, cards & refunds", icon:<DollarSign size={16}/>, group:"Money" }]
       : []),
     ...(financeAccess
       ? [
-          { id: "ledger", label: "Financial ledger" },
-          { id: "accounts", label: "Ledger accounts" },
-          { id: "adjustments", label: "Financial adjustments" },
-          { id: "destinations", label: "Payout destinations" },
-          { id: "disbursements", label: "Disbursement attempts" },
-          { id: "settlements", label: "Merchant settlements" },
-          { id: "payouts", label: "Rider payouts" },
+          { id: "ledger", label: "Financial ledger", icon:<Database size={16}/>, group:"Money" },
+          { id: "accounts", label: "Ledger accounts", icon:<FileText size={16}/>, group:"Money" },
+          { id: "adjustments", label: "Financial adjustments", icon:<DollarSign size={16}/>, group:"Money" },
+          { id: "destinations", label: "Payout destinations", icon:<MapPin size={16}/>, group:"Money" },
+          { id: "disbursements", label: "Disbursement attempts", icon:<DollarSign size={16}/>, group:"Money" },
+          { id: "settlements", label: "Merchant settlements", icon:<Store size={16}/>, group:"Money" },
+          { id: "payouts", label: "Rider payouts", icon:<Bike size={16}/>, group:"Money" },
         ]
       : []),
-    { id: "notifications", label: "Notifications" },
-    { id: "jobs", label: "Background jobs" },
-    { id: "risk", label: "Risk signals" },
+    { id: "notifications", label: "Notifications", icon:<Radio size={16}/>, group:"System" },
+    { id: "jobs", label: "Background jobs", icon:<Server size={16}/>, group:"System" },
+    { id: "risk", label: "Risk signals", icon:<ShieldAlert size={16}/>, group:"Care & risk" },
     ...(operationsAccess
       ? [
-          { id: "configuration", label: "Dispatch & controls" },
-          { id: "launch", label: "Launch readiness" },
-          { id: "audit", label: "Audit trail" },
+          { id: "configuration", label: "Dispatch & controls", icon:<Filter size={16}/>, group:"System" },
+          { id: "launch", label: "Launch readiness", icon:<CheckCircle2 size={16}/>, group:"System" },
+          { id: "audit", label: "Audit trail", icon:<FileText size={16}/>, group:"System" },
         ]
       : []),
-    { id: "overview", label: "System health" },
+    { id: "overview", label: "System health", icon:<Activity size={16}/>, group:"System" },
   ];
   const selectedView = navigation.some((n) => n.id === activeTab)
     ? activeTab
@@ -604,7 +621,7 @@ function AdminAppInner() {
             </div>
 
             {/* Sprint 2 RBAC Guidance */}
-            <Card className="bg-white border-l-4 border-l-[#00A651]">
+            <Card className="bg-white border-l-4 border-l-[#00BF62]">
               <div className="flex items-start gap-3">
                 <ShieldAlert
                   size={22}

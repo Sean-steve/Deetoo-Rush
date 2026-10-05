@@ -64,6 +64,25 @@ import { CustomerAddressModal } from "./components/CustomerAddressModal";
 import { CustomerProfileManager } from "./components/CustomerProfileManager";
 import { RestaurantCard } from "./components/RestaurantCard";
 
+type CustomerTab = "discovery" | "cart" | "orders" | "profile" | "security" | "support";
+const customerTabPath:Record<CustomerTab,string>={
+  discovery:"/customer",
+  cart:"/customer/cart",
+  orders:"/customer/orders",
+  profile:"/customer/profile",
+  security:"/customer/security",
+  support:"/customer/support",
+};
+function customerTabFromPath():CustomerTab{
+  const path=window.location.pathname.replace(/\/+$/,"");
+  if(path.endsWith("/cart"))return "cart";
+  if(path.endsWith("/orders"))return "orders";
+  if(path.endsWith("/profile"))return "profile";
+  if(path.endsWith("/security"))return "security";
+  if(path.endsWith("/support"))return "support";
+  return "discovery";
+}
+
 export function CustomerApp() {
   return (
     <AuthProvider clientApp="customer">
@@ -88,9 +107,17 @@ function CustomerAppInner() {
   } = useAuth();
 
   // Navigation tab state
-  const [activeTab, setActiveTab] = useState<
-    "discovery" | "cart" | "orders" | "profile" | "security" | "support"
-  >("discovery");
+  const [activeTab, setActiveTabState] = useState<CustomerTab>(()=>customerTabFromPath());
+  const setActiveTab = useCallback((tab:CustomerTab)=>{
+    setActiveTabState(tab);
+    const next=customerTabPath[tab];
+    if(window.location.pathname!==next)window.history.pushState({}, "", next);
+  },[]);
+  useEffect(()=>{
+    const sync=()=>setActiveTabState(customerTabFromPath());
+    window.addEventListener("popstate",sync);
+    return()=>window.removeEventListener("popstate",sync);
+  },[]);
 
   const cartSummary = useResource<any>(isAuthenticated ? "/cart" : null);
   const [discoveryError, setDiscoveryError] = useState<string | null>(null);
@@ -165,6 +192,12 @@ function CustomerAppInner() {
       setSavedAddresses([]);
     }
   }, [isAuthenticated]);
+
+  useEffect(() => {
+    if (!isAuthenticated && ["profile", "security", "support"].includes(activeTab)) {
+      setActiveTab("discovery");
+    }
+  }, [isAuthenticated, activeTab, setActiveTab]);
 
   // 2. Load serviceability whenever location coordinates change
   useEffect(() => {
@@ -455,9 +488,9 @@ function CustomerAppInner() {
 
   return (
     <ErrorBoundary fallbackTitle="Customer Application Error Boundary">
-      <div className="min-h-screen bg-canvas text-ink flex flex-col font-sans">
+      <div className="customer-shell min-h-screen bg-canvas text-ink flex flex-col font-sans">
         {/* Top Navbar */}
-        <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/95 backdrop-blur-xs px-4 py-3 sm:px-6">
+        <header className="customer-topbar sticky top-0 z-30 border-b border-slate-200 bg-white/95 backdrop-blur-xs px-4 py-3 sm:px-6">
           <div className="max-w-6xl mx-auto flex flex-wrap items-center justify-between gap-4">
             <div className="flex items-center gap-3">
               <DeetooLogo className="h-7" />
@@ -563,19 +596,19 @@ function CustomerAppInner() {
           </div>
         )}
 
-        <div className="max-w-6xl mx-auto w-full px-4 py-3">
+        <div className="hidden sm:block max-w-6xl mx-auto w-full px-4 py-3">
           <Navigation
             active={activeTab}
             onChange={(id) => setActiveTab(id as typeof activeTab)}
             items={[
-              { id: "discovery", label: "Discover" },
-              { id: "cart", label: "Your bag" },
-              { id: "orders", label: "Orders & tracking" },
+              { id: "discovery", label: "Discover", icon: <Search size={15}/> },
+              { id: "cart", label: "Your bag", icon: <ShoppingBag size={15}/> },
+              { id: "orders", label: "Orders & tracking", icon: <History size={15}/> },
               ...(isAuthenticated
                 ? [
-                    { id: "profile", label: "Profile & addresses" },
-                    { id: "security", label: "Security" },
-                    { id: "support", label: "Support" },
+                    { id: "profile", label: "Profile & addresses", icon: <User size={15}/> },
+                    { id: "security", label: "Security", icon: <ShieldCheck size={15}/> },
+                    { id: "support", label: "Support", icon: <Mail size={15}/> },
                   ]
                 : []),
             ]}
@@ -947,6 +980,25 @@ function CustomerAppInner() {
             </Card>
           )}
         </main>
+
+        <div className="sm:hidden customer-mobile-nav">
+          <Navigation
+            mobile
+            active={activeTab}
+            onChange={(id) => setActiveTab(id as typeof activeTab)}
+            items={[
+              { id: "discovery", label: "Explore", icon: <Search size={18}/> },
+              { id: "cart", label: "Bag", icon: <ShoppingBag size={18}/> },
+              { id: "orders", label: "Orders", icon: <History size={18}/> },
+              ...(isAuthenticated
+                ? [
+                    { id: "profile", label: "Account", icon: <User size={18}/> },
+                    { id: "support", label: "Help", icon: <Mail size={18}/> },
+                  ]
+                : []),
+            ]}
+          />
+        </div>
 
         {/* Global Address Create Modal (Accessible from header Location Selector) */}
         {isAddressModalOpen && (

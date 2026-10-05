@@ -118,7 +118,7 @@ export function LaunchReadiness() {
       </ResourceState>
 
       <Modal
-        open={Boolean(selected)}
+        isOpen={Boolean(selected)}
         onClose={() => setSelected(null)}
         title={selected ? selected.gate_key.replaceAll("_", " ") : "Launch gate"}
       >

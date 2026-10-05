@@ -36,37 +36,30 @@ export function DeetooLogo({
   return (
     <svg
       className={className}
-      viewBox={showText ? "0 0 160 48" : "0 0 48 48"}
+      viewBox={showText ? "0 0 178 48" : "0 0 48 48"}
       role="img"
-      aria-label="Deetoo"
+      aria-label="DeeToo"
       xmlns="http://www.w3.org/2000/svg"
       fill="none"
     >
-      <rect x="4" y="4" width="40" height="40" rx="12" fill="#E24A24" />
-      <path
-        d="M16 14C16 14 26 14 30 18C34 22 34 26 30 30C26 34 16 34 16 34V14Z"
-        fill="white"
-        fillOpacity=".95"
-      />
-      <circle cx="23" cy="24" r="4.5" fill="#0A8754" />
-      <path
-        d="M28 13C30.5 11 34 11 36 13C36 15.5 34 19 31 19"
-        stroke="white"
-        strokeWidth="2.2"
-        strokeLinecap="round"
-      />
+      <circle cx="24" cy="24" r="21" fill="#00BF62" />
+      <path d="M13 22.5 24 13l11 9.5H13Z" fill="white" />
+      <path d="M13 27.5h22" stroke="white" strokeWidth="2.2" strokeLinecap="round" opacity=".35" />
       {showText && (
-        <text
-          x="54"
-          y="32"
-          fontFamily="Epilogue, sans-serif"
-          fontWeight="900"
-          fontSize="26"
-          letterSpacing="-.04em"
-          fill="#191C1E"
-        >
-          dee<tspan fill="#E24A24">too</tspan>
-        </text>
+        <>
+          <text
+            x="54"
+            y="31.5"
+            fontFamily="Epilogue, ui-sans-serif, system-ui, sans-serif"
+            fontWeight="900"
+            fontSize="25"
+            letterSpacing="-.045em"
+            fill="#10231A"
+          >
+            DeeToo
+          </text>
+          <circle cx="161" cy="27" r="3" fill="#00BF62" />
+        </>
       )}
     </svg>
   );
@@ -266,7 +259,7 @@ export const Checkbox: React.FC<
     <input
       type="checkbox"
       id={id}
-      className={`h-4 w-4 rounded border-slate-300 text-[#00A651] focus:ring-brand cursor-pointer ${className}`}
+      className={`h-4 w-4 rounded border-slate-300 text-[#00BF62] focus:ring-brand cursor-pointer ${className}`}
       {...props}
     />
     {label && <span>{label}</span>}
@@ -280,7 +273,7 @@ export const Radio: React.FC<
     <input
       type="radio"
       id={id}
-      className={`h-4 w-4 border-slate-300 text-[#00A651] focus:ring-brand cursor-pointer ${className}`}
+      className={`h-4 w-4 border-slate-300 text-[#00BF62] focus:ring-brand cursor-pointer ${className}`}
       {...props}
     />
     {label && <span>{label}</span>}
