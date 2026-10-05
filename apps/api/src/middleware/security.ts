@@ -37,6 +37,7 @@ function requiresSensitiveNoStore(path: string): boolean {
     '/api/v1/auth',
     '/api/v1/admin',
     '/api/v1/customer',
+    '/api/v1/cart',
     '/api/v1/merchant',
     '/api/v1/rider',
     '/api/v1/orders',
@@ -72,11 +73,16 @@ export function securityHeadersMiddleware(req: Request, res: Response, next: Nex
   }
 
   const origin = req.headers.origin;
-  if (
-    origin &&
+  const authTransport = req.header('X-Auth-Transport')?.toLowerCase();
+  const crossSiteFetch = req.header('Sec-Fetch-Site')?.toLowerCase() === 'cross-site';
+  const browserAuthMutation =
     isUnsafeMethod(req.method) &&
     req.path.startsWith('/api/v1/auth/') &&
-    !isAllowedOrigin(origin)
+    (authTransport === 'cookie' || crossSiteFetch);
+
+  if (
+    browserAuthMutation &&
+    (!origin || !isAllowedOrigin(origin))
   ) {
     res.status(403).json({
       error: {
