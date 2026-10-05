@@ -1,5 +1,6 @@
 import crypto from 'crypto';
-import { Request, Response, CookieOptions } from 'express';
+import { Request, Response } from 'express';
+import type { CookieOptions } from 'express';
 import { config } from '@deetoo/config';
 
 export type AuthTransport = 'cookie' | 'bearer' | 'legacy';
@@ -57,11 +58,14 @@ export function getRefreshToken(req: Request): string | null {
 }
 
 export function applyAuthTransport<T extends {
-  accessToken: string;
+  accessToken?: string;
   refreshToken: string;
 }>(req: Request, res: Response, result: T): Omit<T, 'accessToken' | 'refreshToken'> | T {
   const transport = getAuthTransport(req);
   if (transport === 'cookie') {
+    if (!result.accessToken) {
+      throw new Error('Cookie authentication requires an access token');
+    }
     res.cookie(ACCESS_COOKIE_NAME, result.accessToken, ACCESS_COOKIE_OPTIONS);
     res.cookie(REFRESH_COOKIE_NAME, result.refreshToken, REFRESH_COOKIE_OPTIONS);
     res.cookie(CSRF_COOKIE_NAME, crypto.randomBytes(32).toString('base64url'), CSRF_COOKIE_OPTIONS);
