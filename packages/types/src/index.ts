@@ -1950,7 +1950,6 @@ export interface RiderDeliveryDetail {
   deliveryId: string;
   orderId: string;
   orderNumber: string;
-  publicCode: string;
   status: DeliveryStatus;
   pickup: {
     name: string;
@@ -1971,7 +1970,6 @@ export interface RiderDeliveryDetail {
     instructions?: string | null;
     phoneProxy?: string;
   };
-  pickupVerificationCode: string;
   navigation: {
     pickupMapsUrl: string;
     dropoffMapsUrl: string;
