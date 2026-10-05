@@ -32,6 +32,8 @@ import { AppError } from "../../middleware/error-handler";
 import { dispatchService } from "../order/dispatch.service";
 import { deliveryRepository } from "../order/delivery.repository";
 import { orderRepository } from "../order/order.repository";
+import { riderEarningsService } from "../finance/rider-earnings.service";
+import { calculateDistanceMeters } from "@deetoo/utils";
 
 export const riderRouter = Router();
 
@@ -405,6 +407,28 @@ riderRouter.get(
         Math.round((expiresMs - nowMs) / 1000),
       );
 
+      const pickupLat = delivery?.pickup_location?.lat ?? delivery?.pickup_location?.latitude;
+      const pickupLng = delivery?.pickup_location?.lng ?? delivery?.pickup_location?.longitude;
+      const dropoffLat = delivery?.dropoff_location?.lat ?? delivery?.dropoff_location?.latitude;
+      const dropoffLng = delivery?.dropoff_location?.lng ?? delivery?.dropoff_location?.longitude;
+      const deliveryDistanceMeters =
+        [pickupLat, pickupLng, dropoffLat, dropoffLng].every(
+          (value) => typeof value === "number" && Number.isFinite(value),
+        )
+          ? calculateDistanceMeters(
+              pickupLat as number,
+              pickupLng as number,
+              dropoffLat as number,
+              dropoffLng as number,
+            )
+          : null;
+      const earningEstimate =
+        deliveryDistanceMeters == null
+          ? null
+          : riderEarningsService.estimateEarning({
+              distanceMeters: deliveryDistanceMeters,
+            });
+
       res.json({
         data: {
           offer: activeOffer,
@@ -418,7 +442,18 @@ riderRouter.get(
           dropoffLocation: delivery?.dropoff_location,
           distanceToPickupMeters: activeOffer.distance_to_pickup_meters,
           estimatedPickupEtaSeconds: activeOffer.estimated_pickup_eta_seconds,
-          estimatedEarningsMinor: 15000, // Standard KES 150.00 base delivery pay
+          estimatedDeliveryDistanceMeters: deliveryDistanceMeters,
+          estimatedEarningsMinor: earningEstimate?.totalMinor ?? null,
+          earningEstimate: earningEstimate
+            ? {
+                baseMinor: earningEstimate.baseMinor,
+                distanceMinor: earningEstimate.distanceMinor,
+                waitingMinor: earningEstimate.waitingMinor,
+                bonusMinor: earningEstimate.bonusMinor,
+                totalMinor: earningEstimate.totalMinor,
+                currency: "KES",
+              }
+            : null,
           itemCount: order?.items?.length || 1,
           secondsRemaining,
         },
