@@ -23,6 +23,7 @@ import { asyncJobService } from "./async-job.service";
 import { fraudRiskService } from "./risk.service";
 import { unifiedOrderViewService } from "./unified-order-view.service";
 import { operationsSlaService } from "./sla.service";
+import { controlTowerService } from "./control-tower.service";
 
 export const operationsRouter = Router();
 operationsRouter.use(scopedResponseMiddleware);
@@ -65,6 +66,26 @@ const staffAuth = [
   requireAuth,
   requireRole("admin", "ops", "support", "finance"),
 ];
+
+operationsRouter.get(
+  "/control-tower",
+  staffAuth,
+  async (_req: Request, res: Response, next: NextFunction) => {
+    try {
+      res.json({ success: true, data: await controlTowerService.snapshot() });
+    } catch (error) { next(error); }
+  },
+);
+
+operationsRouter.get(
+  "/supply",
+  opsAuth,
+  async (_req: Request, res: Response, next: NextFunction) => {
+    try {
+      res.json({ success: true, data: await controlTowerService.supplyByZone() });
+    } catch (error) { next(error); }
+  },
+);
 
 /**
  * Operations Overview Dashboard Metrics
