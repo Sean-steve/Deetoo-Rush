@@ -34,6 +34,7 @@ const ROUTERS: RouterConfig[] = [
   { file: 'apps/api/src/modules/cart/cart.router.ts', varName: 'checkoutRouter', prefix: '/checkout' },
   { file: 'apps/api/src/modules/customer/customer.router.ts', varName: 'customerRouter', prefix: '/customer' },
   { file: 'apps/api/src/modules/finance/finance.router.ts', varName: 'financeRouter', prefix: '/finance' },
+  { file: 'apps/api/src/modules/finance/disbursement.router.ts', varName: 'disbursementRouter', prefix: '/finance/disbursements' },
   { file: 'apps/api/src/modules/health/health.router.ts', varName: 'healthRouter', prefix: '' },
   { file: 'apps/api/src/modules/merchant/catalogue.router.ts', varName: 'catalogueRouter', prefix: '/merchant' },
   { file: 'apps/api/src/modules/merchant/merchant-orders.router.ts', varName: 'merchantOrderRouter', prefix: '/merchant' },
