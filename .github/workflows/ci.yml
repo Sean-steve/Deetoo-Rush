@@ -14,8 +14,6 @@ jobs:
   validate:
     name: Lint, Type Check, Test & Independent Builds
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -32,21 +30,14 @@ jobs:
           node-version: 22
 
       - name: Install Dependencies
-        run: pnpm install --no-frozen-lockfile
+        run: pnpm install --frozen-lockfile
 
-      - name: Bootstrap pnpm lockfile on Phase 1 branch
-        if: ${{ github.event_name == 'push' && github.ref_name == 'phase-1-platform-split-security' }}
+      - name: Verify pnpm-only repository policy
         run: |
-          if git ls-files --error-unmatch pnpm-lock.yaml >/dev/null 2>&1; then
-            echo "pnpm-lock.yaml is already tracked"
-            exit 0
-          fi
           test -f pnpm-lock.yaml
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add pnpm-lock.yaml
-          git commit -m "chore: add pnpm lockfile"
-          git push origin HEAD:${GITHUB_REF_NAME}
+          test ! -e package-lock.json
+          test ! -e bun.lock
+          test ! -e yarn.lock
 
       - name: Run Linters
         run: pnpm lint
@@ -109,7 +100,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - run: pnpm install --no-frozen-lockfile
+      - run: pnpm install --frozen-lockfile
       - run: pnpm test:foundation
 
   code-analysis:
@@ -144,7 +135,7 @@ jobs:
           node-version: 22
 
       - name: Install Dependencies
-        run: pnpm install --no-frozen-lockfile
+        run: pnpm install --frozen-lockfile
 
       - name: Install Chromium
         run: pnpm exec playwright install --with-deps chromium
