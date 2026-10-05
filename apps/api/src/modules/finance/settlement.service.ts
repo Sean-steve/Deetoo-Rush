@@ -155,6 +155,42 @@ export class SettlementService {
     return await this.repo.saveSettlement(settlement, settlement.lines || []);
   }
 
+  public async markProcessing(settlementId: string, initiatedByUserId: string): Promise<MerchantSettlement> {
+    const settlement = await this.repo.findSettlementById(settlementId);
+    if (!settlement) throw new Error(`Settlement not found: ${settlementId}`);
+    if (settlement.status === MerchantSettlementStatus.PROCESSING) return settlement;
+    if (settlement.status !== MerchantSettlementStatus.APPROVED) {
+      throw new Error(`Cannot initiate settlement in status ${settlement.status}`);
+    }
+    settlement.status = MerchantSettlementStatus.PROCESSING;
+    settlement.initiated_by = initiatedByUserId;
+    settlement.processing_at = new Date().toISOString();
+    settlement.failure_reason = null;
+    settlement.failed_at = null;
+    return this.repo.saveSettlement(settlement, settlement.lines || []);
+  }
+
+  public async confirmPaid(settlementId: string, paymentReference: string): Promise<MerchantSettlement> {
+    const settlement = await this.repo.findSettlementById(settlementId);
+    if (!settlement) throw new Error(`Settlement not found: ${settlementId}`);
+    if (settlement.status === MerchantSettlementStatus.PAID) {
+      if (settlement.payment_reference && settlement.payment_reference !== paymentReference) {
+        throw new AppError(409, 'SETTLEMENT_REFERENCE_CONFLICT', 'Settlement is already paid with another provider reference');
+      }
+      return settlement;
+    }
+    if (settlement.status !== MerchantSettlementStatus.PROCESSING) {
+      throw new Error(`Cannot confirm settlement paid from status ${settlement.status}`);
+    }
+    settlement.status = MerchantSettlementStatus.PAID;
+    settlement.paid_at = new Date().toISOString();
+    settlement.payment_reference = paymentReference;
+    settlement.failure_reason = null;
+    settlement.failed_at = null;
+    await this.postingSvc.postMerchantSettlement(settlement);
+    return this.repo.saveSettlement(settlement, settlement.lines || []);
+  }
+
   /**
    * Executes payment of an approved settlement and posts to ledger
    */
@@ -200,6 +236,7 @@ export class SettlementService {
     }
 
     settlement.status = MerchantSettlementStatus.FAILED;
+    settlement.failed_at = new Date().toISOString();
     settlement.failure_reason = reason;
 
     return await this.repo.saveSettlement(settlement, settlement.lines || []);
