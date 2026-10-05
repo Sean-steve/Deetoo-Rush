@@ -835,12 +835,15 @@ export class OperationsRepository {
     try {
       await pool.query(
         `UPDATE notifications SET
-          status = $1, provider_reference = $2, sent_at = $3, delivered_at = $4,
-          failed_at = $5, failure_code = $6, failure_reason = $7, retry_count = $8, read_at = $9
-        WHERE id = $10`,
+          status = $1, provider = $2, provider_reference = $3, scheduled_at = $4,
+          sent_at = $5, delivered_at = $6, failed_at = $7, failure_code = $8,
+          failure_reason = $9, retry_count = $10, read_at = $11
+        WHERE id = $12`,
         [
           updated.status,
+          updated.provider,
           updated.provider_reference || null,
+          updated.scheduled_at || null,
           updated.sent_at || null,
           updated.delivered_at || null,
           updated.failed_at || null,
@@ -858,6 +861,48 @@ export class OperationsRepository {
 
     this.notifications.set(id, updated);
     return updated;
+  }
+
+  public async claimPendingNotifications(limit = 25): Promise<NotificationRecord[]> {
+    if (config.storage.mode === "postgres") {
+      const res = await getDbPool().query(
+        `WITH candidates AS (
+           SELECT id
+           FROM notifications
+           WHERE status IN ('PENDING','FAILED')
+             AND retry_count < max_retries
+             AND (scheduled_at IS NULL OR scheduled_at <= NOW())
+           ORDER BY created_at ASC
+           LIMIT $1
+           FOR UPDATE SKIP LOCKED
+         )
+         UPDATE notifications n
+         SET status = 'QUEUED',
+             failure_code = NULL,
+             failure_reason = NULL
+         FROM candidates c
+         WHERE n.id = c.id
+         RETURNING n.*`,
+        [Math.max(1, Math.min(limit, 100))],
+      );
+      return res.rows.map((row: any) => this.mapNotification(row));
+    }
+
+    allowMemoryAdapter();
+    const now = Date.now();
+    return Array.from(this.notifications.values())
+      .filter((record) =>
+        ['PENDING', 'FAILED'].includes(record.status) &&
+        record.retry_count < record.max_retries &&
+        (!record.scheduled_at || new Date(record.scheduled_at).getTime() <= now),
+      )
+      .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
+      .slice(0, limit)
+      .map((record) => {
+        const queued = { ...record, status: 'QUEUED' as NotificationStatus };
+        this.notifications.set(record.id, queued);
+        return queued;
+      });
   }
 
   public async findNotifications(filter: {
