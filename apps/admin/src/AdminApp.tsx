@@ -420,6 +420,7 @@ function AdminAppInner() {
     ...(operationsAccess
       ? [
           { id: "merchants", label: "Merchants & approvals" },
+          { id: "onboarding", label: "Merchant onboarding" },
           { id: "branches", label: "Branches" },
           { id: "zones", label: "Service zones" },
           { id: "users", label: "Users & access" },
@@ -434,6 +435,9 @@ function AdminAppInner() {
       ? [
           { id: "ledger", label: "Financial ledger" },
           { id: "accounts", label: "Ledger accounts" },
+          { id: "adjustments", label: "Financial adjustments" },
+          { id: "destinations", label: "Payout destinations" },
+          { id: "disbursements", label: "Disbursement attempts" },
           { id: "settlements", label: "Merchant settlements" },
           { id: "payouts", label: "Rider payouts" },
         ]
@@ -483,7 +487,7 @@ function AdminAppInner() {
                   "risk",
                 ].includes(selectedView) ||
                 (financeAccess &&
-                  ["accounts", "ledger", "settlements", "payouts"].includes(
+                  ["accounts", "ledger", "adjustments", "destinations", "disbursements", "settlements", "payouts"].includes(
                     selectedView,
                   ))
                   ? adminViews[selectedView].actions
