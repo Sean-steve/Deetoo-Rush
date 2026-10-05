@@ -101,10 +101,11 @@ function CustomerAppInner() {
     latitude: number;
     longitude: number;
   }>({
-    address: "Mpaka Rd, Westlands, Nairobi",
-    latitude: -1.2683,
-    longitude: 36.8044,
+    address: "Choose delivery location",
+    latitude: 0,
+    longitude: 0,
   });
+  const [hasDeliveryLocation, setHasDeliveryLocation] = useState(false);
 
   const [savedAddresses, setSavedAddresses] = useState<CustomerAddress[]>([]);
   const [serviceability, setServiceability] =
@@ -167,16 +168,26 @@ function CustomerAppInner() {
 
   // 2. Load serviceability whenever location coordinates change
   useEffect(() => {
+    if (!hasDeliveryLocation) {
+      setServiceability(null);
+      return;
+    }
     checkServiceability(customerLocation.latitude, customerLocation.longitude);
-  }, [customerLocation.latitude, customerLocation.longitude]);
+  }, [hasDeliveryLocation, customerLocation.latitude, customerLocation.longitude]);
 
   // 3. Discover restaurants whenever location, category, search, or filters change
   useEffect(() => {
+    if (!hasDeliveryLocation) {
+      setRestaurants([]);
+      setIsLoadingRestaurants(false);
+      return;
+    }
     const timer = setTimeout(() => {
       loadRestaurants();
     }, 150);
     return () => clearTimeout(timer);
   }, [
+    hasDeliveryLocation,
     customerLocation.latitude,
     customerLocation.longitude,
     selectedCategory,
@@ -214,6 +225,7 @@ function CustomerAppInner() {
           latitude: defaultAddr.latitude,
           longitude: defaultAddr.longitude,
         });
+        setHasDeliveryLocation(true);
       }
     } catch {
       // ignore
@@ -234,6 +246,11 @@ function CustomerAppInner() {
 
   const discoveryRequest = useRef(0);
   const loadRestaurants = async () => {
+    if (!hasDeliveryLocation) {
+      setRestaurants([]);
+      setIsLoadingRestaurants(false);
+      return;
+    }
     const request = ++discoveryRequest.current;
     setDiscoveryError(null);
     setIsLoadingRestaurants(true);
@@ -260,6 +277,7 @@ function CustomerAppInner() {
   };
 
   const handleSelectAddress = (addr: CustomerAddress) => {
+    setHasDeliveryLocation(true);
     setCustomerLocation({
       address: `${addr.label}: ${addr.address_line1}`,
       latitude: addr.latitude,
@@ -268,6 +286,7 @@ function CustomerAppInner() {
   };
 
   const handleSelectPresetCoords = (name: string, lat: number, lng: number) => {
+    setHasDeliveryLocation(true);
     setCustomerLocation({
       address: name,
       latitude: lat,
@@ -278,6 +297,7 @@ function CustomerAppInner() {
   const handleAddressSaved = (saved: CustomerAddress) => {
     setSavedAddresses([saved, ...savedAddresses]);
     if (saved.is_default || savedAddresses.length === 0) {
+      setHasDeliveryLocation(true);
       setCustomerLocation({
         address: saved.address_line1,
         latitude: saved.latitude,
@@ -446,10 +466,14 @@ function CustomerAppInner() {
             {/* Address bar with PostGIS Location Selector */}
             <CustomerLocationSelector
               currentAddressText={customerLocation.address}
-              currentCoords={{
-                latitude: customerLocation.latitude,
-                longitude: customerLocation.longitude,
-              }}
+              currentCoords={
+                hasDeliveryLocation
+                  ? {
+                      latitude: customerLocation.latitude,
+                      longitude: customerLocation.longitude,
+                    }
+                  : undefined
+              }
               savedAddresses={savedAddresses}
               serviceability={serviceability}
               onSelectAddress={handleSelectAddress}
@@ -587,8 +611,10 @@ function CustomerAppInner() {
                     <ErrorState
                       message={discoveryError}
                       onRetry={() => {
-                        void checkServiceability(customerLocation.latitude, customerLocation.longitude);
-                        void loadRestaurants();
+                        if (hasDeliveryLocation) {
+                          void checkServiceability(customerLocation.latitude, customerLocation.longitude);
+                          void loadRestaurants();
+                        }
                       }}
                     />
                   )}
