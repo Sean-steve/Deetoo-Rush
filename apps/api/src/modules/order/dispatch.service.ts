@@ -803,6 +803,16 @@ export class DispatchService {
       throw new AppError(404, 'DELIVERY_NOT_FOUND', 'Delivery not found');
     }
 
+    const order = await orderRepository.findById(delivery.order_id);
+    if (!order || order.status !== OrderStatus.READY) {
+      throw new AppError(
+        409,
+        'ORDER_NOT_READY_FOR_PICKUP',
+        'Pickup can only be confirmed after the merchant marks the paid order READY',
+        { orderStatus: order?.status || 'MISSING' },
+      );
+    }
+
     const inputCode = options?.pickup_verification_code || options?.verification_code;
     // pickup_verification_code is always generated at delivery creation (delivery.repository.ts
     // COALESCE), so a delivery with none on file is a data problem, not a legitimate skip -- and
@@ -1045,8 +1055,17 @@ export class DispatchService {
       failure_note: options.note,
     });
 
-    // 4. Release rider work status back to ONLINE_AVAILABLE
-    await riderRepository.updateWorkStatus(riderProfile.id, RiderWorkStatus.ONLINE_AVAILABLE);
+    // 4. Preserve custody after pickup. A rider holding an undelivered order remains BUSY
+    // until Ops resolves the incident. Pre-pickup failures can safely release the rider.
+    if (delivery.picked_up_at || [
+      DeliveryStatus.PICKED_UP,
+      DeliveryStatus.EN_ROUTE,
+      DeliveryStatus.ARRIVED_DROPOFF,
+    ].includes(delivery.status)) {
+      await riderRepository.updateWorkStatus(riderProfile.id, RiderWorkStatus.BUSY);
+    } else {
+      await riderRepository.updateWorkStatus(riderProfile.id, RiderWorkStatus.ONLINE_AVAILABLE);
+    }
 
     // 5. Broadcast incident alert to Admin/Ops
     await this.publishRealtimeEvent('admin:dispatch', 'delivery.incident_reported', {
