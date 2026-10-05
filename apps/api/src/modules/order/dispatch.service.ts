@@ -46,6 +46,7 @@ import { riderEarningsService } from '../finance/rider-earnings.service';
 import { financialPostingService } from '../finance/financial-posting.service';
 import { logger, calculateDistanceMeters } from '@deetoo/utils';
 import { randomUUID } from 'crypto';
+import { mediaService } from '../media/media.service';
 
 export class DispatchService {
   private dispatchConfig: DispatchConfig = { ...config.dispatch };
@@ -880,6 +881,7 @@ export class DispatchService {
       proof_type: DeliveryProofType;
       otp?: string;
       verification_code?: string;
+      photo_media_id?: string;
       photo_url?: string;
       signature_data?: string;
       note?: string;
@@ -932,27 +934,24 @@ export class DispatchService {
         );
       }
 
-      proofValue = inputOtp;
+      proofValue = 'OTP_VERIFIED';
       proofMetadata.verified = true;
     } else if (proofType === 'PHOTO') {
-      if (!options.photo_url) {
-        throw new AppError(400, 'PHOTO_PROOF_REQUIRED', 'Photo URL is required for PHOTO proof of delivery');
+      if (!options.photo_media_id) {
+        throw new AppError(
+          400,
+          'PHOTO_PROOF_REQUIRED',
+          'A verified private media upload is required for PHOTO proof of delivery',
+        );
       }
-      // This validates shape only (an HTTPS URL), not that the URL resolves to a real photo the
-      // rider actually captured at this delivery -- that requires an upload path through private
-      // object storage with signed URLs, which does not exist anywhere in this codebase yet.
-      // Until that lands, PHOTO proof remains only as trustworthy as whatever string the rider's
-      // client supplies (audit-flagged, tracked separately -- not solved by this check).
-      let parsed: URL;
-      try {
-        parsed = new URL(options.photo_url);
-      } catch {
-        throw new AppError(400, 'PHOTO_PROOF_INVALID', 'Photo URL is not a valid URL');
-      }
-      if (parsed.protocol !== 'https:') {
-        throw new AppError(400, 'PHOTO_PROOF_INVALID', 'Photo URL must be HTTPS');
-      }
-      storageUrl = options.photo_url;
+      const media = await mediaService.assertVerifiedOwnedMedia(
+        options.photo_media_id,
+        riderUserId,
+        'DELIVERY_PROOF',
+        deliveryId,
+      );
+      storageUrl = `s3://${media.bucket}/${media.object_key}`;
+      proofMetadata.mediaObjectId = media.id;
     } else if (proofType === 'SIGNATURE') {
       if (!options.signature_data) {
         throw new AppError(400, 'SIGNATURE_PROOF_REQUIRED', 'Signature data is required for SIGNATURE proof of delivery');
@@ -976,6 +975,7 @@ export class DispatchService {
       type: proofType,
       proof_value: proofValue,
       storage_url: storageUrl,
+      media_object_id: proofType === 'PHOTO' ? options.photo_media_id : undefined,
       metadata: proofMetadata,
       created_by_rider_id: riderProfile.id,
     });
