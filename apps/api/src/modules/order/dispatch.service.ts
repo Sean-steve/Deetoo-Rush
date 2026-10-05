@@ -734,15 +734,23 @@ export class DispatchService {
 
       // Calculate courier earnings and post to double-entry ledger (Sprint 12)
       try {
-        const distanceMeters =
-          delivery.pickup_location && delivery.dropoff_location
-            ? calculateDistanceMeters(
-                delivery.pickup_location.latitude,
-                delivery.pickup_location.longitude,
-                delivery.dropoff_location.latitude,
-                delivery.dropoff_location.longitude
-              )
-            : 3200;
+        const pickupLat = delivery.pickup_location?.lat ?? delivery.pickup_location?.latitude;
+        const pickupLng = delivery.pickup_location?.lng ?? delivery.pickup_location?.longitude;
+        const dropoffLat = delivery.dropoff_location?.lat ?? delivery.dropoff_location?.latitude;
+        const dropoffLng = delivery.dropoff_location?.lng ?? delivery.dropoff_location?.longitude;
+        if (
+          ![pickupLat, pickupLng, dropoffLat, dropoffLng].every(
+            (value) => typeof value === 'number' && Number.isFinite(value),
+          )
+        ) {
+          throw new Error('Cannot calculate Rider earning without authoritative pickup/drop-off coordinates');
+        }
+        const distanceMeters = calculateDistanceMeters(
+          pickupLat as number,
+          pickupLng as number,
+          dropoffLat as number,
+          dropoffLng as number,
+        );
 
         const earning = await riderEarningsService.calculateAndRecordEarning({
           riderId: riderProfile.id,
