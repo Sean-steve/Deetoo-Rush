@@ -4,11 +4,19 @@ import {
   Heart, MapPin, ShieldCheck, ShoppingBag, Sparkles, Store, UtensilsCrossed,
   WalletCards, Zap
 } from "lucide-react";
-import { Button, DeetooLogo } from "../../../packages/ui/src/index";
+import { DeetooLogo } from "../../../packages/ui/src/index";
 
-const merchantUrl=(import.meta as any).env?.VITE_MERCHANT_PORTAL_URL || "/partner";
-const adminUrl=(import.meta as any).env?.VITE_ADMIN_PORTAL_URL || "/ops";
-const riderUrl=(import.meta as any).env?.VITE_RIDER_PORTAL_URL || "/riders";
+function portalUrl(envKey:"VITE_MERCHANT_PORTAL_URL"|"VITE_ADMIN_PORTAL_URL"|"VITE_RIDER_PORTAL_URL",localPort?:number,fallback="/"){
+  const configured=(import.meta as any).env?.[envKey];
+  if(configured)return configured;
+  if(localPort&&["localhost","127.0.0.1"].includes(window.location.hostname)){
+    return `${window.location.protocol}//${window.location.hostname}:${localPort}`;
+  }
+  return fallback;
+}
+const merchantUrl=portalUrl("VITE_MERCHANT_PORTAL_URL",5174,"/merchant");
+const adminUrl=portalUrl("VITE_ADMIN_PORTAL_URL",5175,"/ops");
+const riderUrl=portalUrl("VITE_RIDER_PORTAL_URL",undefined,"/riders");
 
 const nav=[
   ["Food","/restaurants"],
@@ -18,7 +26,6 @@ const nav=[
   ["Business","/business"],
 ];
 
-function go(path:string){window.history.pushState({}, "", path);window.dispatchEvent(new PopStateEvent("popstate"));}
 function LinkButton({href,children,className=""}:{href:string;children:React.ReactNode;className?:string}){
   return <a href={href} className={className}>{children}</a>;
 }
