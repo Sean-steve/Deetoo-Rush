@@ -41,7 +41,8 @@
     "test:paid-order": "NODE_ENV=test DEETOO_STORAGE_MODE=postgres DEETOO_FIXTURES=false tsx --test tests/paid-order/*.test.ts",
     "test:local-workflow": "NODE_ENV=test DEETOO_STORAGE_MODE=postgres DEETOO_FIXTURES=false tsx --test tests/local-workflow/*.test.ts",
     "typecheck:rider-android": "pnpm --filter @deetoo/rider-android typecheck",
-    "build:rider-android": "pnpm --filter @deetoo/rider-android export:android"
+    "build:rider-android": "pnpm --filter @deetoo/rider-android export:android",
+    "worker:notifications": "tsx --import dotenv/config scripts/notification-worker.ts"
   },
   "dependencies": {
     "@google/genai": "^2.4.0",
