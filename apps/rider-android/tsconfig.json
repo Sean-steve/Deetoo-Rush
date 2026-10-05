@@ -5,7 +5,22 @@
     "noEmit": true,
     "moduleResolution": "bundler",
     "resolveJsonModule": true,
-    "allowSyntheticDefaultImports": true
+    "allowSyntheticDefaultImports": true,
+    "baseUrl": "../..",
+    "paths": {
+      "@deetoo/api-client": [
+        "packages/api-client/src/index.ts"
+      ],
+      "@deetoo/auth-native": [
+        "packages/auth-native/src/index.ts"
+      ],
+      "@deetoo/types": [
+        "packages/types/src/index.ts"
+      ],
+      "@deetoo/utils": [
+        "packages/utils/src/index.ts"
+      ]
+    }
   },
   "include": [
     "App.tsx",
