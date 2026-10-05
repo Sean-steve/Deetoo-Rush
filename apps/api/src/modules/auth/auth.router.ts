@@ -253,7 +253,7 @@ authRouter.post(
         req.session!.user_id,
         (req as any).requestId
       );
-      res.clearCookie(REFRESH_COOKIE_NAME, { path: '/api/v1/auth' });
+      clearAuthTransport(res);
       res.json({
         data: { message: 'All active sessions have been terminated' },
         requestId: (req as any).requestId,
