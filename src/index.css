@@ -806,3 +806,9 @@ body { background: var(--deetoo-brand-cloud); }
 .portal-login-wrap h1 { margin-top:14px;font-size:26px!important;letter-spacing:-.045em!important; }
 .portal-login-wrap p { max-width:350px;margin-left:auto;margin-right:auto;line-height:1.6; }
 .portal-login-card { padding:28px!important;border-radius:26px!important;box-shadow:0 28px 70px rgba(16,35,26,.12)!important;border-color:rgba(16,35,26,.07)!important; }
+
+@media (max-width: 639px) {
+  .customer-mobile-nav { position:fixed; left:0; right:0; bottom:0; z-index:45; }
+  .customer-mobile-nav .bottom-navigation { position:static; background:rgba(255,255,255,.96); backdrop-filter:blur(18px); box-shadow:0 -10px 30px rgba(16,35,26,.08); }
+  .customer-shell main { padding-bottom:96px!important; }
+}
