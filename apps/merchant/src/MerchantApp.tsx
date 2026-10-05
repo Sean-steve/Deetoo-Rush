@@ -51,6 +51,27 @@ import {
 } from "lucide-react";
 import { CatalogueManager } from "./components/CatalogueManager";
 
+type MerchantTab = "orders" | "catalogue" | "finance" | "account" | "branch" | "support" | "sessions";
+const merchantTabPath:Record<MerchantTab,string>={
+  orders:"/orders",
+  catalogue:"/menu",
+  finance:"/finance",
+  account:"/business",
+  branch:"/branch",
+  support:"/support",
+  sessions:"/security",
+};
+function merchantTabFromPath():MerchantTab{
+  const path=window.location.pathname.replace(/^\/merchant/,"").replace(/\/+$/,"")||"/orders";
+  if(path==="/menu"||path==="/catalogue")return "catalogue";
+  if(path==="/finance")return "finance";
+  if(path==="/business"||path==="/account")return "account";
+  if(path==="/branch")return "branch";
+  if(path==="/support")return "support";
+  if(path==="/security"||path==="/sessions")return "sessions";
+  return "orders";
+}
+
 export function MerchantApp() {
   return (
     <AuthProvider clientApp="merchant">
@@ -89,15 +110,17 @@ function MerchantAppInner() {
   const [activeQueueTab, setActiveQueueTab] = useState<
     "PLACED" | "PREPARING" | "READY"
   >("PLACED");
-  const [activeMainTab, setActiveMainTab] = useState<
-    | "orders"
-    | "catalogue"
-    | "finance"
-    | "account"
-    | "branch"
-    | "support"
-    | "sessions"
-  >("orders");
+  const [activeMainTab, setActiveMainTabState] = useState<MerchantTab>(()=>merchantTabFromPath());
+  const setActiveMainTab=(tab:MerchantTab)=>{
+    setActiveMainTabState(tab);
+    const next=merchantTabPath[tab];
+    if(window.location.pathname!==next)window.history.pushState({}, "", next);
+  };
+  useEffect(()=>{
+    const sync=()=>setActiveMainTabState(merchantTabFromPath());
+    window.addEventListener("popstate",sync);
+    return()=>window.removeEventListener("popstate",sync);
+  },[]);
   const [prepModalOpen, setPrepModalOpen] = useState(false);
   const [prepMinutes, setPrepMinutes] = useState("20");
 
