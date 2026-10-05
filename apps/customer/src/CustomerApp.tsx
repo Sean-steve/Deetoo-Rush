@@ -64,6 +64,25 @@ import { CustomerAddressModal } from "./components/CustomerAddressModal";
 import { CustomerProfileManager } from "./components/CustomerProfileManager";
 import { RestaurantCard } from "./components/RestaurantCard";
 
+type CustomerTab = "discovery" | "cart" | "orders" | "profile" | "security" | "support";
+const customerTabPath:Record<CustomerTab,string>={
+  discovery:"/customer",
+  cart:"/customer/cart",
+  orders:"/customer/orders",
+  profile:"/customer/profile",
+  security:"/customer/security",
+  support:"/customer/support",
+};
+function customerTabFromPath():CustomerTab{
+  const path=window.location.pathname.replace(/\/+$/,"");
+  if(path.endsWith("/cart"))return "cart";
+  if(path.endsWith("/orders"))return "orders";
+  if(path.endsWith("/profile"))return "profile";
+  if(path.endsWith("/security"))return "security";
+  if(path.endsWith("/support"))return "support";
+  return "discovery";
+}
+
 export function CustomerApp() {
   return (
     <AuthProvider clientApp="customer">
@@ -88,9 +107,17 @@ function CustomerAppInner() {
   } = useAuth();
 
   // Navigation tab state
-  const [activeTab, setActiveTab] = useState<
-    "discovery" | "cart" | "orders" | "profile" | "security" | "support"
-  >("discovery");
+  const [activeTab, setActiveTabState] = useState<CustomerTab>(()=>customerTabFromPath());
+  const setActiveTab = useCallback((tab:CustomerTab)=>{
+    setActiveTabState(tab);
+    const next=customerTabPath[tab];
+    if(window.location.pathname!==next)window.history.pushState({}, "", next);
+  },[]);
+  useEffect(()=>{
+    const sync=()=>setActiveTabState(customerTabFromPath());
+    window.addEventListener("popstate",sync);
+    return()=>window.removeEventListener("popstate",sync);
+  },[]);
 
   const cartSummary = useResource<any>(isAuthenticated ? "/cart" : null);
   const [discoveryError, setDiscoveryError] = useState<string | null>(null);
