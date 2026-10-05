@@ -6,6 +6,7 @@ import {
   Card,
   EmptyState,
   ErrorState,
+  DeetooLogo,
   Price,
   Skeleton,
 } from "./index";
@@ -291,25 +292,35 @@ export function OperationsLayout({
   children: React.ReactNode;
   onLogout: () => void;
 }) {
+  const initials=(userName||"DeeToo").split(/[\s@._-]+/).filter(Boolean).slice(0,2).map(part=>part[0]?.toUpperCase()).join("");
   return (
     <div className="operations-layout">
       <aside className="operations-sidebar">
         <div className="ops-brand">
-          <strong>
-            Deetoo<span>.</span>
-          </strong>
-          <p>{title}</p>
+          <DeetooLogo className="h-10 w-auto" />
+          <div>
+            <p>Workspace</p>
+            <strong>{title}</strong>
+          </div>
         </div>
-        {navigation}
+        <div className="ops-nav-scroll">{navigation}</div>
+        <div className="ops-sidebar-foot">
+          <div className="ops-avatar">{initials}</div>
+          <div className="min-w-0">
+            <strong>{userName||"Signed in"}</strong>
+            <span>Secure DeeToo workspace</span>
+          </div>
+        </div>
       </aside>
       <div className="operations-content">
         <header className="operations-header">
-          <p>{title}</p>
-          <div className="flex items-center gap-4">
-            <span className="text-sm">{userName}</span>
-            <Button variant="outline" onClick={onLogout}>
-              Sign out
-            </Button>
+          <div>
+            <span className="ops-header-kicker">DeeToo workspace</span>
+            <h1>{title}</h1>
+          </div>
+          <div className="operations-header-actions">
+            <span className="ops-live-dot"><i/>Live</span>
+            <Button variant="outline" onClick={onLogout}>Sign out</Button>
           </div>
         </header>
         <main className="operations-main">{children}</main>
