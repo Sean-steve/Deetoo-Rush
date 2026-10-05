@@ -125,3 +125,24 @@ test('dispatch refuses missing pickup coordinates instead of falling back to Nai
     (error: any) => error?.code === 'DISPATCH_PICKUP_LOCATION_REQUIRED',
   );
 });
+
+
+test('cross-site browser auth mutation is rejected before session issuance', () => {
+  const req = mockRequest({
+    method: 'POST',
+    path: '/api/v1/auth/login',
+    headers: {
+      origin: 'https://evil.example',
+      'sec-fetch-site': 'cross-site',
+    },
+  });
+  const { response, state } = mockResponse();
+  let nextCalled = false;
+  securityHeadersMiddleware(req, response, () => {
+    nextCalled = true;
+  });
+
+  assert.equal(nextCalled, false);
+  assert.equal(state.statusCode, 403);
+  assert.equal(state.body.error.code, 'ORIGIN_NOT_ALLOWED');
+});
