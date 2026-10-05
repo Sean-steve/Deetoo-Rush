@@ -869,7 +869,10 @@ export class OperationsRepository {
         `WITH candidates AS (
            SELECT id
            FROM notifications
-           WHERE status IN ('PENDING','FAILED')
+           WHERE (
+               status IN ('PENDING','FAILED')
+               OR (status = 'QUEUED' AND scheduled_at <= NOW())
+             )
              AND retry_count < max_retries
              AND (scheduled_at IS NULL OR scheduled_at <= NOW())
            ORDER BY created_at ASC
@@ -878,6 +881,7 @@ export class OperationsRepository {
          )
          UPDATE notifications n
          SET status = 'QUEUED',
+             scheduled_at = NOW() + INTERVAL '30 seconds',
              failure_code = NULL,
              failure_reason = NULL
          FROM candidates c
@@ -892,14 +896,23 @@ export class OperationsRepository {
     const now = Date.now();
     return Array.from(this.notifications.values())
       .filter((record) =>
-        ['PENDING', 'FAILED'].includes(record.status) &&
+        (
+          ['PENDING', 'FAILED'].includes(record.status) ||
+          (record.status === 'QUEUED' &&
+            Boolean(record.scheduled_at) &&
+            new Date(record.scheduled_at as string).getTime() <= now)
+        ) &&
         record.retry_count < record.max_retries &&
         (!record.scheduled_at || new Date(record.scheduled_at).getTime() <= now),
       )
       .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
       .slice(0, limit)
       .map((record) => {
-        const queued = { ...record, status: 'QUEUED' as NotificationStatus };
+        const queued = {
+          ...record,
+          status: 'QUEUED' as NotificationStatus,
+          scheduled_at: new Date(Date.now() + 30_000).toISOString(),
+        };
         this.notifications.set(record.id, queued);
         return queued;
       });
