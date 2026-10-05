@@ -47,6 +47,7 @@ import { financialPostingService } from '../finance/financial-posting.service';
 import { logger, calculateDistanceMeters } from '@deetoo/utils';
 import { randomUUID } from 'crypto';
 import { mediaService } from '../media/media.service';
+import { routingProvider } from '../maps/routing.provider';
 
 export class DispatchService {
   private dispatchConfig: DispatchConfig = { ...config.dispatch };
@@ -129,7 +130,6 @@ export class DispatchService {
       );
     }
 
-    // 1. Query nearby available riders in Redis
     const nearbyLocations = await riderLocationStore.findNearbyAvailableRiders({
       latitude: pickupLat,
       longitude: pickupLng,
@@ -137,23 +137,23 @@ export class DispatchService {
       limit: this.dispatchConfig.routingCandidateLimit * 2,
     });
 
-    const candidates: DispatchCandidate[] = [];
+    const shortlist: Array<{
+      riderId: string;
+      userId: string;
+      riderName: string;
+      phone: string;
+      vehicleType: string;
+      latitude: number;
+      longitude: number;
+      straightLineDistanceMeters: number;
+    }> = [];
 
     for (const item of nearbyLocations) {
-      if (excludedRiderIds.includes(item.riderId)) {
-        continue;
-      }
+      if (excludedRiderIds.includes(item.riderId)) continue;
+      if (await deliveryRepository.hasActiveDelivery(item.riderId)) continue;
 
-      // Check active delivery assignment constraint (At most 1 active delivery per rider)
-      const hasActive = await deliveryRepository.hasActiveDelivery(item.riderId);
-      if (hasActive) {
-        continue;
-      }
-
-      // Fetch profile and check authoritative eligibility
       const profile = await riderRepository.findProfileById(item.riderId);
       if (!profile) continue;
-
       if (
         profile.onboardingStatus !== RiderOnboardingStatus.APPROVED ||
         profile.operationalStatus !== RiderOperationalStatus.ACTIVE ||
@@ -162,37 +162,22 @@ export class DispatchService {
         continue;
       }
 
-      // Verify operational eligibility
       const eligibility = await riderEligibilityService.isRiderEligibleForDispatch(profile.id);
-      if (!eligibility.eligible) {
-        continue;
-      }
+      if (!eligibility.eligible) continue;
 
-      // Calculate distance & ETA
-      const distMeters = item.distanceMeters || Math.round(
-        calculateDistanceMeters(
-          pickupLat,
-          pickupLng,
-          item.latitude,
-          item.longitude,
-          1.0
-        )
-      );
+      const straightLineDistanceMeters =
+        item.distanceMeters ||
+        Math.round(
+          calculateDistanceMeters(
+            pickupLat,
+            pickupLng,
+            item.latitude,
+            item.longitude,
+            1.0,
+          ),
+        );
 
-      // Assume average speed 25 km/h (~7 m/s) in urban traffic
-      const estimatedEtaSeconds = Math.max(60, Math.round(distMeters / 7));
-
-      // Multi-factor Scoring:
-      // Distance score: 0 - 100 (closer is higher)
-      const distanceScore = Math.max(0, Math.round(100 - (distMeters / radiusMeters) * 100));
-      // ETA score: 0 - 100 (lower ETA is higher)
-      const etaScore = Math.max(0, Math.round(100 - (estimatedEtaSeconds / 900) * 100));
-      // Activity & reliability score: 20 pts
-      const activityScore = 20;
-
-      const score = Math.round(distanceScore * 0.5 + etaScore * 0.3 + activityScore * 0.2);
-
-      candidates.push({
+      shortlist.push({
         riderId: profile.id,
         userId: profile.userId,
         riderName: `${profile.firstName} ${profile.lastName}`.trim(),
@@ -200,8 +185,54 @@ export class DispatchService {
         vehicleType: profile.vehicleType,
         latitude: item.latitude,
         longitude: item.longitude,
-        distanceToPickupMeters: distMeters,
-        estimatedPickupEtaSeconds: estimatedEtaSeconds,
+        straightLineDistanceMeters,
+      });
+    }
+
+    const routedShortlist = shortlist
+      .sort((a, b) => a.straightLineDistanceMeters - b.straightLineDistanceMeters)
+      .slice(0, this.dispatchConfig.routingCandidateLimit);
+    if (!routedShortlist.length) return [];
+
+    const routes = await routingProvider.pickupMatrix(
+      routedShortlist.map((candidate) => ({
+        id: candidate.riderId,
+        latitude: candidate.latitude,
+        longitude: candidate.longitude,
+        vehicleType: candidate.vehicleType,
+      })),
+      { latitude: pickupLat, longitude: pickupLng },
+    );
+    const routeByRider = new Map(routes.map((route) => [route.id, route]));
+
+    const candidates: DispatchCandidate[] = [];
+    for (const candidate of routedShortlist) {
+      const route = routeByRider.get(candidate.riderId);
+      if (!route) continue;
+
+      const distanceScore = Math.max(
+        0,
+        Math.round(100 - (route.distanceMeters / radiusMeters) * 100),
+      );
+      const etaScore = Math.max(
+        0,
+        Math.round(100 - (route.durationSeconds / 900) * 100),
+      );
+      const activityScore = 20;
+      const score = Math.round(
+        distanceScore * 0.5 + etaScore * 0.3 + activityScore * 0.2,
+      );
+
+      candidates.push({
+        riderId: candidate.riderId,
+        userId: candidate.userId,
+        riderName: candidate.riderName,
+        phone: candidate.phone,
+        vehicleType: candidate.vehicleType,
+        latitude: candidate.latitude,
+        longitude: candidate.longitude,
+        distanceToPickupMeters: route.distanceMeters,
+        estimatedPickupEtaSeconds: route.durationSeconds,
         rank: 0,
         score,
         scoreBreakdown: {
@@ -213,15 +244,16 @@ export class DispatchService {
       });
     }
 
-    // Sort by score descending (higher score = better rank)
-    candidates.sort((a, b) => b.score - a.score || a.distanceToPickupMeters - b.distanceToPickupMeters);
-
-    // Assign rank 1..N
-    candidates.forEach((c, idx) => {
-      c.rank = idx + 1;
+    candidates.sort(
+      (a, b) =>
+        b.score - a.score ||
+        a.estimatedPickupEtaSeconds - b.estimatedPickupEtaSeconds ||
+        a.distanceToPickupMeters - b.distanceToPickupMeters,
+    );
+    candidates.forEach((candidate, index) => {
+      candidate.rank = index + 1;
     });
-
-    return candidates.slice(0, this.dispatchConfig.routingCandidateLimit);
+    return candidates;
   }
 
   /**
