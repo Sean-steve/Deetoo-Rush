@@ -12,6 +12,7 @@ import { mediaRepository, MediaObjectRecord } from './media.repository';
 
 const CONTENT_TYPES: Record<string, string[]> = {
   DELIVERY_PROOF: ['image/jpeg', 'image/png', 'image/webp'],
+  DELIVERY_INCIDENT: ['image/jpeg', 'image/png', 'image/webp'],
   RIDER_DOCUMENT: ['image/jpeg', 'image/png', 'application/pdf'],
   MERCHANT_IMAGE: ['image/jpeg', 'image/png', 'image/webp'],
   SUPPORT_ATTACHMENT: ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'],
