@@ -1,5 +1,7 @@
 import { transactionalService } from '../../db/transaction';
 import { requireSimulationMode } from '../../db/storage-policy';
+import { config } from '@deetoo/config';
+import { externalNotificationProvider } from './external-notification.provider';
 /**
  * DEETOO - Multi-Channel Notification Service
  * Sprint 13: Transactional Notifications, Idempotency, Delivery Simulation, Retries & Dead-Letter Integration
@@ -73,19 +75,52 @@ export class NotificationService {
     try {
       let providerRef: string;
       if (record.channel === 'IN_APP') {
-        // IN_APP has a genuine, non-simulated delivery mechanism (the realtime SSE broker below)
-        // and does not depend on any third-party integration, so it is never subject to the
-        // simulation-mode guard that PUSH/SMS/EMAIL correctly remain behind.
         providerRef = `sse_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+      } else if (record.channel === 'PUSH') {
+        try {
+          providerRef = await externalNotificationProvider.sendPush(
+            record.recipient_id,
+            record.subject || 'Deetoo',
+            String(record.payload?.message || record.subject || 'You have a Deetoo update'),
+            {
+              notificationId: record.id,
+              templateCode: record.template_code,
+              ...record.payload,
+            },
+          );
+        } catch (providerError) {
+          if (config.storage.mode !== 'memory') throw providerError;
+          requireSimulationMode();
+          providerRef = `sim_push_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+        }
+      } else if (record.channel === 'SMS') {
+        try {
+          providerRef = await externalNotificationProvider.sendSms(
+            record.recipient_id,
+            String(record.payload?.message || record.subject || 'Deetoo update'),
+          );
+        } catch (providerError) {
+          if (config.storage.mode !== 'memory') throw providerError;
+          requireSimulationMode();
+          providerRef = `sim_sms_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+        }
+      } else if (record.channel === 'EMAIL') {
+        try {
+          providerRef = await externalNotificationProvider.sendEmail(
+            record.recipient_id,
+            record.subject || 'Deetoo update',
+            String(record.payload?.message || record.subject || 'You have a Deetoo update'),
+          );
+        } catch (providerError) {
+          if (config.storage.mode !== 'memory') throw providerError;
+          requireSimulationMode();
+          providerRef = `sim_email_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+        }
       } else {
-        // No SMS/Email/Push provider (Africa's Talking, SendGrid/SES, FCM/APNs, etc.) exists in
-        // this codebase. This guard is deliberately left in place rather than guessing at a
-        // vendor and fabricating an unverifiable integration -- fail closed, don't fail silent.
-        requireSimulationMode();
-        providerRef = `sim_${record.channel.toLowerCase()}_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+        throw new Error(`Unsupported notification channel: ${record.channel}`);
       }
 
-      // Simulate delivery success
+      // Persist provider-confirmed or in-app delivery success
       const delivered: Partial<NotificationRecord> = {
         status: 'DELIVERED',
         provider_reference: providerRef,
