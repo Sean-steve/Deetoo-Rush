@@ -590,19 +590,19 @@ function CustomerAppInner() {
           </div>
         )}
 
-        <div className="max-w-6xl mx-auto w-full px-4 py-3">
+        <div className="hidden sm:block max-w-6xl mx-auto w-full px-4 py-3">
           <Navigation
             active={activeTab}
             onChange={(id) => setActiveTab(id as typeof activeTab)}
             items={[
-              { id: "discovery", label: "Discover" },
-              { id: "cart", label: "Your bag" },
-              { id: "orders", label: "Orders & tracking" },
+              { id: "discovery", label: "Discover", icon: <Search size={15}/> },
+              { id: "cart", label: "Your bag", icon: <ShoppingBag size={15}/> },
+              { id: "orders", label: "Orders & tracking", icon: <History size={15}/> },
               ...(isAuthenticated
                 ? [
-                    { id: "profile", label: "Profile & addresses" },
-                    { id: "security", label: "Security" },
-                    { id: "support", label: "Support" },
+                    { id: "profile", label: "Profile & addresses", icon: <User size={15}/> },
+                    { id: "security", label: "Security", icon: <ShieldCheck size={15}/> },
+                    { id: "support", label: "Support", icon: <Mail size={15}/> },
                   ]
                 : []),
             ]}
@@ -974,6 +974,25 @@ function CustomerAppInner() {
             </Card>
           )}
         </main>
+
+        <div className="sm:hidden customer-mobile-nav">
+          <Navigation
+            mobile
+            active={activeTab}
+            onChange={(id) => setActiveTab(id as typeof activeTab)}
+            items={[
+              { id: "discovery", label: "Explore", icon: <Search size={18}/> },
+              { id: "cart", label: "Bag", icon: <ShoppingBag size={18}/> },
+              { id: "orders", label: "Orders", icon: <History size={18}/> },
+              ...(isAuthenticated
+                ? [
+                    { id: "profile", label: "Account", icon: <User size={18}/> },
+                    { id: "support", label: "Help", icon: <Mail size={18}/> },
+                  ]
+                : []),
+            ]}
+          />
+        </div>
 
         {/* Global Address Create Modal (Accessible from header Location Selector) */}
         {isAddressModalOpen && (
