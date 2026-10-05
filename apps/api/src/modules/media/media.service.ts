@@ -201,12 +201,19 @@ class MediaService {
     return media;
   }
 
-  async getReadUrl(mediaId: string, requestingUserId: string, privileged = false): Promise<string> {
+  async getReadUrl(
+    mediaId: string,
+    requestingUserId: string,
+    privilegedPurposes: '*' | string[] = [],
+  ): Promise<string> {
     const media = await mediaRepository.findById(mediaId);
     if (!media || media.status !== 'VERIFIED') {
       throw new AppError(404, 'MEDIA_NOT_FOUND', 'Private media object not found');
     }
-    if (!privileged && media.owner_user_id !== requestingUserId) {
+    const purposeAllowed =
+      privilegedPurposes === '*' ||
+      privilegedPurposes.map((purpose) => purpose.toUpperCase()).includes(media.purpose.toUpperCase());
+    if (media.owner_user_id !== requestingUserId && !purposeAllowed) {
       throw new AppError(403, 'MEDIA_FORBIDDEN', 'You cannot access this private media');
     }
     if (config.storage.mode === 'memory') return `memory://media/${media.id}`;
