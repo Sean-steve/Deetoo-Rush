@@ -12,6 +12,8 @@ This phase builds on the completed Phase 1 platform split and security foundatio
 - Online/offline controls.
 - Foreground/background GPS using an Android foreground location service.
 - Native FCM token registration.
+- Secret-driven Firebase Android configuration via `GOOGLE_SERVICES_JSON_PATH`.
+- CI native Android prebuild validation in addition to the Expo Android export.
 - Foreground/background delivery-offer notification handling.
 - Offer accept/reject.
 - Active delivery workflow.
@@ -96,7 +98,7 @@ CI must pass:
 - Merchant Web build;
 - Admin Web build;
 - API build;
-- PostgreSQL/PostGIS + Redis foundation suite;
+- PostgreSQL/PostGIS + Redis foundation suite, including Phase 2 device-registration and notification-lease durability;
 - Phase 1 browser isolation acceptance;
 - CodeQL.
 
