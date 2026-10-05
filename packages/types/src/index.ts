@@ -1875,6 +1875,7 @@ export interface DeliveryProof {
   type: DeliveryProofType;
   proof_value?: string;
   storage_url?: string;
+  media_object_id?: string;
   metadata?: Record<string, unknown>;
   created_by_rider_id?: string;
   created_at: string;
