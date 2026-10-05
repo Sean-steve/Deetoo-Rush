@@ -1,7 +1,7 @@
 import { expect, test, type BrowserContext } from '@playwright/test';
 
 async function expectSecureWebSession(context: BrowserContext) {
-  const cookies = await context.cookies('http://127.0.0.1');
+  const cookies = await context.cookies();
   const access = cookies.find((cookie) => cookie.name === 'deetoo_access_token');
   const refresh = cookies.find((cookie) => cookie.name === 'deetoo_refresh_token');
   const csrf = cookies.find((cookie) => cookie.name === 'deetoo_csrf');
