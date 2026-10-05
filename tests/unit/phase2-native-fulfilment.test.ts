@@ -212,3 +212,32 @@ test('Phase 2: Rider earning preview uses the same rule engine as final earning'
   assert.ok(long.distanceMinor > 0);
   assert.equal(long.totalMinor, long.baseMinor + long.distanceMinor + long.waitingMinor + long.bonusMinor);
 });
+
+
+test('Phase 2: Support privilege cannot read Rider identity documents', async () => {
+  const suffix = String(Date.now());
+  const owner = `rider-doc-owner-${suffix}`;
+  const upload = await mediaService.createUpload({
+    ownerUserId: owner,
+    purpose: 'RIDER_DOCUMENT',
+    contentType: 'application/pdf',
+    referenceType: 'RIDER',
+  });
+  await mediaService.completeUpload(upload.media.id, owner);
+
+  await assert.rejects(
+    () => mediaService.getReadUrl(
+      upload.media.id,
+      `support-user-${suffix}`,
+      ['DELIVERY_PROOF', 'DELIVERY_INCIDENT', 'SUPPORT_ATTACHMENT'],
+    ),
+    (error: any) => error?.code === 'MEDIA_FORBIDDEN',
+  );
+
+  const opsUrl = await mediaService.getReadUrl(
+    upload.media.id,
+    `ops-user-${suffix}`,
+    ['RIDER_DOCUMENT'],
+  );
+  assert.ok(opsUrl.startsWith('memory://media/'));
+});
