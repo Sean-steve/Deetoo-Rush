@@ -122,6 +122,7 @@ class DisbursementService {
   }){
     const attempt=await disbursementRepository.findAttemptByProviderRequest(input.provider,input.providerRequestId);
     if(!attempt) throw new AppError(404,'DISBURSEMENT_ATTEMPT_NOT_FOUND','Unknown provider disbursement request');
+    const incomingHash=payloadHash(input.rawPayload||input);
     if(attempt.status==='SUCCEEDED'){
       if(!input.succeeded) throw new AppError(409,'DISBURSEMENT_TERMINAL_CONFLICT','Successful disbursement cannot later fail');
       if(input.providerReference && attempt.provider_reference && input.providerReference !== attempt.provider_reference){
@@ -130,6 +131,11 @@ class DisbursementService {
       return attempt;
     }
     if(attempt.status==='FAILED'){
+      if(
+        !input.succeeded &&
+        attempt.callback_payload_hash &&
+        attempt.callback_payload_hash===incomingHash
+      ) return attempt;
       throw new AppError(
         409,
         'DISBURSEMENT_TERMINAL_CONFLICT',
@@ -142,7 +148,7 @@ class DisbursementService {
       return withTransaction(async()=>{
         const updated=await disbursementRepository.updateAttempt(attempt.id,{
           status:'SUCCEEDED',provider_reference:input.providerReference,completed_at:now,callback_received_at:now,
-          callback_payload_hash:payloadHash(input.rawPayload||input),failure_code:null,failure_reason:null,
+          callback_payload_hash:incomingHash,failure_code:null,failure_reason:null,
         });
         if(attempt.resource_type==='SETTLEMENT') await settlementService.confirmPaid(attempt.resource_id,input.providerReference!);
         else await riderPayoutService.confirmPaid(attempt.resource_id,input.providerReference!);
@@ -153,7 +159,7 @@ class DisbursementService {
       const reason=input.failureReason||input.failureCode||'Provider reported disbursement failure';
       const updated=await disbursementRepository.updateAttempt(attempt.id,{
         status:'FAILED',failure_code:input.failureCode||'PROVIDER_FAILED',failure_reason:reason,
-        completed_at:now,callback_received_at:now,callback_payload_hash:payloadHash(input.rawPayload||input),
+        completed_at:now,callback_received_at:now,callback_payload_hash:incomingHash,
       });
       if(attempt.resource_type==='SETTLEMENT') await settlementService.failSettlement(attempt.resource_id,reason);
       else await riderPayoutService.failPayout(attempt.resource_id,reason);
