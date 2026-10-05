@@ -32,6 +32,7 @@ import { riderPayoutService } from "./rider-payout.service";
 import { profitabilityService } from "./profitability.service";
 import { reconciliationService } from "./reconciliation.service";
 import { financialPostingService } from "./financial-posting.service";
+import { financialAdjustmentService } from "./financial-adjustment.service";
 import { disbursementService } from "./disbursement.service";
 
 export const financeRouter = Router();
@@ -168,7 +169,7 @@ financeRouter.get(
   requireRole(UserRole.ADMIN, UserRole.FINANCE),
   async (_req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
-      res.status(200).json({ adjustments: await ledgerRepository.listAdjustments() });
+      res.status(200).json({ adjustments: await financialAdjustmentService.list() });
     } catch (error) { next(error); }
   },
 );
@@ -180,23 +181,16 @@ financeRouter.post(
   async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
       const parsed = FinancialAdjustmentCreateSchema.parse(req.body);
-      const adj = {
-        id: `adj_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`,
-        reason_code: parsed.reasonCode as any,
-        target_account_id: parsed.targetAccountId,
-        offset_account_id: parsed.offsetAccountId,
+      const adj = await financialAdjustmentService.request({
+        targetAccountId: parsed.targetAccountId,
+        offsetAccountId: parsed.offsetAccountId,
         direction: parsed.direction as any,
-        amount_minor: parsed.amountMinor,
+        amountMinor: parsed.amountMinor,
         currency: parsed.currency || "KES",
+        reasonCode: parsed.reasonCode,
         note: parsed.note,
-        requested_by: req.user!.id,
-        approved_by: null,
-        approved_at: null,
-        status: "REQUESTED" as const,
-        ledger_transaction_id: null,
-        created_at: new Date().toISOString(),
-      };
-      await ledgerRepository.saveAdjustment(adj);
+        requestedBy: req.user!.id,
+      });
       return res.status(201).json({ adjustment: adj });
     } catch (error) { next(error); }
   },
@@ -208,15 +202,8 @@ financeRouter.post(
   requireRole(UserRole.ADMIN, UserRole.FINANCE),
   async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
-      const adj = await ledgerRepository.findAdjustmentById(req.params.id);
-      if (!adj) throw new AppError(404, "ADJUSTMENT_NOT_FOUND", "Financial adjustment not found");
-      if (adj.status !== "REQUESTED") throw new AppError(409, "ADJUSTMENT_NOT_REQUESTED", "Adjustment is not awaiting approval");
-      if (adj.requested_by === req.user!.id) throw new AppError(403, "SELF_APPROVAL_NOT_ALLOWED", "The requester cannot approve their own financial adjustment");
-      adj.approved_by = req.user!.id;
-      adj.approved_at = new Date().toISOString();
-      adj.status = "POSTED";
-      await financialPostingService.postFinancialAdjustment(adj);
-      return res.status(200).json({ adjustment: await ledgerRepository.findAdjustmentById(adj.id) });
+      const adjustment = await financialAdjustmentService.approve(req.params.id, req.user!.id);
+      return res.status(200).json({ adjustment });
     } catch (error) { next(error); }
   },
 );
@@ -227,14 +214,12 @@ financeRouter.post(
   requireRole(UserRole.ADMIN, UserRole.FINANCE),
   async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
-      const adj = await ledgerRepository.findAdjustmentById(req.params.id);
-      if (!adj) throw new AppError(404, "ADJUSTMENT_NOT_FOUND", "Financial adjustment not found");
-      if (adj.status !== "REQUESTED") throw new AppError(409, "ADJUSTMENT_NOT_REQUESTED", "Adjustment is not awaiting review");
-      adj.status = "REJECTED";
-      adj.rejected_at = new Date().toISOString();
-      adj.rejection_reason = String(req.body?.reason || "Rejected by finance reviewer").slice(0, 500);
-      await ledgerRepository.saveAdjustment(adj);
-      return res.status(200).json({ adjustment: adj });
+      const adjustment = await financialAdjustmentService.reject(
+        req.params.id,
+        req.user!.id,
+        String(req.body?.reason || "Rejected by finance reviewer"),
+      );
+      return res.status(200).json({ adjustment });
     } catch (error) { next(error); }
   },
 );
