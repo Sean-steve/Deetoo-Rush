@@ -77,6 +77,7 @@ export function RiderNativeApp() {
   const [offer, setOffer] = useState<any>(null);
   const [active, setActive] = useState<any>(null);
   const [detail, setDetail] = useState<any>(null);
+  const [earnings, setEarnings] = useState<any>(null);
   const [pickupCode, setPickupCode] = useState('');
   const [deliveryOtp, setDeliveryOtp] = useState('');
   const [incidentNote, setIncidentNote] = useState('');
@@ -87,14 +88,16 @@ export function RiderNativeApp() {
   const refresh = useCallback(async () => {
     if (!user) return;
     try {
-      const [riderStatus, activeOffer, activeDelivery] = await Promise.all([
+      const [riderStatus, activeOffer, activeDelivery, riderEarnings] = await Promise.all([
         client.request<any>('/rider/status'),
         client.request<any>('/rider/offers/active'),
         client.request<any>('/rider/deliveries/active'),
+        client.request<any>('/rider/earnings'),
       ]);
       setStatus(riderStatus.data);
       setOffer(activeOffer.data);
       setActive(activeDelivery.data);
+      setEarnings(riderEarnings.data);
       const deliveryId = activeDelivery.data?.delivery?.id;
       if (deliveryId) {
         const deliveryDetail = await client.request<any>(
@@ -182,6 +185,7 @@ export function RiderNativeApp() {
       setOffer(null);
       setActive(null);
       setDetail(null);
+      setEarnings(null);
     } finally {
       setBusy(false);
     }
@@ -515,6 +519,19 @@ export function RiderNativeApp() {
             )}
           </View>
         )}
+
+        <View style={styles.card}>
+          <Text style={styles.sectionTitle}>Earnings</Text>
+          <Text style={styles.money}>
+            Eligible: {earnings?.currency || 'KES'} {((earnings?.eligible_minor || 0) / 100).toFixed(2)}
+          </Text>
+          <Text style={styles.muted}>
+            Lifetime: {earnings?.currency || 'KES'} {((earnings?.lifetime_minor || 0) / 100).toFixed(2)}
+          </Text>
+          <Text style={styles.muted}>
+            Completed earning records: {earnings?.earnings?.length || 0}
+          </Text>
+        </View>
 
         {!delivery && !offer && (
           <View style={styles.card}>
