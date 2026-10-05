@@ -14,8 +14,12 @@ import {
   OtpRequestSchema,
   OtpConfirmSchema,
 } from '@deetoo/validation';
-import { config } from '@deetoo/config';
 import { AppError } from '../../middleware/error-handler';
+import {
+  applyAuthTransport,
+  clearAuthTransport,
+  getRefreshToken,
+} from './auth.transport';
 import { authService } from './auth.service';
 import { authRepository } from './auth.repository';
 import { requireAuth, AuthenticatedRequest } from './auth.middleware';
@@ -29,37 +33,6 @@ import {
 } from './rate-limit.middleware';
 
 export const authRouter = Router();
-
-// Cookie settings for refresh tokens (Section 11)
-const REFRESH_COOKIE_NAME = 'deetoo_refresh_token';
-const REFRESH_COOKIE_OPTIONS = {
-  httpOnly: true,
-  secure: config.isProduction,
-  sameSite: 'lax' as const,
-  path: '/api/v1/auth',
-  maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days in ms
-};
-
-/**
- * Helper to extract refresh token from cookie or request body
- */
-function getRefreshToken(req: Request): string | null {
-  if (req.body && req.body.refreshToken) {
-    return req.body.refreshToken;
-  }
-  const cookies = (req as any).cookies;
-  if (cookies && cookies[REFRESH_COOKIE_NAME]) {
-    return cookies[REFRESH_COOKIE_NAME];
-  }
-  const cookieHeader = req.headers.cookie;
-  if (cookieHeader) {
-    const match = cookieHeader.match(new RegExp(`(?:^|;\\s*)${REFRESH_COOKIE_NAME}=([^;]+)`));
-    if (match) {
-      return decodeURIComponent(match[1]);
-    }
-  }
-  return null;
-}
 
 /**
  * 1. POST /api/v1/auth/register/customer
@@ -85,11 +58,9 @@ authRouter.post(
         deviceInfo: req.headers['user-agent'],
       });
 
-      // Set HttpOnly refresh token cookie
-      res.cookie(REFRESH_COOKIE_NAME, result.refreshToken, REFRESH_COOKIE_OPTIONS);
-
-      const response: ApiResponse<typeof result> = {
-        data: result,
+      const safeResult = applyAuthTransport(req, res, result);
+      const response: ApiResponse<typeof safeResult> = {
+        data: safeResult,
         requestId: (req as any).requestId,
       };
 
@@ -123,10 +94,9 @@ authRouter.post(
         requestId: (req as any).requestId,
       });
 
-      res.cookie(REFRESH_COOKIE_NAME, result.refreshToken, REFRESH_COOKIE_OPTIONS);
-
-      const response: ApiResponse<typeof result> = {
-        data: result,
+      const safeResult = applyAuthTransport(req, res, result);
+      const response: ApiResponse<typeof safeResult> = {
+        data: safeResult,
         requestId: (req as any).requestId,
       };
 
@@ -156,10 +126,9 @@ authRouter.post(
         requestId: (req as any).requestId,
       });
 
-      res.cookie(REFRESH_COOKIE_NAME, result.refreshToken, REFRESH_COOKIE_OPTIONS);
-
-      const response: ApiResponse<typeof result> = {
-        data: result,
+      const safeResult = applyAuthTransport(req, res, result);
+      const response: ApiResponse<typeof safeResult> = {
+        data: safeResult,
         requestId: (req as any).requestId,
       };
 
@@ -203,7 +172,7 @@ authRouter.post(
       if (req.session?.session_id) {
         await authService.logout(req.session.session_id, req.session.user_id, (req as any).requestId);
       }
-      res.clearCookie(REFRESH_COOKIE_NAME, { path: '/api/v1/auth' });
+      clearAuthTransport(res);
       res.json({
         data: { message: 'Successfully logged out' },
         requestId: (req as any).requestId,
@@ -284,7 +253,7 @@ authRouter.post(
         req.session!.user_id,
         (req as any).requestId
       );
-      res.clearCookie(REFRESH_COOKIE_NAME, { path: '/api/v1/auth' });
+      clearAuthTransport(res);
       res.json({
         data: { message: 'All active sessions have been terminated' },
         requestId: (req as any).requestId,

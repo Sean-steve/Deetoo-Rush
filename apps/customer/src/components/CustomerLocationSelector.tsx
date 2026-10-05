@@ -10,7 +10,7 @@ import { Badge, Button } from '../../../../packages/ui/src/index';
 
 interface CustomerLocationSelectorProps {
   currentAddressText: string;
-  currentCoords: { latitude: number; longitude: number };
+  currentCoords?: { latitude: number; longitude: number };
   savedAddresses: CustomerAddress[];
   serviceability: ServiceabilityCheckResult | null;
   onSelectAddress: (address: CustomerAddress) => void;
@@ -87,7 +87,9 @@ export const CustomerLocationSelector: React.FC<CustomerLocationSelectorProps> =
                   Serviceability & Location
                 </span>
                 <span className="text-[10px] text-slate-400 font-mono">
-                  {currentCoords.latitude.toFixed(4)}, {currentCoords.longitude.toFixed(4)}
+                  {currentCoords
+                    ? `${currentCoords.latitude.toFixed(4)}, ${currentCoords.longitude.toFixed(4)}`
+                    : 'Choose a location'}
                 </span>
               </div>
               <div className={`mt-2 p-2.5 rounded-xl text-xs flex items-start gap-2 ${
@@ -142,6 +144,7 @@ export const CustomerLocationSelector: React.FC<CustomerLocationSelectorProps> =
                   <div className="space-y-1.5 max-h-40 overflow-y-auto">
                     {savedAddresses.map((addr) => {
                       const isSelected =
+                        !!currentCoords &&
                         Math.abs(addr.latitude - currentCoords.latitude) < 0.0001 &&
                         Math.abs(addr.longitude - currentCoords.longitude) < 0.0001;
 

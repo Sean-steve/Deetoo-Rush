@@ -39,6 +39,27 @@
       ],
       "@deetoo/ui": [
         "./packages/ui/src/index.tsx"
+      ],
+      "@deetoo/auth-native": [
+        "./packages/auth-native/src/index.ts"
+      ],
+      "@deetoo/auth-web": [
+        "./packages/auth-web/src/index.ts"
+      ],
+      "@deetoo/domain": [
+        "./packages/domain/src/index.ts"
+      ],
+      "@deetoo/api-contract": [
+        "./packages/api-contract/src/index.ts"
+      ],
+      "@deetoo/design-tokens": [
+        "./packages/design-tokens/src/index.ts"
+      ],
+      "@deetoo/ui-web": [
+        "./packages/ui-web/src/index.ts"
+      ],
+      "@deetoo/ui-native": [
+        "./packages/ui-native/src/index.ts"
       ]
     },
     "allowImportingTsExtensions": true,

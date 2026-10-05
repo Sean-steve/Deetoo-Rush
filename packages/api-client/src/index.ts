@@ -49,6 +49,9 @@ export interface ApiClientConfig {
   initialToken?: string | null;
   onUnauthorized?: () => void;
   onTokenRefreshed?: (newToken: string) => void;
+  getRefreshToken?: () => Promise<string | null>;
+  onRefreshCredentials?: (credentials: { accessToken: string; refreshToken?: string }) => Promise<void> | void;
+  authTransport?: "cookie" | "bearer";
 }
 
 export class DeetooApiClient {
@@ -57,8 +60,11 @@ export class DeetooApiClient {
   private clientVersion: string;
   private timeoutMs: number;
   private accessToken: string | null = null;
+  private authTransport: "cookie" | "bearer";
   private onUnauthorized?: () => void;
   private onTokenRefreshed?: (newToken: string) => void;
+  private getRefreshTokenProvider?: () => Promise<string | null>;
+  private onRefreshCredentials?: (credentials: { accessToken: string; refreshToken?: string }) => Promise<void> | void;
 
   // Refresh queue locking to avoid stampede on 401
   private isRefreshing = false;
@@ -70,8 +76,11 @@ export class DeetooApiClient {
     this.clientVersion = config.clientVersion || "1.0.0";
     this.timeoutMs = config.timeoutMs || 10000;
     this.accessToken = config.initialToken || null;
+    this.authTransport = config.authTransport || "bearer";
     this.onUnauthorized = config.onUnauthorized;
     this.onTokenRefreshed = config.onTokenRefreshed;
+    this.getRefreshTokenProvider = config.getRefreshToken;
+    this.onRefreshCredentials = config.onRefreshCredentials;
   }
 
   public setAccessToken(token: string | null) {
@@ -91,6 +100,16 @@ export class DeetooApiClient {
     this.refreshSubscribers.push(cb);
   }
 
+  private readBrowserCookie(name: string): string | null {
+    if (typeof document === "undefined") return null;
+    const prefix = `${name}=`;
+    const part = document.cookie
+      .split(";")
+      .map((value) => value.trim())
+      .find((value) => value.startsWith(prefix));
+    return part ? decodeURIComponent(part.slice(prefix.length)) : null;
+  }
+
   public async request<T>(
     endpoint: string,
     options: RequestInit & { idempotencyKey?: string; _retry?: boolean } = {},
@@ -105,6 +124,15 @@ export class DeetooApiClient {
     headers.set("X-Request-Id", requestId);
     headers.set("X-Client-App", this.clientApp);
     headers.set("X-Client-Version", this.clientVersion);
+    headers.set("X-Auth-Transport", this.authTransport);
+
+    if (
+      this.authTransport === "cookie" &&
+      !["GET", "HEAD", "OPTIONS"].includes((options.method || "GET").toUpperCase())
+    ) {
+      const csrfToken = this.readBrowserCookie("deetoo_csrf");
+      if (csrfToken) headers.set("X-CSRF-Token", csrfToken);
+    }
 
     if (options.idempotencyKey) {
       headers.set("Idempotency-Key", options.idempotencyKey);
@@ -118,8 +146,13 @@ export class DeetooApiClient {
       headers.set("Content-Type", "application/json");
     }
 
-    // Attach Bearer token if present
-    if (this.accessToken && !headers.has("Authorization")) {
+    // Native/bearer clients attach the short-lived access token. Browser clients
+    // authenticate with HttpOnly cookies and never expose that token to JavaScript.
+    if (
+      this.authTransport === "bearer" &&
+      this.accessToken &&
+      !headers.has("Authorization")
+    ) {
       headers.set("Authorization", `Bearer ${this.accessToken}`);
     }
 
@@ -153,13 +186,20 @@ export class DeetooApiClient {
         if (!this.isRefreshing) {
           this.isRefreshing = true;
           try {
-            const refreshRes = await this.refreshToken();
+            const explicitRefreshToken =
+              this.authTransport === "bearer"
+                ? (await this.getRefreshTokenProvider?.()) || undefined
+                : undefined;
+            const refreshRes = await this.refreshToken(explicitRefreshToken);
             const newToken = refreshRes.data.accessToken;
-            this.setAccessToken(newToken);
-            if (this.onTokenRefreshed) this.onTokenRefreshed(newToken);
+            const refreshMarker =
+              this.authTransport === "cookie" ? "__COOKIE_SESSION__" : newToken || null;
+            if (this.authTransport === "bearer" && newToken) {
+              this.setAccessToken(newToken);
+              if (this.onTokenRefreshed) this.onTokenRefreshed(newToken);
+            }
             this.isRefreshing = false;
-            this.onRefreshed(newToken);
-            // Retry current request with new token
+            this.onRefreshed(refreshMarker);
             return this.request<T>(endpoint, { ...options, _retry: true });
           } catch (refreshErr) {
             this.isRefreshing = false;
@@ -248,8 +288,12 @@ export class DeetooApiClient {
       method: "POST",
       body: JSON.stringify(params),
     });
-    if (res.data?.accessToken) {
+    if (this.authTransport === "bearer" && res.data?.accessToken) {
       this.setAccessToken(res.data.accessToken);
+      await this.onRefreshCredentials?.({
+        accessToken: res.data.accessToken,
+        refreshToken: res.data.refreshToken,
+      });
     }
     return res;
   }
@@ -264,8 +308,12 @@ export class DeetooApiClient {
       method: "POST",
       body: JSON.stringify(params),
     });
-    if (res.data?.accessToken) {
+    if (this.authTransport === "bearer" && res.data?.accessToken) {
       this.setAccessToken(res.data.accessToken);
+      await this.onRefreshCredentials?.({
+        accessToken: res.data.accessToken,
+        refreshToken: res.data.refreshToken,
+      });
     }
     return res;
   }
@@ -289,8 +337,8 @@ export class DeetooApiClient {
 
   public async refreshToken(
     explicitRefreshToken?: string,
-  ): Promise<ApiResponse<{ accessToken: string; session: any }>> {
-    const res = await this.request<{ accessToken: string; session: any }>(
+  ): Promise<ApiResponse<{ accessToken?: string; refreshToken?: string; session: any }>> {
+    const res = await this.request<{ accessToken?: string; refreshToken?: string; session: any }>(
       "/auth/refresh",
       {
         method: "POST",
@@ -299,8 +347,12 @@ export class DeetooApiClient {
           : undefined,
       },
     );
-    if (res.data?.accessToken) {
+    if (this.authTransport === "bearer" && res.data?.accessToken) {
       this.setAccessToken(res.data.accessToken);
+      await this.onRefreshCredentials?.({
+        accessToken: res.data.accessToken,
+        refreshToken: res.data.refreshToken,
+      });
     }
     return res;
   }

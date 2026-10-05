@@ -1,67 +1,140 @@
 import { Request, Response, NextFunction } from 'express';
 import { config } from '@deetoo/config';
+import {
+  ACCESS_COOKIE_NAME,
+  CSRF_COOKIE_NAME,
+  readCookie,
+} from '../modules/auth/auth.transport';
 
-// Allowed origins for CORS in production/staging environments
 const DEFAULT_ALLOWED_ORIGINS = [
   'http://localhost:3000',
   'http://localhost:5173',
+  'http://localhost:5174',
+  'http://localhost:5175',
   'http://127.0.0.1:3000',
   'http://127.0.0.1:5173',
+  'http://127.0.0.1:5174',
+  'http://127.0.0.1:5175',
 ];
 
+function configuredOrigins(): string[] {
+  return process.env.ALLOWED_ORIGINS
+    ? process.env.ALLOWED_ORIGINS.split(',').map((origin) => origin.trim()).filter(Boolean)
+    : [];
+}
+
+function isAllowedOrigin(origin: string): boolean {
+  if (configuredOrigins().includes(origin)) return true;
+  return config.isDevelopment && DEFAULT_ALLOWED_ORIGINS.includes(origin);
+}
+
+function isUnsafeMethod(method: string): boolean {
+  return !['GET', 'HEAD', 'OPTIONS'].includes(method.toUpperCase());
+}
+
+function requiresSensitiveNoStore(path: string): boolean {
+  return [
+    '/api/v1/auth',
+    '/api/v1/admin',
+    '/api/v1/customer',
+    '/api/v1/cart',
+    '/api/v1/merchant',
+    '/api/v1/rider',
+    '/api/v1/orders',
+    '/api/v1/payments',
+    '/api/v1/finance',
+    '/api/v1/operations',
+    '/api/v1/realtime',
+  ].some((prefix) => path.startsWith(prefix));
+}
+
 export function securityHeadersMiddleware(req: Request, res: Response, next: NextFunction) {
-  // 1. Standard Production Security Headers (Section 19)
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('X-Frame-Options', 'SAMEORIGIN');
-  res.setHeader('X-XSS-Protection', '1; mode=block');
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
-  res.setHeader('Permissions-Policy', 'geolocation=(self), camera=(), microphone=()');
+  res.setHeader('Permissions-Policy', 'geolocation=(self), camera=(self), microphone=()');
+  res.setHeader('Vary', 'Origin');
 
-  // CSP: safe baseline allowing internal resources and assets. Vite's dev server unavoidably
-  // injects an inline React Refresh preamble <script> into every HTML response in development --
-  // that is Vite's own dev-time transform, not something in this repo's source, so it cannot be
-  // moved into an external file the way index.html's own inline scripts can be. A strict
-  // script-src 'self' with no 'unsafe-inline'/'unsafe-eval' therefore silently breaks every local
-  // dev server (the preamble script is blocked, @vitejs/plugin-react then throws "can't detect
-  // preamble", and the app never mounts -- a white screen with no server-side error at all).
-  // Scoped to config.isDevelopment only; the deployed/production policy below is unchanged.
-  const scriptSrc = config.isDevelopment ? "'self' 'unsafe-inline' 'unsafe-eval'" : "'self'";
+  const scriptSrc = config.isDevelopment
+    ? "'self' 'unsafe-inline' 'unsafe-eval'"
+    : "'self'";
   res.setHeader(
     'Content-Security-Policy',
-    `default-src 'self'; script-src ${scriptSrc}; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; connect-src 'self' ws: wss: https:;`
+    `default-src 'self'; script-src ${scriptSrc}; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; connect-src 'self' ws: wss: https:; frame-ancestors 'self'; base-uri 'self'; form-action 'self'; object-src 'none';`,
   );
 
-  // Enforce HSTS in production
   if (config.isProduction || process.env.NODE_ENV === 'production') {
     res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload');
   }
 
-  // 2. Explicit CORS handling with allowlist (Section 18)
+  if (requiresSensitiveNoStore(req.path)) {
+    res.setHeader('Cache-Control', 'no-store, private');
+    res.setHeader('Pragma', 'no-cache');
+  }
+
   const origin = req.headers.origin;
-  if (origin) {
-    const configuredOrigins = process.env.ALLOWED_ORIGINS
-      ? process.env.ALLOWED_ORIGINS.split(',').map((o) => o.trim())
-      : [];
-    const allowedList = [...DEFAULT_ALLOWED_ORIGINS, ...configuredOrigins];
+  const authTransport = req.header('X-Auth-Transport')?.toLowerCase();
+  const crossSiteFetch = req.header('Sec-Fetch-Site')?.toLowerCase() === 'cross-site';
+  const browserAuthMutation =
+    isUnsafeMethod(req.method) &&
+    req.path.startsWith('/api/v1/auth/') &&
+    (authTransport === 'cookie' || crossSiteFetch);
 
-    const isAllowed =
-      (config.isDevelopment && DEFAULT_ALLOWED_ORIGINS.includes(origin)) ||
-      configuredOrigins.includes(origin);
+  if (
+    browserAuthMutation &&
+    (!origin || !isAllowedOrigin(origin))
+  ) {
+    res.status(403).json({
+      error: {
+        code: 'ORIGIN_NOT_ALLOWED',
+        message: 'Request origin is not allowed',
+        request_id: req.headers['x-request-id'] || null,
+      },
+    });
+    return;
+  }
 
-    if (isAllowed) {
-      res.setHeader('Access-Control-Allow-Origin', origin);
-      res.setHeader('Access-Control-Allow-Credentials', 'true');
-      res.setHeader(
-        'Access-Control-Allow-Headers',
-        'Content-Type, Authorization, X-Request-Id, Idempotency-Key, X-Client-App, X-Client-Version'
-      );
-      res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
-    }
+  if (origin && isAllowedOrigin(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+    res.setHeader(
+      'Access-Control-Allow-Headers',
+      'Content-Type, Authorization, X-Request-Id, Idempotency-Key, X-Client-App, X-Client-Version, X-Auth-Transport, X-CSRF-Token',
+    );
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
   }
 
   if (req.method === 'OPTIONS') {
     res.sendStatus(204);
     return;
+  }
+
+  // CSRF is required only for browser-cookie authenticated mutations. Native
+  // Android clients authenticate with bearer tokens and are not subject to CSRF.
+  if (isUnsafeMethod(req.method) && readCookie(req, ACCESS_COOKIE_NAME)) {
+    const csrfCookie = readCookie(req, CSRF_COOKIE_NAME);
+    const csrfHeader = req.header('X-CSRF-Token');
+    if (!csrfCookie || !csrfHeader || csrfCookie !== csrfHeader) {
+      res.status(403).json({
+        error: {
+          code: 'CSRF_VALIDATION_FAILED',
+          message: 'CSRF token validation failed',
+          request_id: req.headers['x-request-id'] || null,
+        },
+      });
+      return;
+    }
+
+    if (origin && !isAllowedOrigin(origin)) {
+      res.status(403).json({
+        error: {
+          code: 'ORIGIN_NOT_ALLOWED',
+          message: 'Request origin is not allowed',
+          request_id: req.headers['x-request-id'] || null,
+        },
+      });
+      return;
+    }
   }
 
   next();

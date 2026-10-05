@@ -2,7 +2,7 @@ name: Deetoo CI Pipeline
 
 on:
   push:
-    branches: [main, master, develop]
+    branches: [main, master, develop, 'phase-*']
   pull_request:
     branches: [main, master, develop]
 
@@ -12,41 +12,62 @@ concurrency:
 
 jobs:
   validate:
-    name: Lint, Type Check & Test
+    name: Lint, Type Check, Test & Independent Builds
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
 
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.17.1
+          run_install: false
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
-          cache: 'npm'
+          node-version: 22
 
       - name: Install Dependencies
-        run: npm ci
+        run: pnpm install --frozen-lockfile
+
+      - name: Verify pnpm-only repository policy
+        run: |
+          test -f pnpm-lock.yaml
+          test ! -e package-lock.json
+          test ! -e bun.lock
+          test ! -e yarn.lock
 
       - name: Run Linters
-        run: npm run lint
+        run: pnpm lint
 
       - name: Run Type Checks
-        run: npm run typecheck
+        run: pnpm typecheck
 
       - name: Validate OpenAPI contract
-        run: npm run openapi:validate
+        run: pnpm openapi:validate
 
-      - name: Check OpenAPI contract matches router source (no drift)
-        run: npm run openapi:coverage
+      - name: Check OpenAPI contract matches router source
+        run: pnpm openapi:coverage
 
       - name: Run Unit & Integration Tests
-        run: npm test
+        run: pnpm test
 
       - name: Audit production dependencies
-        run: npm audit --omit=dev --audit-level=high
+        run: pnpm audit --prod --audit-level high
 
-      - name: Build Applications
-        run: npm run build
+      - name: Build Customer Web independently
+        run: pnpm build:customer
+
+      - name: Build Merchant Web independently
+        run: pnpm build:merchant
+
+      - name: Build Admin Web independently
+        run: pnpm build:admin
+
+      - name: Build API independently
+        run: pnpm build:api
 
   durable-foundation:
     name: PostgreSQL migrations, authorization and outbox recovery
@@ -72,12 +93,15 @@ jobs:
       DATABASE_URL: postgres://postgres:foundation_test_only@127.0.0.1:5432/deetoo_foundation
     steps:
       - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.17.1
+          run_install: false
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: npm
-      - run: npm ci
-      - run: npm run test:foundation
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm test:foundation
 
   code-analysis:
     name: CodeQL security analysis
@@ -91,3 +115,30 @@ jobs:
         with:
           languages: javascript-typescript
       - uses: github/codeql-action/analyze@v3
+
+  browser-acceptance:
+    name: Independent web browser acceptance
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.17.1
+          run_install: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install Dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Chromium
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Verify independent web auth and role isolation
+        run: pnpm test:phase1-browser

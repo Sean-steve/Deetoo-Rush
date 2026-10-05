@@ -1,4 +1,5 @@
 import { sensitiveWriteRateLimiter } from './rate-limit.middleware';
+import { ACCESS_COOKIE_NAME, readCookie } from './auth.transport';
 import { config } from '@deetoo/config';
 import { requireRecentMfa } from './mfa';
 /**
@@ -31,12 +32,8 @@ export function extractToken(req: Request): string | null {
   if (authHeader && authHeader.startsWith("Bearer ")) {
     return authHeader.substring(7).trim();
   }
-  // Also check cookies if available
-  const cookies = (req as any).cookies;
-  if (cookies && cookies.access_token) {
-    return cookies.access_token;
-  }
-  return null;
+  // Browser clients authenticate with a host-only HttpOnly access cookie.
+  return readCookie(req, ACCESS_COOKIE_NAME);
 }
 
 /**
