@@ -13,7 +13,7 @@ function adminTabFromPath(){
   const path=window.location.pathname.replace(/^\/ops/,"").replace(/\/+$/,"");
   return path&&path!=="/"?path.replace(/^\//,""):"command";
 }
-function adminTabPath(tab:string){return `/ops/${tab}`;}
+function adminTabPath(tab:string){const prefix=window.location.pathname.startsWith("/ops")?"/ops":"";return `${prefix}/${tab}`;}
 /**
  * DEETOO - Admin & Operations Application Shell
  * Central operations console: User management, RBAC, live audit trail, zones, health
