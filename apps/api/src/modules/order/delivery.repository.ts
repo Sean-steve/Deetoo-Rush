@@ -234,7 +234,12 @@ export class DeliveryRepository {
     ];
 
     for (const del of config.storage.mode === "memory" ? this.deliveries.values() : []) {
-      if (del.assigned_rider_id === riderId && activeStatuses.includes(del.status)) {
+      const custodyFailure =
+        del.status === DeliveryStatus.FAILED &&
+        Boolean(del.assigned_rider_id) &&
+        Boolean(del.picked_up_at) &&
+        !del.delivered_at;
+      if (del.assigned_rider_id === riderId && (activeStatuses.includes(del.status) || custodyFailure)) {
         return this.findById(del.id);
       }
     }
@@ -244,7 +249,10 @@ export class DeliveryRepository {
       const res = await pool.query(
         `SELECT * FROM deliveries 
          WHERE assigned_rider_id = $1 
-           AND status IN ('ASSIGNED', 'ARRIVED_PICKUP', 'PICKED_UP', 'EN_ROUTE', 'ARRIVED_DROPOFF')
+           AND (
+             status IN ('ASSIGNED', 'ARRIVED_PICKUP', 'PICKED_UP', 'EN_ROUTE', 'ARRIVED_DROPOFF')
+             OR (status = 'FAILED' AND picked_up_at IS NOT NULL AND delivered_at IS NULL)
+           )
          LIMIT 1`,
         [riderId]
       );
@@ -429,6 +437,13 @@ export class DeliveryRepository {
     }
 
     const previousRiderId = delivery.assigned_rider_id;
+
+    if (
+      [DeliveryStatus.PICKED_UP, DeliveryStatus.EN_ROUTE, DeliveryStatus.ARRIVED_DROPOFF, DeliveryStatus.DELIVERED].includes(delivery.status) ||
+      (delivery.status === DeliveryStatus.FAILED && Boolean(delivery.picked_up_at))
+    ) {
+      throw new Error('Cannot unassign a delivery after physical custody has transferred to the rider');
+    }
 
     return await this.updateDelivery(
       deliveryId,
