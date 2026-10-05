@@ -62,8 +62,13 @@ export class NotificationService {
 
     const saved = await operationsRepository.createNotification(record);
 
-    // 2. Dispatch via Simulated Channel Provider
-    return this.dispatch(saved);
+    // Durable deployments enqueue and return after the surrounding business
+    // transaction commits. A supervised worker claims and delivers the row.
+    // Memory fixtures keep inline simulated delivery for deterministic local tests.
+    if (config.storage.mode === 'memory') {
+      return this.dispatch(saved);
+    }
+    return saved;
   }
 
   /**
@@ -120,12 +125,27 @@ export class NotificationService {
         throw new Error(`Unsupported notification channel: ${record.channel}`);
       }
 
-      // Persist provider-confirmed or in-app delivery success
+      const provider =
+        record.channel === 'PUSH'
+          ? 'FCM'
+          : record.channel === 'SMS'
+            ? 'AFRICASTALKING'
+            : record.channel === 'EMAIL'
+              ? 'RESEND'
+              : 'IN_APP';
+
+      // External-provider acceptance is SENT, not proof of device delivery.
+      // IN_APP delivery is synchronous, so it can be marked DELIVERED immediately.
       const delivered: Partial<NotificationRecord> = {
-        status: 'DELIVERED',
+        status: record.channel === 'IN_APP' ? 'DELIVERED' : 'SENT',
+        provider,
         provider_reference: providerRef,
         sent_at: now,
-        delivered_at: now,
+        delivered_at: record.channel === 'IN_APP' ? now : undefined,
+        failed_at: undefined,
+        failure_code: undefined,
+        failure_reason: undefined,
+        scheduled_at: undefined,
       };
 
       const updated = await operationsRepository.updateNotification(record.id, delivered);
@@ -156,12 +176,19 @@ export class NotificationService {
       const nextRetry = record.retry_count + 1;
       const isFinalFailure = nextRetry >= record.max_retries;
 
+      const retryDelaySeconds = Math.min(
+        300,
+        5 * Math.pow(2, Math.max(0, nextRetry - 1)),
+      );
       const failureUpdate: Partial<NotificationRecord> = {
         status: 'FAILED',
         failed_at: now,
         failure_code: 'PROVIDER_ERROR',
         failure_reason: err.message,
         retry_count: nextRetry,
+        scheduled_at: isFinalFailure
+          ? undefined
+          : new Date(Date.now() + retryDelaySeconds * 1000).toISOString(),
       };
 
       const updated = await operationsRepository.updateNotification(record.id, failureUpdate);
@@ -199,11 +226,23 @@ export class NotificationService {
       throw new Error(`Notification ${notificationId} not found`);
     }
 
-    if (record.status === 'DELIVERED') {
+    if (record.status === 'DELIVERED' || record.status === 'SENT') {
       return record;
     }
 
     return this.dispatch(record);
+  }
+
+  /**
+   * Claim and deliver a bounded durable batch. Repository claiming uses
+   * FOR UPDATE SKIP LOCKED so multiple workers cannot send the same row.
+   */
+  public async processPendingBatch(limit = 25): Promise<number> {
+    const claimed = await operationsRepository.claimPendingNotifications(limit);
+    for (const record of claimed) {
+      await this.dispatch(record);
+    }
+    return claimed.length;
   }
 
   /**
@@ -270,4 +309,5 @@ export class NotificationService {
   }
 }
 
-export const notificationService = transactionalService(new NotificationService());
+export const notificationServiceCore = new NotificationService();
+export const notificationService = transactionalService(notificationServiceCore);
