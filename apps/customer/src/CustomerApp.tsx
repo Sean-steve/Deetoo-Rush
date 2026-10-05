@@ -482,9 +482,9 @@ function CustomerAppInner() {
 
   return (
     <ErrorBoundary fallbackTitle="Customer Application Error Boundary">
-      <div className="min-h-screen bg-canvas text-ink flex flex-col font-sans">
+      <div className="customer-shell min-h-screen bg-canvas text-ink flex flex-col font-sans">
         {/* Top Navbar */}
-        <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/95 backdrop-blur-xs px-4 py-3 sm:px-6">
+        <header className="customer-topbar sticky top-0 z-30 border-b border-slate-200 bg-white/95 backdrop-blur-xs px-4 py-3 sm:px-6">
           <div className="max-w-6xl mx-auto flex flex-wrap items-center justify-between gap-4">
             <div className="flex items-center gap-3">
               <DeetooLogo className="h-7" />
