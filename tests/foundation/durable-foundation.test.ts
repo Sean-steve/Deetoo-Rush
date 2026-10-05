@@ -606,3 +606,73 @@ test('durable phone OTP is random, failure-limited under concurrency, persisted 
   await assert.rejects(authService.requestOtp(phone),{code:'IDENTITY_DELIVERY_UNCONFIRMED'});
  } finally {globalThis.fetch=previousFetch;names.forEach((k,i)=>{if(old[i]===undefined)delete process.env[k];else process.env[k]=old[i];});}
 });
+
+
+test('Phase 2 native fulfilment records survive PostgreSQL reconnect and notification leases recover', async () => {
+  const { deviceRegistrationRepository } = await import('../../apps/api/src/modules/operations/device-registration.repository');
+  const { operationsRepository } = await import('../../apps/api/src/modules/operations/operations.repository');
+
+  const userId = randomUUID();
+  const now = new Date().toISOString();
+  await authRepository.createUser({
+    id: userId,
+    email: `phase2-${userId}@example.test`,
+    phone_e164: null,
+    password_hash: 'unused',
+    status: UserStatus.ACTIVE,
+  });
+  await authRepository.setUserRoles(userId, [UserRole.RIDER]);
+
+  const pushToken = `phase2-fcm-${randomUUID()}-012345678901234567890123456789`;
+  const registration = await deviceRegistrationRepository.upsert({
+    userId,
+    recipientType: 'RIDER',
+    platform: 'ANDROID',
+    pushToken,
+    deviceId: `android-${randomUUID()}`,
+    appVersion: '0.2.0',
+  });
+  assert.equal(registration.active, true);
+
+  const notificationId = randomUUID();
+  await operationsRepository.createNotification({
+    id: notificationId,
+    recipient_type: 'RIDER',
+    recipient_id: userId,
+    channel: 'PUSH',
+    template_code: 'RIDER_NEW_OFFER',
+    status: 'PENDING',
+    subject: 'Delivery offer',
+    payload: { offerId: randomUUID() },
+    provider: 'FCM',
+    retry_count: 0,
+    max_retries: 3,
+    idempotency_key: `phase2-foundation-${notificationId}`,
+    created_at: now,
+  } as any);
+
+  await closeDbPool();
+
+  const tokens = await deviceRegistrationRepository.listActiveTokens(userId);
+  assert.equal(tokens.length, 1);
+  assert.equal(tokens[0].push_token, pushToken);
+
+  const firstClaim = await operationsRepository.claimPendingNotifications(10);
+  assert.ok(firstClaim.some((record) => record.id === notificationId));
+
+  const immediateSecondClaim = await operationsRepository.claimPendingNotifications(10);
+  assert.equal(immediateSecondClaim.some((record) => record.id === notificationId), false);
+
+  await getDbPool().query(
+    "UPDATE notifications SET status='QUEUED', scheduled_at=NOW()-INTERVAL '1 second' WHERE id=$1",
+    [notificationId],
+  );
+  await closeDbPool();
+
+  const recovered = await operationsRepository.claimPendingNotifications(10);
+  assert.ok(recovered.some((record) => record.id === notificationId));
+
+  await deviceRegistrationRepository.deactivate(userId, pushToken);
+  await closeDbPool();
+  assert.equal((await deviceRegistrationRepository.listActiveTokens(userId)).length, 0);
+});
