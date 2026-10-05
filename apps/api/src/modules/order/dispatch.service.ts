@@ -270,18 +270,8 @@ export class DispatchService {
       delivery.status === DeliveryStatus.CANCELLED ||
       delivery.status === DeliveryStatus.FAILED
     ) {
-      // FAILED is reachable from custody-holding states (PICKED_UP, EN_ROUTE, ARRIVED_DROPOFF) as
-      // well as pre-pickup ones, and the state machine legally allows FAILED -> UNASSIGNED "after
-      // operational review" (packages/types delivery transition table). Nothing before this
-      // change enforced that review: any caller of executeDispatchCycle -- including the
-      // ADMIN/OPS manual dispatch-trigger endpoint -- could resume offering a FAILED delivery to
-      // riders while its record still showed FAILED with dispatch_attention_required=true,
-      // silently bypassing the incident review that flag exists to force (audit A60). Automatic
-      // and manual-trigger dispatch cycles alike now stop here; the only way back into dispatch is
-      // the explicit, audited DeliveryRepository.atomicUnassign reset (admin.router.ts's manual
-      // unassign action, which already supports an optional immediate retriggerDispatch), which
-      // requires an actor and a reason code and moves the record to UNASSIGNED before any new
-      // offer round begins.
+      // FAILED is terminal to ordinary dispatch. Recovery is an explicit Operations command;
+      // post-pickup custody can never be reassigned to another Rider.
       return {
         status: 'TERMINAL',
         candidatesCount: 0,
@@ -1033,7 +1023,7 @@ export class DispatchService {
     options: {
       reason_code: string;
       note: string;
-      photo_url?: string;
+      photo_media_id?: string;
     }
   ): Promise<Delivery> {
     const delivery = await deliveryRepository.findById(deliveryId);
@@ -1058,12 +1048,19 @@ export class DispatchService {
       reported_by_id: riderProfile.id,
     });
 
-    // 2. If photo proof of failure provided:
-    if (options.photo_url) {
+    // 2. Optional incident media must be a verified private object owned by this Rider.
+    if (options.photo_media_id) {
+      const media = await mediaService.assertVerifiedOwnedMedia(
+        options.photo_media_id,
+        riderUserId,
+        'DELIVERY_INCIDENT',
+        deliveryId,
+      );
       await deliveryRepository.createProof({
         delivery_id: deliveryId,
         type: 'PHOTO',
-        storage_url: options.photo_url,
+        storage_url: `s3://${media.bucket}/${media.object_key}`,
+        media_object_id: media.id,
         created_by_rider_id: riderProfile.id,
         metadata: { incident_id: incident.id, reason_code: options.reason_code },
       });
