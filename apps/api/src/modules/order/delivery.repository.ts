@@ -234,7 +234,12 @@ export class DeliveryRepository {
     ];
 
     for (const del of config.storage.mode === "memory" ? this.deliveries.values() : []) {
-      if (del.assigned_rider_id === riderId && activeStatuses.includes(del.status)) {
+      const custodyFailure =
+        del.status === DeliveryStatus.FAILED &&
+        Boolean(del.assigned_rider_id) &&
+        Boolean(del.picked_up_at) &&
+        !del.delivered_at;
+      if (del.assigned_rider_id === riderId && (activeStatuses.includes(del.status) || custodyFailure)) {
         return this.findById(del.id);
       }
     }
@@ -244,7 +249,10 @@ export class DeliveryRepository {
       const res = await pool.query(
         `SELECT * FROM deliveries 
          WHERE assigned_rider_id = $1 
-           AND status IN ('ASSIGNED', 'ARRIVED_PICKUP', 'PICKED_UP', 'EN_ROUTE', 'ARRIVED_DROPOFF')
+           AND (
+             status IN ('ASSIGNED', 'ARRIVED_PICKUP', 'PICKED_UP', 'EN_ROUTE', 'ARRIVED_DROPOFF')
+             OR (status = 'FAILED' AND picked_up_at IS NOT NULL AND delivered_at IS NULL)
+           )
          LIMIT 1`,
         [riderId]
       );
@@ -429,6 +437,13 @@ export class DeliveryRepository {
     }
 
     const previousRiderId = delivery.assigned_rider_id;
+
+    if (
+      [DeliveryStatus.PICKED_UP, DeliveryStatus.EN_ROUTE, DeliveryStatus.ARRIVED_DROPOFF, DeliveryStatus.DELIVERED].includes(delivery.status) ||
+      (delivery.status === DeliveryStatus.FAILED && Boolean(delivery.picked_up_at))
+    ) {
+      throw new Error('Cannot unassign a delivery after physical custody has transferred to the rider');
+    }
 
     return await this.updateDelivery(
       deliveryId,
@@ -860,14 +875,15 @@ export class DeliveryRepository {
       const pool = getDbPool();
       await pool.query(
         `INSERT INTO delivery_proofs (
-          id, delivery_id, type, proof_value, storage_url, metadata, created_by_rider_id, created_at
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+          id, delivery_id, type, proof_value, storage_url, media_object_id, metadata, created_by_rider_id, created_at
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
         [
           record.id,
           record.delivery_id,
           record.type,
           record.proof_value || null,
           record.storage_url || null,
+          record.media_object_id || null,
           JSON.stringify(record.metadata || {}),
           record.created_by_rider_id || null,
           record.created_at,
@@ -903,6 +919,7 @@ export class DeliveryRepository {
           type: row.type,
           proof_value: row.proof_value,
           storage_url: row.storage_url,
+          media_object_id: row.media_object_id || undefined,
           metadata: row.metadata,
           created_by_rider_id: row.created_by_rider_id,
           created_at: new Date(row.created_at).toISOString(),

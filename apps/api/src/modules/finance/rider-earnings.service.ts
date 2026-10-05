@@ -29,6 +29,40 @@ export class RiderEarningsService {
 
   constructor(private repo: LedgerRepository = ledgerRepository) {}
 
+  public estimateEarning(input: {
+    distanceMeters?: number;
+    waitingMinutes?: number;
+    bonusMinor?: number;
+  }): {
+    baseMinor: number;
+    distanceMinor: number;
+    waitingMinor: number;
+    bonusMinor: number;
+    totalMinor: number;
+  } {
+    const distanceMeters = Math.max(0, input.distanceMeters || 0);
+    const waitingMinutes = Math.max(0, input.waitingMinutes || 0);
+    const bonusMinor = Math.max(0, input.bonusMinor || 0);
+
+    const distanceMinor =
+      distanceMeters > this.INCLUDED_DISTANCE_METERS
+        ? Math.round(((distanceMeters - this.INCLUDED_DISTANCE_METERS) / 1000) * this.RATE_PER_KM_MINOR)
+        : 0;
+    const waitingMinor =
+      waitingMinutes > this.INCLUDED_WAIT_MINUTES
+        ? Math.round((waitingMinutes - this.INCLUDED_WAIT_MINUTES) * this.RATE_PER_WAIT_MINUTE_MINOR)
+        : 0;
+    const baseMinor = this.BASE_PAY_MINOR;
+
+    return {
+      baseMinor,
+      distanceMinor,
+      waitingMinor,
+      bonusMinor,
+      totalMinor: baseMinor + distanceMinor + waitingMinor + bonusMinor,
+    };
+  }
+
   /**
    * Calculates rider compensation for a completed delivery
    */
@@ -44,24 +78,12 @@ export class RiderEarningsService {
     const bonusMinor = input.bonusMinor || 0;
     const currency = input.currency || 'KES';
 
-    // Base Pay
-    const baseMinor = this.BASE_PAY_MINOR;
-
-    // Distance Pay (beyond included 2km)
-    let distanceMinor = 0;
-    if (distanceMeters > this.INCLUDED_DISTANCE_METERS) {
-      const extraKm = (distanceMeters - this.INCLUDED_DISTANCE_METERS) / 1000;
-      distanceMinor = Math.round(extraKm * this.RATE_PER_KM_MINOR);
-    }
-
-    // Waiting Pay (beyond included 10 minutes)
-    let waitingMinor = 0;
-    if (waitingMinutes > this.INCLUDED_WAIT_MINUTES) {
-      const extraWait = waitingMinutes - this.INCLUDED_WAIT_MINUTES;
-      waitingMinor = Math.round(extraWait * this.RATE_PER_WAIT_MINUTE_MINOR);
-    }
-
-    const totalMinor = baseMinor + distanceMinor + waitingMinor + bonusMinor;
+    const {
+      baseMinor,
+      distanceMinor,
+      waitingMinor,
+      totalMinor,
+    } = this.estimateEarning({ distanceMeters, waitingMinutes, bonusMinor });
 
     const rulesSnapshot = {
       basePayMinor: this.BASE_PAY_MINOR,

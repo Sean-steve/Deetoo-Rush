@@ -57,7 +57,16 @@ export class DeliveryStateMachine {
       );
     }
 
-    if (!canTransitionDelivery(currentStatus, targetStatus)) {
+    const isExplicitAdminFailedDeliveryCompletion =
+      actorType === 'ADMIN' &&
+      currentStatus === DeliveryStatus.FAILED &&
+      targetStatus === DeliveryStatus.DELIVERED &&
+      Boolean(reasonCode);
+
+    if (
+      !canTransitionDelivery(currentStatus, targetStatus) &&
+      !isExplicitAdminFailedDeliveryCompletion
+    ) {
       throw new AppError(
         409,
         'DELIVERY_INVALID_STATE_TRANSITION',
@@ -85,9 +94,6 @@ export class DeliveryStateMachine {
         break;
       case DeliveryStatus.EN_ROUTE:
         updatedFields.en_route_at = now;
-        if (currentStatus === DeliveryStatus.ARRIVED_PICKUP) {
-          updatedFields.picked_up_at = now;
-        }
         break;
       case DeliveryStatus.ARRIVED_DROPOFF:
         updatedFields.arrived_dropoff_at = now;

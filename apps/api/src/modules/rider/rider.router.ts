@@ -32,6 +32,9 @@ import { AppError } from "../../middleware/error-handler";
 import { dispatchService } from "../order/dispatch.service";
 import { deliveryRepository } from "../order/delivery.repository";
 import { orderRepository } from "../order/order.repository";
+import { riderEarningsService } from "../finance/rider-earnings.service";
+import { ledgerRepository } from "../finance/ledger.repository";
+import { calculateDistanceMeters } from "@deetoo/utils";
 
 export const riderRouter = Router();
 
@@ -368,6 +371,50 @@ riderRouter.post(
 );
 
 // ==========================================
+// Rider financial visibility
+// ==========================================
+
+riderRouter.get(
+  "/earnings",
+  async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      const profile = await riderRepository.findProfileByUserId(req.user!.id);
+      if (!profile) throw new AppError(404, "RIDER_NOT_FOUND", "Rider profile not found");
+      const earnings = await ledgerRepository.findRiderEarningsByRiderId(profile.id);
+      const eligibleMinor = earnings
+        .filter((earning) => ["ELIGIBLE", "PENDING"].includes(String(earning.status)))
+        .reduce((sum, earning) => sum + earning.total_amount_minor, 0);
+      const lifetimeMinor = earnings.reduce((sum, earning) => sum + earning.total_amount_minor, 0);
+      res.json({
+        data: {
+          currency: earnings[0]?.currency || "KES",
+          eligible_minor: eligibleMinor,
+          lifetime_minor: lifetimeMinor,
+          earnings,
+        },
+        requestId: (req as any).requestId,
+      });
+    } catch (err) {
+      next(err);
+    }
+  },
+);
+
+riderRouter.get(
+  "/payouts",
+  async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      const profile = await riderRepository.findProfileByUserId(req.user!.id);
+      if (!profile) throw new AppError(404, "RIDER_NOT_FOUND", "Rider profile not found");
+      const payouts = await ledgerRepository.findRiderPayouts({ riderId: profile.id });
+      res.json({ data: payouts, requestId: (req as any).requestId });
+    } catch (err) {
+      next(err);
+    }
+  },
+);
+
+// ==========================================
 // Sprint 9: Dispatch & Delivery Endpoints for Rider
 // ==========================================
 
@@ -405,6 +452,28 @@ riderRouter.get(
         Math.round((expiresMs - nowMs) / 1000),
       );
 
+      const pickupLat = delivery?.pickup_location?.lat ?? delivery?.pickup_location?.latitude;
+      const pickupLng = delivery?.pickup_location?.lng ?? delivery?.pickup_location?.longitude;
+      const dropoffLat = delivery?.dropoff_location?.lat ?? delivery?.dropoff_location?.latitude;
+      const dropoffLng = delivery?.dropoff_location?.lng ?? delivery?.dropoff_location?.longitude;
+      const deliveryDistanceMeters =
+        [pickupLat, pickupLng, dropoffLat, dropoffLng].every(
+          (value) => typeof value === "number" && Number.isFinite(value),
+        )
+          ? calculateDistanceMeters(
+              pickupLat as number,
+              pickupLng as number,
+              dropoffLat as number,
+              dropoffLng as number,
+            )
+          : null;
+      const earningEstimate =
+        deliveryDistanceMeters == null
+          ? null
+          : riderEarningsService.estimateEarning({
+              distanceMeters: deliveryDistanceMeters,
+            });
+
       res.json({
         data: {
           offer: activeOffer,
@@ -418,7 +487,18 @@ riderRouter.get(
           dropoffLocation: delivery?.dropoff_location,
           distanceToPickupMeters: activeOffer.distance_to_pickup_meters,
           estimatedPickupEtaSeconds: activeOffer.estimated_pickup_eta_seconds,
-          estimatedEarningsMinor: 15000, // Standard KES 150.00 base delivery pay
+          estimatedDeliveryDistanceMeters: deliveryDistanceMeters,
+          estimatedEarningsMinor: earningEstimate?.totalMinor ?? null,
+          earningEstimate: earningEstimate
+            ? {
+                baseMinor: earningEstimate.baseMinor,
+                distanceMinor: earningEstimate.distanceMinor,
+                waitingMinor: earningEstimate.waitingMinor,
+                bonusMinor: earningEstimate.bonusMinor,
+                totalMinor: earningEstimate.totalMinor,
+                currency: "KES",
+              }
+            : null,
           itemCount: order?.items?.length || 1,
           secondsRemaining,
         },

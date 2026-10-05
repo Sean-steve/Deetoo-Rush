@@ -1,5 +1,7 @@
-import { transactionalService } from '../../db/transaction';
+import { transactionalService, withTransaction } from '../../db/transaction';
 import { requireSimulationMode } from '../../db/storage-policy';
+import { config } from '@deetoo/config';
+import { externalNotificationProvider } from './external-notification.provider';
 /**
  * DEETOO - Multi-Channel Notification Service
  * Sprint 13: Transactional Notifications, Idempotency, Delivery Simulation, Retries & Dead-Letter Integration
@@ -60,8 +62,13 @@ export class NotificationService {
 
     const saved = await operationsRepository.createNotification(record);
 
-    // 2. Dispatch via Simulated Channel Provider
-    return this.dispatch(saved);
+    // Durable deployments enqueue and return after the surrounding business
+    // transaction commits. A supervised worker claims and delivers the row.
+    // Memory fixtures keep inline simulated delivery for deterministic local tests.
+    if (config.storage.mode === 'memory') {
+      return this.dispatch(saved);
+    }
+    return saved;
   }
 
   /**
@@ -73,24 +80,74 @@ export class NotificationService {
     try {
       let providerRef: string;
       if (record.channel === 'IN_APP') {
-        // IN_APP has a genuine, non-simulated delivery mechanism (the realtime SSE broker below)
-        // and does not depend on any third-party integration, so it is never subject to the
-        // simulation-mode guard that PUSH/SMS/EMAIL correctly remain behind.
         providerRef = `sse_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+      } else if (record.channel === 'PUSH') {
+        try {
+          providerRef = await externalNotificationProvider.sendPush(
+            record.recipient_id,
+            record.subject || 'Deetoo',
+            String(record.payload?.message || record.subject || 'You have a Deetoo update'),
+            {
+              notificationId: record.id,
+              templateCode: record.template_code,
+              ...record.payload,
+            },
+          );
+        } catch (providerError) {
+          if (config.storage.mode !== 'memory') throw providerError;
+          requireSimulationMode();
+          providerRef = `sim_push_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+        }
+      } else if (record.channel === 'SMS') {
+        try {
+          providerRef = await externalNotificationProvider.sendSms(
+            record.recipient_id,
+            String(record.payload?.message || record.subject || 'Deetoo update'),
+          );
+        } catch (providerError) {
+          if (config.storage.mode !== 'memory') throw providerError;
+          requireSimulationMode();
+          providerRef = `sim_sms_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+        }
+      } else if (record.channel === 'EMAIL') {
+        try {
+          providerRef = await externalNotificationProvider.sendEmail(
+            record.recipient_id,
+            record.subject || 'Deetoo update',
+            String(record.payload?.message || record.subject || 'You have a Deetoo update'),
+          );
+        } catch (providerError) {
+          if (config.storage.mode !== 'memory') throw providerError;
+          requireSimulationMode();
+          providerRef = `sim_email_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+        }
       } else {
-        // No SMS/Email/Push provider (Africa's Talking, SendGrid/SES, FCM/APNs, etc.) exists in
-        // this codebase. This guard is deliberately left in place rather than guessing at a
-        // vendor and fabricating an unverifiable integration -- fail closed, don't fail silent.
-        requireSimulationMode();
-        providerRef = `sim_${record.channel.toLowerCase()}_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+        throw new Error(`Unsupported notification channel: ${record.channel}`);
       }
 
-      // Simulate delivery success
+      const provider =
+        providerRef.startsWith('sim_')
+          ? 'SIMULATED'
+          : record.channel === 'PUSH'
+            ? 'FCM'
+            : record.channel === 'SMS'
+              ? 'AFRICASTALKING'
+              : record.channel === 'EMAIL'
+                ? 'RESEND'
+                : 'IN_APP';
+
+      // External-provider acceptance is SENT, not proof of device delivery.
+      // IN_APP delivery is synchronous, so it can be marked DELIVERED immediately.
       const delivered: Partial<NotificationRecord> = {
-        status: 'DELIVERED',
+        status: record.channel === 'IN_APP' ? 'DELIVERED' : 'SENT',
+        provider,
         provider_reference: providerRef,
         sent_at: now,
-        delivered_at: now,
+        delivered_at: record.channel === 'IN_APP' ? now : undefined,
+        failed_at: undefined,
+        failure_code: undefined,
+        failure_reason: undefined,
+        scheduled_at: undefined,
       };
 
       const updated = await operationsRepository.updateNotification(record.id, delivered);
@@ -121,12 +178,19 @@ export class NotificationService {
       const nextRetry = record.retry_count + 1;
       const isFinalFailure = nextRetry >= record.max_retries;
 
+      const retryDelaySeconds = Math.min(
+        300,
+        5 * Math.pow(2, Math.max(0, nextRetry - 1)),
+      );
       const failureUpdate: Partial<NotificationRecord> = {
         status: 'FAILED',
         failed_at: now,
         failure_code: 'PROVIDER_ERROR',
         failure_reason: err.message,
         retry_count: nextRetry,
+        scheduled_at: isFinalFailure
+          ? undefined
+          : new Date(Date.now() + retryDelaySeconds * 1000).toISOString(),
       };
 
       const updated = await operationsRepository.updateNotification(record.id, failureUpdate);
@@ -164,11 +228,27 @@ export class NotificationService {
       throw new Error(`Notification ${notificationId} not found`);
     }
 
-    if (record.status === 'DELIVERED') {
+    if (record.status === 'DELIVERED' || record.status === 'SENT') {
       return record;
     }
 
     return this.dispatch(record);
+  }
+
+  /**
+   * Claim and deliver a bounded durable batch. Repository claiming uses
+   * FOR UPDATE SKIP LOCKED so multiple workers cannot send the same row.
+   */
+  public async processPendingBatch(limit = 25): Promise<number> {
+    const claimed = await operationsRepository.claimPendingNotifications(limit);
+    for (const record of claimed) {
+      if (config.storage.mode === 'postgres') {
+        await withTransaction(() => this.dispatch(record));
+      } else {
+        await this.dispatch(record);
+      }
+    }
+    return claimed.length;
   }
 
   /**
@@ -235,4 +315,5 @@ export class NotificationService {
   }
 }
 
-export const notificationService = transactionalService(new NotificationService());
+export const notificationServiceCore = new NotificationService();
+export const notificationService = transactionalService(notificationServiceCore);

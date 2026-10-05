@@ -39,7 +39,12 @@
     "openapi:coverage": "tsx scripts/openapi-coverage-check.ts",
     "openapi:validate": "tsx scripts/openapi-validate.ts",
     "test:paid-order": "NODE_ENV=test DEETOO_STORAGE_MODE=postgres DEETOO_FIXTURES=false tsx --test tests/paid-order/*.test.ts",
-    "test:local-workflow": "NODE_ENV=test DEETOO_STORAGE_MODE=postgres DEETOO_FIXTURES=false tsx --test tests/local-workflow/*.test.ts"
+    "test:local-workflow": "NODE_ENV=test DEETOO_STORAGE_MODE=postgres DEETOO_FIXTURES=false tsx --test tests/local-workflow/*.test.ts",
+    "typecheck:rider-android": "pnpm --filter @deetoo/rider-android typecheck",
+    "build:rider-android": "pnpm --filter @deetoo/rider-android export:android",
+    "worker:notifications": "tsx --import dotenv/config scripts/notification-worker.ts",
+    "test:phase2": "NODE_ENV=test DEETOO_STORAGE_MODE=memory DEETOO_FIXTURES=true tsx --test tests/unit/phase2_native_fulfilment.test.ts",
+    "prebuild:rider-android": "pnpm --filter @deetoo/rider-android prebuild:android"
   },
   "dependencies": {
     "@google/genai": "^2.4.0",
@@ -56,7 +61,9 @@
     "react": "^19.0.1",
     "react-dom": "^19.0.1",
     "vite": "^6.2.3",
-    "zod": "^4.5.4"
+    "zod": "^4.5.4",
+    "@aws-sdk/client-s3": "^3.899.0",
+    "@aws-sdk/s3-request-presigner": "^3.899.0"
   },
   "devDependencies": {
     "@apidevtools/swagger-parser": "^13.0.0",

@@ -707,7 +707,7 @@ export const RiderCompleteDeliverySchema = z.object({
   proof_type: z.enum(['OTP', 'PHOTO', 'SIGNATURE', 'CONTACTLESS_CONFIRMATION']).default('OTP'),
   otp: z.string().min(4).max(8).optional(),
   verification_code: z.string().min(4).max(8).optional(),
-  photo_url: z.string().max(2048).optional(),
+  photo_media_id: z.string().uuid().optional(),
   signature_data: z.string().max(10000).optional(),
   note: z.string().max(500).optional(),
   latitude: z.number().min(-90).max(90).optional(),
@@ -726,7 +726,7 @@ export const RiderFailDeliverySchema = z.object({
     'OTHER',
   ]),
   note: z.string().min(3, 'Detailed failure note is required').max(1000),
-  photo_url: z.string().max(2048).optional(),
+  photo_media_id: z.string().uuid().optional(),
 });
 
 export const AdminForceCompleteDeliverySchema = z.object({

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Order } from "@deetoo/types";
 import { useAuth } from "../../../../packages/auth/src/react";
 import {
@@ -34,6 +34,72 @@ export function KitchenOrders({ branchId }: { branchId: string }) {
   const [reason, setReason] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [soundEnabled, setSoundEnabled] = useState(false);
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const previousPlacedCountRef = useRef<number | null>(null);
+
+  function playIncomingOrderSound() {
+    if (!soundEnabled || !audioContextRef.current) return;
+    const ctx = audioContextRef.current;
+    const oscillator = ctx.createOscillator();
+    const gain = ctx.createGain();
+    oscillator.frequency.value = 880;
+    gain.gain.setValueAtTime(0.12, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.45);
+    oscillator.connect(gain);
+    gain.connect(ctx.destination);
+    oscillator.start();
+    oscillator.stop(ctx.currentTime + 0.45);
+  }
+
+  function enableSound() {
+    const AudioContextCtor =
+      window.AudioContext ||
+      (window as typeof window & { webkitAudioContext?: typeof AudioContext })
+        .webkitAudioContext;
+    if (!AudioContextCtor) {
+      setError("This browser does not support kitchen audio alerts.");
+      return;
+    }
+    const ctx = audioContextRef.current || new AudioContextCtor();
+    audioContextRef.current = ctx;
+    void ctx.resume();
+    setSoundEnabled(true);
+  }
+
+  useEffect(() => {
+    if (!branchId) return;
+    const source = new EventSource(
+      `/api/v1/realtime/stream?channels=${encodeURIComponent(`merchant-branch:${branchId}`)}`,
+      { withCredentials: true },
+    );
+    const refresh = () => void orders.refresh();
+    const eventTypes = [
+      "order.placed",
+      "order.cancelled",
+      "order.rejected",
+      "delivery.assigned",
+      "delivery.arrived_pickup",
+      "delivery.picked_up",
+      "delivery.delivered",
+    ];
+    eventTypes.forEach((type) => source.addEventListener(type, refresh));
+    source.onerror = () => {
+      // Polling remains the authoritative fallback when realtime disconnects.
+    };
+    return () => {
+      eventTypes.forEach((type) => source.removeEventListener(type, refresh));
+      source.close();
+    };
+  }, [branchId, orders.refresh]);
+
+  useEffect(() => {
+    if (!orders.data) return;
+    const placedCount = orders.data.filter((order) => order.status === "PLACED").length;
+    const previous = previousPlacedCountRef.current;
+    if (previous !== null && placedCount > previous) playIncomingOrderSound();
+    previousPlacedCountRef.current = placedCount;
+  }, [orders.data, soundEnabled]);
   async function act(fn: () => Promise<unknown>) {
     setBusy(true);
     setError(null);
@@ -56,15 +122,22 @@ export function KitchenOrders({ branchId }: { branchId: string }) {
     <>
       <PageHeading
         title="Kitchen display"
-        eyebrow="Live orders · refreshes every 5 seconds"
+        eyebrow="Live orders · realtime with 5-second polling fallback"
         action={
-          <Button
-            variant="outline"
-            onClick={orders.refresh}
-            isLoading={orders.loading}
-          >
-            Refresh orders
-          </Button>
+          <div className="flex gap-2">
+            {!soundEnabled && (
+              <Button variant="outline" onClick={enableSound}>
+                Enable order sound
+              </Button>
+            )}
+            <Button
+              variant="outline"
+              onClick={orders.refresh}
+              isLoading={orders.loading}
+            >
+              Refresh orders
+            </Button>
+          </div>
         }
       />
       {error && <ErrorState message={error} />}

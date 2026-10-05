@@ -336,7 +336,7 @@ describe('Sprint 13: Operations, Support, Failure Recovery & Fraud Controls', ()
       };
 
       const firstSend = await notificationService.sendNotification(params);
-      assert.equal(firstSend.status, 'DELIVERED');
+      assert.equal(firstSend.status, 'SENT');
       assert.ok(firstSend.provider_reference);
 
       // Attempt duplicate send with identical idempotency parameters

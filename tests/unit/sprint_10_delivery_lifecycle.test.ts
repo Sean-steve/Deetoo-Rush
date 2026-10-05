@@ -20,12 +20,49 @@ import { riderRepository } from '../../apps/api/src/modules/rider/rider.reposito
 import { orderRepository } from '../../apps/api/src/modules/order/order.repository';
 import { dispatchService } from '../../apps/api/src/modules/order/dispatch.service';
 import { riderLocationStore } from '../../apps/api/src/db/redis';
+import { mediaService } from '../../apps/api/src/modules/media/media.service';
 
 describe('Sprint 10: Delivery Execution Lifecycle & Customer Tracking', () => {
   const testRiderUserId = 'usr_sprint10_rider';
   const testRiderId = 'rider_sprint10_01';
   const testCustomerId = 'cust_sprint10_01';
   const testBranchId = 'branch_sprint10_01';
+
+  async function createReadyOrder(orderId: string) {
+    return orderRepository.createOrderAtomic({
+      id: orderId,
+      order_number: `ORD-${orderId.slice(-8)}`,
+      customer_id: testCustomerId,
+      branch_id: testBranchId,
+      branch_name: 'Sprint 10 Kitchen',
+      status: OrderStatus.READY,
+      currency: 'KES',
+      subtotal_amount: 100000,
+      tax_amount: 0,
+      delivery_fee_amount: 15000,
+      tip_amount: 0,
+      discount_amount: 0,
+      total_amount: 115000,
+      payment_status: 'PAID' as any,
+      payment_method: 'MPESA' as any,
+      items: [{
+        id: `item_${orderId}`,
+        order_id: orderId,
+        catalogue_item_id: 'catalogue_s10',
+        item_name: 'Test meal',
+        base_price_amount: 100000,
+        total_price_amount: 100000,
+        quantity: 1,
+        modifiers: [],
+      }],
+      delivery_address_snapshot: {
+        recipient_name: 'Test Customer',
+        phone: '+254700000999',
+        formatted_address: 'Riverside Drive, Nairobi',
+        location: { lat: -1.275, lng: 36.815 },
+      },
+    });
+  }
 
   beforeEach(async () => {
     // 1. Setup active rider profile
@@ -102,6 +139,16 @@ describe('Sprint 10: Delivery Execution Lifecycle & Customer Tracking', () => {
     assert.equal(toDelivered.targetStatus, DeliveryStatus.DELIVERED);
     assert.ok(toDelivered.updatedFields.delivered_at);
 
+    // ARRIVED_PICKUP cannot jump directly to EN_ROUTE; custody confirmation is mandatory.
+    assert.equal(
+      DeliveryStateMachine.canTransition(DeliveryStatus.ARRIVED_PICKUP, DeliveryStatus.EN_ROUTE),
+      false,
+    );
+    assert.equal(
+      DeliveryStateMachine.canTransition(DeliveryStatus.FAILED, DeliveryStatus.UNASSIGNED),
+      false,
+    );
+
     // Assert illegal skip is rejected: ASSIGNED cannot jump directly to DELIVERED
     assert.throws(
       () => {
@@ -151,6 +198,7 @@ describe('Sprint 10: Delivery Execution Lifecycle & Customer Tracking', () => {
 
   test('3. Pickup Confirmation validates kitchen verification code and prevents unauthorized pickup', async () => {
     const orderId = `ord_s10_pickup_${Date.now()}`;
+    await createReadyOrder(orderId);
     const delivery = await deliveryRepository.createDelivery({
       order_id: orderId,
       order_number: 'ORD-S10-002',
@@ -234,6 +282,7 @@ describe('Sprint 10: Delivery Execution Lifecycle & Customer Tracking', () => {
 
   test('5. Proof of Delivery with OTP: verifies code, locks after 5 failed attempts, completes on success', async () => {
     const orderId = `ord_s10_otp_${Date.now()}`;
+    await createReadyOrder(orderId);
     const delivery = await deliveryRepository.createDelivery({
       order_id: orderId,
       order_number: 'ORD-S10-004',
@@ -297,11 +346,12 @@ describe('Sprint 10: Delivery Execution Lifecycle & Customer Tracking', () => {
     const proofs = await deliveryRepository.getProofsByDeliveryId(delivery.id);
     assert.equal(proofs.length, 1);
     assert.equal(proofs[0].type, 'OTP');
-    assert.equal(proofs[0].proof_value, '7391');
+    assert.equal(proofs[0].proof_value, 'OTP_VERIFIED');
   });
 
-  test('6. Proof of Delivery with Photo: validates photo URL and stores proof', async () => {
+  test('6. Proof of Delivery with Photo: requires verified private media bound to delivery', async () => {
     const orderId = `ord_s10_photo_${Date.now()}`;
+    await createReadyOrder(orderId);
     const delivery = await deliveryRepository.createDelivery({
       order_id: orderId,
       order_number: 'ORD-S10-005',
@@ -314,6 +364,10 @@ describe('Sprint 10: Delivery Execution Lifecycle & Customer Tracking', () => {
       dropoff_address_text: 'Westlands Pride Apartments, Block C',
       assigned_rider_id: testRiderId,
       assigned_at: new Date().toISOString(),
+      arrived_pickup_at: new Date().toISOString(),
+      picked_up_at: new Date().toISOString(),
+      en_route_at: new Date().toISOString(),
+      arrived_dropoff_at: new Date().toISOString(),
       reassignment_count: 0,
       dispatch_attention_required: false,
       current_search_radius_meters: 2000,
@@ -321,36 +375,35 @@ describe('Sprint 10: Delivery Execution Lifecycle & Customer Tracking', () => {
       version: 1,
     });
 
-    // Rejects missing photo
     await assert.rejects(
-      async () => {
-        await dispatchService.riderCompleteDelivery(delivery.id, testRiderUserId, {
-          proof_type: 'PHOTO',
-        });
-      },
-      {
-        name: 'AppError',
-        message: /Photo URL is required for PHOTO proof/,
-      }
+      () => dispatchService.riderCompleteDelivery(delivery.id, testRiderUserId, { proof_type: 'PHOTO' }),
+      (error: any) => error?.code === 'PHOTO_PROOF_REQUIRED',
     );
 
-    // Accepts valid photo URL
+    const upload = await mediaService.createUpload({
+      ownerUserId: testRiderUserId,
+      purpose: 'DELIVERY_PROOF',
+      contentType: 'image/jpeg',
+      referenceType: 'DELIVERY',
+      referenceId: delivery.id,
+    });
+    await mediaService.completeUpload(upload.media.id, testRiderUserId);
+
     const completed = await dispatchService.riderCompleteDelivery(delivery.id, testRiderUserId, {
       proof_type: 'PHOTO',
-      photo_url: 'https://storage.deetoo.app/proofs/dropoff_door_123.jpg',
+      photo_media_id: upload.media.id,
       note: 'Placed at front doorstep per instructions',
     });
 
     assert.equal(completed.status, DeliveryStatus.DELIVERED);
-    assert.equal(completed.proof_type, 'PHOTO');
-
     const proofs = await deliveryRepository.getProofsByDeliveryId(delivery.id);
     assert.equal(proofs.length, 1);
     assert.equal(proofs[0].type, 'PHOTO');
-    assert.equal(proofs[0].storage_url, 'https://storage.deetoo.app/proofs/dropoff_door_123.jpg');
+    assert.equal(proofs[0].media_object_id, upload.media.id);
+    assert.match(proofs[0].storage_url || '', /^s3:\/\/memory-private\//);
   });
 
-  test('7. Failed Delivery Handling: creates incident, sets attention flag, releases rider', async () => {
+  test('7. Failed Delivery Handling: preserves Rider custody after pickup and opens incident', async () => {
     const orderId = `ord_s10_fail_${Date.now()}`;
     const delivery = await deliveryRepository.createDelivery({
       order_id: orderId,
@@ -364,6 +417,10 @@ describe('Sprint 10: Delivery Execution Lifecycle & Customer Tracking', () => {
       dropoff_address_text: 'Westlands Pride Apartments, Block C',
       assigned_rider_id: testRiderId,
       assigned_at: new Date().toISOString(),
+      arrived_pickup_at: new Date().toISOString(),
+      picked_up_at: new Date().toISOString(),
+      en_route_at: new Date().toISOString(),
+      arrived_dropoff_at: new Date().toISOString(),
       reassignment_count: 0,
       dispatch_attention_required: false,
       current_search_radius_meters: 2000,
@@ -374,7 +431,6 @@ describe('Sprint 10: Delivery Execution Lifecycle & Customer Tracking', () => {
     const failed = await dispatchService.riderFailDelivery(delivery.id, testRiderUserId, {
       reason_code: 'CUSTOMER_UNREACHABLE',
       note: 'Customer phone is off and gate security does not know tenant',
-      photo_url: 'https://storage.deetoo.app/incidents/gate_unreachable.jpg',
     });
 
     assert.equal(failed.status, DeliveryStatus.FAILED);
@@ -382,9 +438,12 @@ describe('Sprint 10: Delivery Execution Lifecycle & Customer Tracking', () => {
     assert.equal(failed.failure_reason, 'CUSTOMER_UNREACHABLE');
     assert.equal(failed.dispatch_attention_required, true);
 
-    // Rider should be released
+    // Rider keeps custody after pickup until Operations resolves the incident.
     const rider = await riderRepository.findProfileById(testRiderId);
-    assert.equal(rider?.workStatus, RiderWorkStatus.ONLINE_AVAILABLE);
+    assert.equal(rider?.workStatus, RiderWorkStatus.BUSY);
+    const failedAfterIncident = await deliveryRepository.findById(delivery.id);
+    assert.equal(failedAfterIncident?.assigned_rider_id, testRiderId);
+    assert.equal(await deliveryRepository.hasActiveDelivery(testRiderId), true);
 
     // Incident record should exist
     const incidents = await deliveryRepository.listIncidents({ delivery_id: delivery.id });
@@ -395,6 +454,7 @@ describe('Sprint 10: Delivery Execution Lifecycle & Customer Tracking', () => {
 
   test('8. Admin Operations: Force complete stuck delivery and resolve incidents', async () => {
     const orderId = `ord_s10_admin_${Date.now()}`;
+    await createReadyOrder(orderId);
     const delivery = await deliveryRepository.createDelivery({
       order_id: orderId,
       order_number: 'ORD-S10-007',
@@ -505,7 +565,7 @@ describe('Sprint 10: Delivery Execution Lifecycle & Customer Tracking', () => {
     assert.equal(tracking.rider?.firstName, 'Boniface'); // First name only
     assert.equal(tracking.rider?.vehicleType, VehicleType.MOTORBIKE);
     assert.equal(tracking.rider?.vehicleRegistrationMasked, 'KM***Z'); // Masked registration
-    assert.ok(tracking.rider?.phoneProxy.includes('ext')); // Virtual proxy phone
+    assert.equal(tracking.rider?.phoneProxy, undefined); // No fabricated contact proxy without a real proxy provider.
 
     // Verify live location and calculated ETA
     assert.ok(tracking.riderLiveLocation);

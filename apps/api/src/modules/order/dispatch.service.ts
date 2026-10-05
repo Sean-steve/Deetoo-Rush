@@ -46,6 +46,8 @@ import { riderEarningsService } from '../finance/rider-earnings.service';
 import { financialPostingService } from '../finance/financial-posting.service';
 import { logger, calculateDistanceMeters } from '@deetoo/utils';
 import { randomUUID } from 'crypto';
+import { mediaService } from '../media/media.service';
+import { routingProvider } from '../maps/routing.provider';
 
 export class DispatchService {
   private dispatchConfig: DispatchConfig = { ...config.dispatch };
@@ -128,7 +130,6 @@ export class DispatchService {
       );
     }
 
-    // 1. Query nearby available riders in Redis
     const nearbyLocations = await riderLocationStore.findNearbyAvailableRiders({
       latitude: pickupLat,
       longitude: pickupLng,
@@ -136,23 +137,23 @@ export class DispatchService {
       limit: this.dispatchConfig.routingCandidateLimit * 2,
     });
 
-    const candidates: DispatchCandidate[] = [];
+    const shortlist: Array<{
+      riderId: string;
+      userId: string;
+      riderName: string;
+      phone: string;
+      vehicleType: string;
+      latitude: number;
+      longitude: number;
+      straightLineDistanceMeters: number;
+    }> = [];
 
     for (const item of nearbyLocations) {
-      if (excludedRiderIds.includes(item.riderId)) {
-        continue;
-      }
+      if (excludedRiderIds.includes(item.riderId)) continue;
+      if (await deliveryRepository.hasActiveDelivery(item.riderId)) continue;
 
-      // Check active delivery assignment constraint (At most 1 active delivery per rider)
-      const hasActive = await deliveryRepository.hasActiveDelivery(item.riderId);
-      if (hasActive) {
-        continue;
-      }
-
-      // Fetch profile and check authoritative eligibility
       const profile = await riderRepository.findProfileById(item.riderId);
       if (!profile) continue;
-
       if (
         profile.onboardingStatus !== RiderOnboardingStatus.APPROVED ||
         profile.operationalStatus !== RiderOperationalStatus.ACTIVE ||
@@ -161,37 +162,22 @@ export class DispatchService {
         continue;
       }
 
-      // Verify operational eligibility
       const eligibility = await riderEligibilityService.isRiderEligibleForDispatch(profile.id);
-      if (!eligibility.eligible) {
-        continue;
-      }
+      if (!eligibility.eligible) continue;
 
-      // Calculate distance & ETA
-      const distMeters = item.distanceMeters || Math.round(
-        calculateDistanceMeters(
-          pickupLat,
-          pickupLng,
-          item.latitude,
-          item.longitude,
-          1.0
-        )
-      );
+      const straightLineDistanceMeters =
+        item.distanceMeters ||
+        Math.round(
+          calculateDistanceMeters(
+            pickupLat,
+            pickupLng,
+            item.latitude,
+            item.longitude,
+            1.0,
+          ),
+        );
 
-      // Assume average speed 25 km/h (~7 m/s) in urban traffic
-      const estimatedEtaSeconds = Math.max(60, Math.round(distMeters / 7));
-
-      // Multi-factor Scoring:
-      // Distance score: 0 - 100 (closer is higher)
-      const distanceScore = Math.max(0, Math.round(100 - (distMeters / radiusMeters) * 100));
-      // ETA score: 0 - 100 (lower ETA is higher)
-      const etaScore = Math.max(0, Math.round(100 - (estimatedEtaSeconds / 900) * 100));
-      // Activity & reliability score: 20 pts
-      const activityScore = 20;
-
-      const score = Math.round(distanceScore * 0.5 + etaScore * 0.3 + activityScore * 0.2);
-
-      candidates.push({
+      shortlist.push({
         riderId: profile.id,
         userId: profile.userId,
         riderName: `${profile.firstName} ${profile.lastName}`.trim(),
@@ -199,8 +185,54 @@ export class DispatchService {
         vehicleType: profile.vehicleType,
         latitude: item.latitude,
         longitude: item.longitude,
-        distanceToPickupMeters: distMeters,
-        estimatedPickupEtaSeconds: estimatedEtaSeconds,
+        straightLineDistanceMeters,
+      });
+    }
+
+    const routedShortlist = shortlist
+      .sort((a, b) => a.straightLineDistanceMeters - b.straightLineDistanceMeters)
+      .slice(0, this.dispatchConfig.routingCandidateLimit);
+    if (!routedShortlist.length) return [];
+
+    const routes = await routingProvider.pickupMatrix(
+      routedShortlist.map((candidate) => ({
+        id: candidate.riderId,
+        latitude: candidate.latitude,
+        longitude: candidate.longitude,
+        vehicleType: candidate.vehicleType,
+      })),
+      { latitude: pickupLat, longitude: pickupLng },
+    );
+    const routeByRider = new Map(routes.map((route) => [route.id, route]));
+
+    const candidates: DispatchCandidate[] = [];
+    for (const candidate of routedShortlist) {
+      const route = routeByRider.get(candidate.riderId);
+      if (!route) continue;
+
+      const distanceScore = Math.max(
+        0,
+        Math.round(100 - (route.distanceMeters / radiusMeters) * 100),
+      );
+      const etaScore = Math.max(
+        0,
+        Math.round(100 - (route.durationSeconds / 900) * 100),
+      );
+      const activityScore = 20;
+      const score = Math.round(
+        distanceScore * 0.5 + etaScore * 0.3 + activityScore * 0.2,
+      );
+
+      candidates.push({
+        riderId: candidate.riderId,
+        userId: candidate.userId,
+        riderName: candidate.riderName,
+        phone: candidate.phone,
+        vehicleType: candidate.vehicleType,
+        latitude: candidate.latitude,
+        longitude: candidate.longitude,
+        distanceToPickupMeters: route.distanceMeters,
+        estimatedPickupEtaSeconds: route.durationSeconds,
         rank: 0,
         score,
         scoreBreakdown: {
@@ -212,15 +244,16 @@ export class DispatchService {
       });
     }
 
-    // Sort by score descending (higher score = better rank)
-    candidates.sort((a, b) => b.score - a.score || a.distanceToPickupMeters - b.distanceToPickupMeters);
-
-    // Assign rank 1..N
-    candidates.forEach((c, idx) => {
-      c.rank = idx + 1;
+    candidates.sort(
+      (a, b) =>
+        b.score - a.score ||
+        a.estimatedPickupEtaSeconds - b.estimatedPickupEtaSeconds ||
+        a.distanceToPickupMeters - b.distanceToPickupMeters,
+    );
+    candidates.forEach((candidate, index) => {
+      candidate.rank = index + 1;
     });
-
-    return candidates.slice(0, this.dispatchConfig.routingCandidateLimit);
+    return candidates;
   }
 
   /**
@@ -269,18 +302,8 @@ export class DispatchService {
       delivery.status === DeliveryStatus.CANCELLED ||
       delivery.status === DeliveryStatus.FAILED
     ) {
-      // FAILED is reachable from custody-holding states (PICKED_UP, EN_ROUTE, ARRIVED_DROPOFF) as
-      // well as pre-pickup ones, and the state machine legally allows FAILED -> UNASSIGNED "after
-      // operational review" (packages/types delivery transition table). Nothing before this
-      // change enforced that review: any caller of executeDispatchCycle -- including the
-      // ADMIN/OPS manual dispatch-trigger endpoint -- could resume offering a FAILED delivery to
-      // riders while its record still showed FAILED with dispatch_attention_required=true,
-      // silently bypassing the incident review that flag exists to force (audit A60). Automatic
-      // and manual-trigger dispatch cycles alike now stop here; the only way back into dispatch is
-      // the explicit, audited DeliveryRepository.atomicUnassign reset (admin.router.ts's manual
-      // unassign action, which already supports an optional immediate retriggerDispatch), which
-      // requires an actor and a reason code and moves the record to UNASSIGNED before any new
-      // offer round begins.
+      // FAILED is terminal to ordinary dispatch. Recovery is an explicit Operations command;
+      // post-pickup custody can never be reassigned to another Rider.
       return {
         status: 'TERMINAL',
         candidatesCount: 0,
@@ -427,7 +450,7 @@ export class DispatchService {
     );
 
     // Publish offer event to specific rider channel
-    await this.publishRealtimeEvent(`rider:${topCandidate.userId}`, 'delivery.offer.created', {
+    const riderOfferPayload = {
       offerId: offer.id,
       deliveryId: delivery.id,
       orderId: delivery.order_id,
@@ -440,6 +463,19 @@ export class DispatchService {
       estimatedPickupEtaSeconds: topCandidate.estimatedPickupEtaSeconds,
       expiresAt,
       timeoutSeconds: this.dispatchConfig.offerTimeoutSeconds,
+    };
+    await this.publishRealtimeEvent(`rider:${topCandidate.userId}`, 'delivery.offer.created', riderOfferPayload);
+    await notificationService.sendNotification({
+      recipientType: 'RIDER',
+      recipientId: topCandidate.userId,
+      channel: 'PUSH',
+      templateCode: 'RIDER_NEW_OFFER',
+      subject: 'New delivery offer',
+      referenceId: offer.id,
+      payload: {
+        ...riderOfferPayload,
+        message: `New delivery offer: pickup ${Math.max(1, Math.round(topCandidate.distanceToPickupMeters / 100) / 10)} km away`,
+      },
     });
 
     logger.info('Dispatched delivery offer to rider', {
@@ -679,62 +715,60 @@ export class DispatchService {
       // Free up rider work status
       await riderRepository.updateWorkStatus(riderProfile.id, RiderWorkStatus.ONLINE_AVAILABLE);
 
-      // Transition order to COMPLETED
-      try {
-        const order = await orderRepository.findById(delivery.order_id);
-        if (order && order.status !== OrderStatus.COMPLETED) {
-          const orderTransition = orderStateMachine.transition(order, {
-            targetStatus: OrderStatus.COMPLETED,
-            actorType: 'SYSTEM',
-            actorName: 'Dispatch Engine',
-            note: `Delivery confirmed completed by courier ${riderProfile.firstName}`,
-          });
+      // Order completion and Rider earning are part of the same transactional command.
+      // A delivery cannot commit DELIVERED while either durable business effect is missing.
+      const order = await orderRepository.findById(delivery.order_id);
+      if (!order) {
+        throw new Error('Cannot complete delivery because its order is missing');
+      }
+      if (order.status !== OrderStatus.COMPLETED) {
+        const orderTransition = orderStateMachine.transition(order, {
+          targetStatus: OrderStatus.COMPLETED,
+          actorType: 'SYSTEM',
+          actorName: 'Dispatch Engine',
+          note: `Delivery confirmed completed by courier ${riderProfile.firstName}`,
+        });
 
-          await orderRepository.updateOrderStatus(
-            order.id,
-            orderTransition.newStatus,
-            orderTransition.updatedOrderFields,
-            orderTransition.timelineEntry
-          );
+        await orderRepository.updateOrderStatus(
+          order.id,
+          orderTransition.newStatus,
+          orderTransition.updatedOrderFields,
+          orderTransition.timelineEntry
+        );
 
-          await this.publishRealtimeEvent(`order:${order.id}`, 'order.completed', {
-            order_id: order.id,
-            order_number: order.order_number,
-            status: OrderStatus.COMPLETED,
-            completed_at: new Date().toISOString(),
-          });
-        }
-      } catch (err) {
-        logger.error('Failed to transition order to COMPLETED upon delivery', {
-          service: 'dispatch-engine',
-          error: (err as Error).message,
+        await this.publishRealtimeEvent(`order:${order.id}`, 'order.completed', {
+          order_id: order.id,
+          order_number: order.order_number,
+          status: OrderStatus.COMPLETED,
+          completed_at: new Date().toISOString(),
         });
       }
 
-      // Calculate courier earnings and post to double-entry ledger (Sprint 12)
-      try {
-        const distanceMeters =
-          delivery.pickup_location && delivery.dropoff_location
-            ? calculateDistanceMeters(
-                delivery.pickup_location.latitude,
-                delivery.pickup_location.longitude,
-                delivery.dropoff_location.latitude,
-                delivery.dropoff_location.longitude
-              )
-            : 3200;
-
-        const earning = await riderEarningsService.calculateAndRecordEarning({
-          riderId: riderProfile.id,
-          deliveryId: delivery.id,
-          orderId: delivery.order_id,
-          distanceMeters,
-        });
-        await financialPostingService.postRiderEarning(earning);
-      } catch (finErr) {
-        logger.error('Failed to post rider earnings to financial ledger', {
-          error: finErr,
-        });
+      const pickupLat = delivery.pickup_location?.lat ?? delivery.pickup_location?.latitude;
+      const pickupLng = delivery.pickup_location?.lng ?? delivery.pickup_location?.longitude;
+      const dropoffLat = delivery.dropoff_location?.lat ?? delivery.dropoff_location?.latitude;
+      const dropoffLng = delivery.dropoff_location?.lng ?? delivery.dropoff_location?.longitude;
+      if (
+        ![pickupLat, pickupLng, dropoffLat, dropoffLng].every(
+          (value) => typeof value === 'number' && Number.isFinite(value),
+        )
+      ) {
+        throw new Error('Cannot calculate Rider earning without authoritative pickup/drop-off coordinates');
       }
+      const distanceMeters = calculateDistanceMeters(
+        pickupLat as number,
+        pickupLng as number,
+        dropoffLat as number,
+        dropoffLng as number,
+      );
+
+      const earning = await riderEarningsService.calculateAndRecordEarning({
+        riderId: riderProfile.id,
+        deliveryId: delivery.id,
+        orderId: delivery.order_id,
+        distanceMeters,
+      });
+      await financialPostingService.postRiderEarning(earning);
     }
 
     // Publish multi-channel status update
@@ -801,6 +835,16 @@ export class DispatchService {
     const delivery = await deliveryRepository.findById(deliveryId);
     if (!delivery) {
       throw new AppError(404, 'DELIVERY_NOT_FOUND', 'Delivery not found');
+    }
+
+    const order = await orderRepository.findById(delivery.order_id);
+    if (!order || order.status !== OrderStatus.READY) {
+      throw new AppError(
+        409,
+        'ORDER_NOT_READY_FOR_PICKUP',
+        'Pickup can only be confirmed after the merchant marks the paid order READY',
+        { orderStatus: order?.status || 'MISSING' },
+      );
     }
 
     const inputCode = options?.pickup_verification_code || options?.verification_code;
@@ -870,6 +914,7 @@ export class DispatchService {
       proof_type: DeliveryProofType;
       otp?: string;
       verification_code?: string;
+      photo_media_id?: string;
       photo_url?: string;
       signature_data?: string;
       note?: string;
@@ -922,27 +967,24 @@ export class DispatchService {
         );
       }
 
-      proofValue = inputOtp;
+      proofValue = 'OTP_VERIFIED';
       proofMetadata.verified = true;
     } else if (proofType === 'PHOTO') {
-      if (!options.photo_url) {
-        throw new AppError(400, 'PHOTO_PROOF_REQUIRED', 'Photo URL is required for PHOTO proof of delivery');
+      if (!options.photo_media_id) {
+        throw new AppError(
+          400,
+          'PHOTO_PROOF_REQUIRED',
+          'A verified private media upload is required for PHOTO proof of delivery',
+        );
       }
-      // This validates shape only (an HTTPS URL), not that the URL resolves to a real photo the
-      // rider actually captured at this delivery -- that requires an upload path through private
-      // object storage with signed URLs, which does not exist anywhere in this codebase yet.
-      // Until that lands, PHOTO proof remains only as trustworthy as whatever string the rider's
-      // client supplies (audit-flagged, tracked separately -- not solved by this check).
-      let parsed: URL;
-      try {
-        parsed = new URL(options.photo_url);
-      } catch {
-        throw new AppError(400, 'PHOTO_PROOF_INVALID', 'Photo URL is not a valid URL');
-      }
-      if (parsed.protocol !== 'https:') {
-        throw new AppError(400, 'PHOTO_PROOF_INVALID', 'Photo URL must be HTTPS');
-      }
-      storageUrl = options.photo_url;
+      const media = await mediaService.assertVerifiedOwnedMedia(
+        options.photo_media_id,
+        riderUserId,
+        'DELIVERY_PROOF',
+        deliveryId,
+      );
+      storageUrl = `s3://${media.bucket}/${media.object_key}`;
+      proofMetadata.mediaObjectId = media.id;
     } else if (proofType === 'SIGNATURE') {
       if (!options.signature_data) {
         throw new AppError(400, 'SIGNATURE_PROOF_REQUIRED', 'Signature data is required for SIGNATURE proof of delivery');
@@ -966,6 +1008,7 @@ export class DispatchService {
       type: proofType,
       proof_value: proofValue,
       storage_url: storageUrl,
+      media_object_id: proofType === 'PHOTO' ? options.photo_media_id : undefined,
       metadata: proofMetadata,
       created_by_rider_id: riderProfile.id,
     });
@@ -995,7 +1038,7 @@ export class DispatchService {
     options: {
       reason_code: string;
       note: string;
-      photo_url?: string;
+      photo_media_id?: string;
     }
   ): Promise<Delivery> {
     const delivery = await deliveryRepository.findById(deliveryId);
@@ -1020,12 +1063,19 @@ export class DispatchService {
       reported_by_id: riderProfile.id,
     });
 
-    // 2. If photo proof of failure provided:
-    if (options.photo_url) {
+    // 2. Optional incident media must be a verified private object owned by this Rider.
+    if (options.photo_media_id) {
+      const media = await mediaService.assertVerifiedOwnedMedia(
+        options.photo_media_id,
+        riderUserId,
+        'DELIVERY_INCIDENT',
+        deliveryId,
+      );
       await deliveryRepository.createProof({
         delivery_id: deliveryId,
         type: 'PHOTO',
-        storage_url: options.photo_url,
+        storage_url: `s3://${media.bucket}/${media.object_key}`,
+        media_object_id: media.id,
         created_by_rider_id: riderProfile.id,
         metadata: { incident_id: incident.id, reason_code: options.reason_code },
       });
@@ -1045,8 +1095,17 @@ export class DispatchService {
       failure_note: options.note,
     });
 
-    // 4. Release rider work status back to ONLINE_AVAILABLE
-    await riderRepository.updateWorkStatus(riderProfile.id, RiderWorkStatus.ONLINE_AVAILABLE);
+    // 4. Preserve custody after pickup. A rider holding an undelivered order remains BUSY
+    // until Ops resolves the incident. Pre-pickup failures can safely release the rider.
+    if (delivery.picked_up_at || [
+      DeliveryStatus.PICKED_UP,
+      DeliveryStatus.EN_ROUTE,
+      DeliveryStatus.ARRIVED_DROPOFF,
+    ].includes(delivery.status)) {
+      await riderRepository.updateWorkStatus(riderProfile.id, RiderWorkStatus.BUSY);
+    } else {
+      await riderRepository.updateWorkStatus(riderProfile.id, RiderWorkStatus.ONLINE_AVAILABLE);
+    }
 
     // 5. Broadcast incident alert to Admin/Ops
     await this.publishRealtimeEvent('admin:dispatch', 'delivery.incident_reported', {
@@ -1102,27 +1161,53 @@ export class DispatchService {
       await riderRepository.updateWorkStatus(delivery.assigned_rider_id, RiderWorkStatus.ONLINE_AVAILABLE);
     }
 
-    // Complete the Order
-    try {
-      const order = await orderRepository.findById(delivery.order_id);
-      if (order && order.status !== OrderStatus.COMPLETED) {
-        const orderTransition = orderStateMachine.transition(order, {
-          targetStatus: OrderStatus.COMPLETED,
-          actorType: 'ADMIN',
-          actorId: adminUserId,
-          actorName: adminName,
-          note: `Force-completed by admin: ${reason}`,
-        });
+    // Complete the Order in the same transaction.
+    const order = await orderRepository.findById(delivery.order_id);
+    if (!order) {
+      throw new Error('Cannot force-complete delivery because its order is missing');
+    }
+    if (order.status !== OrderStatus.COMPLETED) {
+      const orderTransition = orderStateMachine.transition(order, {
+        targetStatus: OrderStatus.COMPLETED,
+        actorType: 'ADMIN',
+        actorId: adminUserId,
+        actorName: adminName,
+        note: `Force-completed by admin: ${reason}`,
+      });
 
-        await orderRepository.updateOrderStatus(
-          order.id,
-          orderTransition.newStatus,
-          orderTransition.updatedOrderFields,
-          orderTransition.timelineEntry
-        );
+      await orderRepository.updateOrderStatus(
+        order.id,
+        orderTransition.newStatus,
+        orderTransition.updatedOrderFields,
+        orderTransition.timelineEntry
+      );
+    }
+
+    // Verified Ops completion must not bypass Rider compensation.
+    if (delivery.assigned_rider_id) {
+      const pickupLat = delivery.pickup_location?.lat ?? delivery.pickup_location?.latitude;
+      const pickupLng = delivery.pickup_location?.lng ?? delivery.pickup_location?.longitude;
+      const dropoffLat = delivery.dropoff_location?.lat ?? delivery.dropoff_location?.latitude;
+      const dropoffLng = delivery.dropoff_location?.lng ?? delivery.dropoff_location?.longitude;
+      if (
+        ![pickupLat, pickupLng, dropoffLat, dropoffLng].every(
+          (value) => typeof value === 'number' && Number.isFinite(value),
+        )
+      ) {
+        throw new Error('Cannot force-complete Rider earning without authoritative delivery coordinates');
       }
-    } catch {
-      // Non-blocking
+      const earning = await riderEarningsService.calculateAndRecordEarning({
+        riderId: delivery.assigned_rider_id,
+        deliveryId: delivery.id,
+        orderId: delivery.order_id,
+        distanceMeters: calculateDistanceMeters(
+          pickupLat as number,
+          pickupLng as number,
+          dropoffLat as number,
+          dropoffLng as number,
+        ),
+      });
+      await financialPostingService.postRiderEarning(earning);
     }
 
     // Create audit proof
@@ -1203,14 +1288,12 @@ export class DispatchService {
       deliveryId: delivery.id,
       orderId: delivery.order_id,
       orderNumber: delivery.order_number || order?.order_number || delivery.id.slice(0, 8),
-      publicCode: order?.public_code || delivery.pickup_verification_code || '0000',
       status: delivery.status,
       pickup: {
         name: delivery.branch_name || order?.branch_name || 'Restaurant Branch',
         address: delivery.pickup_address_text,
         location: delivery.pickup_location,
         instructions: null,
-        phoneProxy: '+254 700 000 000 ext 101',
         itemsSummary,
         isReady: order?.status === OrderStatus.READY || order?.status === OrderStatus.COMPLETED,
       },
@@ -1219,9 +1302,7 @@ export class DispatchService {
         address: delivery.dropoff_address_text,
         location: delivery.dropoff_location,
         instructions: delivery.delivery_instructions,
-        phoneProxy: '+254 700 000 000 ext 202',
       },
-      pickupVerificationCode: delivery.pickup_verification_code || (order?.public_code ? order.public_code.slice(-4) : '1234'),
       navigation: {
         pickupMapsUrl: `https://www.google.com/maps/dir/?api=1&destination=${pickupLat},${pickupLng}`,
         dropoffMapsUrl: `https://www.google.com/maps/dir/?api=1&destination=${dropoffLat},${dropoffLng}`,
@@ -1284,7 +1365,6 @@ export class DispatchService {
           firstName: riderProfile.firstName,
           vehicleType: riderProfile.vehicleType,
           vehicleRegistrationMasked: maskedReg,
-          phoneProxy: '+254 700 000 000 ext 303',
         };
 
         // Live location from Redis/InMemory store
@@ -1330,29 +1410,38 @@ export class DispatchService {
         break;
     }
 
-    // ETA calculation
+    // ETA is optional and provider-backed. Never invent a fixed travel speed or static ETA.
     let estimatedEtaMinutes: number | null = null;
     let estimatedArrivalAt: string | null = null;
 
     if (
       (delivery.status === DeliveryStatus.PICKED_UP || delivery.status === DeliveryStatus.EN_ROUTE) &&
-      riderLiveLocation && !riderLiveLocation.isStale
+      riderLiveLocation &&
+      !riderLiveLocation.isStale &&
+      riderSafe
     ) {
       const dropoffLat = delivery.dropoff_location.latitude ?? delivery.dropoff_location.lat;
       const dropoffLng = delivery.dropoff_location.longitude ?? delivery.dropoff_location.lng;
-      const distanceMeters = calculateDistanceMeters(
-        riderLiveLocation.latitude,
-        riderLiveLocation.longitude,
-        dropoffLat,
-        dropoffLng,
-        1.3
-      );
-      // Assume 25 km/h urban average
-      estimatedEtaMinutes = Math.max(2, Math.round(distanceMeters / (25 * (1000 / 60))));
-      estimatedArrivalAt = new Date(Date.now() + estimatedEtaMinutes * 60 * 1000).toISOString();
-    } else if (delivery.status === DeliveryStatus.ASSIGNED || delivery.status === DeliveryStatus.ARRIVED_PICKUP) {
-      estimatedEtaMinutes = 20;
-      estimatedArrivalAt = new Date(Date.now() + 20 * 60 * 1000).toISOString();
+      try {
+        const route = await routingProvider.route(
+          {
+            latitude: riderLiveLocation.latitude,
+            longitude: riderLiveLocation.longitude,
+          },
+          { latitude: dropoffLat, longitude: dropoffLng },
+          riderSafe.vehicleType,
+        );
+        estimatedEtaMinutes = Math.max(1, Math.ceil(route.durationSeconds / 60));
+        estimatedArrivalAt = new Date(
+          Date.now() + route.durationSeconds * 1000,
+        ).toISOString();
+      } catch (routingError) {
+        logger.warn('Customer ETA unavailable from routing provider', {
+          service: 'dispatch-engine',
+          deliveryId: delivery.id,
+          error: (routingError as Error).message,
+        });
+      }
     }
 
     const timeline = delivery.timeline || (await deliveryRepository.getTimelineByDeliveryId(delivery.id));
