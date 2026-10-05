@@ -39,6 +39,9 @@
       ],
       "@deetoo/ui": [
         "./packages/ui/src/index.tsx"
+      ],
+      "@deetoo/auth-native": [
+        "./packages/auth-native/src/index.ts"
       ]
     },
     "allowImportingTsExtensions": true,
