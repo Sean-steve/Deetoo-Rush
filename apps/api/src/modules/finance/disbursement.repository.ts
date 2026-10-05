@@ -115,6 +115,18 @@ class DisbursementRepository {
     ) || null;
   }
 
+  async listDestinations(ownerType?:PayoutOwnerType, ownerId?:string):Promise<PayoutDestination[]> {
+    if(config.storage.mode==='postgres'){
+      const params:any[]=[]; let where='1=1';
+      if(ownerType){params.push(ownerType);where+=` AND owner_type=${params.length}`;}
+      if(ownerId){params.push(ownerId);where+=` AND owner_id=${params.length}`;}
+      const res=await getDbPool().query(`SELECT * FROM payout_destinations WHERE ${where} ORDER BY updated_at DESC LIMIT 200`,params);
+      return res.rows.map((row:any)=>this.mapDestination(row));
+    }
+    allowMemoryAdapter();
+    return Array.from(this.destinations.values()).filter(d=>(!ownerType||d.owner_type===ownerType)&&(!ownerId||d.owner_id===ownerId));
+  }
+
   async createAttempt(input: Omit<DisbursementAttempt, 'id' | 'created_at' | 'updated_at'>): Promise<DisbursementAttempt> {
     const now = new Date().toISOString();
     const record: DisbursementAttempt = { ...input, id: randomUUID(), created_at: now, updated_at: now };
