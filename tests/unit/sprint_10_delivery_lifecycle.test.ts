@@ -441,8 +441,9 @@ describe('Sprint 10: Delivery Execution Lifecycle & Customer Tracking', () => {
     // Rider keeps custody after pickup until Operations resolves the incident.
     const rider = await riderRepository.findProfileById(testRiderId);
     assert.equal(rider?.workStatus, RiderWorkStatus.BUSY);
-    const activeAfterFailure = await deliveryRepository.findActiveByRiderId(testRiderId);
-    assert.equal(activeAfterFailure?.id, delivery.id);
+    const failedAfterIncident = await deliveryRepository.findById(delivery.id);
+    assert.equal(failedAfterIncident?.assigned_rider_id, testRiderId);
+    assert.equal(await deliveryRepository.hasActiveDelivery(testRiderId), true);
 
     // Incident record should exist
     const incidents = await deliveryRepository.listIncidents({ delivery_id: delivery.id });
