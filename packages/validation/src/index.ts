@@ -727,7 +727,7 @@ export const RiderFailDeliverySchema = z.object({
     'OTHER',
   ]),
   note: z.string().min(3, 'Detailed failure note is required').max(1000),
-  photo_url: z.string().max(2048).optional(),
+  photo_media_id: z.string().uuid().optional(),
 });
 
 export const AdminForceCompleteDeliverySchema = z.object({
