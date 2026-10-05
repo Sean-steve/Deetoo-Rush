@@ -57,7 +57,13 @@ jobs:
         run: pnpm test
 
       - name: Audit production dependencies
-        run: pnpm audit --prod --audit-level high
+        # Temporary, explicit build-tool exceptions. Both advisories currently have
+        # no patched release and are reached only through apps/rider-android > expo > @expo/cli.
+        # Remove each --ignore immediately when a fixed Expo/CLI dependency chain is available.
+        run: >-
+          pnpm audit --prod --audit-level high
+          --ignore GHSA-86w9-cpqp-85rv
+          --ignore GHSA-vfj7-8cjw-p6xm
 
       - name: Typecheck Rider Android
         run: pnpm typecheck:rider-android
