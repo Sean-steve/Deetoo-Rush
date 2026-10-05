@@ -57,7 +57,16 @@ export class DeliveryStateMachine {
       );
     }
 
-    if (!canTransitionDelivery(currentStatus, targetStatus)) {
+    const isExplicitAdminFailedDeliveryCompletion =
+      actorType === 'ADMIN' &&
+      currentStatus === DeliveryStatus.FAILED &&
+      targetStatus === DeliveryStatus.DELIVERED &&
+      Boolean(reasonCode);
+
+    if (
+      !canTransitionDelivery(currentStatus, targetStatus) &&
+      !isExplicitAdminFailedDeliveryCompletion
+    ) {
       throw new AppError(
         409,
         'DELIVERY_INVALID_STATE_TRANSITION',
