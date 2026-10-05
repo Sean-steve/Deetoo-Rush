@@ -7,6 +7,7 @@ import { CommandCenter } from "./components/CommandCenter";
 import { ResourceTable } from "./components/ResourceTable";
 import { adminViews } from "./components/adminViews";
 import { OperationsConfig } from "./components/OperationsConfig";
+import { LaunchReadiness } from "./components/LaunchReadiness";
 /**
  * DEETOO - Admin & Operations Application Shell
  * Central operations console: User management, RBAC, live audit trail, zones, health
@@ -448,6 +449,7 @@ function AdminAppInner() {
     ...(operationsAccess
       ? [
           { id: "configuration", label: "Dispatch & controls" },
+          { id: "launch", label: "Launch readiness" },
           { id: "audit", label: "Audit trail" },
         ]
       : []),
@@ -496,6 +498,7 @@ function AdminAppInner() {
           />
         )}
         {selectedView === "configuration" && <OperationsConfig />}
+        {selectedView === "launch" && <LaunchReadiness />}
         {/* TAB 1: OVERVIEW & HEALTH PROBES */}
         {selectedView === "overview" && (
           <div className="flex flex-col gap-6">
