@@ -372,8 +372,8 @@ adminRouter.post(
         phone: validated.phone,
         email: validated.email,
         logo_url: validated.logo_url,
-        status: MerchantStatus.ACTIVE,
-        approval_status: MerchantApprovalStatus.APPROVED,
+        status: MerchantStatus.DISABLED,
+        approval_status: MerchantApprovalStatus.DRAFT,
         commission_bps: validated.commission_bps || 2000,
         settlement_schedule: validated.settlement_schedule || 'WEEKLY',
         created_at: now,
@@ -386,11 +386,20 @@ adminRouter.post(
         action: AuditAction.MERCHANT_CREATED,
         resource_type: 'MERCHANT',
         resource_id: id,
-        metadata: validated,
+        metadata: { ...validated, onboarding_stage: 'APPLICATION' },
       });
 
+      const onboarding = config.storage.mode === 'postgres'
+        ? await merchantOnboardingService.update(
+            id,
+            'APPLICATION',
+            req.user!.id,
+            'Merchant created; onboarding requirements must be completed before activation',
+          )
+        : null;
+
       res.status(201).json({
-        data: merchant,
+        data: { ...merchant, onboarding },
         requestId: (req as any).requestId,
       });
     } catch (err) {
