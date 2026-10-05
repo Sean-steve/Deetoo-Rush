@@ -83,21 +83,32 @@ export class SettlementService {
     }
 
     // If no order summaries exist yet in the window, but merchant has an outstanding balance,
-    // construct a direct settlement line matching the ledger balance
+    // construct a direct settlement line matching the ledger balance only when no other
+    // non-terminal settlement already reserves that balance. The ledger balance is not reduced
+    // until provider-confirmed payment, so without this guard two calculations could otherwise
+    // create two batches for the same payable amount.
     if (lines.length === 0 && currentBalanceMinor > 0) {
-      grossOrderValueMinor = currentBalanceMinor;
-      netSettlementAmountMinor = currentBalanceMinor;
-      lines.push({
-        id: durableEntityId(),
-        settlement_id: settlementId,
-        entry_type: 'ADJUSTMENT',
-        reference_id: merchantAcc.id,
-        gross_amount_minor: currentBalanceMinor,
-        commission_amount_minor: 0,
-        net_amount_minor: currentBalanceMinor,
-        description: `Outstanding payable balance settlement`,
-        created_at: new Date().toISOString(),
-      });
+      const outstanding = (await this.repo.findSettlements({ merchantId })).filter((existing) =>
+        existing.status === MerchantSettlementStatus.DRAFT ||
+        existing.status === MerchantSettlementStatus.CALCULATED ||
+        existing.status === MerchantSettlementStatus.APPROVED ||
+        existing.status === MerchantSettlementStatus.PROCESSING
+      );
+      if (outstanding.length === 0) {
+        grossOrderValueMinor = currentBalanceMinor;
+        netSettlementAmountMinor = currentBalanceMinor;
+        lines.push({
+          id: durableEntityId(),
+          settlement_id: settlementId,
+          entry_type: 'ADJUSTMENT',
+          reference_id: merchantAcc.id,
+          gross_amount_minor: currentBalanceMinor,
+          commission_amount_minor: 0,
+          net_amount_minor: currentBalanceMinor,
+          description: `Outstanding payable balance settlement`,
+          created_at: new Date().toISOString(),
+        });
+      }
     }
 
     const settlement: MerchantSettlement = {
