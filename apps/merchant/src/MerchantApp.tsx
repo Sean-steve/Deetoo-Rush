@@ -113,7 +113,8 @@ function MerchantAppInner() {
   const [activeMainTab, setActiveMainTabState] = useState<MerchantTab>(()=>merchantTabFromPath());
   const setActiveMainTab=(tab:MerchantTab)=>{
     setActiveMainTabState(tab);
-    const next=merchantTabPath[tab];
+    const prefix=window.location.pathname.startsWith("/merchant")?"/merchant":"";
+    const next=prefix+merchantTabPath[tab];
     if(window.location.pathname!==next)window.history.pushState({}, "", next);
   };
   useEffect(()=>{
