@@ -580,7 +580,10 @@ export interface AuthTokens {
 
 export interface LoginResponse {
   user: AuthUser;
-  accessToken: string;
+  /** Present for bearer/native transport; omitted for HttpOnly browser-cookie transport. */
+  accessToken?: string;
+  /** Present for bearer/native transport; omitted for HttpOnly browser-cookie transport. */
+  refreshToken?: string;
   session: {
     id: string;
     expiresAt: string;
