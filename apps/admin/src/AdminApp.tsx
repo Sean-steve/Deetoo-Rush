@@ -81,6 +81,7 @@ function AdminAppInner() {
     null,
   );
   const [isLoadingHealth, setIsLoadingHealth] = useState(false);
+  const [healthError, setHealthError] = useState<string | null>(null);
 
   // Login form state
   const [loginIdentifier, setLoginIdentifier] = useState("");
@@ -139,27 +140,13 @@ function AdminAppInner() {
 
   const fetchHealth = async () => {
     setIsLoadingHealth(true);
+    setHealthError(null);
     try {
       const data = await apiClient.getHealth();
       setHealthData(data);
     } catch {
-      setHealthData({
-        status: "degraded",
-        version: "1.0.0",
-        environment: "development",
-        timestamp: new Date().toISOString(),
-        dependencies: {
-          postgres: {
-            status: "degraded",
-            message: "Standalone container mode active",
-          },
-          postgis: { status: "healthy", message: "SRID 4326 PostGIS active" },
-          redis: {
-            status: "degraded",
-            message: "Safe fallback cache mode active",
-          },
-        },
-      });
+      setHealthData(null);
+      setHealthError("Health probes are unavailable. No runtime status has been assumed.");
     } finally {
       setIsLoadingHealth(false);
     }
@@ -528,13 +515,18 @@ function AdminAppInner() {
               </Button>
             </div>
 
+            {healthError && (
+              <div className="rounded-lg border border-rose-200 bg-rose-50 p-3 text-xs text-rose-800">
+                {healthError}
+              </div>
+            )}
+
             {/* Dependency Health Cards */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <Card className="bg-white">
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-2 font-bold text-sm text-slate-800">
                     <Database size={18} className="text-blue-600" /> PostgreSQL
-                    16
                   </div>
                   <Badge
                     variant={
@@ -559,7 +551,6 @@ function AdminAppInner() {
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-2 font-bold text-sm text-slate-800">
                     <MapPin size={18} className="text-emerald-600" /> PostGIS
-                    3.4 Extension
                   </div>
                   <Badge
                     variant={
@@ -583,8 +574,7 @@ function AdminAppInner() {
               <Card className="bg-white">
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-2 font-bold text-sm text-slate-800">
-                    <Server size={18} className="text-red-500" /> Redis 7
-                    Ephemeral Cache
+                    <Server size={18} className="text-red-500" /> Redis Ephemeral Cache
                   </div>
                   <Badge
                     variant={
@@ -601,7 +591,7 @@ function AdminAppInner() {
                     "Sliding window rate limiters and session tokens."}
                 </p>
                 <div className="mt-3 text-[11px] font-mono text-slate-500 bg-slate-50 p-2 rounded border border-slate-100">
-                  Degraded Cache Fallback: Active
+                  Ephemeral state only; PostgreSQL remains authoritative
                 </div>
               </Card>
             </div>
