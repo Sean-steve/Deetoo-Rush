@@ -1,6 +1,6 @@
 # Deetoo API - OpenAPI 3.1 contract
 # Generated once from live router source; hand-maintain from here. See info.description.
-# Coverage enforced in CI by scripts/openapi-coverage-check.ts (npm run openapi:coverage).
+# Coverage enforced in CI by scripts/openapi-coverage-check.ts (pnpm openapi:coverage).
 openapi: 3.1.0
 info:
   title: Deetoo API
@@ -61,6 +61,125 @@ tags:
 security:
 - bearerAuth: []
 paths:
+  /devices/register:
+    post:
+      summary: Register or refresh an authenticated application push device
+      tags: [Rider]
+      operationId: devices_register
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [platform, push_token]
+              properties:
+                recipient_type: { type: string, enum: [CUSTOMER, MERCHANT, RIDER, ADMIN] }
+                platform: { type: string, enum: [ANDROID, IOS, WEB] }
+                push_token: { type: string, minLength: 20 }
+                device_id: { type: string }
+                app_version: { type: string }
+      responses:
+        '201': { description: Device registration accepted }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+  /devices/unregister:
+    post:
+      summary: Disable a push device belonging to the authenticated user
+      tags: [Rider]
+      operationId: devices_unregister
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [push_token]
+              properties:
+                push_token: { type: string }
+      responses:
+        '200': { description: Device disabled }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /media/uploads:
+    post:
+      summary: Create a scoped private-media upload intent
+      tags: [Rider]
+      operationId: media_create_upload
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [purpose, content_type]
+              properties:
+                purpose:
+                  type: string
+                  enum: [DELIVERY_PROOF, DELIVERY_INCIDENT, RIDER_DOCUMENT, MERCHANT_IMAGE, SUPPORT_ATTACHMENT]
+                content_type: { type: string }
+                reference_type: { type: string }
+                reference_id: { type: string, format: uuid }
+      responses:
+        '201': { description: Signed private upload intent created }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409': { description: Resource state does not permit this upload }
+        '503': { description: Private storage is not configured }
+  /media/uploads/{id}/complete:
+    post:
+      summary: Verify a private-media upload against object storage
+      tags: [Rider]
+      operationId: media_complete_upload
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200': { description: Media verified }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /media/{id}/read-url:
+    get:
+      summary: Issue a short-lived authorized URL for private media
+      tags: [Rider]
+      operationId: media_read_url
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200': { description: Short-lived signed read URL }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /rider/earnings:
+    get:
+      summary: Return the authenticated Rider's earning ledger view
+      tags: [Rider]
+      operationId: rider_get_earnings
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200': { description: Rider earnings and eligible balance }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /rider/payouts:
+    get:
+      summary: Return the authenticated Rider's payout history
+      tags: [Rider]
+      operationId: rider_get_payouts
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200': { description: Rider payout history }
+        '401': { $ref: '#/components/responses/Unauthorized' }
   /admin/users:
     get:
       summary: STUB - GET /admin/users (registered, not yet individually specified)
