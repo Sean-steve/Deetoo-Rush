@@ -1,1 +1,32 @@
-{"name":"@deetoo/rider-android","version":"0.1.0","private":true,"type":"module","main":"./src/index.ts"}
+{
+  "name": "@deetoo/rider-android",
+  "version": "0.2.0",
+  "private": true,
+  "type": "module",
+  "main": "node_modules/expo/AppEntry.js",
+  "scripts": {
+    "start": "expo start --dev-client",
+    "android": "expo run:android",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "export:android": "expo export --platform android --output-dir dist"
+  },
+  "dependencies": {
+    "@deetoo/auth-native": "workspace:*",
+    "@deetoo/api-client": "workspace:*",
+    "@deetoo/types": "workspace:*",
+    "expo": "~57.0.0",
+    "expo-camera": "~57.0.6",
+    "expo-constants": "~57.0.11",
+    "expo-dev-client": "~57.0.19",
+    "expo-location": "~57.0.20",
+    "expo-notifications": "~57.0.21",
+    "expo-secure-store": "~57.0.4",
+    "expo-task-manager": "~57.0.21",
+    "react": "19.2.3",
+    "react-native": "0.86.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.18",
+    "typescript": "~5.8.2"
+  }
+}
