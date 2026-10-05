@@ -33,6 +33,7 @@ import { dispatchService } from "../order/dispatch.service";
 import { deliveryRepository } from "../order/delivery.repository";
 import { orderRepository } from "../order/order.repository";
 import { riderEarningsService } from "../finance/rider-earnings.service";
+import { ledgerRepository } from "../finance/ledger.repository";
 import { calculateDistanceMeters } from "@deetoo/utils";
 
 export const riderRouter = Router();
@@ -363,6 +364,50 @@ riderRouter.post(
         },
         requestId: (req as any).requestId,
       });
+    } catch (err) {
+      next(err);
+    }
+  },
+);
+
+// ==========================================
+// Rider financial visibility
+// ==========================================
+
+riderRouter.get(
+  "/earnings",
+  async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      const profile = await riderRepository.findProfileByUserId(req.user!.id);
+      if (!profile) throw new AppError(404, "RIDER_NOT_FOUND", "Rider profile not found");
+      const earnings = await ledgerRepository.findRiderEarningsByRiderId(profile.id);
+      const eligibleMinor = earnings
+        .filter((earning) => ["ELIGIBLE", "PENDING"].includes(String(earning.status)))
+        .reduce((sum, earning) => sum + earning.total_amount_minor, 0);
+      const lifetimeMinor = earnings.reduce((sum, earning) => sum + earning.total_amount_minor, 0);
+      res.json({
+        data: {
+          currency: earnings[0]?.currency || "KES",
+          eligible_minor: eligibleMinor,
+          lifetime_minor: lifetimeMinor,
+          earnings,
+        },
+        requestId: (req as any).requestId,
+      });
+    } catch (err) {
+      next(err);
+    }
+  },
+);
+
+riderRouter.get(
+  "/payouts",
+  async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      const profile = await riderRepository.findProfileByUserId(req.user!.id);
+      if (!profile) throw new AppError(404, "RIDER_NOT_FOUND", "Rider profile not found");
+      const payouts = await ledgerRepository.findRiderPayouts({ riderId: profile.id });
+      res.json({ data: payouts, requestId: (req as any).requestId });
     } catch (err) {
       next(err);
     }
