@@ -109,8 +109,24 @@ export class DispatchService {
     radiusMeters: number,
     excludedRiderIds: string[] = []
   ): Promise<DispatchCandidate[]> {
-    const pickupLat = pickupLocation.lat ?? pickupLocation.latitude ?? -1.2683;
-    const pickupLng = pickupLocation.lng ?? pickupLocation.longitude ?? 36.8111;
+    const pickupLat = pickupLocation.lat ?? pickupLocation.latitude;
+    const pickupLng = pickupLocation.lng ?? pickupLocation.longitude;
+    if (
+      pickupLat === undefined ||
+      pickupLng === undefined ||
+      !Number.isFinite(pickupLat) ||
+      !Number.isFinite(pickupLng) ||
+      pickupLat < -90 ||
+      pickupLat > 90 ||
+      pickupLng < -180 ||
+      pickupLng > 180
+    ) {
+      throw new AppError(
+        409,
+        'DISPATCH_PICKUP_LOCATION_REQUIRED',
+        'Dispatch requires authoritative merchant pickup coordinates',
+      );
+    }
 
     // 1. Query nearby available riders in Redis
     const nearbyLocations = await riderLocationStore.findNearbyAvailableRiders({
