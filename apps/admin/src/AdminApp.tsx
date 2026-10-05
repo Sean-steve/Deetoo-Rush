@@ -621,7 +621,7 @@ function AdminAppInner() {
             </div>
 
             {/* Sprint 2 RBAC Guidance */}
-            <Card className="bg-white border-l-4 border-l-[#00A651]">
+            <Card className="bg-white border-l-4 border-l-[#00BF62]">
               <div className="flex items-start gap-3">
                 <ShieldAlert
                   size={22}
