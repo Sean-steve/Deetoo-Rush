@@ -100,6 +100,15 @@ CI must pass:
 - Phase 1 browser isolation acceptance;
 - CodeQL.
 
+## Dependency-audit exception
+
+Expo SDK 57 currently reaches two high-severity advisories through the build-only `@expo/cli` dependency chain and neither advisory has a published patched version:
+
+- `GHSA-86w9-cpqp-85rv` via `node-forge`;
+- `GHSA-vfj7-8cjw-p6xm` via `braces`.
+
+CI ignores only these named advisories while continuing to fail on any other high/critical production advisory. Remove each exception as soon as the Expo dependency chain has a fixed release.
+
 ## External certification still configuration-dependent
 
 The code intentionally fails closed when real providers are not configured. Production certification still requires real credentials/environments for:
