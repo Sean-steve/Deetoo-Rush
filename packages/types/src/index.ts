@@ -2177,7 +2177,10 @@ export interface MerchantSettlement {
   calculated_by?: string | null;
   approved_by?: string | null;
   approved_at?: string | null;
+  initiated_by?: string | null;
+  processing_at?: string | null;
   paid_at?: string | null;
+  failed_at?: string | null;
   payment_reference?: string | null;
   failure_reason?: string | null;
   created_at: string;
@@ -2215,6 +2218,8 @@ export interface RiderPayout {
   calculated_by?: string | null;
   approved_by?: string | null;
   approved_at?: string | null;
+  initiated_by?: string | null;
+  processing_at?: string | null;
   paid_at?: string | null;
   failed_at?: string | null;
   failure_reason?: string | null;
@@ -2230,6 +2235,8 @@ export enum FinancialAdjustmentReason {
   MANUAL_FINANCE_CORRECTION = 'MANUAL_FINANCE_CORRECTION'
 }
 
+export type FinancialAdjustmentStatus = 'REQUESTED' | 'APPROVED' | 'POSTED' | 'REJECTED';
+
 export interface FinancialAdjustment {
   id: string;
   reason_code: FinancialAdjustmentReason;
@@ -2241,6 +2248,10 @@ export interface FinancialAdjustment {
   note: string;
   requested_by: string;
   approved_by?: string | null;
+  approved_at?: string | null;
+  status?: FinancialAdjustmentStatus;
+  rejected_at?: string | null;
+  rejection_reason?: string | null;
   ledger_transaction_id?: string | null;
   created_at: string;
 }
