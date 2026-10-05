@@ -337,19 +337,19 @@ function AdminAppInner() {
   // 1. UNAUTHENTICATED STATE: Admin Login View
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen bg-canvas flex flex-col justify-center items-center p-4 font-sans text-ink">
-        <div className="max-w-md w-full">
+      <div className="portal-login-shell min-h-screen bg-canvas flex flex-col justify-center items-center p-4 font-sans text-ink">
+        <div className="portal-login-wrap max-w-md w-full">
           <div className="text-center mb-8">
             <DeetooLogo className="h-10 mx-auto  mb-3" />
             <h1 className="text-xl font-bold text-ink tracking-tight">
-              Operations & Administration Console
+              DeeToo Operations
             </h1>
             <p className="text-xs text-slate-600 mt-1">
-              Manage Deetoo operations and account access.
+              Live marketplace control for orders, riders, restaurants, payments and platform health.
             </p>
           </div>
 
-          <Card className="bg-canvas border-stone-200 p-6 text-ink shadow-2xl">
+          <Card className="portal-login-card bg-white border-stone-200 p-6 text-ink shadow-2xl">
             <form onSubmit={handleLogin} className="space-y-4">
               {authError && (
                 <div className="p-3 bg-rose-950/80 border border-rose-800 rounded text-rose-300 text-xs flex items-center gap-2">
@@ -397,7 +397,7 @@ function AdminAppInner() {
   // 2. FORBIDDEN ROLE STATE
   if (!isAdminAuthorized) {
     return (
-      <div className="min-h-screen bg-canvas flex flex-col justify-center items-center p-4 font-sans text-ink">
+      <div className="portal-login-shell min-h-screen bg-canvas flex flex-col justify-center items-center p-4 font-sans text-ink">
         <Card className="max-w-md w-full bg-canvas border-stone-200 p-6 text-center">
           <Lock size={36} className="mx-auto text-rose-500 mb-3" />
           <h2 className="text-base font-bold text-ink">
