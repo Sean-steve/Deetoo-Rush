@@ -85,9 +85,6 @@ export class DeliveryStateMachine {
         break;
       case DeliveryStatus.EN_ROUTE:
         updatedFields.en_route_at = now;
-        if (currentStatus === DeliveryStatus.ARRIVED_PICKUP) {
-          updatedFields.picked_up_at = now;
-        }
         break;
       case DeliveryStatus.ARRIVED_DROPOFF:
         updatedFields.arrived_dropoff_at = now;
