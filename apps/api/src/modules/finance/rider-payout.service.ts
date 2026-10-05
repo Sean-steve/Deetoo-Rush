@@ -160,6 +160,54 @@ export class RiderPayoutService {
     return await this.repo.saveRiderPayout(payout, payout.lines || []);
   }
 
+  public async markProcessing(payoutId: string, initiatedByUserId: string): Promise<RiderPayout> {
+    const payout = await this.repo.findRiderPayoutById(payoutId);
+    if (!payout) throw new Error(`Payout not found: ${payoutId}`);
+    if (payout.status === RiderPayoutStatus.PROCESSING) return payout;
+    if (payout.status !== RiderPayoutStatus.APPROVED) {
+      throw new Error(`Cannot initiate payout in status ${payout.status}`);
+    }
+    payout.status = RiderPayoutStatus.PROCESSING;
+    payout.initiated_by = initiatedByUserId;
+    payout.processing_at = new Date().toISOString();
+    payout.failure_reason = null;
+    payout.failed_at = null;
+    return this.repo.saveRiderPayout(payout, payout.lines || []);
+  }
+
+  public async confirmPaid(payoutId: string, providerReference: string): Promise<RiderPayout> {
+    const payout = await this.repo.findRiderPayoutById(payoutId);
+    if (!payout) throw new Error(`Payout not found: ${payoutId}`);
+    if (payout.status === RiderPayoutStatus.PAID) {
+      if (payout.provider_reference && payout.provider_reference !== providerReference) {
+        throw new AppError(409, 'PAYOUT_REFERENCE_CONFLICT', 'Payout is already paid with another provider reference');
+      }
+      return payout;
+    }
+    if (payout.status !== RiderPayoutStatus.PROCESSING) {
+      throw new Error(`Cannot confirm payout paid from status ${payout.status}`);
+    }
+
+    const paidAt = new Date().toISOString();
+    for (const line of payout.lines || []) {
+      const earning = await this.repo.findRiderEarningById(line.earning_id);
+      if (!earning) throw new Error(`Payout earning not found: ${line.earning_id}`);
+      if (earning.status !== RiderEarningStatus.PAID) {
+        earning.status = RiderEarningStatus.PAID;
+        earning.settled_at = paidAt;
+        await this.repo.saveRiderEarning(earning);
+      }
+    }
+
+    payout.status = RiderPayoutStatus.PAID;
+    payout.paid_at = paidAt;
+    payout.provider_reference = providerReference;
+    payout.failure_reason = null;
+    payout.failed_at = null;
+    await this.postingSvc.postRiderPayout(payout);
+    return this.repo.saveRiderPayout(payout, payout.lines || []);
+  }
+
   /**
    * Executes payout disbursement and posts to ledger
    */
