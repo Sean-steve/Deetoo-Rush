@@ -1,0 +1,49 @@
+{
+  "expo": {
+    "name": "Deetoo Rider",
+    "slug": "deetoo-rider",
+    "scheme": "deetoo-rider",
+    "version": "0.2.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "android": {
+      "package": "ke.co.deetoo.rider",
+      "permissions": [
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_BACKGROUND_LOCATION",
+        "FOREGROUND_SERVICE",
+        "FOREGROUND_SERVICE_LOCATION",
+        "POST_NOTIFICATIONS",
+        "CAMERA"
+      ]
+    },
+    "plugins": [
+      [
+        "expo-secure-store",
+        {
+          "configureAndroidBackup": false
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Allow Deetoo Rider to use your location while you are delivering orders.",
+          "isAndroidBackgroundLocationEnabled": true,
+          "isAndroidForegroundServiceEnabled": true
+        }
+      ],
+      [
+        "expo-notifications",
+        {}
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow Deetoo Rider to use your camera for delivery proof."
+        }
+      ]
+    ],
+    "extra": {}
+  }
+}
