@@ -39,6 +39,8 @@ const ROUTERS: RouterConfig[] = [
   { file: 'apps/api/src/modules/merchant/merchant-orders.router.ts', varName: 'merchantOrderRouter', prefix: '/merchant' },
   { file: 'apps/api/src/modules/merchant/merchant.router.ts', varName: 'merchantRouter', prefix: '/merchant' },
   { file: 'apps/api/src/modules/operations/operations.router.ts', varName: 'operationsRouter', prefix: '/admin' },
+  { file: 'apps/api/src/modules/operations/device.router.ts', varName: 'deviceRouter', prefix: '/devices' },
+  { file: 'apps/api/src/modules/media/media.router.ts', varName: 'mediaRouter', prefix: '/media' },
   { file: 'apps/api/src/modules/operations/operations.router.ts', varName: 'customerSupportRouter', prefix: '/support' },
   { file: 'apps/api/src/modules/order/order.router.ts', varName: 'orderRouter', prefix: '/orders' },
   { file: 'apps/api/src/modules/payment/payment.router.ts', varName: 'paymentRouter', prefix: '/payments' },
