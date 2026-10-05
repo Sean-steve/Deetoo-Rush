@@ -38,9 +38,8 @@ export interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
-// Local storage token key per application shell
-const STORAGE_PREFIX = 'deetoo_auth_';
-
+// Browser authentication is cookie-backed. Access and refresh credentials are
+// intentionally unavailable to JavaScript; Android uses a separate bearer client.
 export function AuthProvider({
   children,
   clientApp,
@@ -49,12 +48,7 @@ export function AuthProvider({
   clientApp: 'customer' | 'merchant' | 'rider' | 'admin';
 }) {
   const [user, setUser] = useState<AuthUser | null>(null);
-  const [token, setToken] = useState<string | null>(() => {
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem(`${STORAGE_PREFIX}${clientApp}_token`);
-    }
-    return null;
-  });
+  const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -63,37 +57,14 @@ export function AuthProvider({
     const client = new DeetooApiClient({
       baseUrl: '/api/v1',
       clientApp,
-      initialToken: token,
+      authTransport: 'cookie',
       onUnauthorized: () => {
         setUser(null);
         setToken(null);
-        if (typeof window !== 'undefined') {
-          localStorage.removeItem(`${STORAGE_PREFIX}${clientApp}_token`);
-        }
-      },
-      onTokenRefreshed: (newToken: string) => {
-        setToken(newToken);
-        if (typeof window !== 'undefined') {
-          localStorage.setItem(`${STORAGE_PREFIX}${clientApp}_token`, newToken);
-        }
       },
     });
     return client;
   });
-
-  // Sync token to API client
-  useEffect(() => {
-    apiClient.setAccessToken(token);
-    if (token) {
-      if (typeof window !== 'undefined') {
-        localStorage.setItem(`${STORAGE_PREFIX}${clientApp}_token`, token);
-      }
-    } else {
-      if (typeof window !== 'undefined') {
-        localStorage.removeItem(`${STORAGE_PREFIX}${clientApp}_token`);
-      }
-    }
-  }, [token, clientApp, apiClient]);
 
   const clearError = () => setError(null);
 
@@ -108,15 +79,9 @@ export function AuthProvider({
     } catch {
       // If token expired, try one silent refresh
       try {
-        const refreshRes = await apiClient.refreshToken();
-        if (refreshRes.data?.accessToken) {
-          setToken(refreshRes.data.accessToken);
-          const meRes = await apiClient.getMe();
-          setUser(meRes.data);
-        } else {
-          setUser(null);
-          setToken(null);
-        }
+        await apiClient.refreshToken();
+        const meRes = await apiClient.getMe();
+        setUser(meRes.data);
       } catch {
         setUser(null);
         setToken(null);
@@ -141,10 +106,7 @@ export function AuthProvider({
       });
 
       const authUser = res.data.user;
-      const accessToken = res.data.accessToken;
-
       setUser(authUser);
-      setToken(accessToken);
       return authUser;
     } catch (err: any) {
       const msg = err?.error?.message || err?.message || 'Login failed. Please check credentials.';
@@ -166,10 +128,7 @@ export function AuthProvider({
     try {
       const res = await apiClient.registerCustomer(params);
       const authUser = res.data.user;
-      const accessToken = res.data.accessToken;
-
       setUser(authUser);
-      setToken(accessToken);
       return authUser;
     } catch (err: any) {
       const msg = err?.error?.message || err?.message || 'Registration failed.';
