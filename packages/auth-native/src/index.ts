@@ -25,6 +25,10 @@ export class NativeAuthSession {
       baseUrl,
       clientApp,
       authTransport: 'bearer',
+      getRefreshToken: () => this.secureStore.getRefreshToken(),
+      onRefreshCredentials: async ({ refreshToken }) => {
+        if (refreshToken) await this.secureStore.setRefreshToken(refreshToken);
+      },
       onUnauthorized: () => {
         void this.secureStore.clear();
       },
