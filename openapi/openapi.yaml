@@ -6123,6 +6123,12 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/ApiError'
+    Forbidden:
+      description: Authenticated principal is not permitted to access this resource
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiError'
     NotFound:
       description: Resource not found
       content:
