@@ -125,8 +125,18 @@ mediaRouter.get(
   async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
       const r = roles(req);
-      const privileged = r.has('admin') || r.has('ops') || r.has('support');
-      const readUrl = await mediaService.getReadUrl(req.params.id, req.user!.id, privileged);
+      const privilegedPurposes: '*' | string[] = r.has('admin')
+        ? '*'
+        : r.has('ops')
+          ? ['DELIVERY_PROOF', 'DELIVERY_INCIDENT', 'RIDER_DOCUMENT', 'MERCHANT_IMAGE', 'SUPPORT_ATTACHMENT']
+          : r.has('support')
+            ? ['DELIVERY_PROOF', 'DELIVERY_INCIDENT', 'SUPPORT_ATTACHMENT']
+            : [];
+      const readUrl = await mediaService.getReadUrl(
+        req.params.id,
+        req.user!.id,
+        privilegedPurposes,
+      );
       res.json({
         data: { url: readUrl, expires_in_seconds: 300 },
         requestId: (req as any).requestId,
