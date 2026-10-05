@@ -46,6 +46,7 @@ import { authRepository } from '../auth/auth.repository';
 import { authService } from '../auth/auth.service';
 import { merchantRepository } from '../merchant/merchant.repository';
 import { merchantService } from '../merchant/merchant.service';
+import { merchantOnboardingService, MerchantOnboardingStage } from '../merchant/merchant-onboarding.service';
 import { orderService } from '../order/order.service';
 import { riderService } from '../rider/rider.service';
 import { riderEligibilityService } from '../rider/rider-eligibility.service';
@@ -1696,3 +1697,62 @@ adminRouter.get(
 
 
 
+
+
+adminRouter.get(
+  '/merchants/onboarding',
+  requireRole(UserRole.ADMIN, UserRole.OPS),
+  async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      const data = await merchantOnboardingService.list(req.query.stage as string | undefined);
+      res.json({ data, requestId: (req as any).requestId });
+    } catch (error) { next(error); }
+  },
+);
+
+adminRouter.patch(
+  '/merchants/:id/onboarding',
+  requireRole(UserRole.ADMIN, UserRole.OPS),
+  async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      const allowed = new Set(['APPLICATION','DOCUMENTS_PENDING','COMMERCIAL_TERMS','CONTENT_SETUP','MENU_QA','STAFF_TRAINING','READY_FOR_REVIEW','APPROVED','LIVE','BLOCKED']);
+      const stage = String(req.body?.stage || '').toUpperCase();
+      if (!allowed.has(stage)) throw new AppError(400, 'MERCHANT_ONBOARDING_STAGE_INVALID', 'Unsupported onboarding stage');
+      const data = await merchantOnboardingService.update(
+        req.params.id,
+        stage as MerchantOnboardingStage,
+        req.user!.id,
+        req.body?.note ? String(req.body.note).slice(0, 1000) : undefined,
+        req.body?.assigned_to ? String(req.body.assigned_to) : undefined,
+      );
+      res.json({ data, requestId: (req as any).requestId });
+    } catch (error) { next(error); }
+  },
+);
+
+adminRouter.get(
+  '/dispatch/deliveries/:id/candidates',
+  requireRole(UserRole.ADMIN, UserRole.OPS),
+  async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      const delivery = await deliveryRepository.findById(req.params.id);
+      if (!delivery) throw new AppError(404, 'DELIVERY_NOT_FOUND', 'Delivery not found');
+      const candidates = await dispatchService.findAndRankCandidates(
+        delivery.pickup_location,
+        delivery.current_search_radius_meters || dispatchService.getConfig().initialSearchRadius,
+      );
+      res.json({
+        data: candidates.map((candidate) => ({
+          rider_id: candidate.riderId,
+          rider_name: candidate.riderName,
+          vehicle_type: candidate.vehicleType,
+          distance_to_pickup_meters: candidate.distanceToPickupMeters,
+          estimated_pickup_eta_seconds: candidate.estimatedPickupEtaSeconds,
+          score: candidate.score,
+          rank: candidate.rank,
+        })),
+        requestId: (req as any).requestId,
+      });
+    } catch (error) { next(error); }
+  },
+);
