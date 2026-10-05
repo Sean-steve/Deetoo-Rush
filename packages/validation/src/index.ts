@@ -707,6 +707,7 @@ export const RiderCompleteDeliverySchema = z.object({
   proof_type: z.enum(['OTP', 'PHOTO', 'SIGNATURE', 'CONTACTLESS_CONFIRMATION']).default('OTP'),
   otp: z.string().min(4).max(8).optional(),
   verification_code: z.string().min(4).max(8).optional(),
+  photo_media_id: z.string().uuid().optional(),
   photo_url: z.string().max(2048).optional(),
   signature_data: z.string().max(10000).optional(),
   note: z.string().max(500).optional(),
