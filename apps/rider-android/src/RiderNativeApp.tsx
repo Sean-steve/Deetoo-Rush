@@ -272,7 +272,7 @@ export function RiderNativeApp() {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.loginCard}>
-          <Text style={styles.brand}>Deetoo Rider</Text>
+          <Text style={styles.loginBrand}>DeeToo Rider</Text>
           <Text style={styles.muted}>Sign in with your approved Rider account.</Text>
           <TextInput
             autoCapitalize="none"
@@ -564,6 +564,7 @@ const styles = StyleSheet.create({
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 },
   heroEyebrow: { color: '#66F0A6', fontSize: 10, fontWeight: '900', letterSpacing: 1.6, marginBottom: 5 },
   brand: { fontSize: 30, lineHeight: 34, fontWeight: '900', color: '#FFFFFF', letterSpacing: -1.1 },
+  loginBrand: { fontSize: 30, lineHeight: 34, fontWeight: '900', color: '#10231A', letterSpacing: -1.1 },
   heroMuted: { color: '#9DB2A6', marginTop: 5, fontSize: 12 },
   signOutPill: { paddingHorizontal: 12, paddingVertical: 9, backgroundColor: '#173126', borderRadius: 14 },
   signOutText: { color: '#D7E8DE', fontSize: 11, fontWeight: '800' },
