@@ -91,13 +91,13 @@ export const DELIVERY_STATUS_TRANSITIONS: Record<DeliveryStatus, DeliveryStatus[
   [DeliveryStatus.UNASSIGNED]: [DeliveryStatus.OFFERED, DeliveryStatus.ASSIGNED, DeliveryStatus.CANCELLED, DeliveryStatus.FAILED],
   [DeliveryStatus.OFFERED]: [DeliveryStatus.ASSIGNED, DeliveryStatus.UNASSIGNED, DeliveryStatus.CANCELLED, DeliveryStatus.FAILED],
   [DeliveryStatus.ASSIGNED]: [DeliveryStatus.ARRIVED_PICKUP, DeliveryStatus.UNASSIGNED, DeliveryStatus.OFFERED, DeliveryStatus.CANCELLED, DeliveryStatus.FAILED],
-  [DeliveryStatus.ARRIVED_PICKUP]: [DeliveryStatus.PICKED_UP, DeliveryStatus.EN_ROUTE, DeliveryStatus.UNASSIGNED, DeliveryStatus.CANCELLED, DeliveryStatus.FAILED],
+  [DeliveryStatus.ARRIVED_PICKUP]: [DeliveryStatus.PICKED_UP, DeliveryStatus.UNASSIGNED, DeliveryStatus.CANCELLED, DeliveryStatus.FAILED],
   [DeliveryStatus.PICKED_UP]: [DeliveryStatus.EN_ROUTE, DeliveryStatus.CANCELLED, DeliveryStatus.FAILED],
   [DeliveryStatus.EN_ROUTE]: [DeliveryStatus.ARRIVED_DROPOFF, DeliveryStatus.CANCELLED, DeliveryStatus.FAILED],
   [DeliveryStatus.ARRIVED_DROPOFF]: [DeliveryStatus.DELIVERED, DeliveryStatus.FAILED, DeliveryStatus.CANCELLED],
   [DeliveryStatus.DELIVERED]: [],
   [DeliveryStatus.CANCELLED]: [],
-  [DeliveryStatus.FAILED]: [DeliveryStatus.UNASSIGNED], // Allows retry after operational review
+  [DeliveryStatus.FAILED]: [], // Recovery is an explicit Ops command, never an ordinary state transition
 };
 
 export function canTransitionDelivery(from: DeliveryStatus, to: DeliveryStatus): boolean {
