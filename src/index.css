@@ -812,3 +812,9 @@ body { background: var(--deetoo-brand-cloud); }
   .customer-mobile-nav .bottom-navigation { position:static; background:rgba(255,255,255,.96); backdrop-filter:blur(18px); box-shadow:0 -10px 30px rgba(16,35,26,.08); }
   .customer-shell main { padding-bottom:96px!important; }
 }
+
+.app-nav-group {
+  display:block; padding:16px 12px 6px; color:#5F7A6B; font-size:8px; line-height:1;
+  font-weight:900; letter-spacing:.14em; text-transform:uppercase;
+}
+.operations-sidebar .app-nav-group:first-child { padding-top:2px; }
