@@ -1,4 +1,13 @@
-@import "tailwindcss";\n\n@source "../apps/customer/src";\n@source "../apps/merchant/src";\n@source "../apps/admin/src";\n@source "../apps/customer-web/src";\n@source "../apps/merchant-web/src";\n@source "../apps/admin-web/src";\n@source "../packages/ui/src";\n@source "../packages/auth/src";
+@import "tailwindcss";
+
+@source "../apps/customer/src";
+@source "../apps/merchant/src";
+@source "../apps/admin/src";
+@source "../apps/customer-web/src";
+@source "../apps/merchant-web/src";
+@source "../apps/admin-web/src";
+@source "../packages/ui/src";
+@source "../packages/auth/src";
 
 @theme inline {
   --font-sans: var(--deetoo-font-body);
