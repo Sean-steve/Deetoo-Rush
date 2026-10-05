@@ -875,14 +875,15 @@ export class DeliveryRepository {
       const pool = getDbPool();
       await pool.query(
         `INSERT INTO delivery_proofs (
-          id, delivery_id, type, proof_value, storage_url, metadata, created_by_rider_id, created_at
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+          id, delivery_id, type, proof_value, storage_url, media_object_id, metadata, created_by_rider_id, created_at
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
         [
           record.id,
           record.delivery_id,
           record.type,
           record.proof_value || null,
           record.storage_url || null,
+          record.media_object_id || null,
           JSON.stringify(record.metadata || {}),
           record.created_by_rider_id || null,
           record.created_at,
@@ -918,6 +919,7 @@ export class DeliveryRepository {
           type: row.type,
           proof_value: row.proof_value,
           storage_url: row.storage_url,
+          media_object_id: row.media_object_id || undefined,
           metadata: row.metadata,
           created_by_rider_id: row.created_by_rider_id,
           created_at: new Date(row.created_at).toISOString(),
