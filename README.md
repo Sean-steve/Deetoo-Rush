@@ -8,11 +8,12 @@
 
 Sprint 1 establishes the rock-solid technical baseline before business feature implementation:
 - **Monorepo Architecture**: Managed with `pnpm workspaces` and `Turborepo`.
-- **Four Frontend Applications**:
-  - `apps/customer`: Food discovery, address validation, order tracking.
-  - `apps/merchant`: Restaurant kitchen console, prep-time management, store status.
-  - `apps/rider`: Mobile-first courier shell, GPS telemetry, dispatch offers.
-  - `apps/admin`: Operational oversight, PostGIS service zones, audit logs, ledger view.
+- **Independent Client Applications**:
+  - `apps/customer-web`: responsive Customer Web deployment.
+  - `apps/merchant-web`: responsive Merchant Web / kitchen deployment.
+  - `apps/admin-web`: Admin and Operations Web deployment.
+  - `apps/rider-android`: Android Rider application boundary; native capabilities continue in Phase 2.
+  - `apps/rider`: browser Rider simulator retained for development only.
 - **Centralized Modular-Monolith API (`apps/api`)**:
   - Express-based REST API with standardized envelopes (`DEE-API-001`).
   - Correlation tracking with `X-Request-Id`.
@@ -48,21 +49,21 @@ docker-compose up -d
 
 ### 2. Run Database Migrations & Seeds
 ```bash
-npm run db:migrate
-npm run db:seed
+pnpm db:migrate
+pnpm db:seed
 ```
 
 ### 3. Start Development Server
 ```bash
-npm run dev
+pnpm dev
 ```
 
 ### 4. Run Verification Suite
 ```bash
-npm test
-npm run check-types
-npm run lint
-npm run build
+pnpm test
+pnpm typecheck
+pnpm lint
+pnpm build
 ```
 
 ---
@@ -79,20 +80,20 @@ npm run build
 ## Documentation alignment foundation
 
 Canonical contracts are recorded in [ADR-006](docs/architecture/ADR-006-foundation-canonical-contracts.md).
-PostgreSQL is the default storage adapter. Configure `DATABASE_URL`, run `npm run db:migrate`,
-and supervise `npm run worker:outbox` alongside the API. The API receives committed
+PostgreSQL is the default storage adapter. Configure `DATABASE_URL`, run `pnpm db:migrate`,
+and supervise `pnpm worker:outbox` alongside the API. The API receives committed
 PostgreSQL notifications; authenticated clients can recover via `/api/v1/realtime/events`
 and canonical scoped REST APIs. Events are invalidations with stable IDs, not private snapshots.
 Consumers must tolerate duplicates. Pending outbox rows retry after transport errors or expired leases.
 
-`npm run dev:demo` explicitly enables local memory fixtures. Production and staging reject
+`pnpm dev:demo` explicitly enables local memory fixtures. Production and staging reject
 that mode, fixture flags and missing/default credentials. Simulated payment, refund, payout,
 settlement, maps and notification integrations refuse production execution until verified
 adapters exist. A healthy liveness endpoint does not mean readiness; missing dependencies
 or foundation schema produce HTTP 503. These controls do not imply full Wave 1 completion.
 
-`npm run test:unit` and `npm run test:integration` exercise the explicit fixture adapter.
-`DATABASE_URL=<isolated database with foundation in its name> npm run test:foundation`
+`pnpm test:unit` and `pnpm test:integration` exercise the explicit fixture adapter.
+`DATABASE_URL=<isolated database with foundation in its name> pnpm test:foundation`
 runs migrations and PostgreSQL durability/failure tests. It creates test records and must
 not target a live database. CI runs this suite against a fresh PostGIS database.
 Migration failures and checksum changes stop with a nonzero exit. Legacy history without
