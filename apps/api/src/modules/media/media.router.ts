@@ -19,25 +19,30 @@ async function assertPurposeScope(
   referenceId?: string,
 ): Promise<void> {
   const normalized = purpose.toUpperCase();
-  if (normalized === 'DELIVERY_PROOF') {
+  if (normalized === 'DELIVERY_PROOF' || normalized === 'DELIVERY_INCIDENT') {
     if (!referenceId) {
-      throw new AppError(400, 'MEDIA_REFERENCE_REQUIRED', 'Delivery proof requires a delivery reference');
+      throw new AppError(400, 'MEDIA_REFERENCE_REQUIRED', 'Delivery media requires a delivery reference');
     }
     const rider = await riderRepository.findProfileByUserId(req.user!.id);
     const delivery = await deliveryRepository.findById(referenceId);
     if (!rider || !delivery || delivery.assigned_rider_id !== rider.id) {
-      throw new AppError(403, 'MEDIA_DELIVERY_FORBIDDEN', 'Delivery proof can only be uploaded by the assigned rider');
+      throw new AppError(403, 'MEDIA_DELIVERY_FORBIDDEN', 'Delivery media can only be uploaded by the assigned rider');
     }
-    if (
-      ![
-        DeliveryStatus.EN_ROUTE,
-        DeliveryStatus.ARRIVED_DROPOFF,
-      ].includes(delivery.status)
-    ) {
+    const permittedStates =
+      normalized === 'DELIVERY_PROOF'
+        ? [DeliveryStatus.EN_ROUTE, DeliveryStatus.ARRIVED_DROPOFF]
+        : [
+            DeliveryStatus.ASSIGNED,
+            DeliveryStatus.ARRIVED_PICKUP,
+            DeliveryStatus.PICKED_UP,
+            DeliveryStatus.EN_ROUTE,
+            DeliveryStatus.ARRIVED_DROPOFF,
+          ];
+    if (!permittedStates.includes(delivery.status)) {
       throw new AppError(
         409,
         'MEDIA_DELIVERY_STATE_INVALID',
-        'Delivery proof media can only be prepared after pickup while delivering to the customer',
+        'Private delivery media cannot be prepared in the current delivery state',
       );
     }
     return;
