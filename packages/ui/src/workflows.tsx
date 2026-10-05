@@ -237,7 +237,7 @@ export function Navigation({
   onChange,
   mobile = false,
 }: {
-  items: Array<{ id: string; label: string; icon?: React.ReactNode }>;
+  items: Array<{ id: string; label: string; icon?: React.ReactNode; group?: string }>;
   active: string;
   onChange: (id: string) => void;
   mobile?: boolean;
@@ -247,16 +247,18 @@ export function Navigation({
       aria-label="Application navigation"
       className={mobile ? "bottom-navigation" : "app-navigation"}
     >
-      {items.map((item) => (
-        <button
-          key={item.id}
-          type="button"
-          aria-current={active === item.id ? "page" : undefined}
-          onClick={() => onChange(item.id)}
-        >
-          {item.icon}
-          {item.label}
-        </button>
+      {items.map((item,index) => (
+        <React.Fragment key={item.id}>
+          {!mobile&&item.group&&item.group!==items[index-1]?.group&&<span className="app-nav-group">{item.group}</span>}
+          <button
+            type="button"
+            aria-current={active === item.id ? "page" : undefined}
+            onClick={() => onChange(item.id)}
+          >
+            {item.icon}
+            {item.label}
+          </button>
+        </React.Fragment>
       ))}
     </nav>
   );
