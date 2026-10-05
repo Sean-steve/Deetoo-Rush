@@ -282,6 +282,7 @@ describe('Sprint 10: Delivery Execution Lifecycle & Customer Tracking', () => {
 
   test('5. Proof of Delivery with OTP: verifies code, locks after 5 failed attempts, completes on success', async () => {
     const orderId = `ord_s10_otp_${Date.now()}`;
+    await createReadyOrder(orderId);
     const delivery = await deliveryRepository.createDelivery({
       order_id: orderId,
       order_number: 'ORD-S10-004',
@@ -350,6 +351,7 @@ describe('Sprint 10: Delivery Execution Lifecycle & Customer Tracking', () => {
 
   test('6. Proof of Delivery with Photo: requires verified private media bound to delivery', async () => {
     const orderId = `ord_s10_photo_${Date.now()}`;
+    await createReadyOrder(orderId);
     const delivery = await deliveryRepository.createDelivery({
       order_id: orderId,
       order_number: 'ORD-S10-005',
@@ -451,6 +453,7 @@ describe('Sprint 10: Delivery Execution Lifecycle & Customer Tracking', () => {
 
   test('8. Admin Operations: Force complete stuck delivery and resolve incidents', async () => {
     const orderId = `ord_s10_admin_${Date.now()}`;
+    await createReadyOrder(orderId);
     const delivery = await deliveryRepository.createDelivery({
       order_id: orderId,
       order_number: 'ORD-S10-007',
