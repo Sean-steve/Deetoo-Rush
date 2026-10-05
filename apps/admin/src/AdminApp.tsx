@@ -8,6 +8,12 @@ import { ResourceTable } from "./components/ResourceTable";
 import { adminViews } from "./components/adminViews";
 import { OperationsConfig } from "./components/OperationsConfig";
 import { LaunchReadiness } from "./components/LaunchReadiness";
+
+function adminTabFromPath(){
+  const path=window.location.pathname.replace(/^\/ops/,"").replace(/\/+$/,"");
+  return path&&path!=="/"?path.replace(/^\//,""):"command";
+}
+function adminTabPath(tab:string){return `/ops/${tab}`;}
 /**
  * DEETOO - Admin & Operations Application Shell
  * Central operations console: User management, RBAC, live audit trail, zones, health
@@ -77,7 +83,17 @@ function AdminAppInner() {
     apiClient,
   } = useAuth();
 
-  const [activeTab, setActiveTab] = useState<string>("command");
+  const [activeTab, setActiveTabState] = useState<string>(()=>adminTabFromPath());
+  const setActiveTab=(tab:string)=>{
+    setActiveTabState(tab);
+    const next=adminTabPath(tab);
+    if(window.location.pathname!==next)window.history.pushState({}, "", next);
+  };
+  useEffect(()=>{
+    const sync=()=>setActiveTabState(adminTabFromPath());
+    window.addEventListener("popstate",sync);
+    return()=>window.removeEventListener("popstate",sync);
+  },[]);
   const [healthData, setHealthData] = useState<SystemHealthResponse | null>(
     null,
   );
