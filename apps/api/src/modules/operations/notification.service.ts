@@ -126,13 +126,15 @@ export class NotificationService {
       }
 
       const provider =
-        record.channel === 'PUSH'
-          ? 'FCM'
-          : record.channel === 'SMS'
-            ? 'AFRICASTALKING'
-            : record.channel === 'EMAIL'
-              ? 'RESEND'
-              : 'IN_APP';
+        providerRef.startsWith('sim_')
+          ? 'SIMULATED'
+          : record.channel === 'PUSH'
+            ? 'FCM'
+            : record.channel === 'SMS'
+              ? 'AFRICASTALKING'
+              : record.channel === 'EMAIL'
+                ? 'RESEND'
+                : 'IN_APP';
 
       // External-provider acceptance is SENT, not proof of device delivery.
       // IN_APP delivery is synchronous, so it can be marked DELIVERED immediately.
