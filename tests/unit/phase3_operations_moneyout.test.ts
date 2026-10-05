@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { randomBytes, randomUUID } from 'node:crypto';
+import { createHash, randomBytes, randomUUID } from 'node:crypto';
 
 import {
   LedgerAccountOwnerType,
@@ -124,7 +124,7 @@ test('Phase 3: launch readiness remains blocked without durable certification ev
 });
 
 
-test('Phase 3: failed provider callbacks are terminal and identical retries are idempotent', async () => {
+test('Phase 3: terminal provider callbacks are idempotent but contradictory results are rejected', async () => {
   process.env.PAYOUT_DESTINATION_ENCRYPTION_KEY = randomBytes(32).toString('base64');
   const destination = await disbursementService.createDestination({
     ownerType: 'RIDER',
@@ -135,54 +135,78 @@ test('Phase 3: failed provider callbacks are terminal and identical retries are 
     maskedDestination: '+2547***9111',
     createdBy: 'phase3-finance',
   });
-  const attempt = await disbursementRepository.createAttempt({
+
+  const failedPayload = {
+    provider: 'SAFARICOM',
+    provider_request_id: `provider-request-${randomUUID()}`,
+    status: 'FAILED',
+    failure_code: 'RECIPIENT_INVALID',
+  };
+  const failedHash = createHash('sha256').update(JSON.stringify(failedPayload)).digest('hex');
+  const failedAttempt = await disbursementRepository.createAttempt({
     resource_type: 'PAYOUT',
     resource_id: randomUUID(),
     destination_id: destination.id,
     provider: 'SAFARICOM',
     amount_minor: 15000,
     currency: 'KES',
-    status: 'SUBMITTED',
-    idempotency_key: `phase3-terminal-${randomUUID()}`,
-    provider_request_id: `provider-request-${randomUUID()}`,
+    status: 'FAILED',
+    idempotency_key: `phase3-terminal-failed-${randomUUID()}`,
+    provider_request_id: failedPayload.provider_request_id,
+    callback_payload_hash: failedHash,
+    failure_code: 'RECIPIENT_INVALID',
+    failure_reason: 'Recipient rejected',
     initiated_by: 'phase3-finance',
   });
 
-  const failedPayload = {
+  const repeatedFailure = await disbursementService.applyProviderResult({
     provider: 'SAFARICOM',
-    provider_request_id: attempt.provider_request_id,
-    status: 'FAILED',
-    failure_code: 'RECIPIENT_INVALID',
-  };
-
-  const failed = await disbursementService.applyProviderResult({
-    provider: 'SAFARICOM',
-    providerRequestId: attempt.provider_request_id!,
+    providerRequestId: failedAttempt.provider_request_id!,
     succeeded: false,
     failureCode: 'RECIPIENT_INVALID',
     failureReason: 'Recipient rejected',
     rawPayload: failedPayload,
   });
-  assert.equal(failed.status, 'FAILED');
-
-  const repeated = await disbursementService.applyProviderResult({
-    provider: 'SAFARICOM',
-    providerRequestId: attempt.provider_request_id!,
-    succeeded: false,
-    failureCode: 'RECIPIENT_INVALID',
-    failureReason: 'Recipient rejected',
-    rawPayload: failedPayload,
-  });
-  assert.equal(repeated.id, failed.id);
+  assert.equal(repeatedFailure.id, failedAttempt.id);
 
   await assert.rejects(
     () => disbursementService.applyProviderResult({
       provider: 'SAFARICOM',
-      providerRequestId: attempt.provider_request_id!,
+      providerRequestId: failedAttempt.provider_request_id!,
       succeeded: true,
       providerReference: 'LATE-SUCCESS-REF',
       rawPayload: { ...failedPayload, status: 'SUCCEEDED', provider_reference: 'LATE-SUCCESS-REF' },
     }),
     (error: any) => error?.code === 'DISBURSEMENT_TERMINAL_CONFLICT',
+  );
+
+  const succeededAttempt = await disbursementRepository.createAttempt({
+    resource_type: 'PAYOUT',
+    resource_id: randomUUID(),
+    destination_id: destination.id,
+    provider: 'SAFARICOM',
+    amount_minor: 17000,
+    currency: 'KES',
+    status: 'SUCCEEDED',
+    idempotency_key: `phase3-terminal-success-${randomUUID()}`,
+    provider_request_id: `provider-request-${randomUUID()}`,
+    provider_reference: 'SUCCESS-REF-1',
+    initiated_by: 'phase3-finance',
+  });
+  const repeatedSuccess = await disbursementService.applyProviderResult({
+    provider: 'SAFARICOM',
+    providerRequestId: succeededAttempt.provider_request_id!,
+    succeeded: true,
+    providerReference: 'SUCCESS-REF-1',
+  });
+  assert.equal(repeatedSuccess.id, succeededAttempt.id);
+  await assert.rejects(
+    () => disbursementService.applyProviderResult({
+      provider: 'SAFARICOM',
+      providerRequestId: succeededAttempt.provider_request_id!,
+      succeeded: true,
+      providerReference: 'SUCCESS-REF-2',
+    }),
+    (error: any) => error?.code === 'DISBURSEMENT_REFERENCE_CONFLICT',
   );
 });
