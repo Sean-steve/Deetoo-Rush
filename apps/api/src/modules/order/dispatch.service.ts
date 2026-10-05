@@ -465,7 +465,7 @@ export class DispatchService {
       timeoutSeconds: this.dispatchConfig.offerTimeoutSeconds,
     };
     await this.publishRealtimeEvent(`rider:${topCandidate.userId}`, 'delivery.offer.created', riderOfferPayload);
-    void notificationService.sendNotification({
+    await notificationService.sendNotification({
       recipientType: 'RIDER',
       recipientId: topCandidate.userId,
       channel: 'PUSH',
@@ -476,13 +476,6 @@ export class DispatchService {
         ...riderOfferPayload,
         message: `New delivery offer: pickup ${Math.max(1, Math.round(topCandidate.distanceToPickupMeters / 100) / 10)} km away`,
       },
-    }).catch((err) => {
-      logger.warn('Rider push offer notification failed', {
-        service: 'dispatch-engine',
-        riderUserId: topCandidate.userId,
-        offerId: offer.id,
-        error: (err as Error).message,
-      });
     });
 
     logger.info('Dispatched delivery offer to rider', {
