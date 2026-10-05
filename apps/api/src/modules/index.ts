@@ -19,6 +19,8 @@ import { realtimeRouter } from './realtime/realtime.router';
 import { paymentRouter } from './payment/payment.router';
 import { financeRouter } from './finance/finance.router';
 import { operationsRouter, customerSupportRouter } from './operations/operations.router';
+import { deviceRouter } from './operations/device.router';
+import { mediaRouter } from './media/media.router';
 import { discoveryService } from './discovery/discovery.service';
 import { serviceabilityService } from './serviceability/serviceability.service';
 import { mapsProvider } from './maps/maps.provider';
@@ -41,6 +43,8 @@ v1Router.use('/payments', paymentRouter);
 v1Router.use('/finance', financeRouter);
 v1Router.use('/rider', riderRouter);
 v1Router.use('/realtime', realtimeRouter);
+v1Router.use('/devices', deviceRouter);
+v1Router.use('/media', mediaRouter);
 
 // ==========================================
 // Public Customer Discovery Endpoints (Sprint 5)
