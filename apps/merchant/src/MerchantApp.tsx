@@ -48,6 +48,8 @@ import {
   History,
   Key,
   UtensilsCrossed,
+  WalletCards,
+  LifeBuoy,
 } from "lucide-react";
 import { CatalogueManager } from "./components/CatalogueManager";
 
@@ -370,13 +372,13 @@ function MerchantAppInner() {
               if (id === "sessions") void loadSessions();
             }}
             items={[
-              { id: "orders", label: "Kitchen display" },
-              { id: "catalogue", label: "Menu & availability" },
-              { id: "finance", label: "Finance & settlements" },
-              { id: "account", label: "Business & team" },
-              { id: "branch", label: "Branch settings" },
-              { id: "sessions", label: "Security & sessions" },
-              { id: "support", label: "Support" },
+              { id: "orders", label: "Kitchen display", icon:<ChefHat size={16}/>, group:"Live operations" },
+              { id: "catalogue", label: "Menu & availability", icon:<UtensilsCrossed size={16}/>, group:"Live operations" },
+              { id: "finance", label: "Finance & settlements", icon:<WalletCards size={16}/>, group:"Business" },
+              { id: "account", label: "Business & team", icon:<User size={16}/>, group:"Business" },
+              { id: "branch", label: "Branch settings", icon:<Store size={16}/>, group:"Business" },
+              { id: "sessions", label: "Security & sessions", icon:<ShieldCheck size={16}/>, group:"Account" },
+              { id: "support", label: "Support", icon:<LifeBuoy size={16}/>, group:"Account" },
             ]}
           />
         }
