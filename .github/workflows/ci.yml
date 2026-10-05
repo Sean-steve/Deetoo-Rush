@@ -1,0 +1,93 @@
+name: Deetoo CI Pipeline
+
+on:
+  push:
+    branches: [main, master, develop]
+  pull_request:
+    branches: [main, master, develop]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    name: Lint, Type Check & Test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Run Linters
+        run: npm run lint
+
+      - name: Run Type Checks
+        run: npm run typecheck
+
+      - name: Validate OpenAPI contract
+        run: npm run openapi:validate
+
+      - name: Check OpenAPI contract matches router source (no drift)
+        run: npm run openapi:coverage
+
+      - name: Run Unit & Integration Tests
+        run: npm test
+
+      - name: Audit production dependencies
+        run: npm audit --omit=dev --audit-level=high
+
+      - name: Build Applications
+        run: npm run build
+
+  durable-foundation:
+    name: PostgreSQL migrations, authorization and outbox recovery
+    runs-on: ubuntu-latest
+    services:
+      redis:
+        image: redis:7
+        ports:
+          - 6379:6379
+      postgres:
+        image: postgis/postgis:16-3.4
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: foundation_test_only
+          POSTGRES_DB: deetoo_foundation
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d deetoo_foundation"
+          --health-interval 5s --health-timeout 5s --health-retries 12
+    env:
+      REDIS_URL: redis://127.0.0.1:6379
+      DATABASE_URL: postgres://postgres:foundation_test_only@127.0.0.1:5432/deetoo_foundation
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run test:foundation
+
+  code-analysis:
+    name: CodeQL security analysis
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: github/codeql-action/init@v3
+        with:
+          languages: javascript-typescript
+      - uses: github/codeql-action/analyze@v3

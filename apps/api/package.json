@@ -1,0 +1,7 @@
+{
+  "name": "@deetoo/api",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "./src/server.ts",
+  "types": "./src/server.ts"
+}

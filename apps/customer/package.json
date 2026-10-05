@@ -1,0 +1,6 @@
+{
+  "name": "@deetoo/customer",
+  "version": "1.0.0",
+  "private": true,
+  "main": "./src/CustomerApp.tsx"
+}

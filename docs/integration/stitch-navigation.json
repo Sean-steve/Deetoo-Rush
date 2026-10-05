@@ -1,0 +1,43 @@
+{
+  "rider_app_express_delivery_offer_run": [
+    "checkout-bag",
+    "home-discovery",
+    "orders-and-tracking",
+    "profile-and-addresses",
+    "search-and-browse"
+  ],
+  "admin_operations_live_dispatch_command_center": [
+    "ledger-settlements",
+    "live-dispatch-fleet",
+    "merchant-approvals-catalogs",
+    "mpesa-card-reconciliation",
+    "orders-active-deliveries",
+    "overview-pulse",
+    "pricing-rules",
+    "refunds",
+    "rider-fleet-incidents",
+    "service-zones",
+    "system-health-kill-switches"
+  ],
+  "merchant_app_kitchen_display_live_orders": [
+    "ledger-settlements",
+    "live-dispatch-fleet",
+    "merchant-approvals-catalogs",
+    "mpesa-card-reconciliation",
+    "orders-active-deliveries",
+    "overview-pulse",
+    "pricing-rules",
+    "refunds",
+    "rider-fleet-incidents",
+    "service-zones",
+    "system-health-kill-switches"
+  ],
+  "customer_app_discovery_marketplace": [
+    "checkout-bag",
+    "home-discovery",
+    "orders-and-tracking",
+    "profile-and-addresses",
+    "search-and-browse"
+  ],
+  "deetoo_logo": []
+}

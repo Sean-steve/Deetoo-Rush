@@ -1,0 +1,1322 @@
+[
+  {
+    "document": "01_Deetoo_PRD.pdf",
+    "page": 5,
+    "requirement_id": "PRD-AUTH-001",
+    "assessment_id": "A10",
+    "status": "PARTIAL",
+    "requirement_summary": "Registration, login, hashed passwords, refresh rotation, logout and reset"
+  },
+  {
+    "document": "01_Deetoo_PRD.pdf",
+    "page": 5,
+    "requirement_id": "PRD-AUTH-002",
+    "assessment_id": "A16",
+    "status": "PARTIAL",
+    "requirement_summary": "Customer, merchant and branch ownership are server enforced"
+  },
+  {
+    "document": "01_Deetoo_PRD.pdf",
+    "page": 5,
+    "requirement_id": "PRD-CUST-001",
+    "assessment_id": "A21",
+    "status": "PARTIAL",
+    "requirement_summary": "Own profile and saved-address management"
+  },
+  {
+    "document": "01_Deetoo_PRD.pdf",
+    "page": 5,
+    "requirement_id": "PRD-CUST-002",
+    "assessment_id": "A26",
+    "status": "PARTIAL",
+    "requirement_summary": "Discovery and checkout respect approval, branch status, pause, hours and zone"
+  },
+  {
+    "document": "01_Deetoo_PRD.pdf",
+    "page": 5,
+    "requirement_id": "PRD-CUST-003",
+    "assessment_id": "A29",
+    "status": "PARTIAL",
+    "requirement_summary": "Published menu/categories/items, availability and modifier selection bounds"
+  },
+  {
+    "document": "01_Deetoo_PRD.pdf",
+    "page": 5,
+    "requirement_id": "PRD-CART-001",
+    "assessment_id": "A35",
+    "status": "CONTRADICTS_DOCUMENTATION",
+    "requirement_summary": "Material cart/price changes require a new quote and customer acknowledgement"
+  },
+  {
+    "document": "01_Deetoo_PRD.pdf",
+    "page": 5,
+    "requirement_id": "PRD-PAY-001",
+    "assessment_id": "A71",
+    "status": "PARTIAL",
+    "requirement_summary": "Persistent payment intent/attempts, provider-event dedup, monotonic status and safe retries"
+  },
+  {
+    "document": "01_Deetoo_PRD.pdf",
+    "page": 5,
+    "requirement_id": "PRD-PAY-002",
+    "assessment_id": "A70",
+    "status": "CONTRADICTS_DOCUMENTATION",
+    "requirement_summary": "Verify authentic raw callback bytes, amount/currency/reference and replay protection"
+  },
+  {
+    "document": "01_Deetoo_PRD.pdf",
+    "page": 5,
+    "requirement_id": "PRD-ORD-001",
+    "assessment_id": "A43",
+    "status": "CONTRADICTS_DOCUMENTATION",
+    "requirement_summary": "Only verified paid checkout becomes merchant-visible PLACED"
+  },
+  {
+    "document": "01_Deetoo_PRD.pdf",
+    "page": 5,
+    "requirement_id": "PRD-ORD-002",
+    "assessment_id": "A47",
+    "status": "MISSING",
+    "requirement_summary": "Merchant response deadline triggers rejection/cancellation and financial remedy"
+  },
+  {
+    "document": "01_Deetoo_PRD.pdf",
+    "page": 6,
+    "requirement_id": "PRD-ORD-003",
+    "assessment_id": "A46",
+    "status": "PARTIAL",
+    "requirement_summary": "Named branch-scoped accept/reject/preparing/ready commands validate state and prep estimate"
+  },
+  {
+    "document": "01_Deetoo_PRD.pdf",
+    "page": 6,
+    "requirement_id": "PRD-DEL-001",
+    "assessment_id": "A44",
+    "status": "PARTIAL",
+    "requirement_summary": "Order, Delivery and Payment states are separate lifecycle aggregates"
+  },
+  {
+    "document": "01_Deetoo_PRD.pdf",
+    "page": 6,
+    "requirement_id": "PRD-DSP-001",
+    "assessment_id": "A58",
+    "status": "CONTRADICTS_DOCUMENTATION",
+    "requirement_summary": "Offer acceptance atomically revalidates offer, Rider, delivery, capacity and cancels competitors"
+  },
+  {
+    "document": "01_Deetoo_PRD.pdf",
+    "page": 6,
+    "requirement_id": "PRD-RID-001",
+    "assessment_id": "A54",
+    "status": "PARTIAL",
+    "requirement_summary": "Stale, inaccurate and implausible GPS is rejected or explicitly marked"
+  },
+  {
+    "document": "01_Deetoo_PRD.pdf",
+    "page": 6,
+    "requirement_id": "PRD-RID-002",
+    "assessment_id": "A14",
+    "status": "IMPLEMENTED",
+    "requirement_summary": "Customer denied Rider operational APIs; Rider resources owned by authenticated Rider"
+  },
+  {
+    "document": "01_Deetoo_PRD.pdf",
+    "page": 6,
+    "requirement_id": "PRD-RT-001",
+    "assessment_id": "A67",
+    "status": "PARTIAL",
+    "requirement_summary": "Events have stable IDs/timestamps/resource identity and reconnect resynchronizes REST"
+  },
+  {
+    "document": "01_Deetoo_PRD.pdf",
+    "page": 6,
+    "requirement_id": "PRD-ADM-001",
+    "assessment_id": "A93",
+    "status": "PARTIAL",
+    "requirement_summary": "Chronological unified view includes three states, offers, notifications, cases and audit"
+  },
+  {
+    "document": "01_Deetoo_PRD.pdf",
+    "page": 6,
+    "requirement_id": "PRD-ADM-002",
+    "assessment_id": "A61",
+    "status": "PARTIAL",
+    "requirement_summary": "Manual assignment requires reason, hard safety guards and old/new Rider audit"
+  },
+  {
+    "document": "01_Deetoo_PRD.pdf",
+    "page": 6,
+    "requirement_id": "PRD-FIN-001",
+    "assessment_id": "A75",
+    "status": "MISSING",
+    "requirement_summary": "Refund idempotency, approval threshold, reason-based policy and Finance exception control"
+  },
+  {
+    "document": "01_Deetoo_PRD.pdf",
+    "page": 6,
+    "requirement_id": "PRD-LED-001",
+    "assessment_id": "A81",
+    "status": "PARTIAL",
+    "requirement_summary": "Posted ledger is immutable, balanced per currency, idempotent by economic reference"
+  },
+  {
+    "document": "01_Deetoo_PRD.pdf",
+    "page": 6,
+    "requirement_id": "PRD-SET-001",
+    "assessment_id": "A84",
+    "status": "CONTRADICTS_DOCUMENTATION",
+    "requirement_summary": "Select only this merchant's completed eligible unpaid payable entries"
+  },
+  {
+    "document": "01_Deetoo_PRD.pdf",
+    "page": 6,
+    "requirement_id": "PRD-SUP-001",
+    "assessment_id": "A92",
+    "status": "PARTIAL",
+    "requirement_summary": "Linked support cases, ownership-filtered notes, reasons and remedies"
+  },
+  {
+    "document": "01_Deetoo_PRD.pdf",
+    "page": 6,
+    "requirement_id": "PRD-AN-001",
+    "assessment_id": "A117",
+    "status": "MISSING",
+    "requirement_summary": "Instrument full funnel, cohort/zone/merchant/hour attribution, CAC/LTV and support/maps cost"
+  },
+  {
+    "document": "01_Deetoo_PRD.pdf",
+    "page": 6,
+    "requirement_id": "NFR-001",
+    "assessment_id": "A105",
+    "status": "PARTIAL",
+    "requirement_summary": "Availability/latency objectives and stateless scale verified under realistic load"
+  },
+  {
+    "document": "01_Deetoo_PRD.pdf",
+    "page": 6,
+    "requirement_id": "NFR-002",
+    "assessment_id": "A105",
+    "status": "PARTIAL",
+    "requirement_summary": "Availability/latency objectives and stateless scale verified under realistic load"
+  },
+  {
+    "document": "01_Deetoo_PRD.pdf",
+    "page": 6,
+    "requirement_id": "NFR-003",
+    "assessment_id": "A114",
+    "status": "PARTIAL",
+    "requirement_summary": "Real DB, concurrency, crash recovery, provider and four-app device E2E tests prove invariants"
+  },
+  {
+    "document": "01_Deetoo_PRD.pdf",
+    "page": 6,
+    "requirement_id": "NFR-004",
+    "assessment_id": "A103",
+    "status": "PARTIAL",
+    "requirement_summary": "Encrypt storage/backups, restrict secrets and rotate credentials with least privilege"
+  },
+  {
+    "document": "01_Deetoo_PRD.pdf",
+    "page": 6,
+    "requirement_id": "NFR-005",
+    "assessment_id": "A109",
+    "status": "CONTRADICTS_DOCUMENTATION",
+    "requirement_summary": "Backup/restore verification actually restores durable data and reports failures"
+  },
+  {
+    "document": "01_Deetoo_PRD.pdf",
+    "page": 6,
+    "requirement_id": "NFR-006",
+    "assessment_id": "A106",
+    "status": "PARTIAL",
+    "requirement_summary": "Correlated logs, API/worker/provider metrics, tracing and actionable alerts"
+  },
+  {
+    "document": "01_Deetoo_PRD.pdf",
+    "page": 6,
+    "requirement_id": "NFR-007",
+    "assessment_id": "A115",
+    "status": "PARTIAL",
+    "requirement_summary": "Responsive accessible UI with loading/empty/error/retry, low-end network recovery"
+  },
+  {
+    "document": "01_Deetoo_PRD.pdf",
+    "page": 7,
+    "requirement_id": "NFR-008",
+    "assessment_id": "A115",
+    "status": "PARTIAL",
+    "requirement_summary": "Responsive accessible UI with loading/empty/error/retry, low-end network recovery"
+  },
+  {
+    "document": "01_Deetoo_PRD.pdf",
+    "page": 7,
+    "requirement_id": "NFR-009",
+    "assessment_id": "A102",
+    "status": "MISSING",
+    "requirement_summary": "Approved retention, GPS purge, export/deletion/anonymization and legal holds"
+  },
+  {
+    "document": "01_Deetoo_PRD.pdf",
+    "page": 7,
+    "requirement_id": "NFR-010",
+    "assessment_id": "A105",
+    "status": "PARTIAL",
+    "requirement_summary": "Availability/latency objectives and stateless scale verified under realistic load"
+  },
+  {
+    "document": "03_Deetoo_Domain_Model.pdf",
+    "page": 5,
+    "requirement_id": "DOM-INV-001",
+    "assessment_id": "A31",
+    "status": "PARTIAL",
+    "requirement_summary": "Menu changes never rewrite placed item/price/address snapshots"
+  },
+  {
+    "document": "03_Deetoo_Domain_Model.pdf",
+    "page": 5,
+    "requirement_id": "DOM-INV-002",
+    "assessment_id": "A32",
+    "status": "IMPLEMENTED",
+    "requirement_summary": "One active cart contains items from one branch only"
+  },
+  {
+    "document": "03_Deetoo_Domain_Model.pdf",
+    "page": 5,
+    "requirement_id": "DOM-INV-003",
+    "assessment_id": "A44",
+    "status": "PARTIAL",
+    "requirement_summary": "Order, Delivery and Payment states are separate lifecycle aggregates"
+  },
+  {
+    "document": "03_Deetoo_Domain_Model.pdf",
+    "page": 5,
+    "requirement_id": "DOM-INV-004",
+    "assessment_id": "A50",
+    "status": "CONTRADICTS_DOCUMENTATION",
+    "requirement_summary": "Delivered completion and financial consequences recover reliably exactly once"
+  },
+  {
+    "document": "03_Deetoo_Domain_Model.pdf",
+    "page": 5,
+    "requirement_id": "DOM-INV-005",
+    "assessment_id": "A44",
+    "status": "PARTIAL",
+    "requirement_summary": "Order, Delivery and Payment states are separate lifecycle aggregates"
+  },
+  {
+    "document": "03_Deetoo_Domain_Model.pdf",
+    "page": 5,
+    "requirement_id": "DOM-INV-006",
+    "assessment_id": "A76",
+    "status": "PARTIAL",
+    "requirement_summary": "Cumulative successful refunds cannot exceed capture, including concurrent requests"
+  },
+  {
+    "document": "03_Deetoo_Domain_Model.pdf",
+    "page": 5,
+    "requirement_id": "DOM-INV-007",
+    "assessment_id": "A81",
+    "status": "PARTIAL",
+    "requirement_summary": "Posted ledger is immutable, balanced per currency, idempotent by economic reference"
+  },
+  {
+    "document": "03_Deetoo_Domain_Model.pdf",
+    "page": 5,
+    "requirement_id": "DOM-INV-008",
+    "assessment_id": "A81",
+    "status": "PARTIAL",
+    "requirement_summary": "Posted ledger is immutable, balanced per currency, idempotent by economic reference"
+  },
+  {
+    "document": "03_Deetoo_Domain_Model.pdf",
+    "page": 5,
+    "requirement_id": "DOM-INV-009",
+    "assessment_id": "A58",
+    "status": "CONTRADICTS_DOCUMENTATION",
+    "requirement_summary": "Offer acceptance atomically revalidates offer, Rider, delivery, capacity and cancels competitors"
+  },
+  {
+    "document": "03_Deetoo_Domain_Model.pdf",
+    "page": 5,
+    "requirement_id": "DOM-INV-010",
+    "assessment_id": "A35",
+    "status": "CONTRADICTS_DOCUMENTATION",
+    "requirement_summary": "Material cart/price changes require a new quote and customer acknowledgement"
+  },
+  {
+    "document": "06_Deetoo_Business_Rules.pdf",
+    "page": 3,
+    "requirement_id": "BR-GEO-001",
+    "assessment_id": "A23",
+    "status": "IMPLEMENTED",
+    "requirement_summary": "Validate coordinate bounds and return explicit unserviceable reason codes"
+  },
+  {
+    "document": "06_Deetoo_Business_Rules.pdf",
+    "page": 3,
+    "requirement_id": "BR-GEO-002",
+    "assessment_id": "A24",
+    "status": "PARTIAL",
+    "requirement_summary": "Address must lie within an active branch-supported zone and delivery distance policy"
+  },
+  {
+    "document": "06_Deetoo_Business_Rules.pdf",
+    "page": 3,
+    "requirement_id": "BR-GEO-003",
+    "assessment_id": "A26",
+    "status": "PARTIAL",
+    "requirement_summary": "Discovery and checkout respect approval, branch status, pause, hours and zone"
+  },
+  {
+    "document": "06_Deetoo_Business_Rules.pdf",
+    "page": 3,
+    "requirement_id": "BR-GEO-004",
+    "assessment_id": "A23",
+    "status": "IMPLEMENTED",
+    "requirement_summary": "Validate coordinate bounds and return explicit unserviceable reason codes"
+  },
+  {
+    "document": "06_Deetoo_Business_Rules.pdf",
+    "page": 3,
+    "requirement_id": "BR-GEO-005",
+    "assessment_id": "A24",
+    "status": "PARTIAL",
+    "requirement_summary": "Address must lie within an active branch-supported zone and delivery distance policy"
+  },
+  {
+    "document": "06_Deetoo_Business_Rules.pdf",
+    "page": 3,
+    "requirement_id": "BR-GEO-006",
+    "assessment_id": "A26",
+    "status": "PARTIAL",
+    "requirement_summary": "Discovery and checkout respect approval, branch status, pause, hours and zone"
+  },
+  {
+    "document": "06_Deetoo_Business_Rules.pdf",
+    "page": 4,
+    "requirement_id": "BR-PRI-001",
+    "assessment_id": "A34",
+    "status": "PARTIAL",
+    "requirement_summary": "Authoritative integer component pricing with disclosed fees, caps and explicit discounts"
+  },
+  {
+    "document": "06_Deetoo_Business_Rules.pdf",
+    "page": 4,
+    "requirement_id": "BR-PRI-002",
+    "assessment_id": "A38",
+    "status": "CONTRADICTS_DOCUMENTATION",
+    "requirement_summary": "All financial arithmetic uses integer minor units and fixed-precision rates"
+  },
+  {
+    "document": "06_Deetoo_Business_Rules.pdf",
+    "page": 4,
+    "requirement_id": "BR-PRI-003",
+    "assessment_id": "A34",
+    "status": "PARTIAL",
+    "requirement_summary": "Authoritative integer component pricing with disclosed fees, caps and explicit discounts"
+  },
+  {
+    "document": "06_Deetoo_Business_Rules.pdf",
+    "page": 4,
+    "requirement_id": "BR-PRI-004",
+    "assessment_id": "A34",
+    "status": "PARTIAL",
+    "requirement_summary": "Authoritative integer component pricing with disclosed fees, caps and explicit discounts"
+  },
+  {
+    "document": "06_Deetoo_Business_Rules.pdf",
+    "page": 4,
+    "requirement_id": "BR-PRI-005",
+    "assessment_id": "A35",
+    "status": "CONTRADICTS_DOCUMENTATION",
+    "requirement_summary": "Material cart/price changes require a new quote and customer acknowledgement"
+  },
+  {
+    "document": "06_Deetoo_Business_Rules.pdf",
+    "page": 4,
+    "requirement_id": "BR-PRI-006",
+    "assessment_id": "A37",
+    "status": "PARTIAL",
+    "requirement_summary": "Freeze effective pricing/commission version and component allocations at placement"
+  },
+  {
+    "document": "06_Deetoo_Business_Rules.pdf",
+    "page": 4,
+    "requirement_id": "BR-PRI-007",
+    "assessment_id": "A34",
+    "status": "PARTIAL",
+    "requirement_summary": "Authoritative integer component pricing with disclosed fees, caps and explicit discounts"
+  },
+  {
+    "document": "06_Deetoo_Business_Rules.pdf",
+    "page": 4,
+    "requirement_id": "BR-PRI-008",
+    "assessment_id": "A34",
+    "status": "PARTIAL",
+    "requirement_summary": "Authoritative integer component pricing with disclosed fees, caps and explicit discounts"
+  },
+  {
+    "document": "06_Deetoo_Business_Rules.pdf",
+    "page": 4,
+    "requirement_id": "BR-COM-001",
+    "assessment_id": "A39",
+    "status": "PARTIAL",
+    "requirement_summary": "Effective-dated contractual commission basis excludes non-contract fees"
+  },
+  {
+    "document": "06_Deetoo_Business_Rules.pdf",
+    "page": 4,
+    "requirement_id": "BR-COM-002",
+    "assessment_id": "A39",
+    "status": "PARTIAL",
+    "requirement_summary": "Effective-dated contractual commission basis excludes non-contract fees"
+  },
+  {
+    "document": "06_Deetoo_Business_Rules.pdf",
+    "page": 4,
+    "requirement_id": "BR-COM-003",
+    "assessment_id": "A38",
+    "status": "CONTRADICTS_DOCUMENTATION",
+    "requirement_summary": "All financial arithmetic uses integer minor units and fixed-precision rates"
+  },
+  {
+    "document": "06_Deetoo_Business_Rules.pdf",
+    "page": 4,
+    "requirement_id": "BR-COM-004",
+    "assessment_id": "A39",
+    "status": "PARTIAL",
+    "requirement_summary": "Effective-dated contractual commission basis excludes non-contract fees"
+  },
+  {
+    "document": "06_Deetoo_Business_Rules.pdf",
+    "page": 4,
+    "requirement_id": "BR-COM-005",
+    "assessment_id": "A40",
+    "status": "CONTRADICTS_DOCUMENTATION",
+    "requirement_summary": "Merchant- and platform-funded discounts are allocated separately"
+  },
+  {
+    "document": "06_Deetoo_Business_Rules.pdf",
+    "page": 4,
+    "requirement_id": "BR-COM-006",
+    "assessment_id": "A125",
+    "status": "PARTIAL",
+    "requirement_summary": "Post-settlement corrections create future-period adjusting entries and preserve paid history"
+  },
+  {
+    "document": "06_Deetoo_Business_Rules.pdf",
+    "page": 4,
+    "requirement_id": "BR-CART-001",
+    "assessment_id": "A32",
+    "status": "IMPLEMENTED",
+    "requirement_summary": "One active cart contains items from one branch only"
+  },
+  {
+    "document": "06_Deetoo_Business_Rules.pdf",
+    "page": 4,
+    "requirement_id": "BR-CART-002",
+    "assessment_id": "A33",
+    "status": "PARTIAL",
+    "requirement_summary": "Validate quantities, modifier rules, availability and qualifying minimum subtotal"
+  },
+  {
+    "document": "06_Deetoo_Business_Rules.pdf",
+    "page": 4,
+    "requirement_id": "BR-CART-003",
+    "assessment_id": "A33",
+    "status": "PARTIAL",
+    "requirement_summary": "Validate quantities, modifier rules, availability and qualifying minimum subtotal"
+  },
+  {
+    "document": "06_Deetoo_Business_Rules.pdf",
+    "page": 5,
+    "requirement_id": "BR-CART-004",
+    "assessment_id": "A35",
+    "status": "CONTRADICTS_DOCUMENTATION",
+    "requirement_summary": "Material cart/price changes require a new quote and customer acknowledgement"
+  },
+  {
+    "document": "06_Deetoo_Business_Rules.pdf",
+    "page": 5,
+    "requirement_id": "BR-CART-005",
+    "assessment_id": "A36",
+    "status": "PARTIAL",
+    "requirement_summary": "Owned quote TTL and serviceability/branch/catalogue validation"
+  },
+  {
+    "document": "06_Deetoo_Business_Rules.pdf",
+    "page": 5,
+    "requirement_id": "BR-CART-006",
+    "assessment_id": "A26",
+    "status": "PARTIAL",
+    "requirement_summary": "Discovery and checkout respect approval, branch status, pause, hours and zone"
+  },
+  {
+    "document": "06_Deetoo_Business_Rules.pdf",
+    "page": 5,
+    "requirement_id": "BR-MER-001",
+    "assessment_id": "A47",
+    "status": "MISSING",
+    "requirement_summary": "Merchant response deadline triggers rejection/cancellation and financial remedy"
+  },
+  {
+    "document": "06_Deetoo_Business_Rules.pdf",
+    "page": 5,
+    "requirement_id": "BR-MER-002",
+    "assessment_id": "A46",
+    "status": "PARTIAL",
+    "requirement_summary": "Named branch-scoped accept/reject/preparing/ready commands validate state and prep estimate"
+  },
+  {
+    "document": "06_Deetoo_Business_Rules.pdf",
+    "page": 5,
+    "requirement_id": "BR-MER-003",
+    "assessment_id": "A46",
+    "status": "PARTIAL",
+    "requirement_summary": "Named branch-scoped accept/reject/preparing/ready commands validate state and prep estimate"
+  },
+  {
+    "document": "06_Deetoo_Business_Rules.pdf",
+    "page": 5,
+    "requirement_id": "BR-MER-004",
+    "assessment_id": "A31",
+    "status": "PARTIAL",
+    "requirement_summary": "Menu changes never rewrite placed item/price/address snapshots"
+  },
+  {
+    "document": "06_Deetoo_Business_Rules.pdf",
+    "page": 5,
+    "requirement_id": "BR-MER-005",
+    "assessment_id": "A26",
+    "status": "PARTIAL",
+    "requirement_summary": "Discovery and checkout respect approval, branch status, pause, hours and zone"
+  },
+  {
+    "document": "06_Deetoo_Business_Rules.pdf",
+    "page": 5,
+    "requirement_id": "BR-MER-006",
+    "assessment_id": "A99",
+    "status": "PARTIAL",
+    "requirement_summary": "Record refund/promo/GPS abuse signals, case review and controlled human intervention"
+  },
+  {
+    "document": "06_Deetoo_Business_Rules.pdf",
+    "page": 5,
+    "requirement_id": "BR-MER-007",
+    "assessment_id": "A31",
+    "status": "PARTIAL",
+    "requirement_summary": "Menu changes never rewrite placed item/price/address snapshots"
+  },
+  {
+    "document": "06_Deetoo_Business_Rules.pdf",
+    "page": 6,
+    "requirement_id": "BR-REF-001",
+    "assessment_id": "A75",
+    "status": "MISSING",
+    "requirement_summary": "Refund idempotency, approval threshold, reason-based policy and Finance exception control"
+  },
+  {
+    "document": "06_Deetoo_Business_Rules.pdf",
+    "page": 6,
+    "requirement_id": "BR-REF-002",
+    "assessment_id": "A76",
+    "status": "PARTIAL",
+    "requirement_summary": "Cumulative successful refunds cannot exceed capture, including concurrent requests"
+  },
+  {
+    "document": "06_Deetoo_Business_Rules.pdf",
+    "page": 6,
+    "requirement_id": "BR-REF-003",
+    "assessment_id": "A78",
+    "status": "PARTIAL",
+    "requirement_summary": "Separate customer refund, merchant/Rider compensation, funding and provider fee costs"
+  },
+  {
+    "document": "06_Deetoo_Business_Rules.pdf",
+    "page": 6,
+    "requirement_id": "BR-REF-004",
+    "assessment_id": "A75",
+    "status": "MISSING",
+    "requirement_summary": "Refund idempotency, approval threshold, reason-based policy and Finance exception control"
+  },
+  {
+    "document": "06_Deetoo_Business_Rules.pdf",
+    "page": 6,
+    "requirement_id": "BR-REF-005",
+    "assessment_id": "A79",
+    "status": "IMPLEMENTED",
+    "requirement_summary": "Refund does not rewrite historical Order fulfilment status"
+  },
+  {
+    "document": "06_Deetoo_Business_Rules.pdf",
+    "page": 6,
+    "requirement_id": "BR-REF-006",
+    "assessment_id": "A78",
+    "status": "PARTIAL",
+    "requirement_summary": "Separate customer refund, merchant/Rider compensation, funding and provider fee costs"
+  },
+  {
+    "document": "06_Deetoo_Business_Rules.pdf",
+    "page": 6,
+    "requirement_id": "BR-REF-007",
+    "assessment_id": "A78",
+    "status": "PARTIAL",
+    "requirement_summary": "Separate customer refund, merchant/Rider compensation, funding and provider fee costs"
+  },
+  {
+    "document": "06_Deetoo_Business_Rules.pdf",
+    "page": 6,
+    "requirement_id": "BR-REF-008",
+    "assessment_id": "A77",
+    "status": "CONTRADICTS_DOCUMENTATION",
+    "requirement_summary": "Refund remains pending until independently verified provider success"
+  },
+  {
+    "document": "06_Deetoo_Business_Rules.pdf",
+    "page": 6,
+    "requirement_id": "BR-RID-001",
+    "assessment_id": "A52",
+    "status": "CONTRADICTS_DOCUMENTATION",
+    "requirement_summary": "Eligible Rider must have an existing active user and active online session"
+  },
+  {
+    "document": "06_Deetoo_Business_Rules.pdf",
+    "page": 6,
+    "requirement_id": "BR-RID-002",
+    "assessment_id": "A53",
+    "status": "CONTRADICTS_DOCUMENTATION",
+    "requirement_summary": "Enforce zone, active vehicle/capability, compliance, capacity and cooldown"
+  },
+  {
+    "document": "06_Deetoo_Business_Rules.pdf",
+    "page": 6,
+    "requirement_id": "BR-RID-003",
+    "assessment_id": "A59",
+    "status": "PARTIAL",
+    "requirement_summary": "Record decline/expiry, bounded retry/backoff, exhaustion escalation and notifications"
+  },
+  {
+    "document": "06_Deetoo_Business_Rules.pdf",
+    "page": 6,
+    "requirement_id": "BR-RID-004",
+    "assessment_id": "A14",
+    "status": "IMPLEMENTED",
+    "requirement_summary": "Customer denied Rider operational APIs; Rider resources owned by authenticated Rider"
+  },
+  {
+    "document": "06_Deetoo_Business_Rules.pdf",
+    "page": 6,
+    "requirement_id": "BR-RID-005",
+    "assessment_id": "A60",
+    "status": "CONTRADICTS_DOCUMENTATION",
+    "requirement_summary": "After pickup, preserve custody and prohibit ordinary reset/reassignment"
+  },
+  {
+    "document": "06_Deetoo_Business_Rules.pdf",
+    "page": 6,
+    "requirement_id": "BR-RID-006",
+    "assessment_id": "A54",
+    "status": "PARTIAL",
+    "requirement_summary": "Stale, inaccurate and implausible GPS is rejected or explicitly marked"
+  },
+  {
+    "document": "06_Deetoo_Business_Rules.pdf",
+    "page": 6,
+    "requirement_id": "BR-RID-007",
+    "assessment_id": "A89",
+    "status": "PARTIAL",
+    "requirement_summary": "Idempotent delivery earning based on effective rule and ledger, with breakdown"
+  },
+  {
+    "document": "06_Deetoo_Business_Rules.pdf",
+    "page": 6,
+    "requirement_id": "BR-RID-008",
+    "assessment_id": "A60",
+    "status": "CONTRADICTS_DOCUMENTATION",
+    "requirement_summary": "After pickup, preserve custody and prohibit ordinary reset/reassignment"
+  },
+  {
+    "document": "06_Deetoo_Business_Rules.pdf",
+    "page": 6,
+    "requirement_id": "BR-PRO-001",
+    "assessment_id": "A41",
+    "status": "PARTIAL",
+    "requirement_summary": "Promotion start/end, scope, budget, per-user limits and stacking policy"
+  },
+  {
+    "document": "06_Deetoo_Business_Rules.pdf",
+    "page": 6,
+    "requirement_id": "BR-PRO-002",
+    "assessment_id": "A42",
+    "status": "PARTIAL",
+    "requirement_summary": "Revalidate promotion at quote and payment checkout, reserve atomically"
+  },
+  {
+    "document": "06_Deetoo_Business_Rules.pdf",
+    "page": 6,
+    "requirement_id": "BR-PRO-003",
+    "assessment_id": "A41",
+    "status": "PARTIAL",
+    "requirement_summary": "Promotion start/end, scope, budget, per-user limits and stacking policy"
+  },
+  {
+    "document": "06_Deetoo_Business_Rules.pdf",
+    "page": 6,
+    "requirement_id": "BR-PRO-004",
+    "assessment_id": "A40",
+    "status": "CONTRADICTS_DOCUMENTATION",
+    "requirement_summary": "Merchant- and platform-funded discounts are allocated separately"
+  },
+  {
+    "document": "06_Deetoo_Business_Rules.pdf",
+    "page": 7,
+    "requirement_id": "BR-PRO-005",
+    "assessment_id": "A41",
+    "status": "PARTIAL",
+    "requirement_summary": "Promotion start/end, scope, budget, per-user limits and stacking policy"
+  },
+  {
+    "document": "10_Deetoo_Dispatch_Specification.pdf",
+    "page": 4,
+    "requirement_id": "DSP-DEL-001",
+    "assessment_id": "A55",
+    "status": "CONTRADICTS_DOCUMENTATION",
+    "requirement_summary": "Dispatch checks eligible Order/payment/state, incident hold, serviceability and not-before time"
+  },
+  {
+    "document": "10_Deetoo_Dispatch_Specification.pdf",
+    "page": 4,
+    "requirement_id": "DSP-DEL-002",
+    "assessment_id": "A55",
+    "status": "CONTRADICTS_DOCUMENTATION",
+    "requirement_summary": "Dispatch checks eligible Order/payment/state, incident hold, serviceability and not-before time"
+  },
+  {
+    "document": "10_Deetoo_Dispatch_Specification.pdf",
+    "page": 4,
+    "requirement_id": "DSP-DEL-003",
+    "assessment_id": "A55",
+    "status": "CONTRADICTS_DOCUMENTATION",
+    "requirement_summary": "Dispatch checks eligible Order/payment/state, incident hold, serviceability and not-before time"
+  },
+  {
+    "document": "10_Deetoo_Dispatch_Specification.pdf",
+    "page": 4,
+    "requirement_id": "DSP-DEL-004",
+    "assessment_id": "A55",
+    "status": "CONTRADICTS_DOCUMENTATION",
+    "requirement_summary": "Dispatch checks eligible Order/payment/state, incident hold, serviceability and not-before time"
+  },
+  {
+    "document": "10_Deetoo_Dispatch_Specification.pdf",
+    "page": 4,
+    "requirement_id": "DSP-DEL-005",
+    "assessment_id": "A55",
+    "status": "CONTRADICTS_DOCUMENTATION",
+    "requirement_summary": "Dispatch checks eligible Order/payment/state, incident hold, serviceability and not-before time"
+  },
+  {
+    "document": "10_Deetoo_Dispatch_Specification.pdf",
+    "page": 4,
+    "requirement_id": "DSP-DEL-006",
+    "assessment_id": "A55",
+    "status": "CONTRADICTS_DOCUMENTATION",
+    "requirement_summary": "Dispatch checks eligible Order/payment/state, incident hold, serviceability and not-before time"
+  },
+  {
+    "document": "10_Deetoo_Dispatch_Specification.pdf",
+    "page": 4,
+    "requirement_id": "DSP-RID-001",
+    "assessment_id": "A52",
+    "status": "CONTRADICTS_DOCUMENTATION",
+    "requirement_summary": "Eligible Rider must have an existing active user and active online session"
+  },
+  {
+    "document": "10_Deetoo_Dispatch_Specification.pdf",
+    "page": 4,
+    "requirement_id": "DSP-RID-002",
+    "assessment_id": "A52",
+    "status": "CONTRADICTS_DOCUMENTATION",
+    "requirement_summary": "Eligible Rider must have an existing active user and active online session"
+  },
+  {
+    "document": "10_Deetoo_Dispatch_Specification.pdf",
+    "page": 4,
+    "requirement_id": "DSP-RID-003",
+    "assessment_id": "A54",
+    "status": "PARTIAL",
+    "requirement_summary": "Stale, inaccurate and implausible GPS is rejected or explicitly marked"
+  },
+  {
+    "document": "10_Deetoo_Dispatch_Specification.pdf",
+    "page": 4,
+    "requirement_id": "DSP-RID-004",
+    "assessment_id": "A53",
+    "status": "CONTRADICTS_DOCUMENTATION",
+    "requirement_summary": "Enforce zone, active vehicle/capability, compliance, capacity and cooldown"
+  },
+  {
+    "document": "10_Deetoo_Dispatch_Specification.pdf",
+    "page": 4,
+    "requirement_id": "DSP-RID-005",
+    "assessment_id": "A53",
+    "status": "CONTRADICTS_DOCUMENTATION",
+    "requirement_summary": "Enforce zone, active vehicle/capability, compliance, capacity and cooldown"
+  },
+  {
+    "document": "10_Deetoo_Dispatch_Specification.pdf",
+    "page": 4,
+    "requirement_id": "DSP-RID-006",
+    "assessment_id": "A58",
+    "status": "CONTRADICTS_DOCUMENTATION",
+    "requirement_summary": "Offer acceptance atomically revalidates offer, Rider, delivery, capacity and cancels competitors"
+  },
+  {
+    "document": "10_Deetoo_Dispatch_Specification.pdf",
+    "page": 4,
+    "requirement_id": "DSP-RID-007",
+    "assessment_id": "A53",
+    "status": "CONTRADICTS_DOCUMENTATION",
+    "requirement_summary": "Enforce zone, active vehicle/capability, compliance, capacity and cooldown"
+  },
+  {
+    "document": "10_Deetoo_Dispatch_Specification.pdf",
+    "page": 4,
+    "requirement_id": "DSP-RID-008",
+    "assessment_id": "A53",
+    "status": "CONTRADICTS_DOCUMENTATION",
+    "requirement_summary": "Enforce zone, active vehicle/capability, compliance, capacity and cooldown"
+  },
+  {
+    "document": "10_Deetoo_Dispatch_Specification.pdf",
+    "page": 4,
+    "requirement_id": "DSP-RID-009",
+    "assessment_id": "A59",
+    "status": "PARTIAL",
+    "requirement_summary": "Record decline/expiry, bounded retry/backoff, exhaustion escalation and notifications"
+  },
+  {
+    "document": "13_Deetoo_AI_Engineering_Rules.pdf",
+    "page": 3,
+    "requirement_id": "AI-ARC-001",
+    "assessment_id": "A01",
+    "status": "IMPLEMENTED",
+    "requirement_summary": "Food-only MVP with four applications and a central modular monolith"
+  },
+  {
+    "document": "13_Deetoo_AI_Engineering_Rules.pdf",
+    "page": 3,
+    "requirement_id": "AI-ARC-002",
+    "assessment_id": "A01",
+    "status": "IMPLEMENTED",
+    "requirement_summary": "Food-only MVP with four applications and a central modular monolith"
+  },
+  {
+    "document": "13_Deetoo_AI_Engineering_Rules.pdf",
+    "page": 3,
+    "requirement_id": "AI-ARC-003",
+    "assessment_id": "A03",
+    "status": "CONTRADICTS_DOCUMENTATION",
+    "requirement_summary": "Modules mutate their own aggregates through service contracts"
+  },
+  {
+    "document": "13_Deetoo_AI_Engineering_Rules.pdf",
+    "page": 3,
+    "requirement_id": "AI-ARC-004",
+    "assessment_id": "A02",
+    "status": "CONTRADICTS_DOCUMENTATION",
+    "requirement_summary": "PostgreSQL is authoritative; database failure stops unsafe writes"
+  },
+  {
+    "document": "13_Deetoo_AI_Engineering_Rules.pdf",
+    "page": 4,
+    "requirement_id": "AI-ARC-005",
+    "assessment_id": "A69",
+    "status": "CONTRADICTS_DOCUMENTATION",
+    "requirement_summary": "Real provider adapters initiate/query payments and tokenized card authorization"
+  },
+  {
+    "document": "13_Deetoo_AI_Engineering_Rules.pdf",
+    "page": 4,
+    "requirement_id": "AI-ARC-006",
+    "assessment_id": "A04",
+    "status": "CONTRADICTS_DOCUMENTATION",
+    "requirement_summary": "Aggregate, history and outbox commit in the same database transaction"
+  },
+  {
+    "document": "Deetoo_Product_Engineering_Specification_v1.0.pdf",
+    "page": 3,
+    "requirement_id": "PRD-SCOPE-001",
+    "assessment_id": "A01",
+    "status": "IMPLEMENTED",
+    "requirement_summary": "Food-only MVP with four applications and a central modular monolith"
+  },
+  {
+    "document": "Deetoo_Product_Engineering_Specification_v1.0.pdf",
+    "page": 3,
+    "requirement_id": "PRD-SCOPE-002",
+    "assessment_id": "A08",
+    "status": "CONTRADICTS_DOCUMENTATION",
+    "requirement_summary": "Market, provider, city and commercial values are approved configuration"
+  },
+  {
+    "document": "Deetoo_Product_Engineering_Specification_v1.0.pdf",
+    "page": 3,
+    "requirement_id": "PRD-SCOPE-003",
+    "assessment_id": "A01",
+    "status": "IMPLEMENTED",
+    "requirement_summary": "Food-only MVP with four applications and a central modular monolith"
+  },
+  {
+    "document": "Deetoo_Product_Engineering_Specification_v1.0.pdf",
+    "page": 3,
+    "requirement_id": "PRD-SCOPE-004",
+    "assessment_id": "A01",
+    "status": "IMPLEMENTED",
+    "requirement_summary": "Food-only MVP with four applications and a central modular monolith"
+  },
+  {
+    "document": "Deetoo_Product_Engineering_Specification_v1.0.pdf",
+    "page": 4,
+    "requirement_id": "PRD-AUTH-001",
+    "assessment_id": "A16",
+    "status": "PARTIAL",
+    "requirement_summary": "Customer, merchant and branch ownership are server enforced"
+  },
+  {
+    "document": "Deetoo_Product_Engineering_Specification_v1.0.pdf",
+    "page": 4,
+    "requirement_id": "PRD-CAT-001",
+    "assessment_id": "A26",
+    "status": "PARTIAL",
+    "requirement_summary": "Discovery and checkout respect approval, branch status, pause, hours and zone"
+  },
+  {
+    "document": "Deetoo_Product_Engineering_Specification_v1.0.pdf",
+    "page": 4,
+    "requirement_id": "PRD-CART-001",
+    "assessment_id": "A32",
+    "status": "IMPLEMENTED",
+    "requirement_summary": "One active cart contains items from one branch only"
+  },
+  {
+    "document": "Deetoo_Product_Engineering_Specification_v1.0.pdf",
+    "page": 4,
+    "requirement_id": "PRD-PRICE-001",
+    "assessment_id": "A34",
+    "status": "PARTIAL",
+    "requirement_summary": "Authoritative integer component pricing with disclosed fees, caps and explicit discounts"
+  },
+  {
+    "document": "Deetoo_Product_Engineering_Specification_v1.0.pdf",
+    "page": 4,
+    "requirement_id": "PRD-ORD-001",
+    "assessment_id": "A45",
+    "status": "CONTRADICTS_DOCUMENTATION",
+    "requirement_summary": "Required actor/operation idempotency key and hash mismatch returns 409"
+  },
+  {
+    "document": "Deetoo_Product_Engineering_Specification_v1.0.pdf",
+    "page": 4,
+    "requirement_id": "PRD-ORD-002",
+    "assessment_id": "A46",
+    "status": "PARTIAL",
+    "requirement_summary": "Named branch-scoped accept/reject/preparing/ready commands validate state and prep estimate"
+  },
+  {
+    "document": "Deetoo_Product_Engineering_Specification_v1.0.pdf",
+    "page": 4,
+    "requirement_id": "PRD-DEL-001",
+    "assessment_id": "A55",
+    "status": "CONTRADICTS_DOCUMENTATION",
+    "requirement_summary": "Dispatch checks eligible Order/payment/state, incident hold, serviceability and not-before time"
+  },
+  {
+    "document": "Deetoo_Product_Engineering_Specification_v1.0.pdf",
+    "page": 4,
+    "requirement_id": "PRD-DEL-002",
+    "assessment_id": "A17",
+    "status": "CONTRADICTS_DOCUMENTATION",
+    "requirement_summary": "Precise Rider location is exposed only during the customer's active delivery"
+  },
+  {
+    "document": "Deetoo_Product_Engineering_Specification_v1.0.pdf",
+    "page": 4,
+    "requirement_id": "PRD-PAY-001",
+    "assessment_id": "A43",
+    "status": "CONTRADICTS_DOCUMENTATION",
+    "requirement_summary": "Only verified paid checkout becomes merchant-visible PLACED"
+  },
+  {
+    "document": "Deetoo_Product_Engineering_Specification_v1.0.pdf",
+    "page": 4,
+    "requirement_id": "PRD-PAY-002",
+    "assessment_id": "A70",
+    "status": "CONTRADICTS_DOCUMENTATION",
+    "requirement_summary": "Verify authentic raw callback bytes, amount/currency/reference and replay protection"
+  },
+  {
+    "document": "Deetoo_Product_Engineering_Specification_v1.0.pdf",
+    "page": 4,
+    "requirement_id": "PRD-SUP-001",
+    "assessment_id": "A93",
+    "status": "PARTIAL",
+    "requirement_summary": "Chronological unified view includes three states, offers, notifications, cases and audit"
+  },
+  {
+    "document": "Deetoo_Product_Engineering_Specification_v1.0.pdf",
+    "page": 4,
+    "requirement_id": "PRD-FIN-001",
+    "assessment_id": "A81",
+    "status": "PARTIAL",
+    "requirement_summary": "Posted ledger is immutable, balanced per currency, idempotent by economic reference"
+  },
+  {
+    "document": "Deetoo_Product_Engineering_Specification_v1.0.pdf",
+    "page": 10,
+    "requirement_id": "DOM-INV-001",
+    "assessment_id": "A32",
+    "status": "IMPLEMENTED",
+    "requirement_summary": "One active cart contains items from one branch only"
+  },
+  {
+    "document": "Deetoo_Product_Engineering_Specification_v1.0.pdf",
+    "page": 10,
+    "requirement_id": "DOM-INV-002",
+    "assessment_id": "A31",
+    "status": "PARTIAL",
+    "requirement_summary": "Menu changes never rewrite placed item/price/address snapshots"
+  },
+  {
+    "document": "Deetoo_Product_Engineering_Specification_v1.0.pdf",
+    "page": 10,
+    "requirement_id": "DOM-INV-003",
+    "assessment_id": "A31",
+    "status": "PARTIAL",
+    "requirement_summary": "Menu changes never rewrite placed item/price/address snapshots"
+  },
+  {
+    "document": "Deetoo_Product_Engineering_Specification_v1.0.pdf",
+    "page": 10,
+    "requirement_id": "DOM-INV-004",
+    "assessment_id": "A46",
+    "status": "PARTIAL",
+    "requirement_summary": "Named branch-scoped accept/reject/preparing/ready commands validate state and prep estimate"
+  },
+  {
+    "document": "Deetoo_Product_Engineering_Specification_v1.0.pdf",
+    "page": 10,
+    "requirement_id": "DOM-INV-005",
+    "assessment_id": "A64",
+    "status": "CONTRADICTS_DOCUMENTATION",
+    "requirement_summary": "Delivery proof is meaningful, securely held and committed with valid transition"
+  },
+  {
+    "document": "Deetoo_Product_Engineering_Specification_v1.0.pdf",
+    "page": 10,
+    "requirement_id": "DOM-INV-006",
+    "assessment_id": "A124",
+    "status": "CONTRADICTS_DOCUMENTATION",
+    "requirement_summary": "Ledger capture amount and allocation equal verified provider capture and frozen order components"
+  },
+  {
+    "document": "Deetoo_Product_Engineering_Specification_v1.0.pdf",
+    "page": 10,
+    "requirement_id": "DOM-INV-007",
+    "assessment_id": "A81",
+    "status": "PARTIAL",
+    "requirement_summary": "Posted ledger is immutable, balanced per currency, idempotent by economic reference"
+  },
+  {
+    "document": "Deetoo_Product_Engineering_Specification_v1.0.pdf",
+    "page": 10,
+    "requirement_id": "DOM-INV-008",
+    "assessment_id": "A85",
+    "status": "CONTRADICTS_DOCUMENTATION",
+    "requirement_summary": "Reserve unique ledger entries once across finalized settlement batches"
+  },
+  {
+    "document": "Deetoo_Product_Engineering_Specification_v1.0.pdf",
+    "page": 10,
+    "requirement_id": "DOM-INV-009",
+    "assessment_id": "A58",
+    "status": "CONTRADICTS_DOCUMENTATION",
+    "requirement_summary": "Offer acceptance atomically revalidates offer, Rider, delivery, capacity and cancels competitors"
+  },
+  {
+    "document": "Deetoo_Product_Engineering_Specification_v1.0.pdf",
+    "page": 16,
+    "requirement_id": "BR-PRICE-001",
+    "assessment_id": "A34",
+    "status": "PARTIAL",
+    "requirement_summary": "Authoritative integer component pricing with disclosed fees, caps and explicit discounts"
+  },
+  {
+    "document": "Deetoo_Product_Engineering_Specification_v1.0.pdf",
+    "page": 16,
+    "requirement_id": "BR-PRICE-002",
+    "assessment_id": "A37",
+    "status": "PARTIAL",
+    "requirement_summary": "Freeze effective pricing/commission version and component allocations at placement"
+  },
+  {
+    "document": "Deetoo_Product_Engineering_Specification_v1.0.pdf",
+    "page": 16,
+    "requirement_id": "BR-PRICE-003",
+    "assessment_id": "A34",
+    "status": "PARTIAL",
+    "requirement_summary": "Authoritative integer component pricing with disclosed fees, caps and explicit discounts"
+  },
+  {
+    "document": "Deetoo_Product_Engineering_Specification_v1.0.pdf",
+    "page": 16,
+    "requirement_id": "BR-PRICE-004",
+    "assessment_id": "A34",
+    "status": "PARTIAL",
+    "requirement_summary": "Authoritative integer component pricing with disclosed fees, caps and explicit discounts"
+  },
+  {
+    "document": "Deetoo_Product_Engineering_Specification_v1.0.pdf",
+    "page": 16,
+    "requirement_id": "BR-PRICE-005",
+    "assessment_id": "A33",
+    "status": "PARTIAL",
+    "requirement_summary": "Validate quantities, modifier rules, availability and qualifying minimum subtotal"
+  },
+  {
+    "document": "Deetoo_Product_Engineering_Specification_v1.0.pdf",
+    "page": 16,
+    "requirement_id": "BR-COM-001",
+    "assessment_id": "A39",
+    "status": "PARTIAL",
+    "requirement_summary": "Effective-dated contractual commission basis excludes non-contract fees"
+  },
+  {
+    "document": "Deetoo_Product_Engineering_Specification_v1.0.pdf",
+    "page": 16,
+    "requirement_id": "BR-COM-002",
+    "assessment_id": "A39",
+    "status": "PARTIAL",
+    "requirement_summary": "Effective-dated contractual commission basis excludes non-contract fees"
+  },
+  {
+    "document": "Deetoo_Product_Engineering_Specification_v1.0.pdf",
+    "page": 16,
+    "requirement_id": "BR-COM-003",
+    "assessment_id": "A40",
+    "status": "CONTRADICTS_DOCUMENTATION",
+    "requirement_summary": "Merchant- and platform-funded discounts are allocated separately"
+  },
+  {
+    "document": "Deetoo_Product_Engineering_Specification_v1.0.pdf",
+    "page": 16,
+    "requirement_id": "BR-COM-004",
+    "assessment_id": "A39",
+    "status": "PARTIAL",
+    "requirement_summary": "Effective-dated contractual commission basis excludes non-contract fees"
+  },
+  {
+    "document": "Deetoo_Product_Engineering_Specification_v1.0.pdf",
+    "page": 17,
+    "requirement_id": "BR-REF-001",
+    "assessment_id": "A79",
+    "status": "IMPLEMENTED",
+    "requirement_summary": "Refund does not rewrite historical Order fulfilment status"
+  },
+  {
+    "document": "Deetoo_Product_Engineering_Specification_v1.0.pdf",
+    "page": 17,
+    "requirement_id": "BR-REF-002",
+    "assessment_id": "A76",
+    "status": "PARTIAL",
+    "requirement_summary": "Cumulative successful refunds cannot exceed capture, including concurrent requests"
+  },
+  {
+    "document": "Deetoo_Product_Engineering_Specification_v1.0.pdf",
+    "page": 17,
+    "requirement_id": "BR-REF-003",
+    "assessment_id": "A75",
+    "status": "MISSING",
+    "requirement_summary": "Refund idempotency, approval threshold, reason-based policy and Finance exception control"
+  },
+  {
+    "document": "Deetoo_Product_Engineering_Specification_v1.0.pdf",
+    "page": 17,
+    "requirement_id": "BR-REF-004",
+    "assessment_id": "A75",
+    "status": "MISSING",
+    "requirement_summary": "Refund idempotency, approval threshold, reason-based policy and Finance exception control"
+  },
+  {
+    "document": "Deetoo_Product_Engineering_Specification_v1.0.pdf",
+    "page": 17,
+    "requirement_id": "BR-ZONE-001",
+    "assessment_id": "A25",
+    "status": "CONTRADICTS_DOCUMENTATION",
+    "requirement_summary": "Geocoded address reflects a verified customer-selected location"
+  },
+  {
+    "document": "Deetoo_Product_Engineering_Specification_v1.0.pdf",
+    "page": 17,
+    "requirement_id": "BR-ZONE-002",
+    "assessment_id": "A26",
+    "status": "PARTIAL",
+    "requirement_summary": "Discovery and checkout respect approval, branch status, pause, hours and zone"
+  },
+  {
+    "document": "Deetoo_Product_Engineering_Specification_v1.0.pdf",
+    "page": 17,
+    "requirement_id": "BR-ZONE-003",
+    "assessment_id": "A24",
+    "status": "PARTIAL",
+    "requirement_summary": "Address must lie within an active branch-supported zone and delivery distance policy"
+  },
+  {
+    "document": "Deetoo_Product_Engineering_Specification_v1.0.pdf",
+    "page": 17,
+    "requirement_id": "BR-ZONE-004",
+    "assessment_id": "A08",
+    "status": "CONTRADICTS_DOCUMENTATION",
+    "requirement_summary": "Market, provider, city and commercial values are approved configuration"
+  },
+  {
+    "document": "Deetoo_Product_Engineering_Specification_v1.0.pdf",
+    "page": 25,
+    "requirement_id": "PAY-IDEMP-001",
+    "assessment_id": "A45",
+    "status": "CONTRADICTS_DOCUMENTATION",
+    "requirement_summary": "Required actor/operation idempotency key and hash mismatch returns 409"
+  },
+  {
+    "document": "Deetoo_Product_Engineering_Specification_v1.0.pdf",
+    "page": 25,
+    "requirement_id": "PAY-IDEMP-002",
+    "assessment_id": "A45",
+    "status": "CONTRADICTS_DOCUMENTATION",
+    "requirement_summary": "Required actor/operation idempotency key and hash mismatch returns 409"
+  },
+  {
+    "document": "Deetoo_Product_Engineering_Specification_v1.0.pdf",
+    "page": 25,
+    "requirement_id": "PAY-IDEMP-003",
+    "assessment_id": "A71",
+    "status": "PARTIAL",
+    "requirement_summary": "Persistent payment intent/attempts, provider-event dedup, monotonic status and safe retries"
+  },
+  {
+    "document": "Deetoo_Product_Engineering_Specification_v1.0.pdf",
+    "page": 25,
+    "requirement_id": "PAY-IDEMP-004",
+    "assessment_id": "A114",
+    "status": "PARTIAL",
+    "requirement_summary": "Real DB, concurrency, crash recovery, provider and four-app device E2E tests prove invariants"
+  },
+  {
+    "document": "Deetoo_Product_Engineering_Specification_v1.0.pdf",
+    "page": 25,
+    "requirement_id": "PAY-IDEMP-005",
+    "assessment_id": "A04",
+    "status": "CONTRADICTS_DOCUMENTATION",
+    "requirement_summary": "Aggregate, history and outbox commit in the same database transaction"
+  }
+]

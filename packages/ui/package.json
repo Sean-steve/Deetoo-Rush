@@ -1,0 +1,7 @@
+{
+  "name": "@deetoo/ui",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "./src/index.tsx",
+  "types": "./src/index.tsx"
+}

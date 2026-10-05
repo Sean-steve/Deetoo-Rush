@@ -1,0 +1,1787 @@
+[
+  {
+    "file": "apps/api/src/modules/admin/admin.router.ts",
+    "line": 62,
+    "router": "adminRouter",
+    "method": "GET",
+    "path": "/users"
+  },
+  {
+    "file": "apps/api/src/modules/admin/admin.router.ts",
+    "line": 98,
+    "router": "adminRouter",
+    "method": "GET",
+    "path": "/users/:id"
+  },
+  {
+    "file": "apps/api/src/modules/admin/admin.router.ts",
+    "line": 135,
+    "router": "adminRouter",
+    "method": "POST",
+    "path": "/users/:id/suspend"
+  },
+  {
+    "file": "apps/api/src/modules/admin/admin.router.ts",
+    "line": 180,
+    "router": "adminRouter",
+    "method": "POST",
+    "path": "/users/:id/reactivate"
+  },
+  {
+    "file": "apps/api/src/modules/admin/admin.router.ts",
+    "line": 221,
+    "router": "adminRouter",
+    "method": "POST",
+    "path": "/users/:id/roles"
+  },
+  {
+    "file": "apps/api/src/modules/admin/admin.router.ts",
+    "line": 265,
+    "router": "adminRouter",
+    "method": "GET",
+    "path": "/audit"
+  },
+  {
+    "file": "apps/api/src/modules/admin/admin.router.ts",
+    "line": 299,
+    "router": "adminRouter",
+    "method": "GET",
+    "path": "/merchants"
+  },
+  {
+    "file": "apps/api/src/modules/admin/admin.router.ts",
+    "line": 341,
+    "router": "adminRouter",
+    "method": "POST",
+    "path": "/merchants"
+  },
+  {
+    "file": "apps/api/src/modules/admin/admin.router.ts",
+    "line": 389,
+    "router": "adminRouter",
+    "method": "GET",
+    "path": "/merchants/:id"
+  },
+  {
+    "file": "apps/api/src/modules/admin/admin.router.ts",
+    "line": 420,
+    "router": "adminRouter",
+    "method": "PATCH",
+    "path": "/merchants/:id"
+  },
+  {
+    "file": "apps/api/src/modules/admin/admin.router.ts",
+    "line": 455,
+    "router": "adminRouter",
+    "method": "POST",
+    "path": "/merchants/:id/approve"
+  },
+  {
+    "file": "apps/api/src/modules/admin/admin.router.ts",
+    "line": 477,
+    "router": "adminRouter",
+    "method": "POST",
+    "path": "/merchants/:id/reject"
+  },
+  {
+    "file": "apps/api/src/modules/admin/admin.router.ts",
+    "line": 499,
+    "router": "adminRouter",
+    "method": "POST",
+    "path": "/merchants/:id/suspend"
+  },
+  {
+    "file": "apps/api/src/modules/admin/admin.router.ts",
+    "line": 521,
+    "router": "adminRouter",
+    "method": "POST",
+    "path": "/merchants/:id/reactivate"
+  },
+  {
+    "file": "apps/api/src/modules/admin/admin.router.ts",
+    "line": 541,
+    "router": "adminRouter",
+    "method": "GET",
+    "path": "/merchants/:id/branches"
+  },
+  {
+    "file": "apps/api/src/modules/admin/admin.router.ts",
+    "line": 568,
+    "router": "adminRouter",
+    "method": "POST",
+    "path": "/merchants/:id/branches"
+  },
+  {
+    "file": "apps/api/src/modules/admin/admin.router.ts",
+    "line": 637,
+    "router": "adminRouter",
+    "method": "GET",
+    "path": "/branches"
+  },
+  {
+    "file": "apps/api/src/modules/admin/admin.router.ts",
+    "line": 674,
+    "router": "adminRouter",
+    "method": "GET",
+    "path": "/branches/:branchId"
+  },
+  {
+    "file": "apps/api/src/modules/admin/admin.router.ts",
+    "line": 709,
+    "router": "adminRouter",
+    "method": "PATCH",
+    "path": "/branches/:branchId"
+  },
+  {
+    "file": "apps/api/src/modules/admin/admin.router.ts",
+    "line": 744,
+    "router": "adminRouter",
+    "method": "POST",
+    "path": "/branches/:branchId/suspend"
+  },
+  {
+    "file": "apps/api/src/modules/admin/admin.router.ts",
+    "line": 766,
+    "router": "adminRouter",
+    "method": "POST",
+    "path": "/branches/:branchId/reactivate"
+  },
+  {
+    "file": "apps/api/src/modules/admin/admin.router.ts",
+    "line": 786,
+    "router": "adminRouter",
+    "method": "POST",
+    "path": "/branches/:branchId/service-zones"
+  },
+  {
+    "file": "apps/api/src/modules/admin/admin.router.ts",
+    "line": 824,
+    "router": "adminRouter",
+    "method": "GET",
+    "path": "/service-zones"
+  },
+  {
+    "file": "apps/api/src/modules/admin/admin.router.ts",
+    "line": 847,
+    "router": "adminRouter",
+    "method": "POST",
+    "path": "/service-zones"
+  },
+  {
+    "file": "apps/api/src/modules/admin/admin.router.ts",
+    "line": 887,
+    "router": "adminRouter",
+    "method": "PATCH",
+    "path": "/service-zones/:id"
+  },
+  {
+    "file": "apps/api/src/modules/admin/admin.router.ts",
+    "line": 921,
+    "router": "adminRouter",
+    "method": "GET",
+    "path": "/customers"
+  },
+  {
+    "file": "apps/api/src/modules/admin/admin.router.ts",
+    "line": 948,
+    "router": "adminRouter",
+    "method": "GET",
+    "path": "/customers/:id"
+  },
+  {
+    "file": "apps/api/src/modules/admin/admin.router.ts",
+    "line": 981,
+    "router": "adminRouter",
+    "method": "GET",
+    "path": "/orders"
+  },
+  {
+    "file": "apps/api/src/modules/admin/admin.router.ts",
+    "line": 1016,
+    "router": "adminRouter",
+    "method": "GET",
+    "path": "/orders/:id"
+  },
+  {
+    "file": "apps/api/src/modules/admin/admin.router.ts",
+    "line": 1042,
+    "router": "adminRouter",
+    "method": "POST",
+    "path": "/orders/:id/cancel"
+  },
+  {
+    "file": "apps/api/src/modules/admin/admin.router.ts",
+    "line": 1079,
+    "router": "adminRouter",
+    "method": "GET",
+    "path": "/riders/metrics"
+  },
+  {
+    "file": "apps/api/src/modules/admin/admin.router.ts",
+    "line": 1099,
+    "router": "adminRouter",
+    "method": "GET",
+    "path": "/riders"
+  },
+  {
+    "file": "apps/api/src/modules/admin/admin.router.ts",
+    "line": 1145,
+    "router": "adminRouter",
+    "method": "POST",
+    "path": "/riders/cleanup-stale"
+  },
+  {
+    "file": "apps/api/src/modules/admin/admin.router.ts",
+    "line": 1165,
+    "router": "adminRouter",
+    "method": "GET",
+    "path": "/riders/:id"
+  },
+  {
+    "file": "apps/api/src/modules/admin/admin.router.ts",
+    "line": 1186,
+    "router": "adminRouter",
+    "method": "POST",
+    "path": "/riders/:id/approve"
+  },
+  {
+    "file": "apps/api/src/modules/admin/admin.router.ts",
+    "line": 1210,
+    "router": "adminRouter",
+    "method": "POST",
+    "path": "/riders/:id/reject"
+  },
+  {
+    "file": "apps/api/src/modules/admin/admin.router.ts",
+    "line": 1239,
+    "router": "adminRouter",
+    "method": "POST",
+    "path": "/riders/:id/suspend"
+  },
+  {
+    "file": "apps/api/src/modules/admin/admin.router.ts",
+    "line": 1268,
+    "router": "adminRouter",
+    "method": "POST",
+    "path": "/riders/:id/reactivate"
+  },
+  {
+    "file": "apps/api/src/modules/admin/admin.router.ts",
+    "line": 1291,
+    "router": "adminRouter",
+    "method": "POST",
+    "path": "/riders/:id/zones"
+  },
+  {
+    "file": "apps/api/src/modules/admin/admin.router.ts",
+    "line": 1323,
+    "router": "adminRouter",
+    "method": "GET",
+    "path": "/dispatch/deliveries"
+  },
+  {
+    "file": "apps/api/src/modules/admin/admin.router.ts",
+    "line": 1360,
+    "router": "adminRouter",
+    "method": "GET",
+    "path": "/dispatch/deliveries/:id"
+  },
+  {
+    "file": "apps/api/src/modules/admin/admin.router.ts",
+    "line": 1394,
+    "router": "adminRouter",
+    "method": "POST",
+    "path": "/dispatch/deliveries/:id/assign"
+  },
+  {
+    "file": "apps/api/src/modules/admin/admin.router.ts",
+    "line": 1427,
+    "router": "adminRouter",
+    "method": "POST",
+    "path": "/dispatch/deliveries/:id/unassign"
+  },
+  {
+    "file": "apps/api/src/modules/admin/admin.router.ts",
+    "line": 1461,
+    "router": "adminRouter",
+    "method": "POST",
+    "path": "/dispatch/deliveries/:id/trigger"
+  },
+  {
+    "file": "apps/api/src/modules/admin/admin.router.ts",
+    "line": 1483,
+    "router": "adminRouter",
+    "method": "GET",
+    "path": "/dispatch/metrics"
+  },
+  {
+    "file": "apps/api/src/modules/admin/admin.router.ts",
+    "line": 1503,
+    "router": "adminRouter",
+    "method": "GET",
+    "path": "/dispatch/config"
+  },
+  {
+    "file": "apps/api/src/modules/admin/admin.router.ts",
+    "line": 1523,
+    "router": "adminRouter",
+    "method": "PUT",
+    "path": "/dispatch/config"
+  },
+  {
+    "file": "apps/api/src/modules/admin/admin.router.ts",
+    "line": 1549,
+    "router": "adminRouter",
+    "method": "GET",
+    "path": "/dispatch/stuck"
+  },
+  {
+    "file": "apps/api/src/modules/admin/admin.router.ts",
+    "line": 1572,
+    "router": "adminRouter",
+    "method": "POST",
+    "path": "/dispatch/deliveries/:id/force-complete"
+  },
+  {
+    "file": "apps/api/src/modules/admin/admin.router.ts",
+    "line": 1605,
+    "router": "adminRouter",
+    "method": "GET",
+    "path": "/dispatch/incidents"
+  },
+  {
+    "file": "apps/api/src/modules/admin/admin.router.ts",
+    "line": 1630,
+    "router": "adminRouter",
+    "method": "POST",
+    "path": "/dispatch/incidents/:id/resolve"
+  },
+  {
+    "file": "apps/api/src/modules/admin/admin.router.ts",
+    "line": 1661,
+    "router": "adminRouter",
+    "method": "GET",
+    "path": "/dispatch/deliveries/:id/proofs"
+  },
+  {
+    "file": "apps/api/src/modules/auth/auth.router.ts",
+    "line": 66,
+    "router": "authRouter",
+    "method": "POST",
+    "path": "/register/customer"
+  },
+  {
+    "file": "apps/api/src/modules/auth/auth.router.ts",
+    "line": 105,
+    "router": "authRouter",
+    "method": "POST",
+    "path": "/login"
+  },
+  {
+    "file": "apps/api/src/modules/auth/auth.router.ts",
+    "line": 142,
+    "router": "authRouter",
+    "method": "POST",
+    "path": "/refresh"
+  },
+  {
+    "file": "apps/api/src/modules/auth/auth.router.ts",
+    "line": 175,
+    "router": "authRouter",
+    "method": "GET",
+    "path": "/me"
+  },
+  {
+    "file": "apps/api/src/modules/auth/auth.router.ts",
+    "line": 196,
+    "router": "authRouter",
+    "method": "POST",
+    "path": "/logout"
+  },
+  {
+    "file": "apps/api/src/modules/auth/auth.router.ts",
+    "line": 219,
+    "router": "authRouter",
+    "method": "GET",
+    "path": "/sessions"
+  },
+  {
+    "file": "apps/api/src/modules/auth/auth.router.ts",
+    "line": 249,
+    "router": "authRouter",
+    "method": "POST",
+    "path": "/sessions/:id/revoke"
+  },
+  {
+    "file": "apps/api/src/modules/auth/auth.router.ts",
+    "line": 275,
+    "router": "authRouter",
+    "method": "POST",
+    "path": "/sessions/revoke-all"
+  },
+  {
+    "file": "apps/api/src/modules/auth/auth.router.ts",
+    "line": 300,
+    "router": "authRouter",
+    "method": "POST",
+    "path": "/password/forgot"
+  },
+  {
+    "file": "apps/api/src/modules/auth/auth.router.ts",
+    "line": 325,
+    "router": "authRouter",
+    "method": "POST",
+    "path": "/password/reset"
+  },
+  {
+    "file": "apps/api/src/modules/auth/auth.router.ts",
+    "line": 353,
+    "router": "authRouter",
+    "method": "POST",
+    "path": "/verify/otp-request"
+  },
+  {
+    "file": "apps/api/src/modules/auth/auth.router.ts",
+    "line": 382,
+    "router": "authRouter",
+    "method": "POST",
+    "path": "/verify/otp-confirm"
+  },
+  {
+    "file": "apps/api/src/modules/cart/cart.router.ts",
+    "line": 40,
+    "router": "cartRouter",
+    "method": "GET",
+    "path": "/"
+  },
+  {
+    "file": "apps/api/src/modules/cart/cart.router.ts",
+    "line": 57,
+    "router": "cartRouter",
+    "method": "POST",
+    "path": "/items"
+  },
+  {
+    "file": "apps/api/src/modules/cart/cart.router.ts",
+    "line": 78,
+    "router": "cartRouter",
+    "method": "PATCH",
+    "path": "/items/:id"
+  },
+  {
+    "file": "apps/api/src/modules/cart/cart.router.ts",
+    "line": 104,
+    "router": "cartRouter",
+    "method": "DELETE",
+    "path": "/items/:id"
+  },
+  {
+    "file": "apps/api/src/modules/cart/cart.router.ts",
+    "line": 125,
+    "router": "cartRouter",
+    "method": "DELETE",
+    "path": "/"
+  },
+  {
+    "file": "apps/api/src/modules/cart/cart.router.ts",
+    "line": 145,
+    "router": "cartRouter",
+    "method": "POST",
+    "path": "/promo"
+  },
+  {
+    "file": "apps/api/src/modules/cart/cart.router.ts",
+    "line": 166,
+    "router": "cartRouter",
+    "method": "DELETE",
+    "path": "/promo"
+  },
+  {
+    "file": "apps/api/src/modules/cart/cart.router.ts",
+    "line": 190,
+    "router": "checkoutRouter",
+    "method": "POST",
+    "path": "/quote"
+  },
+  {
+    "file": "apps/api/src/modules/cart/cart.router.ts",
+    "line": 211,
+    "router": "checkoutRouter",
+    "method": "GET",
+    "path": "/quote/:id"
+  },
+  {
+    "file": "apps/api/src/modules/cart/cart.router.ts",
+    "line": 229,
+    "router": "cartRouter",
+    "method": "POST",
+    "path": "/quote"
+  },
+  {
+    "file": "apps/api/src/modules/cart/cart.router.ts",
+    "line": 246,
+    "router": "cartRouter",
+    "method": "GET",
+    "path": "/quote/:id"
+  },
+  {
+    "file": "apps/api/src/modules/customer/customer.router.ts",
+    "line": 37,
+    "router": "customerRouter",
+    "method": "GET",
+    "path": "/profile"
+  },
+  {
+    "file": "apps/api/src/modules/customer/customer.router.ts",
+    "line": 56,
+    "router": "customerRouter",
+    "method": "PATCH",
+    "path": "/profile"
+  },
+  {
+    "file": "apps/api/src/modules/customer/customer.router.ts",
+    "line": 90,
+    "router": "customerRouter",
+    "method": "GET",
+    "path": "/addresses"
+  },
+  {
+    "file": "apps/api/src/modules/customer/customer.router.ts",
+    "line": 109,
+    "router": "customerRouter",
+    "method": "POST",
+    "path": "/addresses"
+  },
+  {
+    "file": "apps/api/src/modules/customer/customer.router.ts",
+    "line": 139,
+    "router": "customerRouter",
+    "method": "GET",
+    "path": "/addresses/:id"
+  },
+  {
+    "file": "apps/api/src/modules/customer/customer.router.ts",
+    "line": 159,
+    "router": "customerRouter",
+    "method": "PATCH",
+    "path": "/addresses/:id"
+  },
+  {
+    "file": "apps/api/src/modules/customer/customer.router.ts",
+    "line": 191,
+    "router": "customerRouter",
+    "method": "DELETE",
+    "path": "/addresses/:id"
+  },
+  {
+    "file": "apps/api/src/modules/customer/customer.router.ts",
+    "line": 217,
+    "router": "customerRouter",
+    "method": "POST",
+    "path": "/addresses/:id/default"
+  },
+  {
+    "file": "apps/api/src/modules/customer/customer.router.ts",
+    "line": 252,
+    "router": "customerRouter",
+    "method": "GET",
+    "path": "/orders"
+  },
+  {
+    "file": "apps/api/src/modules/customer/customer.router.ts",
+    "line": 284,
+    "router": "customerRouter",
+    "method": "GET",
+    "path": "/orders/:id"
+  },
+  {
+    "file": "apps/api/src/modules/customer/customer.router.ts",
+    "line": 318,
+    "router": "customerRouter",
+    "method": "POST",
+    "path": "/orders/:id/cancel"
+  },
+  {
+    "file": "apps/api/src/modules/customer/customer.router.ts",
+    "line": 351,
+    "router": "customerRouter",
+    "method": "GET",
+    "path": "/orders/:id/delivery"
+  },
+  {
+    "file": "apps/api/src/modules/customer/customer.router.ts",
+    "line": 395,
+    "router": "customerRouter",
+    "method": "GET",
+    "path": "/orders/:id/track"
+  },
+  {
+    "file": "apps/api/src/modules/finance/finance.router.ts",
+    "line": 71,
+    "router": "financeRouter",
+    "method": "GET",
+    "path": "/accounts"
+  },
+  {
+    "file": "apps/api/src/modules/finance/finance.router.ts",
+    "line": 95,
+    "router": "financeRouter",
+    "method": "GET",
+    "path": "/accounts/:id/entries"
+  },
+  {
+    "file": "apps/api/src/modules/finance/finance.router.ts",
+    "line": 115,
+    "router": "financeRouter",
+    "method": "GET",
+    "path": "/transactions"
+  },
+  {
+    "file": "apps/api/src/modules/finance/finance.router.ts",
+    "line": 164,
+    "router": "financeRouter",
+    "method": "POST",
+    "path": "/adjustments"
+  },
+  {
+    "file": "apps/api/src/modules/finance/finance.router.ts",
+    "line": 203,
+    "router": "financeRouter",
+    "method": "GET",
+    "path": "/settlements"
+  },
+  {
+    "file": "apps/api/src/modules/finance/finance.router.ts",
+    "line": 226,
+    "router": "financeRouter",
+    "method": "POST",
+    "path": "/settlements/calculate"
+  },
+  {
+    "file": "apps/api/src/modules/finance/finance.router.ts",
+    "line": 250,
+    "router": "financeRouter",
+    "method": "POST",
+    "path": "/settlements/:id/approve"
+  },
+  {
+    "file": "apps/api/src/modules/finance/finance.router.ts",
+    "line": 271,
+    "router": "financeRouter",
+    "method": "POST",
+    "path": "/settlements/:id/pay"
+  },
+  {
+    "file": "apps/api/src/modules/finance/finance.router.ts",
+    "line": 297,
+    "router": "financeRouter",
+    "method": "GET",
+    "path": "/payouts"
+  },
+  {
+    "file": "apps/api/src/modules/finance/finance.router.ts",
+    "line": 320,
+    "router": "financeRouter",
+    "method": "POST",
+    "path": "/payouts/calculate"
+  },
+  {
+    "file": "apps/api/src/modules/finance/finance.router.ts",
+    "line": 344,
+    "router": "financeRouter",
+    "method": "POST",
+    "path": "/payouts/:id/approve"
+  },
+  {
+    "file": "apps/api/src/modules/finance/finance.router.ts",
+    "line": 365,
+    "router": "financeRouter",
+    "method": "POST",
+    "path": "/payouts/:id/pay"
+  },
+  {
+    "file": "apps/api/src/modules/finance/finance.router.ts",
+    "line": 391,
+    "router": "financeRouter",
+    "method": "GET",
+    "path": "/rider/earnings"
+  },
+  {
+    "file": "apps/api/src/modules/finance/finance.router.ts",
+    "line": 437,
+    "router": "financeRouter",
+    "method": "GET",
+    "path": "/merchant/statement"
+  },
+  {
+    "file": "apps/api/src/modules/finance/finance.router.ts",
+    "line": 483,
+    "router": "financeRouter",
+    "method": "GET",
+    "path": "/profitability"
+  },
+  {
+    "file": "apps/api/src/modules/finance/finance.router.ts",
+    "line": 510,
+    "router": "financeRouter",
+    "method": "GET",
+    "path": "/orders/:orderId"
+  },
+  {
+    "file": "apps/api/src/modules/finance/finance.router.ts",
+    "line": 541,
+    "router": "financeRouter",
+    "method": "GET",
+    "path": "/reconciliation/report"
+  },
+  {
+    "file": "apps/api/src/modules/finance/finance.router.ts",
+    "line": 559,
+    "router": "financeRouter",
+    "method": "POST",
+    "path": "/reconciliation/heal"
+  },
+  {
+    "file": "apps/api/src/modules/health/health.router.ts",
+    "line": 16,
+    "router": "healthRouter",
+    "method": "GET",
+    "path": "/health"
+  },
+  {
+    "file": "apps/api/src/modules/health/health.router.ts",
+    "line": 26,
+    "router": "healthRouter",
+    "method": "GET",
+    "path": "/health/live"
+  },
+  {
+    "file": "apps/api/src/modules/health/health.router.ts",
+    "line": 35,
+    "router": "healthRouter",
+    "method": "GET",
+    "path": "/health/ready"
+  },
+  {
+    "file": "apps/api/src/modules/merchant/catalogue.router.ts",
+    "line": 66,
+    "router": "catalogueRouter",
+    "method": "GET",
+    "path": "/menus"
+  },
+  {
+    "file": "apps/api/src/modules/merchant/catalogue.router.ts",
+    "line": 87,
+    "router": "catalogueRouter",
+    "method": "POST",
+    "path": "/menus"
+  },
+  {
+    "file": "apps/api/src/modules/merchant/catalogue.router.ts",
+    "line": 113,
+    "router": "catalogueRouter",
+    "method": "GET",
+    "path": "/menus/:id"
+  },
+  {
+    "file": "apps/api/src/modules/merchant/catalogue.router.ts",
+    "line": 134,
+    "router": "catalogueRouter",
+    "method": "PATCH",
+    "path": "/menus/:id"
+  },
+  {
+    "file": "apps/api/src/modules/merchant/catalogue.router.ts",
+    "line": 161,
+    "router": "catalogueRouter",
+    "method": "DELETE",
+    "path": "/menus/:id"
+  },
+  {
+    "file": "apps/api/src/modules/merchant/catalogue.router.ts",
+    "line": 186,
+    "router": "catalogueRouter",
+    "method": "POST",
+    "path": "/menus/:id/branches"
+  },
+  {
+    "file": "apps/api/src/modules/merchant/catalogue.router.ts",
+    "line": 217,
+    "router": "catalogueRouter",
+    "method": "GET",
+    "path": "/menus/:menuId/categories"
+  },
+  {
+    "file": "apps/api/src/modules/merchant/catalogue.router.ts",
+    "line": 241,
+    "router": "catalogueRouter",
+    "method": "POST",
+    "path": "/menus/:menuId/categories"
+  },
+  {
+    "file": "apps/api/src/modules/merchant/catalogue.router.ts",
+    "line": 268,
+    "router": "catalogueRouter",
+    "method": "PATCH",
+    "path": "/categories/:id"
+  },
+  {
+    "file": "apps/api/src/modules/merchant/catalogue.router.ts",
+    "line": 295,
+    "router": "catalogueRouter",
+    "method": "POST",
+    "path": "/menus/:menuId/categories/reorder"
+  },
+  {
+    "file": "apps/api/src/modules/merchant/catalogue.router.ts",
+    "line": 322,
+    "router": "catalogueRouter",
+    "method": "DELETE",
+    "path": "/categories/:id"
+  },
+  {
+    "file": "apps/api/src/modules/merchant/catalogue.router.ts",
+    "line": 351,
+    "router": "catalogueRouter",
+    "method": "GET",
+    "path": "/menus/:menuId/items"
+  },
+  {
+    "file": "apps/api/src/modules/merchant/catalogue.router.ts",
+    "line": 377,
+    "router": "catalogueRouter",
+    "method": "POST",
+    "path": "/menus/:menuId/items"
+  },
+  {
+    "file": "apps/api/src/modules/merchant/catalogue.router.ts",
+    "line": 404,
+    "router": "catalogueRouter",
+    "method": "GET",
+    "path": "/items/:id"
+  },
+  {
+    "file": "apps/api/src/modules/merchant/catalogue.router.ts",
+    "line": 425,
+    "router": "catalogueRouter",
+    "method": "PATCH",
+    "path": "/items/:id"
+  },
+  {
+    "file": "apps/api/src/modules/merchant/catalogue.router.ts",
+    "line": 452,
+    "router": "catalogueRouter",
+    "method": "POST",
+    "path": "/categories/:categoryId/items/reorder"
+  },
+  {
+    "file": "apps/api/src/modules/merchant/catalogue.router.ts",
+    "line": 479,
+    "router": "catalogueRouter",
+    "method": "DELETE",
+    "path": "/items/:id"
+  },
+  {
+    "file": "apps/api/src/modules/merchant/catalogue.router.ts",
+    "line": 504,
+    "router": "catalogueRouter",
+    "method": "PATCH",
+    "path": "/items/:id/availability"
+  },
+  {
+    "file": "apps/api/src/modules/merchant/catalogue.router.ts",
+    "line": 536,
+    "router": "catalogueRouter",
+    "method": "GET",
+    "path": "/modifier-groups"
+  },
+  {
+    "file": "apps/api/src/modules/merchant/catalogue.router.ts",
+    "line": 557,
+    "router": "catalogueRouter",
+    "method": "POST",
+    "path": "/modifier-groups"
+  },
+  {
+    "file": "apps/api/src/modules/merchant/catalogue.router.ts",
+    "line": 583,
+    "router": "catalogueRouter",
+    "method": "PATCH",
+    "path": "/modifier-groups/:id"
+  },
+  {
+    "file": "apps/api/src/modules/merchant/catalogue.router.ts",
+    "line": 610,
+    "router": "catalogueRouter",
+    "method": "DELETE",
+    "path": "/modifier-groups/:id"
+  },
+  {
+    "file": "apps/api/src/modules/merchant/catalogue.router.ts",
+    "line": 635,
+    "router": "catalogueRouter",
+    "method": "POST",
+    "path": "/items/:id/modifier-groups"
+  },
+  {
+    "file": "apps/api/src/modules/merchant/catalogue.router.ts",
+    "line": 667,
+    "router": "catalogueRouter",
+    "method": "POST",
+    "path": "/modifier-groups/:groupId/options"
+  },
+  {
+    "file": "apps/api/src/modules/merchant/catalogue.router.ts",
+    "line": 694,
+    "router": "catalogueRouter",
+    "method": "PATCH",
+    "path": "/modifier-options/:id"
+  },
+  {
+    "file": "apps/api/src/modules/merchant/catalogue.router.ts",
+    "line": 721,
+    "router": "catalogueRouter",
+    "method": "POST",
+    "path": "/modifier-groups/:groupId/options/reorder"
+  },
+  {
+    "file": "apps/api/src/modules/merchant/catalogue.router.ts",
+    "line": 748,
+    "router": "catalogueRouter",
+    "method": "DELETE",
+    "path": "/modifier-options/:id"
+  },
+  {
+    "file": "apps/api/src/modules/merchant/catalogue.router.ts",
+    "line": 777,
+    "router": "catalogueRouter",
+    "method": "GET",
+    "path": "/branches/:id/catalogue"
+  },
+  {
+    "file": "apps/api/src/modules/merchant/catalogue.router.ts",
+    "line": 801,
+    "router": "catalogueRouter",
+    "method": "PUT",
+    "path": "/branches/:branchId/items/:itemId/override"
+  },
+  {
+    "file": "apps/api/src/modules/merchant/catalogue.router.ts",
+    "line": 834,
+    "router": "catalogueRouter",
+    "method": "POST",
+    "path": "/upload-image"
+  },
+  {
+    "file": "apps/api/src/modules/merchant/merchant-orders.router.ts",
+    "line": 98,
+    "router": "merchantOrderRouter",
+    "method": "GET",
+    "path": "/"
+  },
+  {
+    "file": "apps/api/src/modules/merchant/merchant-orders.router.ts",
+    "line": 133,
+    "router": "merchantOrderRouter",
+    "method": "GET",
+    "path": "/:id"
+  },
+  {
+    "file": "apps/api/src/modules/merchant/merchant-orders.router.ts",
+    "line": 160,
+    "router": "merchantOrderRouter",
+    "method": "POST",
+    "path": "/:id/accept"
+  },
+  {
+    "file": "apps/api/src/modules/merchant/merchant-orders.router.ts",
+    "line": 201,
+    "router": "merchantOrderRouter",
+    "method": "POST",
+    "path": "/:id/reject"
+  },
+  {
+    "file": "apps/api/src/modules/merchant/merchant-orders.router.ts",
+    "line": 241,
+    "router": "merchantOrderRouter",
+    "method": "POST",
+    "path": "/:id/preparing"
+  },
+  {
+    "file": "apps/api/src/modules/merchant/merchant-orders.router.ts",
+    "line": 275,
+    "router": "merchantOrderRouter",
+    "method": "POST",
+    "path": "/:id/ready"
+  },
+  {
+    "file": "apps/api/src/modules/merchant/merchant-orders.router.ts",
+    "line": 309,
+    "router": "merchantOrderRouter",
+    "method": "POST",
+    "path": "/:id/cancel"
+  },
+  {
+    "file": "apps/api/src/modules/merchant/merchant-orders.router.ts",
+    "line": 349,
+    "router": "merchantOrderRouter",
+    "method": "GET",
+    "path": "/:id/pickup-status"
+  },
+  {
+    "file": "apps/api/src/modules/merchant/merchant.router.ts",
+    "line": 140,
+    "router": "merchantRouter",
+    "method": "GET",
+    "path": "/profile"
+  },
+  {
+    "file": "apps/api/src/modules/merchant/merchant.router.ts",
+    "line": 168,
+    "router": "merchantRouter",
+    "method": "PATCH",
+    "path": "/profile"
+  },
+  {
+    "file": "apps/api/src/modules/merchant/merchant.router.ts",
+    "line": 216,
+    "router": "merchantRouter",
+    "method": "POST",
+    "path": "/submit-for-review"
+  },
+  {
+    "file": "apps/api/src/modules/merchant/merchant.router.ts",
+    "line": 265,
+    "router": "merchantRouter",
+    "method": "GET",
+    "path": "/branches"
+  },
+  {
+    "file": "apps/api/src/modules/merchant/merchant.router.ts",
+    "line": 312,
+    "router": "merchantRouter",
+    "method": "POST",
+    "path": "/branches"
+  },
+  {
+    "file": "apps/api/src/modules/merchant/merchant.router.ts",
+    "line": 405,
+    "router": "merchantRouter",
+    "method": "GET",
+    "path": "/branches/:id"
+  },
+  {
+    "file": "apps/api/src/modules/merchant/merchant.router.ts",
+    "line": 448,
+    "router": "merchantRouter",
+    "method": "PATCH",
+    "path": "/branches/:id"
+  },
+  {
+    "file": "apps/api/src/modules/merchant/merchant.router.ts",
+    "line": 501,
+    "router": "merchantRouter",
+    "method": "POST",
+    "path": "/branches/:id/status"
+  },
+  {
+    "file": "apps/api/src/modules/merchant/merchant.router.ts",
+    "line": 540,
+    "router": "merchantRouter",
+    "method": "GET",
+    "path": "/branches/:id/opening-hours"
+  },
+  {
+    "file": "apps/api/src/modules/merchant/merchant.router.ts",
+    "line": 570,
+    "router": "merchantRouter",
+    "method": "PUT",
+    "path": "/branches/:id/opening-hours"
+  },
+  {
+    "file": "apps/api/src/modules/merchant/merchant.router.ts",
+    "line": 617,
+    "router": "merchantRouter",
+    "method": "GET",
+    "path": "/branches/:id/availability"
+  },
+  {
+    "file": "apps/api/src/modules/merchant/merchant.router.ts",
+    "line": 643,
+    "router": "merchantRouter",
+    "method": "GET",
+    "path": "/team"
+  },
+  {
+    "file": "apps/api/src/modules/merchant/merchant.router.ts",
+    "line": 670,
+    "router": "merchantRouter",
+    "method": "POST",
+    "path": "/team/invitations"
+  },
+  {
+    "file": "apps/api/src/modules/merchant/merchant.router.ts",
+    "line": 701,
+    "router": "merchantRouter",
+    "method": "POST",
+    "path": "/team/invitations/:token/accept"
+  },
+  {
+    "file": "apps/api/src/modules/merchant/merchant.router.ts",
+    "line": 722,
+    "router": "merchantRouter",
+    "method": "POST",
+    "path": "/team/memberships/:id/revoke"
+  },
+  {
+    "file": "apps/api/src/modules/merchant/merchant.router.ts",
+    "line": 743,
+    "router": "merchantRouter",
+    "method": "PATCH",
+    "path": "/team/memberships/:id"
+  },
+  {
+    "file": "apps/api/src/modules/operations/operations.router.ts",
+    "line": 57,
+    "router": "operationsRouter",
+    "method": "GET",
+    "path": "/overview"
+  },
+  {
+    "file": "apps/api/src/modules/operations/operations.router.ts",
+    "line": 140,
+    "router": "operationsRouter",
+    "method": "GET",
+    "path": "/search"
+  },
+  {
+    "file": "apps/api/src/modules/operations/operations.router.ts",
+    "line": 157,
+    "router": "operationsRouter",
+    "method": "GET",
+    "path": "/orders/unified/:id"
+  },
+  {
+    "file": "apps/api/src/modules/operations/operations.router.ts",
+    "line": 180,
+    "router": "operationsRouter",
+    "method": "GET",
+    "path": "/incidents"
+  },
+  {
+    "file": "apps/api/src/modules/operations/operations.router.ts",
+    "line": 203,
+    "router": "operationsRouter",
+    "method": "GET",
+    "path": "/incidents/:id"
+  },
+  {
+    "file": "apps/api/src/modules/operations/operations.router.ts",
+    "line": 223,
+    "router": "operationsRouter",
+    "method": "POST",
+    "path": "/incidents/:id/acknowledge"
+  },
+  {
+    "file": "apps/api/src/modules/operations/operations.router.ts",
+    "line": 241,
+    "router": "operationsRouter",
+    "method": "POST",
+    "path": "/incidents/:id/investigate"
+  },
+  {
+    "file": "apps/api/src/modules/operations/operations.router.ts",
+    "line": 260,
+    "router": "operationsRouter",
+    "method": "POST",
+    "path": "/incidents/:id/assign"
+  },
+  {
+    "file": "apps/api/src/modules/operations/operations.router.ts",
+    "line": 280,
+    "router": "operationsRouter",
+    "method": "POST",
+    "path": "/incidents/:id/resolve"
+  },
+  {
+    "file": "apps/api/src/modules/operations/operations.router.ts",
+    "line": 299,
+    "router": "operationsRouter",
+    "method": "POST",
+    "path": "/incidents/:id/dismiss"
+  },
+  {
+    "file": "apps/api/src/modules/operations/operations.router.ts",
+    "line": 318,
+    "router": "operationsRouter",
+    "method": "POST",
+    "path": "/incidents/:id/reopen"
+  },
+  {
+    "file": "apps/api/src/modules/operations/operations.router.ts",
+    "line": 337,
+    "router": "operationsRouter",
+    "method": "POST",
+    "path": "/incidents/:id/timeline"
+  },
+  {
+    "file": "apps/api/src/modules/operations/operations.router.ts",
+    "line": 360,
+    "router": "operationsRouter",
+    "method": "GET",
+    "path": "/support/cases"
+  },
+  {
+    "file": "apps/api/src/modules/operations/operations.router.ts",
+    "line": 381,
+    "router": "operationsRouter",
+    "method": "GET",
+    "path": "/support/cases/:id"
+  },
+  {
+    "file": "apps/api/src/modules/operations/operations.router.ts",
+    "line": 395,
+    "router": "operationsRouter",
+    "method": "POST",
+    "path": "/support/cases"
+  },
+  {
+    "file": "apps/api/src/modules/operations/operations.router.ts",
+    "line": 416,
+    "router": "operationsRouter",
+    "method": "POST",
+    "path": "/support/cases/:id/notes"
+  },
+  {
+    "file": "apps/api/src/modules/operations/operations.router.ts",
+    "line": 435,
+    "router": "operationsRouter",
+    "method": "POST",
+    "path": "/support/cases/:id/assign"
+  },
+  {
+    "file": "apps/api/src/modules/operations/operations.router.ts",
+    "line": 454,
+    "router": "operationsRouter",
+    "method": "POST",
+    "path": "/support/cases/:id/status"
+  },
+  {
+    "file": "apps/api/src/modules/operations/operations.router.ts",
+    "line": 472,
+    "router": "operationsRouter",
+    "method": "POST",
+    "path": "/support/cases/:id/resolve"
+  },
+  {
+    "file": "apps/api/src/modules/operations/operations.router.ts",
+    "line": 491,
+    "router": "operationsRouter",
+    "method": "POST",
+    "path": "/support/cases/:id/refund"
+  },
+  {
+    "file": "apps/api/src/modules/operations/operations.router.ts",
+    "line": 517,
+    "router": "operationsRouter",
+    "method": "POST",
+    "path": "/recovery/retry-merchant-notification"
+  },
+  {
+    "file": "apps/api/src/modules/operations/operations.router.ts",
+    "line": 534,
+    "router": "operationsRouter",
+    "method": "POST",
+    "path": "/recovery/retry-dispatch"
+  },
+  {
+    "file": "apps/api/src/modules/operations/operations.router.ts",
+    "line": 551,
+    "router": "operationsRouter",
+    "method": "POST",
+    "path": "/recovery/reconcile-payment"
+  },
+  {
+    "file": "apps/api/src/modules/operations/operations.router.ts",
+    "line": 568,
+    "router": "operationsRouter",
+    "method": "POST",
+    "path": "/recovery/retry-refund"
+  },
+  {
+    "file": "apps/api/src/modules/operations/operations.router.ts",
+    "line": 585,
+    "router": "operationsRouter",
+    "method": "POST",
+    "path": "/recovery/retry-settlement"
+  },
+  {
+    "file": "apps/api/src/modules/operations/operations.router.ts",
+    "line": 602,
+    "router": "operationsRouter",
+    "method": "POST",
+    "path": "/recovery/retry-payout"
+  },
+  {
+    "file": "apps/api/src/modules/operations/operations.router.ts",
+    "line": 619,
+    "router": "operationsRouter",
+    "method": "POST",
+    "path": "/recovery/cancel-order"
+  },
+  {
+    "file": "apps/api/src/modules/operations/operations.router.ts",
+    "line": 638,
+    "router": "operationsRouter",
+    "method": "POST",
+    "path": "/recovery/manual-assign-rider"
+  },
+  {
+    "file": "apps/api/src/modules/operations/operations.router.ts",
+    "line": 660,
+    "router": "operationsRouter",
+    "method": "POST",
+    "path": "/scan/all"
+  },
+  {
+    "file": "apps/api/src/modules/operations/operations.router.ts",
+    "line": 676,
+    "router": "operationsRouter",
+    "method": "GET",
+    "path": "/notifications"
+  },
+  {
+    "file": "apps/api/src/modules/operations/operations.router.ts",
+    "line": 697,
+    "router": "operationsRouter",
+    "method": "POST",
+    "path": "/notifications/:id/retry"
+  },
+  {
+    "file": "apps/api/src/modules/operations/operations.router.ts",
+    "line": 715,
+    "router": "operationsRouter",
+    "method": "GET",
+    "path": "/dead-letter-jobs"
+  },
+  {
+    "file": "apps/api/src/modules/operations/operations.router.ts",
+    "line": 734,
+    "router": "operationsRouter",
+    "method": "POST",
+    "path": "/dead-letter-jobs/:id/retry"
+  },
+  {
+    "file": "apps/api/src/modules/operations/operations.router.ts",
+    "line": 751,
+    "router": "operationsRouter",
+    "method": "GET",
+    "path": "/risk-signals"
+  },
+  {
+    "file": "apps/api/src/modules/operations/operations.router.ts",
+    "line": 773,
+    "router": "operationsRouter",
+    "method": "POST",
+    "path": "/risk-signals/:id/review"
+  },
+  {
+    "file": "apps/api/src/modules/operations/operations.router.ts",
+    "line": 792,
+    "router": "operationsRouter",
+    "method": "GET",
+    "path": "/risk-signals/score/:type/:id"
+  },
+  {
+    "file": "apps/api/src/modules/operations/operations.router.ts",
+    "line": 811,
+    "router": "operationsRouter",
+    "method": "GET",
+    "path": "/kill-switches"
+  },
+  {
+    "file": "apps/api/src/modules/operations/operations.router.ts",
+    "line": 824,
+    "router": "operationsRouter",
+    "method": "POST",
+    "path": "/kill-switches"
+  },
+  {
+    "file": "apps/api/src/modules/operations/operations.router.ts",
+    "line": 850,
+    "router": "customerSupportRouter",
+    "method": "POST",
+    "path": "/cases"
+  },
+  {
+    "file": "apps/api/src/modules/operations/operations.router.ts",
+    "line": 898,
+    "router": "customerSupportRouter",
+    "method": "GET",
+    "path": "/cases"
+  },
+  {
+    "file": "apps/api/src/modules/operations/operations.router.ts",
+    "line": 921,
+    "router": "customerSupportRouter",
+    "method": "GET",
+    "path": "/cases/:id"
+  },
+  {
+    "file": "apps/api/src/modules/operations/operations.router.ts",
+    "line": 941,
+    "router": "customerSupportRouter",
+    "method": "POST",
+    "path": "/cases/:id/notes"
+  },
+  {
+    "file": "apps/api/src/modules/operations/operations.router.ts",
+    "line": 966,
+    "router": "customerSupportRouter",
+    "method": "GET",
+    "path": "/notifications"
+  },
+  {
+    "file": "apps/api/src/modules/operations/operations.router.ts",
+    "line": 990,
+    "router": "customerSupportRouter",
+    "method": "POST",
+    "path": "/notifications/:id/read"
+  },
+  {
+    "file": "apps/api/src/modules/order/order.router.ts",
+    "line": 38,
+    "router": "orderRouter",
+    "method": "POST",
+    "path": "/"
+  },
+  {
+    "file": "apps/api/src/modules/order/order.router.ts",
+    "line": 74,
+    "router": "orderRouter",
+    "method": "GET",
+    "path": "/:id"
+  },
+  {
+    "file": "apps/api/src/modules/order/order.router.ts",
+    "line": 122,
+    "router": "orderRouter",
+    "method": "POST",
+    "path": "/:id/cancel"
+  },
+  {
+    "file": "apps/api/src/modules/order/order.router.ts",
+    "line": 160,
+    "router": "orderRouter",
+    "method": "GET",
+    "path": "/:id/delivery"
+  },
+  {
+    "file": "apps/api/src/modules/order/order.router.ts",
+    "line": 217,
+    "router": "orderRouter",
+    "method": "GET",
+    "path": "/:id/track"
+  },
+  {
+    "file": "apps/api/src/modules/order/order.router.ts",
+    "line": 258,
+    "router": "orderRouter",
+    "method": "POST",
+    "path": "/:id/pay"
+  },
+  {
+    "file": "apps/api/src/modules/order/order.router.ts",
+    "line": 296,
+    "router": "orderRouter",
+    "method": "GET",
+    "path": "/:id/payments"
+  },
+  {
+    "file": "apps/api/src/modules/payment/payment.router.ts",
+    "line": 33,
+    "router": "paymentRouter",
+    "method": "POST",
+    "path": "/providers/mpesa/callback"
+  },
+  {
+    "file": "apps/api/src/modules/payment/payment.router.ts",
+    "line": 62,
+    "router": "paymentRouter",
+    "method": "POST",
+    "path": "/providers/card/webhook"
+  },
+  {
+    "file": "apps/api/src/modules/payment/payment.router.ts",
+    "line": 94,
+    "router": "paymentRouter",
+    "method": "POST",
+    "path": "/initiate"
+  },
+  {
+    "file": "apps/api/src/modules/payment/payment.router.ts",
+    "line": 137,
+    "router": "paymentRouter",
+    "method": "GET",
+    "path": "/:id"
+  },
+  {
+    "file": "apps/api/src/modules/payment/payment.router.ts",
+    "line": 169,
+    "router": "paymentRouter",
+    "method": "GET",
+    "path": "/order/:orderId"
+  },
+  {
+    "file": "apps/api/src/modules/payment/payment.router.ts",
+    "line": 196,
+    "router": "paymentRouter",
+    "method": "GET",
+    "path": "/admin/all"
+  },
+  {
+    "file": "apps/api/src/modules/payment/payment.router.ts",
+    "line": 223,
+    "router": "paymentRouter",
+    "method": "POST",
+    "path": "/admin/:id/refunds"
+  },
+  {
+    "file": "apps/api/src/modules/payment/payment.router.ts",
+    "line": 254,
+    "router": "paymentRouter",
+    "method": "GET",
+    "path": "/admin/:id/refunds"
+  },
+  {
+    "file": "apps/api/src/modules/payment/payment.router.ts",
+    "line": 275,
+    "router": "paymentRouter",
+    "method": "POST",
+    "path": "/admin/:id/reconcile"
+  },
+  {
+    "file": "apps/api/src/modules/public/public.router.ts",
+    "line": 19,
+    "router": "publicRouter",
+    "method": "GET",
+    "path": "/branches"
+  },
+  {
+    "file": "apps/api/src/modules/public/public.router.ts",
+    "line": 74,
+    "router": "publicRouter",
+    "method": "GET",
+    "path": "/branches/:id"
+  },
+  {
+    "file": "apps/api/src/modules/public/public.router.ts",
+    "line": 107,
+    "router": "publicRouter",
+    "method": "GET",
+    "path": "/service-zones"
+  },
+  {
+    "file": "apps/api/src/modules/public/public.router.ts",
+    "line": 124,
+    "router": "publicRouter",
+    "method": "GET",
+    "path": "/branches/:id/menu"
+  },
+  {
+    "file": "apps/api/src/modules/realtime/realtime.router.ts",
+    "line": 71,
+    "router": "realtimeRouter",
+    "method": "GET",
+    "path": "/stream"
+  },
+  {
+    "file": "apps/api/src/modules/realtime/realtime.router.ts",
+    "line": 107,
+    "router": "realtimeRouter",
+    "method": "GET",
+    "path": "/events"
+  },
+  {
+    "file": "apps/api/src/modules/realtime/realtime.router.ts",
+    "line": 124,
+    "router": "realtimeRouter",
+    "method": "GET",
+    "path": "/health"
+  },
+  {
+    "file": "apps/api/src/modules/rider/rider.router.ts",
+    "line": 81,
+    "router": "riderRouter",
+    "method": "GET",
+    "path": "/status"
+  },
+  {
+    "file": "apps/api/src/modules/rider/rider.router.ts",
+    "line": 101,
+    "router": "riderRouter",
+    "method": "GET",
+    "path": "/profile"
+  },
+  {
+    "file": "apps/api/src/modules/rider/rider.router.ts",
+    "line": 125,
+    "router": "riderRouter",
+    "method": "PATCH",
+    "path": "/profile"
+  },
+  {
+    "file": "apps/api/src/modules/rider/rider.router.ts",
+    "line": 157,
+    "router": "riderRouter",
+    "method": "POST",
+    "path": "/onboarding/submit"
+  },
+  {
+    "file": "apps/api/src/modules/rider/rider.router.ts",
+    "line": 177,
+    "router": "riderRouter",
+    "method": "GET",
+    "path": "/vehicles"
+  },
+  {
+    "file": "apps/api/src/modules/rider/rider.router.ts",
+    "line": 197,
+    "router": "riderRouter",
+    "method": "POST",
+    "path": "/vehicles"
+  },
+  {
+    "file": "apps/api/src/modules/rider/rider.router.ts",
+    "line": 231,
+    "router": "riderRouter",
+    "method": "GET",
+    "path": "/availability"
+  },
+  {
+    "file": "apps/api/src/modules/rider/rider.router.ts",
+    "line": 258,
+    "router": "riderRouter",
+    "method": "POST",
+    "path": "/availability/online"
+  },
+  {
+    "file": "apps/api/src/modules/rider/rider.router.ts",
+    "line": 289,
+    "router": "riderRouter",
+    "method": "POST",
+    "path": "/availability/offline"
+  },
+  {
+    "file": "apps/api/src/modules/rider/rider.router.ts",
+    "line": 309,
+    "router": "riderRouter",
+    "method": "POST",
+    "path": "/location"
+  },
+  {
+    "file": "apps/api/src/modules/rider/rider.router.ts",
+    "line": 344,
+    "router": "riderRouter",
+    "method": "POST",
+    "path": "/heartbeat"
+  },
+  {
+    "file": "apps/api/src/modules/rider/rider.router.ts",
+    "line": 372,
+    "router": "riderRouter",
+    "method": "GET",
+    "path": "/offers/active"
+  },
+  {
+    "file": "apps/api/src/modules/rider/rider.router.ts",
+    "line": 431,
+    "router": "riderRouter",
+    "method": "POST",
+    "path": "/offers/:offerId/accept"
+  },
+  {
+    "file": "apps/api/src/modules/rider/rider.router.ts",
+    "line": 457,
+    "router": "riderRouter",
+    "method": "POST",
+    "path": "/offers/:offerId/reject"
+  },
+  {
+    "file": "apps/api/src/modules/rider/rider.router.ts",
+    "line": 493,
+    "router": "riderRouter",
+    "method": "GET",
+    "path": "/deliveries/active"
+  },
+  {
+    "file": "apps/api/src/modules/rider/rider.router.ts",
+    "line": 529,
+    "router": "riderRouter",
+    "method": "POST",
+    "path": "/deliveries/:id/status"
+  },
+  {
+    "file": "apps/api/src/modules/rider/rider.router.ts",
+    "line": 587,
+    "router": "riderRouter",
+    "method": "POST",
+    "path": "/deliveries/:id/release"
+  },
+  {
+    "file": "apps/api/src/modules/rider/rider.router.ts",
+    "line": 630,
+    "router": "riderRouter",
+    "method": "GET",
+    "path": "/deliveries/:id"
+  },
+  {
+    "file": "apps/api/src/modules/rider/rider.router.ts",
+    "line": 652,
+    "router": "riderRouter",
+    "method": "POST",
+    "path": "/deliveries/:id/arrive-pickup"
+  },
+  {
+    "file": "apps/api/src/modules/rider/rider.router.ts",
+    "line": 684,
+    "router": "riderRouter",
+    "method": "POST",
+    "path": "/deliveries/:id/confirm-pickup"
+  },
+  {
+    "file": "apps/api/src/modules/rider/rider.router.ts",
+    "line": 741,
+    "router": "riderRouter",
+    "method": "POST",
+    "path": "/deliveries/:id/start-trip"
+  },
+  {
+    "file": "apps/api/src/modules/rider/rider.router.ts",
+    "line": 742,
+    "router": "riderRouter",
+    "method": "POST",
+    "path": "/deliveries/:id/en-route"
+  },
+  {
+    "file": "apps/api/src/modules/rider/rider.router.ts",
+    "line": 748,
+    "router": "riderRouter",
+    "method": "POST",
+    "path": "/deliveries/:id/arrive-dropoff"
+  },
+  {
+    "file": "apps/api/src/modules/rider/rider.router.ts",
+    "line": 780,
+    "router": "riderRouter",
+    "method": "POST",
+    "path": "/deliveries/:id/complete"
+  },
+  {
+    "file": "apps/api/src/modules/rider/rider.router.ts",
+    "line": 815,
+    "router": "riderRouter",
+    "method": "POST",
+    "path": "/deliveries/:id/fail"
+  }
+]

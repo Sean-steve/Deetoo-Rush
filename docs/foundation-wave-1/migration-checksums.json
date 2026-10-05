@@ -1,0 +1,86 @@
+[
+  {
+    "file": "apps/api/src/db/migrations/001_initial_schema.sql",
+    "sha256": "b303fce4db6ef84ea1f24c574d4d1d46a0c6e2e5240a978d150565497037e024"
+  },
+  {
+    "file": "apps/api/src/db/migrations/002_postgis_zones.sql",
+    "sha256": "21388f6d64aa588680435ca0b418f1e592205a97e34c189490d55421d09704b2"
+  },
+  {
+    "file": "apps/api/src/db/migrations/003_auth_identity_rbac.sql",
+    "sha256": "225323a9621f00f059d755c0987a940cf61571e7959cb3ab09f1ce0a5857e043"
+  },
+  {
+    "file": "apps/api/src/db/migrations/004_sprint_3_merchant_updates.sql",
+    "sha256": "7ca0263e20c96235a4c0e72ea7c452dffc55015198506d2e1dafff12933fbfa5"
+  },
+  {
+    "file": "apps/api/src/db/migrations/005_sprint_4_catalogue.sql",
+    "sha256": "b1e29b238edfda8e5c2a75d3879d1af84c30f16fe55253cb8e9129599d2ba24f"
+  },
+  {
+    "file": "apps/api/src/db/migrations/006_sprint_5_customer_discovery.sql",
+    "sha256": "ef8f6f3d83c3da4135e618eb7793741aeb0f9cdc59530977c51e381f57f7cef5"
+  },
+  {
+    "file": "apps/api/src/db/migrations/007_sprint_6_cart_pricing_checkout.sql",
+    "sha256": "9d318d4cd793cdfbe2bc777ae3a7c57b98dc725f18e18673d0390df61585bd25"
+  },
+  {
+    "file": "apps/api/src/db/migrations/007a_foundation_idempotency_compat.sql",
+    "sha256": "78d885a4ef7140c78d4b728d7b3dbea8235c05f13f7eaf40dbbc1d8d6977ff56"
+  },
+  {
+    "file": "apps/api/src/db/migrations/008_sprint_7_core_orders.sql",
+    "sha256": "6d4afb8c9e4f6bfe1057fcbf04f9115b44faad7638f07211430eacd574314e5c"
+  },
+  {
+    "file": "apps/api/src/db/migrations/008a_foundation_rider_identity.sql",
+    "sha256": "2131829b8a4a6977368b0fe44826570b181c7212c147d574c7e8095d4133dd27"
+  },
+  {
+    "file": "apps/api/src/db/migrations/009_sprint_8_rider_foundation.sql",
+    "sha256": "f144c61ea8ae39c466293190e5083d526e47f64ef63ec3c796ad078be90fb8c9"
+  },
+  {
+    "file": "apps/api/src/db/migrations/010_sprint_9_dispatch_and_delivery.sql",
+    "sha256": "9baacca79f76085698cca7ebc1ab16613ac0cbb24667aa7d8dceb7b307962a02"
+  },
+  {
+    "file": "apps/api/src/db/migrations/011_sprint_10_delivery_lifecycle.sql",
+    "sha256": "f88805be39d444bc776d4d98464be94ab5c66dae1bd64c187a8bb87d03d5357d"
+  },
+  {
+    "file": "apps/api/src/db/migrations/012_sprint_11_payments_and_refunds.sql",
+    "sha256": "fc484197424ce4e0948de8c297e61d16ec01babfa07f9602fa10a11f3a2ff615"
+  },
+  {
+    "file": "apps/api/src/db/migrations/012a_foundation_ledger_compat.sql",
+    "sha256": "cbca0f43e8b61c84f253d940f96de2a2d6eff70abd65b61a83ba6b0762d41375"
+  },
+  {
+    "file": "apps/api/src/db/migrations/013_sprint_12_financial_ledger_and_settlements.sql",
+    "sha256": "0e663b140831c603ac81605f73acfa3dff19e830ec508b741412cebd5862d186"
+  },
+  {
+    "file": "apps/api/src/db/migrations/014_sprint_13_operations_support_notifications_risk.sql",
+    "sha256": "f465c9761b37982b33600057ff0fff3e4ab43a6774d54dd2c22ec3f9e3e326f0"
+  },
+  {
+    "file": "apps/api/src/db/migrations/015_foundation_identity_outbox.sql",
+    "sha256": "25af0e2c4cad659ec2044d49438ed234ee29fac7ec5a4206086c591800048afd"
+  },
+  {
+    "file": "apps/api/src/db/migrations/016_foundation_branch_menu_contract.sql",
+    "sha256": "9e4288793b30c426d65aa80738e1837cc46d2110c9521b2543f42f8bc47563a6"
+  },
+  {
+    "file": "apps/api/src/db/migrations/017_foundation_rider_constraints.sql",
+    "sha256": "b760322c091388a873f0b90042bc75db83a23d698a5903f236c28eda12645323"
+  },
+  {
+    "file": "apps/api/src/db/migrations/018_foundation_mfa.sql",
+    "sha256": "9e37c64753b995a57ae75f5b18e4c9aa9a7e69f75e14de86226c9cffc2a3740d"
+  }
+]

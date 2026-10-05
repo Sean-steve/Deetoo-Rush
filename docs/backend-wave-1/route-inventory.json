@@ -1,0 +1,924 @@
+{
+  "rider/rider.router.ts": [
+    {
+      "method": "GET",
+      "path": "/status"
+    },
+    {
+      "method": "GET",
+      "path": "/profile"
+    },
+    {
+      "method": "PATCH",
+      "path": "/profile"
+    },
+    {
+      "method": "POST",
+      "path": "/onboarding/submit"
+    },
+    {
+      "method": "GET",
+      "path": "/vehicles"
+    },
+    {
+      "method": "POST",
+      "path": "/vehicles"
+    },
+    {
+      "method": "GET",
+      "path": "/availability"
+    },
+    {
+      "method": "POST",
+      "path": "/availability/online"
+    },
+    {
+      "method": "POST",
+      "path": "/availability/offline"
+    },
+    {
+      "method": "POST",
+      "path": "/location"
+    },
+    {
+      "method": "POST",
+      "path": "/heartbeat"
+    },
+    {
+      "method": "GET",
+      "path": "/offers/active"
+    },
+    {
+      "method": "POST",
+      "path": "/offers/:offerId/accept"
+    },
+    {
+      "method": "POST",
+      "path": "/offers/:offerId/reject"
+    },
+    {
+      "method": "GET",
+      "path": "/deliveries/active"
+    },
+    {
+      "method": "POST",
+      "path": "/deliveries/:id/status"
+    },
+    {
+      "method": "POST",
+      "path": "/deliveries/:id/release"
+    },
+    {
+      "method": "GET",
+      "path": "/deliveries/:id"
+    },
+    {
+      "method": "POST",
+      "path": "/deliveries/:id/arrive-pickup"
+    },
+    {
+      "method": "POST",
+      "path": "/deliveries/:id/confirm-pickup"
+    },
+    {
+      "method": "POST",
+      "path": "/deliveries/:id/start-trip"
+    },
+    {
+      "method": "POST",
+      "path": "/deliveries/:id/en-route"
+    },
+    {
+      "method": "POST",
+      "path": "/deliveries/:id/arrive-dropoff"
+    },
+    {
+      "method": "POST",
+      "path": "/deliveries/:id/complete"
+    },
+    {
+      "method": "POST",
+      "path": "/deliveries/:id/fail"
+    }
+  ],
+  "customer/customer.router.ts": [
+    {
+      "method": "GET",
+      "path": "/profile"
+    },
+    {
+      "method": "PATCH",
+      "path": "/profile"
+    },
+    {
+      "method": "GET",
+      "path": "/addresses"
+    },
+    {
+      "method": "POST",
+      "path": "/addresses"
+    },
+    {
+      "method": "GET",
+      "path": "/addresses/:id"
+    },
+    {
+      "method": "PATCH",
+      "path": "/addresses/:id"
+    },
+    {
+      "method": "DELETE",
+      "path": "/addresses/:id"
+    },
+    {
+      "method": "POST",
+      "path": "/addresses/:id/default"
+    },
+    {
+      "method": "GET",
+      "path": "/orders"
+    },
+    {
+      "method": "GET",
+      "path": "/orders/:id"
+    },
+    {
+      "method": "POST",
+      "path": "/orders/:id/cancel"
+    },
+    {
+      "method": "GET",
+      "path": "/orders/:id/delivery"
+    },
+    {
+      "method": "GET",
+      "path": "/orders/:id/track"
+    }
+  ],
+  "merchant/merchant.router.ts": [
+    {
+      "method": "GET",
+      "path": "/profile"
+    },
+    {
+      "method": "PATCH",
+      "path": "/profile"
+    },
+    {
+      "method": "POST",
+      "path": "/submit-for-review"
+    },
+    {
+      "method": "GET",
+      "path": "/branches"
+    },
+    {
+      "method": "POST",
+      "path": "/branches"
+    },
+    {
+      "method": "GET",
+      "path": "/branches/:id"
+    },
+    {
+      "method": "PATCH",
+      "path": "/branches/:id"
+    },
+    {
+      "method": "POST",
+      "path": "/branches/:id/status"
+    },
+    {
+      "method": "GET",
+      "path": "/branches/:id/opening-hours"
+    },
+    {
+      "method": "PUT",
+      "path": "/branches/:id/opening-hours"
+    },
+    {
+      "method": "GET",
+      "path": "/branches/:id/availability"
+    },
+    {
+      "method": "GET",
+      "path": "/team"
+    },
+    {
+      "method": "POST",
+      "path": "/team/invitations"
+    },
+    {
+      "method": "POST",
+      "path": "/team/invitations/:token/accept"
+    },
+    {
+      "method": "POST",
+      "path": "/team/memberships/:id/revoke"
+    },
+    {
+      "method": "PATCH",
+      "path": "/team/memberships/:id"
+    }
+  ],
+  "merchant/merchant-orders.router.ts": [
+    {
+      "method": "GET",
+      "path": "/"
+    },
+    {
+      "method": "GET",
+      "path": "/:id"
+    },
+    {
+      "method": "POST",
+      "path": "/:id/accept"
+    },
+    {
+      "method": "POST",
+      "path": "/:id/reject"
+    },
+    {
+      "method": "POST",
+      "path": "/:id/preparing"
+    },
+    {
+      "method": "POST",
+      "path": "/:id/ready"
+    },
+    {
+      "method": "POST",
+      "path": "/:id/cancel"
+    },
+    {
+      "method": "GET",
+      "path": "/:id/pickup-status"
+    }
+  ],
+  "merchant/catalogue.router.ts": [
+    {
+      "method": "GET",
+      "path": "/menus"
+    },
+    {
+      "method": "POST",
+      "path": "/menus"
+    },
+    {
+      "method": "GET",
+      "path": "/menus/:id"
+    },
+    {
+      "method": "PATCH",
+      "path": "/menus/:id"
+    },
+    {
+      "method": "DELETE",
+      "path": "/menus/:id"
+    },
+    {
+      "method": "POST",
+      "path": "/menus/:id/branches"
+    },
+    {
+      "method": "GET",
+      "path": "/menus/:menuId/categories"
+    },
+    {
+      "method": "POST",
+      "path": "/menus/:menuId/categories"
+    },
+    {
+      "method": "PATCH",
+      "path": "/categories/:id"
+    },
+    {
+      "method": "POST",
+      "path": "/menus/:menuId/categories/reorder"
+    },
+    {
+      "method": "DELETE",
+      "path": "/categories/:id"
+    },
+    {
+      "method": "GET",
+      "path": "/menus/:menuId/items"
+    },
+    {
+      "method": "POST",
+      "path": "/menus/:menuId/items"
+    },
+    {
+      "method": "GET",
+      "path": "/items/:id"
+    },
+    {
+      "method": "PATCH",
+      "path": "/items/:id"
+    },
+    {
+      "method": "POST",
+      "path": "/categories/:categoryId/items/reorder"
+    },
+    {
+      "method": "DELETE",
+      "path": "/items/:id"
+    },
+    {
+      "method": "PATCH",
+      "path": "/items/:id/availability"
+    },
+    {
+      "method": "GET",
+      "path": "/modifier-groups"
+    },
+    {
+      "method": "POST",
+      "path": "/modifier-groups"
+    },
+    {
+      "method": "PATCH",
+      "path": "/modifier-groups/:id"
+    },
+    {
+      "method": "DELETE",
+      "path": "/modifier-groups/:id"
+    },
+    {
+      "method": "POST",
+      "path": "/items/:id/modifier-groups"
+    },
+    {
+      "method": "POST",
+      "path": "/modifier-groups/:groupId/options"
+    },
+    {
+      "method": "PATCH",
+      "path": "/modifier-options/:id"
+    },
+    {
+      "method": "POST",
+      "path": "/modifier-groups/:groupId/options/reorder"
+    },
+    {
+      "method": "DELETE",
+      "path": "/modifier-options/:id"
+    },
+    {
+      "method": "GET",
+      "path": "/branches/:id/catalogue"
+    },
+    {
+      "method": "PUT",
+      "path": "/branches/:branchId/items/:itemId/override"
+    },
+    {
+      "method": "POST",
+      "path": "/upload-image"
+    }
+  ],
+  "admin/admin.router.ts": [
+    {
+      "method": "GET",
+      "path": "/users"
+    },
+    {
+      "method": "GET",
+      "path": "/users/:id"
+    },
+    {
+      "method": "POST",
+      "path": "/users/:id/suspend"
+    },
+    {
+      "method": "POST",
+      "path": "/users/:id/reactivate"
+    },
+    {
+      "method": "POST",
+      "path": "/users/:id/roles"
+    },
+    {
+      "method": "GET",
+      "path": "/audit"
+    },
+    {
+      "method": "GET",
+      "path": "/merchants"
+    },
+    {
+      "method": "POST",
+      "path": "/merchants"
+    },
+    {
+      "method": "GET",
+      "path": "/merchants/:id"
+    },
+    {
+      "method": "PATCH",
+      "path": "/merchants/:id"
+    },
+    {
+      "method": "POST",
+      "path": "/merchants/:id/approve"
+    },
+    {
+      "method": "POST",
+      "path": "/merchants/:id/reject"
+    },
+    {
+      "method": "POST",
+      "path": "/merchants/:id/suspend"
+    },
+    {
+      "method": "POST",
+      "path": "/merchants/:id/reactivate"
+    },
+    {
+      "method": "GET",
+      "path": "/merchants/:id/branches"
+    },
+    {
+      "method": "POST",
+      "path": "/merchants/:id/branches"
+    },
+    {
+      "method": "GET",
+      "path": "/branches"
+    },
+    {
+      "method": "GET",
+      "path": "/branches/:branchId"
+    },
+    {
+      "method": "PATCH",
+      "path": "/branches/:branchId"
+    },
+    {
+      "method": "POST",
+      "path": "/branches/:branchId/suspend"
+    },
+    {
+      "method": "POST",
+      "path": "/branches/:branchId/reactivate"
+    },
+    {
+      "method": "POST",
+      "path": "/branches/:branchId/service-zones"
+    },
+    {
+      "method": "GET",
+      "path": "/service-zones"
+    },
+    {
+      "method": "POST",
+      "path": "/service-zones"
+    },
+    {
+      "method": "PATCH",
+      "path": "/service-zones/:id"
+    },
+    {
+      "method": "GET",
+      "path": "/customers"
+    },
+    {
+      "method": "GET",
+      "path": "/customers/:id"
+    },
+    {
+      "method": "GET",
+      "path": "/orders"
+    },
+    {
+      "method": "GET",
+      "path": "/orders/:id"
+    },
+    {
+      "method": "POST",
+      "path": "/orders/:id/cancel"
+    },
+    {
+      "method": "GET",
+      "path": "/riders/metrics"
+    },
+    {
+      "method": "GET",
+      "path": "/riders"
+    },
+    {
+      "method": "POST",
+      "path": "/riders/cleanup-stale"
+    },
+    {
+      "method": "GET",
+      "path": "/riders/:id"
+    },
+    {
+      "method": "POST",
+      "path": "/riders/:id/approve"
+    },
+    {
+      "method": "POST",
+      "path": "/riders/:id/reject"
+    },
+    {
+      "method": "POST",
+      "path": "/riders/:id/suspend"
+    },
+    {
+      "method": "POST",
+      "path": "/riders/:id/reactivate"
+    },
+    {
+      "method": "POST",
+      "path": "/riders/:id/zones"
+    },
+    {
+      "method": "GET",
+      "path": "/dispatch/deliveries"
+    },
+    {
+      "method": "GET",
+      "path": "/dispatch/deliveries/:id"
+    },
+    {
+      "method": "POST",
+      "path": "/dispatch/deliveries/:id/assign"
+    },
+    {
+      "method": "POST",
+      "path": "/dispatch/deliveries/:id/unassign"
+    },
+    {
+      "method": "POST",
+      "path": "/dispatch/deliveries/:id/trigger"
+    },
+    {
+      "method": "GET",
+      "path": "/dispatch/metrics"
+    },
+    {
+      "method": "GET",
+      "path": "/dispatch/config"
+    },
+    {
+      "method": "PUT",
+      "path": "/dispatch/config"
+    },
+    {
+      "method": "GET",
+      "path": "/dispatch/stuck"
+    },
+    {
+      "method": "POST",
+      "path": "/dispatch/deliveries/:id/force-complete"
+    },
+    {
+      "method": "GET",
+      "path": "/dispatch/incidents"
+    },
+    {
+      "method": "POST",
+      "path": "/dispatch/incidents/:id/resolve"
+    },
+    {
+      "method": "GET",
+      "path": "/dispatch/deliveries/:id/proofs"
+    }
+  ],
+  "finance/finance.router.ts": [
+    {
+      "method": "GET",
+      "path": "/accounts"
+    },
+    {
+      "method": "GET",
+      "path": "/accounts/:id/entries"
+    },
+    {
+      "method": "GET",
+      "path": "/transactions"
+    },
+    {
+      "method": "POST",
+      "path": "/adjustments"
+    },
+    {
+      "method": "GET",
+      "path": "/settlements"
+    },
+    {
+      "method": "POST",
+      "path": "/settlements/calculate"
+    },
+    {
+      "method": "POST",
+      "path": "/settlements/:id/approve"
+    },
+    {
+      "method": "POST",
+      "path": "/settlements/:id/pay"
+    },
+    {
+      "method": "GET",
+      "path": "/payouts"
+    },
+    {
+      "method": "POST",
+      "path": "/payouts/calculate"
+    },
+    {
+      "method": "POST",
+      "path": "/payouts/:id/approve"
+    },
+    {
+      "method": "POST",
+      "path": "/payouts/:id/pay"
+    },
+    {
+      "method": "GET",
+      "path": "/rider/earnings"
+    },
+    {
+      "method": "GET",
+      "path": "/merchant/statement"
+    },
+    {
+      "method": "GET",
+      "path": "/profitability"
+    },
+    {
+      "method": "GET",
+      "path": "/orders/:orderId"
+    },
+    {
+      "method": "GET",
+      "path": "/reconciliation/report"
+    },
+    {
+      "method": "POST",
+      "path": "/reconciliation/heal"
+    }
+  ],
+  "operations/operations.router.ts": [
+    {
+      "method": "GET",
+      "path": "/overview"
+    },
+    {
+      "method": "GET",
+      "path": "/search"
+    },
+    {
+      "method": "GET",
+      "path": "/orders/unified/:id"
+    },
+    {
+      "method": "GET",
+      "path": "/incidents"
+    },
+    {
+      "method": "GET",
+      "path": "/incidents/:id"
+    },
+    {
+      "method": "POST",
+      "path": "/incidents/:id/acknowledge"
+    },
+    {
+      "method": "POST",
+      "path": "/incidents/:id/investigate"
+    },
+    {
+      "method": "POST",
+      "path": "/incidents/:id/assign"
+    },
+    {
+      "method": "POST",
+      "path": "/incidents/:id/resolve"
+    },
+    {
+      "method": "POST",
+      "path": "/incidents/:id/dismiss"
+    },
+    {
+      "method": "POST",
+      "path": "/incidents/:id/reopen"
+    },
+    {
+      "method": "POST",
+      "path": "/incidents/:id/timeline"
+    },
+    {
+      "method": "GET",
+      "path": "/support/cases"
+    },
+    {
+      "method": "GET",
+      "path": "/support/cases/:id"
+    },
+    {
+      "method": "POST",
+      "path": "/support/cases"
+    },
+    {
+      "method": "POST",
+      "path": "/support/cases/:id/notes"
+    },
+    {
+      "method": "POST",
+      "path": "/support/cases/:id/assign"
+    },
+    {
+      "method": "POST",
+      "path": "/support/cases/:id/status"
+    },
+    {
+      "method": "POST",
+      "path": "/support/cases/:id/resolve"
+    },
+    {
+      "method": "POST",
+      "path": "/support/cases/:id/refund"
+    },
+    {
+      "method": "POST",
+      "path": "/recovery/retry-merchant-notification"
+    },
+    {
+      "method": "POST",
+      "path": "/recovery/retry-dispatch"
+    },
+    {
+      "method": "POST",
+      "path": "/recovery/reconcile-payment"
+    },
+    {
+      "method": "POST",
+      "path": "/recovery/retry-refund"
+    },
+    {
+      "method": "POST",
+      "path": "/recovery/retry-settlement"
+    },
+    {
+      "method": "POST",
+      "path": "/recovery/retry-payout"
+    },
+    {
+      "method": "POST",
+      "path": "/recovery/cancel-order"
+    },
+    {
+      "method": "POST",
+      "path": "/recovery/manual-assign-rider"
+    },
+    {
+      "method": "POST",
+      "path": "/scan/all"
+    },
+    {
+      "method": "GET",
+      "path": "/notifications"
+    },
+    {
+      "method": "POST",
+      "path": "/notifications/:id/retry"
+    },
+    {
+      "method": "GET",
+      "path": "/dead-letter-jobs"
+    },
+    {
+      "method": "POST",
+      "path": "/dead-letter-jobs/:id/retry"
+    },
+    {
+      "method": "GET",
+      "path": "/risk-signals"
+    },
+    {
+      "method": "POST",
+      "path": "/risk-signals/:id/review"
+    },
+    {
+      "method": "GET",
+      "path": "/risk-signals/score/:type/:id"
+    },
+    {
+      "method": "GET",
+      "path": "/kill-switches"
+    },
+    {
+      "method": "POST",
+      "path": "/kill-switches"
+    },
+    {
+      "method": "POST",
+      "path": "/cases"
+    },
+    {
+      "method": "GET",
+      "path": "/cases"
+    },
+    {
+      "method": "GET",
+      "path": "/cases/:id"
+    },
+    {
+      "method": "POST",
+      "path": "/cases/:id/notes"
+    },
+    {
+      "method": "GET",
+      "path": "/notifications"
+    },
+    {
+      "method": "POST",
+      "path": "/notifications/:id/read"
+    }
+  ],
+  "realtime/realtime.router.ts": [
+    {
+      "method": "GET",
+      "path": "/stream"
+    },
+    {
+      "method": "GET",
+      "path": "/events"
+    },
+    {
+      "method": "GET",
+      "path": "/health"
+    }
+  ],
+  "order/order.router.ts": [
+    {
+      "method": "POST",
+      "path": "/"
+    },
+    {
+      "method": "GET",
+      "path": "/:id"
+    },
+    {
+      "method": "POST",
+      "path": "/:id/cancel"
+    },
+    {
+      "method": "GET",
+      "path": "/:id/delivery"
+    },
+    {
+      "method": "GET",
+      "path": "/:id/track"
+    },
+    {
+      "method": "POST",
+      "path": "/:id/pay"
+    },
+    {
+      "method": "GET",
+      "path": "/:id/payments"
+    }
+  ],
+  "payment/payment.router.ts": [
+    {
+      "method": "POST",
+      "path": "/providers/mpesa/callback"
+    },
+    {
+      "method": "POST",
+      "path": "/providers/card/webhook"
+    },
+    {
+      "method": "POST",
+      "path": "/initiate"
+    },
+    {
+      "method": "GET",
+      "path": "/:id"
+    },
+    {
+      "method": "GET",
+      "path": "/order/:orderId"
+    },
+    {
+      "method": "GET",
+      "path": "/admin/all"
+    },
+    {
+      "method": "POST",
+      "path": "/admin/:id/refunds"
+    },
+    {
+      "method": "GET",
+      "path": "/admin/:id/refunds"
+    },
+    {
+      "method": "POST",
+      "path": "/admin/:id/reconcile"
+    }
+  ]
+}

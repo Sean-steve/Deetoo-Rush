@@ -1,0 +1,18 @@
+[
+  {
+    "command": "npm run dev",
+    "pid": 68013
+  },
+  {
+    "command": "npm run worker:payments",
+    "pid": 68019
+  },
+  {
+    "command": "npm run worker:outbox",
+    "pid": 68020
+  },
+  {
+    "command": "npm run worker:dispatch",
+    "pid": 68021
+  }
+]

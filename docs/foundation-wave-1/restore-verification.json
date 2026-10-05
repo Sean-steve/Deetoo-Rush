@@ -1,0 +1,424 @@
+{
+  "verifiedAt": "2026-09-14T23:59:44.172Z",
+  "restored": true,
+  "method": "pg_dump custom archive and pg_restore --exit-on-error into a separate database; every public table count and ordered row digest compared",
+  "sourceDatabase": "deetoo_foundation",
+  "restoredDatabase": "deetoo_foundation_restore_20260915",
+  "tables": [
+    {
+      "table": "addresses",
+      "count": "32",
+      "digest": "5f4e8e99d3ccbaaee8809ec752c27eca"
+    },
+    {
+      "table": "audit_logs",
+      "count": "88",
+      "digest": "681d2ace9bcf890ea896a5011e18fa71"
+    },
+    {
+      "table": "branch_opening_hours",
+      "count": "0",
+      "digest": null
+    },
+    {
+      "table": "branch_service_zones",
+      "count": "0",
+      "digest": null
+    },
+    {
+      "table": "cart_item_modifiers",
+      "count": "0",
+      "digest": null
+    },
+    {
+      "table": "cart_items",
+      "count": "15",
+      "digest": "92c97353fcaf4d631deb78d2d4374dcc"
+    },
+    {
+      "table": "carts",
+      "count": "15",
+      "digest": "a1e6a1bdbf16277377cbb75d3c380104"
+    },
+    {
+      "table": "checkout_quotes",
+      "count": "0",
+      "digest": null
+    },
+    {
+      "table": "customer_profiles",
+      "count": "71",
+      "digest": "4ee3640f1a603aef4f7326b8ce481d44"
+    },
+    {
+      "table": "dead_letter_jobs",
+      "count": "0",
+      "digest": null
+    },
+    {
+      "table": "deliveries",
+      "count": "8",
+      "digest": "562624c20ca8b99cea2af6e0a0df192a"
+    },
+    {
+      "table": "delivery_incidents",
+      "count": "0",
+      "digest": null
+    },
+    {
+      "table": "delivery_offers",
+      "count": "7",
+      "digest": "8a054ff4c1d7357223344268ec508516"
+    },
+    {
+      "table": "delivery_pricing_rules",
+      "count": "0",
+      "digest": null
+    },
+    {
+      "table": "delivery_proofs",
+      "count": "0",
+      "digest": null
+    },
+    {
+      "table": "delivery_timeline",
+      "count": "0",
+      "digest": null
+    },
+    {
+      "table": "dispatch_attempts",
+      "count": "0",
+      "digest": null
+    },
+    {
+      "table": "financial_adjustments",
+      "count": "0",
+      "digest": null
+    },
+    {
+      "table": "idempotency_keys",
+      "count": "15",
+      "digest": "2a13b51fbe5c2691cf2d1b4daad47fef"
+    },
+    {
+      "table": "item_modifier_groups",
+      "count": "11",
+      "digest": "52cc4273030ce222f590bf5cf30268bc"
+    },
+    {
+      "table": "ledger_accounts",
+      "count": "2",
+      "digest": "d30fe061522e36476b0c29504c135f8c"
+    },
+    {
+      "table": "ledger_entries",
+      "count": "16",
+      "digest": "c0009f351f8d1541e4167dcd4ee9b083"
+    },
+    {
+      "table": "ledger_transactions",
+      "count": "8",
+      "digest": "38b62dc7afbb63db05a3ce9a5c24e1af"
+    },
+    {
+      "table": "menu_branch_assignments",
+      "count": "15",
+      "digest": "9085e35be82caa569102be3d8919acc4"
+    },
+    {
+      "table": "menu_categories",
+      "count": "37",
+      "digest": "a7ba82191330b4c44648ebc36a9c8e60"
+    },
+    {
+      "table": "menu_item_branch_overrides",
+      "count": "11",
+      "digest": "b681b91b489cea123907bddaf76c4c97"
+    },
+    {
+      "table": "menu_items",
+      "count": "26",
+      "digest": "2fcdfcf99b06807d1df658ba3f1f2994"
+    },
+    {
+      "table": "menus",
+      "count": "27",
+      "digest": "6dd6b03f68eb6fe6f5f9f9d86505a440"
+    },
+    {
+      "table": "merchant_branches",
+      "count": "35",
+      "digest": "4a7d718eee7a968a8c62e35419fe7057"
+    },
+    {
+      "table": "merchant_commission_rules",
+      "count": "0",
+      "digest": null
+    },
+    {
+      "table": "merchant_invitations",
+      "count": "0",
+      "digest": null
+    },
+    {
+      "table": "merchant_membership_branches",
+      "count": "0",
+      "digest": null
+    },
+    {
+      "table": "merchant_memberships",
+      "count": "18",
+      "digest": "12e98763573963e86fa17bcdd1f75eb6"
+    },
+    {
+      "table": "merchant_settlement_lines",
+      "count": "0",
+      "digest": null
+    },
+    {
+      "table": "merchant_settlements",
+      "count": "4",
+      "digest": "2969cf4a656f26162a1472b83f83f744"
+    },
+    {
+      "table": "merchants",
+      "count": "53",
+      "digest": "e47d409a2b582c3eb7691b86bc2de8db"
+    },
+    {
+      "table": "modifier_groups",
+      "count": "11",
+      "digest": "9b614dff3ce599050fa3767a9ab51722"
+    },
+    {
+      "table": "modifier_option_branch_overrides",
+      "count": "0",
+      "digest": null
+    },
+    {
+      "table": "modifier_options",
+      "count": "11",
+      "digest": "e4d598e823d6eee344d9c69282b918f5"
+    },
+    {
+      "table": "notifications",
+      "count": "0",
+      "digest": null
+    },
+    {
+      "table": "operational_incident_timeline",
+      "count": "0",
+      "digest": null
+    },
+    {
+      "table": "operational_incidents",
+      "count": "0",
+      "digest": null
+    },
+    {
+      "table": "operational_kill_switches",
+      "count": "4",
+      "digest": "de933e12c663d19e5cd3208c7fd26db9"
+    },
+    {
+      "table": "order_financial_summaries",
+      "count": "0",
+      "digest": null
+    },
+    {
+      "table": "order_item_modifiers",
+      "count": "0",
+      "digest": null
+    },
+    {
+      "table": "order_items",
+      "count": "0",
+      "digest": null
+    },
+    {
+      "table": "order_status_history",
+      "count": "0",
+      "digest": null
+    },
+    {
+      "table": "order_timeline",
+      "count": "0",
+      "digest": null
+    },
+    {
+      "table": "orders",
+      "count": "15",
+      "digest": "30b350575593b13863ed650f3176f33e"
+    },
+    {
+      "table": "outbox_events",
+      "count": "63",
+      "digest": "5a460cdd426e3f226ae86ecfbbaedc32"
+    },
+    {
+      "table": "password_reset_tokens",
+      "count": "0",
+      "digest": null
+    },
+    {
+      "table": "payment_idempotency_keys",
+      "count": "0",
+      "digest": null
+    },
+    {
+      "table": "payment_provider_events",
+      "count": "10",
+      "digest": "e52bd66c41bc05858c397d3824c2125f"
+    },
+    {
+      "table": "payment_timeline",
+      "count": "0",
+      "digest": null
+    },
+    {
+      "table": "payments",
+      "count": "10",
+      "digest": "c3a694d958fb69aca60bef88ac3d9d8e"
+    },
+    {
+      "table": "permissions",
+      "count": "0",
+      "digest": null
+    },
+    {
+      "table": "promotion_redemptions",
+      "count": "0",
+      "digest": null
+    },
+    {
+      "table": "promotions",
+      "count": "0",
+      "digest": null
+    },
+    {
+      "table": "refund_timeline",
+      "count": "0",
+      "digest": null
+    },
+    {
+      "table": "refunds",
+      "count": "0",
+      "digest": null
+    },
+    {
+      "table": "restaurant_categories",
+      "count": "0",
+      "digest": null
+    },
+    {
+      "table": "restaurant_category_assignments",
+      "count": "0",
+      "digest": null
+    },
+    {
+      "table": "rider_availability_sessions",
+      "count": "10",
+      "digest": "034a7ddf3e9f1a1591dac68f45cc42b4"
+    },
+    {
+      "table": "rider_earnings",
+      "count": "0",
+      "digest": null
+    },
+    {
+      "table": "rider_payout_lines",
+      "count": "0",
+      "digest": null
+    },
+    {
+      "table": "rider_payouts",
+      "count": "4",
+      "digest": "bb8e87855a6b5a14eda778f843036d85"
+    },
+    {
+      "table": "rider_profiles",
+      "count": "28",
+      "digest": "19d0c9825f7e18a34a661fad305c3b7d"
+    },
+    {
+      "table": "rider_service_zones",
+      "count": "0",
+      "digest": null
+    },
+    {
+      "table": "rider_vehicles",
+      "count": "10",
+      "digest": "80cb541aa9aa52fbd961947e87acd3b5"
+    },
+    {
+      "table": "risk_signals",
+      "count": "0",
+      "digest": null
+    },
+    {
+      "table": "role_permissions",
+      "count": "0",
+      "digest": null
+    },
+    {
+      "table": "roles",
+      "count": "10",
+      "digest": "ee7d5c5f668e1497e17faa8a98b53c43"
+    },
+    {
+      "table": "schema_migrations",
+      "count": "21",
+      "digest": "e63e64a3243692b960d6fad3a6934a42"
+    },
+    {
+      "table": "service_fee_rules",
+      "count": "0",
+      "digest": null
+    },
+    {
+      "table": "service_zones",
+      "count": "0",
+      "digest": null
+    },
+    {
+      "table": "sessions",
+      "count": "71",
+      "digest": "6ac5b29648676f08d4f8259ce492cc6d"
+    },
+    {
+      "table": "spatial_ref_sys",
+      "count": "8500",
+      "digest": "7c38fdce04bf2f037682a661ee5fa2fb"
+    },
+    {
+      "table": "support_case_notes",
+      "count": "0",
+      "digest": null
+    },
+    {
+      "table": "support_cases",
+      "count": "5",
+      "digest": "5db393a4df46f5ee09264467bad2f23e"
+    },
+    {
+      "table": "user_mfa_credentials",
+      "count": "2",
+      "digest": "abf72a87fc545fc24a784ea83ffe4561"
+    },
+    {
+      "table": "user_roles",
+      "count": "113",
+      "digest": "73b57ea1f50305cca3ce7140b1c2bd36"
+    },
+    {
+      "table": "users",
+      "count": "113",
+      "digest": "d31ab8f47af31f92601d1cfe321ce079"
+    },
+    {
+      "table": "verification_tokens",
+      "count": "5",
+      "digest": "2f6b94993b0d509b8991c6d148904394"
+    }
+  ]
+}

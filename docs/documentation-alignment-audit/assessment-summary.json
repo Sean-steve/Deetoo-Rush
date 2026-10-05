@@ -1,0 +1,13 @@
+{
+  "rows": 288,
+  "status_counts": {
+    "IMPLEMENTED": 7,
+    "CONTRADICTS_DOCUMENTATION": 61,
+    "MISSING": 25,
+    "PARTIAL": 193,
+    "NOT_APPLICABLE": 2
+  },
+  "explicit_requirement_ids": 165,
+  "domain_count": 27,
+  "distinct_findings": 128
+}

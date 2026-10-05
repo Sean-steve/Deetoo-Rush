@@ -1,0 +1,430 @@
+import {
+  SettlementCalculateSchema,
+  RiderPayoutCalculateSchema,
+  FinancialAdjustmentCreateSchema,
+  ServiceZoneSchema,
+} from "@deetoo/validation";
+import { TableConfig, RowAction } from "./ResourceTable";
+const id = (row: any) => encodeURIComponent(row.id);
+const status = { key: "status", label: "Status" };
+const note = { key: "note", label: "Audit note" };
+export const adminViews: Record<string, TableConfig> = {
+  orders: {
+    title: "Orders & deliveries",
+    endpoint: "/admin/orders",
+    pageable: true,
+    searchable: true,
+    columns: [
+      { key: "order_number", label: "Order" },
+      { key: "customer_name", label: "Customer" },
+      { key: "branch_name", label: "Kitchen" },
+      status,
+      { key: "total_minor", label: "Total", money: true },
+    ],
+    detail: (r) => `/admin/orders/${id(r)}`,
+    actions: [
+      {
+        label: "Cancel order",
+        endpoint: (r) => `/admin/orders/${id(r)}/cancel`,
+        body: { reason_code: "ADMIN_INTERVENTION" },
+        fields: [note],
+        when: (r) => !["COMPLETED", "CANCELLED", "REJECTED"].includes(r.status),
+      },
+    ],
+  },
+  dispatch: {
+    title: "Live dispatch & fleet",
+    endpoint: "/admin/dispatch/deliveries",
+    refreshInterval: 5000,
+    pageable: true,
+    searchable: true,
+    columns: [
+      { key: "order_number", label: "Order" },
+      { key: "branch_name", label: "Kitchen" },
+      status,
+      { key: "assigned_rider_name", label: "Assigned rider" },
+      { key: "dropoff_address_text", label: "Destination" },
+    ],
+    detail: (r) => `/admin/dispatch/deliveries/${id(r)}`,
+    actions: [
+      {
+        label: "Assign rider",
+        endpoint: (r) => `/admin/dispatch/deliveries/${id(r)}/assign`,
+        fields: [{ key: "rider_id", label: "Eligible rider ID" }, note],
+        when: (r) => ["UNASSIGNED", "OFFERED"].includes(r.status),
+      },
+      {
+        label: "Retry dispatch",
+        endpoint: (r) => `/admin/dispatch/deliveries/${id(r)}/trigger`,
+        when: (r) => ["UNASSIGNED", "OFFERED"].includes(r.status),
+      },
+      {
+        label: "Release rider",
+        endpoint: (r) => `/admin/dispatch/deliveries/${id(r)}/unassign`,
+        fields: [{ key: "reason_code", label: "Reason code" }, note],
+        when: (r) => ["ASSIGNED", "ARRIVED_PICKUP"].includes(r.status),
+      },
+    ],
+  },
+  merchants: {
+    title: "Merchants & approvals",
+    endpoint: "/admin/merchants",
+    pageable: true,
+    offsetPaging: true,
+    searchable: true,
+    columns: [
+      { key: "display_name", label: "Merchant" },
+      { key: "approval_status", label: "Approval" },
+      { key: "operational_status", label: "Operations" },
+    ],
+    detail: (r) => `/admin/merchants/${id(r)}`,
+    actions: [
+      {
+        label: "Approve merchant",
+        endpoint: (r) => `/admin/merchants/${id(r)}/approve`,
+        fields: [note],
+        when: (r) => r.approval_status === "PENDING_REVIEW",
+      },
+      {
+        label: "Reject merchant",
+        endpoint: (r) => `/admin/merchants/${id(r)}/reject`,
+        fields: [{ key: "reason", label: "Rejection reason" }],
+        when: (r) => r.approval_status === "PENDING_REVIEW",
+      },
+    ],
+  },
+  branches: {
+    title: "Branches",
+    endpoint: "/admin/branches",
+    columns: [
+      { key: "name", label: "Branch" },
+      { key: "merchant_id", label: "Merchant" },
+      { key: "address_line1", label: "Address" },
+      { key: "operational_status", label: "Status" },
+    ],
+    detail: (r) => `/admin/branches/${id(r)}`,
+    actions: [
+      {
+        label: "Suspend branch",
+        endpoint: (r) => `/admin/branches/${id(r)}/suspend`,
+        fields: [{ key: "reason", label: "Reason" }],
+      },
+      {
+        label: "Reactivate branch",
+        endpoint: (r) => `/admin/branches/${id(r)}/reactivate`,
+        fields: [{ key: "reason", label: "Reason" }],
+      },
+    ],
+  },
+  zones: {
+    title: "Service zones",
+    endpoint: "/admin/service-zones",
+    columns: [
+      { key: "name", label: "Zone" },
+      { key: "city_id", label: "City" },
+      status,
+    ],
+    actions: [
+      {
+        label: "Rename zone",
+        endpoint: (r) => `/admin/service-zones/${id(r)}`,
+        method: "PATCH",
+        fields: [{ key: "name", label: "Zone name" }],
+      },
+    ],
+  },
+  ledger: {
+    title: "Financial ledger",
+    endpoint: "/finance/transactions",
+    listKey: "transactions",
+    searchable: true,
+    columns: [
+      { key: "id", label: "Transaction" },
+      { key: "reference_id", label: "Reference" },
+      { key: "description", label: "Description" },
+      { key: "effective_at", label: "Effective at" },
+    ],
+  },
+  accounts: {
+    toolbar: [
+      {
+        label: "Post adjustment",
+        endpoint: () => "/finance/adjustments",
+        schema: FinancialAdjustmentCreateSchema,
+        fields: [
+          { key: "targetAccountId", label: "Target account ID" },
+          { key: "offsetAccountId", label: "Offset account ID" },
+          {
+            key: "direction",
+            label: "Direction",
+            options: ["DEBIT", "CREDIT"],
+          },
+          { key: "amountMinor", label: "Amount (minor units)", type: "number" },
+          {
+            key: "reasonCode",
+            label: "Reason",
+            options: [
+              "MERCHANT_CORRECTION",
+              "RIDER_CORRECTION",
+              "CUSTOMER_REFUND_ADJUSTMENT",
+              "PAYMENT_PROCESSOR_ADJUSTMENT",
+              "MANUAL_FINANCE_CORRECTION",
+            ],
+          },
+          { key: "note", label: "Audit note" },
+        ],
+      },
+    ],
+    title: "Ledger accounts",
+    endpoint: "/finance/accounts",
+    listKey: "accounts",
+    columns: [
+      { key: "id", label: "Account" },
+      { key: "type", label: "Type" },
+      { key: "owner_type", label: "Owner" },
+      { key: "balance_minor", label: "Balance", money: true },
+    ],
+    detail: (r) => `/finance/accounts/${id(r)}/entries`,
+  },
+  payments: {
+    title: "M-PESA & card payments",
+    endpoint: "/payments/admin/all",
+    pageable: true,
+    searchable: true,
+    columns: [
+      { key: "id", label: "Payment" },
+      { key: "order_id", label: "Order" },
+      { key: "method", label: "Method" },
+      status,
+      { key: "amount_minor", label: "Amount", money: true },
+    ],
+    detail: (r) => `/payments/admin/${id(r)}/refunds`,
+    actions: [
+      {
+        label: "Reconcile payment",
+        endpoint: (r) => `/payments/admin/${id(r)}/reconcile`,
+      },
+      {
+        label: "Request refund",
+        endpoint: (r) => `/payments/admin/${id(r)}/refunds`,
+        fields: [
+          {
+            key: "amount_minor",
+            label: "Refund amount (minor units)",
+            type: "number",
+          },
+          {
+            key: "reason_code",
+            label: "Reason",
+            options: [
+              "MERCHANT_REJECTED",
+              "ORDER_CANCELLED",
+              "ITEM_MISSING",
+              "DUPLICATE_PAYMENT",
+              "DELIVERY_FAILED",
+              "CUSTOMER_SUPPORT_ADJUSTMENT",
+              "OTHER",
+            ],
+          },
+          note,
+        ],
+        when: (r) => ["CAPTURED", "PARTIALLY_REFUNDED"].includes(r.status),
+      },
+    ],
+  },
+  settlements: {
+    toolbar: [
+      {
+        label: "Calculate settlement",
+        endpoint: () => "/finance/settlements/calculate",
+        schema: SettlementCalculateSchema,
+        fields: [
+          { key: "merchantId", label: "Merchant ID" },
+          { key: "periodStart", label: "Period start", type: "date" },
+          { key: "periodEnd", label: "Period end", type: "date" },
+        ],
+      },
+    ],
+    title: "Merchant settlements",
+    endpoint: "/finance/settlements",
+    listKey: "settlements",
+    columns: [
+      { key: "id", label: "Settlement" },
+      { key: "merchant_id", label: "Merchant" },
+      status,
+      { key: "net_settlement_amount_minor", label: "Net payable", money: true },
+    ],
+    actions: [
+      {
+        label: "Approve settlement",
+        endpoint: (r) => `/finance/settlements/${id(r)}/approve`,
+        fields: [note],
+        when: (r) => ["CALCULATED", "DRAFT"].includes(r.status),
+      },
+      {
+        label: "Record payment",
+        endpoint: (r) => `/finance/settlements/${id(r)}/pay`,
+        fields: [{ key: "paymentReference", label: "Payment reference" }],
+        when: (r) => r.status === "APPROVED",
+      },
+    ],
+  },
+  payouts: {
+    toolbar: [
+      {
+        label: "Calculate rider payout",
+        endpoint: () => "/finance/payouts/calculate",
+        schema: RiderPayoutCalculateSchema,
+        fields: [
+          { key: "riderId", label: "Rider ID" },
+          { key: "periodStart", label: "Period start", type: "date" },
+          { key: "periodEnd", label: "Period end", type: "date" },
+        ],
+      },
+    ],
+    title: "Rider payouts",
+    endpoint: "/finance/payouts",
+    listKey: "payouts",
+    columns: [
+      { key: "id", label: "Payout" },
+      { key: "rider_id", label: "Rider" },
+      status,
+      { key: "amount_minor", label: "Amount", money: true },
+    ],
+    actions: [
+      {
+        label: "Approve payout",
+        endpoint: (r) => `/finance/payouts/${id(r)}/approve`,
+        fields: [note],
+        when: (r) => ["CALCULATED", "DRAFT"].includes(r.status),
+      },
+      {
+        label: "Pay rider",
+        endpoint: (r) => `/finance/payouts/${id(r)}/pay`,
+        fields: [{ key: "providerReference", label: "Provider reference" }],
+        when: (r) => r.status === "APPROVED",
+      },
+    ],
+  },
+  incidents: {
+    title: "Fleet & incidents",
+    endpoint: "/admin/operations/incidents",
+    listKey: "incidents",
+    columns: [
+      { key: "id", label: "Incident" },
+      { key: "title", label: "Issue" },
+      { key: "severity", label: "Severity" },
+      status,
+      { key: "order_id", label: "Order" },
+    ],
+    detail: (r) => `/admin/operations/incidents/${id(r)}`,
+    actions: [
+      {
+        label: "Acknowledge",
+        endpoint: (r) => `/admin/operations/incidents/${id(r)}/acknowledge`,
+        when: (r) => r.status === "OPEN",
+      },
+      {
+        label: "Investigate",
+        endpoint: (r) => `/admin/operations/incidents/${id(r)}/investigate`,
+        fields: [note],
+        when: (r) => ["OPEN", "ACKNOWLEDGED"].includes(r.status),
+      },
+      {
+        label: "Resolve",
+        endpoint: (r) => `/admin/operations/incidents/${id(r)}/resolve`,
+        fields: [{ key: "resolutionNotes", label: "Resolution notes" }],
+        when: (r) => !["RESOLVED", "DISMISSED"].includes(r.status),
+      },
+    ],
+  },
+  support: {
+    title: "Support cases",
+    endpoint: "/admin/operations/support/cases",
+    listKey: "cases",
+    columns: [
+      { key: "id", label: "Case" },
+      { key: "subject", label: "Subject" },
+      { key: "priority", label: "Priority" },
+      status,
+    ],
+    detail: (r) => `/admin/operations/support/cases/${id(r)}`,
+    actions: [
+      {
+        label: "Add internal note",
+        endpoint: (r) => `/admin/operations/support/cases/${id(r)}/notes`,
+        body: { visibility: "INTERNAL" },
+        fields: [{ key: "body", label: "Note" }],
+      },
+      {
+        label: "Resolve case",
+        endpoint: (r) => `/admin/operations/support/cases/${id(r)}/resolve`,
+        fields: [
+          { key: "resolutionCode", label: "Resolution code" },
+          { key: "resolutionNotes", label: "Resolution notes" },
+        ],
+        when: (r) => !["RESOLVED", "CLOSED"].includes(r.status),
+      },
+    ],
+  },
+  notifications: {
+    title: "Notifications",
+    endpoint: "/admin/operations/notifications",
+    listKey: "notifications",
+    columns: [
+      { key: "id", label: "Notification" },
+      { key: "channel", label: "Channel" },
+      status,
+      { key: "recipient_id", label: "Recipient" },
+    ],
+    actions: [
+      {
+        label: "Retry notification",
+        endpoint: (r) => `/admin/operations/notifications/${id(r)}/retry`,
+        when: (r) => ["FAILED", "DEAD_LETTER"].includes(r.status),
+      },
+    ],
+  },
+  jobs: {
+    title: "Failed background jobs",
+    endpoint: "/admin/operations/dead-letter-jobs",
+    listKey: "jobs",
+    columns: [
+      { key: "id", label: "Job" },
+      { key: "job_type", label: "Type" },
+      status,
+      { key: "attempts", label: "Attempts" },
+    ],
+    actions: [
+      {
+        label: "Retry job",
+        endpoint: (r) => `/admin/operations/dead-letter-jobs/${id(r)}/retry`,
+      },
+    ],
+  },
+  risk: {
+    title: "Risk signals",
+    endpoint: "/admin/operations/risk-signals",
+    listKey: "signals",
+    columns: [
+      { key: "id", label: "Signal" },
+      { key: "signal_type", label: "Type" },
+      { key: "severity", label: "Severity" },
+      status,
+    ],
+    actions: [
+      {
+        label: "Review signal",
+        endpoint: (r) => `/admin/operations/risk-signals/${id(r)}/review`,
+        fields: [
+          {
+            key: "status",
+            label: "Review status",
+            options: ["DISMISSED", "CONFIRMED"],
+          },
+          { key: "notes", label: "Review notes" },
+        ],
+      },
+    ],
+  },
+};

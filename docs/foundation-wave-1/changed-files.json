@@ -1,0 +1,638 @@
+[
+  {
+    "file": ".env.example",
+    "change": "modified",
+    "beforeSha256": "8d69ff10ba286f1737f549f3a221b48762465fb23ebf52913f462aba352cf0e2",
+    "afterSha256": "7f38cd3f20372d9a41b2d23ec639e2d705920cf75c6afccd78af57cd571eaf12"
+  },
+  {
+    "file": ".github/workflows/ci.yml",
+    "change": "modified",
+    "beforeSha256": "f167d75cf293b859ffaf72d42a02392e71ccc1a132bb408ccde2a93375a63df1",
+    "afterSha256": "a159567958e922e84dbb958de7db671d7ef43cbbc1a5108d45c2be4eca724e04"
+  },
+  {
+    "file": "README.md",
+    "change": "modified",
+    "beforeSha256": "6211eb7e736cedb8c28d6bd65cea34db7bbdfcbc70e55f1606672699137fe17a",
+    "afterSha256": "10f9dd2edd22b97c567fdeef4ebf1b5d552d48a44b935ea1c96c3de24afea092"
+  },
+  {
+    "file": "apps/api/src/db/adapter.ts",
+    "change": "added",
+    "beforeSha256": null,
+    "afterSha256": "c506846ca727920945e02422f0fd57645071f10145fd9e908340c4e430e40faa"
+  },
+  {
+    "file": "apps/api/src/db/client.ts",
+    "change": "modified",
+    "beforeSha256": "94516b972c4ee8daabe6d759863df66e4398a36abecd55dc23227edf12031608",
+    "afterSha256": "84fd7f0da3343ec2e1b6c0b09430885cfd8098761b9ad447318e1fba8445aa45"
+  },
+  {
+    "file": "apps/api/src/db/migrations/006_sprint_5_customer_discovery.sql",
+    "change": "modified",
+    "beforeSha256": "2301804bcad5847bbc6746283495f2c6d65843f4434c51592006fdf6b8f4f1b7",
+    "afterSha256": "ef8f6f3d83c3da4135e618eb7793741aeb0f9cdc59530977c51e381f57f7cef5"
+  },
+  {
+    "file": "apps/api/src/db/migrations/007a_foundation_idempotency_compat.sql",
+    "change": "added",
+    "beforeSha256": null,
+    "afterSha256": "78d885a4ef7140c78d4b728d7b3dbea8235c05f13f7eaf40dbbc1d8d6977ff56"
+  },
+  {
+    "file": "apps/api/src/db/migrations/008a_foundation_rider_identity.sql",
+    "change": "added",
+    "beforeSha256": null,
+    "afterSha256": "2131829b8a4a6977368b0fe44826570b181c7212c147d574c7e8095d4133dd27"
+  },
+  {
+    "file": "apps/api/src/db/migrations/012a_foundation_ledger_compat.sql",
+    "change": "added",
+    "beforeSha256": null,
+    "afterSha256": "cbca0f43e8b61c84f253d940f96de2a2d6eff70abd65b61a83ba6b0762d41375"
+  },
+  {
+    "file": "apps/api/src/db/migrations/015_foundation_identity_outbox.sql",
+    "change": "added",
+    "beforeSha256": null,
+    "afterSha256": "25af0e2c4cad659ec2044d49438ed234ee29fac7ec5a4206086c591800048afd"
+  },
+  {
+    "file": "apps/api/src/db/migrations/016_foundation_branch_menu_contract.sql",
+    "change": "added",
+    "beforeSha256": null,
+    "afterSha256": "9e4288793b30c426d65aa80738e1837cc46d2110c9521b2543f42f8bc47563a6"
+  },
+  {
+    "file": "apps/api/src/db/migrations/017_foundation_rider_constraints.sql",
+    "change": "added",
+    "beforeSha256": null,
+    "afterSha256": "b760322c091388a873f0b90042bc75db83a23d698a5903f236c28eda12645323"
+  },
+  {
+    "file": "apps/api/src/db/migrations/018_foundation_mfa.sql",
+    "change": "added",
+    "beforeSha256": null,
+    "afterSha256": "9e37c64753b995a57ae75f5b18e4c9aa9a7e69f75e14de86226c9cffc2a3740d"
+  },
+  {
+    "file": "apps/api/src/db/redis.ts",
+    "change": "modified",
+    "beforeSha256": "b9d62eacc5a3397e294336270e4e1276392994a6c63dbfa153113653e316372e",
+    "afterSha256": "cf25d845868237ab7508e8319f296f121ae16b3faaa022c838a03ac629edc446"
+  },
+  {
+    "file": "apps/api/src/db/relational.ts",
+    "change": "added",
+    "beforeSha256": null,
+    "afterSha256": "c140f39da8f9d7970b5523dbb0cb41ed0834ff8998e6fe0af8feade9532ef073"
+  },
+  {
+    "file": "apps/api/src/db/storage-policy.ts",
+    "change": "added",
+    "beforeSha256": null,
+    "afterSha256": "5e9dba81e30974c5dbbb30bd478bd444fa22c968723ff45b5309302568f2cf89"
+  },
+  {
+    "file": "apps/api/src/db/transaction.ts",
+    "change": "added",
+    "beforeSha256": null,
+    "afterSha256": "240583ec810f20531429f4e80c46fa947b72367e2eeff6c9fa8b4a21450251af"
+  },
+  {
+    "file": "apps/api/src/middleware/error-handler.ts",
+    "change": "modified",
+    "beforeSha256": "49d7cbe369cc6ee634a59d2bd3fe4c8ccecabdefb7151a9cf8bbff9a5eaa755d",
+    "afterSha256": "e00c2da9d3daf78333ef13502ee4f8c39783895fea10846432772734395d999f"
+  },
+  {
+    "file": "apps/api/src/middleware/scoped-response.ts",
+    "change": "added",
+    "beforeSha256": null,
+    "afterSha256": "9abc3a9d9e5317712e7549363cb6e49a1badf4d063094cba833a7a329decce7d"
+  },
+  {
+    "file": "apps/api/src/middleware/security.ts",
+    "change": "modified",
+    "beforeSha256": "fc2592bec5966b875887056a77d349750980045e49115eba6c1e52cc5b2c2d26",
+    "afterSha256": "a9dbf510bc5da5fdc9a7386dc2b92e4eacef0f7af9e6eaa507ce7a6125808406"
+  },
+  {
+    "file": "apps/api/src/modules/admin/admin.router.ts",
+    "change": "modified",
+    "beforeSha256": "0fda28b585a74d432061ea657ba60b13406a85906f18152fd4e724acfadd9f90",
+    "afterSha256": "841a20d8ee27aa5d747b9c38588fc3b88e17a049342c46d3266fddf43018602f"
+  },
+  {
+    "file": "apps/api/src/modules/auth/auth.middleware.ts",
+    "change": "modified",
+    "beforeSha256": "e1a6b239ac4af17723d02ad7d2ce807d9debe980b6f075ab7a81e828150333c2",
+    "afterSha256": "34897bdba9bb837d5dcdd33b0ca605b035ad5402a9ed11c19d0e49fc4eb6c40a"
+  },
+  {
+    "file": "apps/api/src/modules/auth/auth.postgres.ts",
+    "change": "added",
+    "beforeSha256": null,
+    "afterSha256": "b03db08da49d39547acd6d5711bba53262bba2298f225e4d735f805a07114be9"
+  },
+  {
+    "file": "apps/api/src/modules/auth/auth.repository.ts",
+    "change": "modified",
+    "beforeSha256": "653a996f4f95bee13267808c936f7002bff9a4aca4311e8078e47d5ef829b8c5",
+    "afterSha256": "1336c0f939707bab8f0021ce0db5f27bb59ac5f5c985944804a799ec0d06cb25"
+  },
+  {
+    "file": "apps/api/src/modules/auth/auth.router.ts",
+    "change": "modified",
+    "beforeSha256": "e0f58e4b19cefc6d355da747476138f5fff33ebc3c8ad603e616098c7e278234",
+    "afterSha256": "3078a1e5e10b1ebc8b9444939001e3fde7fe71c9ce2b474ff050547cc9e3c28c"
+  },
+  {
+    "file": "apps/api/src/modules/auth/auth.service.ts",
+    "change": "modified",
+    "beforeSha256": "206a648a0b7ff9b858b501533b8b9675863e78b6cb467658aeee09c6682adf3a",
+    "afterSha256": "38a140fa001f358e836f9a5a78ecae428b7b629d6a0a2ed435f67f97e09ca3c1"
+  },
+  {
+    "file": "apps/api/src/modules/auth/mfa.ts",
+    "change": "added",
+    "beforeSha256": null,
+    "afterSha256": "3e5cf07238c2de2ae6fd841e0c2a14413431b1d6fa858e0c91d97a9bc8cac45f"
+  },
+  {
+    "file": "apps/api/src/modules/auth/rate-limit.middleware.ts",
+    "change": "modified",
+    "beforeSha256": "d9ce32c1ff533f4f7e654a7fab414dc48a8ae154576c8dc892825a57868cf518",
+    "afterSha256": "6d65bb6283c3d6a62349eca86a78300783485220c8aa817fa558a8f98590ad73"
+  },
+  {
+    "file": "apps/api/src/modules/auth/scope.ts",
+    "change": "modified",
+    "beforeSha256": "f8eb9a4d8baf21ed21f72bad1d1ecd42be3e44660dd30987a4b1ecc9e1aa9d06",
+    "afterSha256": "3520a4e9f112e4ce2bc59c98acbc0f16c0980aba3b9dc44f18bbbe03174de3e5"
+  },
+  {
+    "file": "apps/api/src/modules/cart/cart.postgres.ts",
+    "change": "added",
+    "beforeSha256": null,
+    "afterSha256": "e6049ba57fce279bc2c1d51622ba68441d9cb771207a5866eb429dc801427675"
+  },
+  {
+    "file": "apps/api/src/modules/cart/cart.repository.ts",
+    "change": "modified",
+    "beforeSha256": "a021185af5c8d5543a9c3cd85033d940412fc33300f92081b725230c97945996",
+    "afterSha256": "9ff9aeb4d42c8ab0041fdd844aa5efc11568aa8aaf90bc154c38759b2cb0fed6"
+  },
+  {
+    "file": "apps/api/src/modules/cart/cart.service.ts",
+    "change": "modified",
+    "beforeSha256": "a3e5c0546f381b0e063eeefeb8aefab6fd08180aa8cb2704c5478482789c9b38",
+    "afterSha256": "b56d766271b6f1b15e09e0486c48c6d331d330041336d94229f5f2fbcb66632d"
+  },
+  {
+    "file": "apps/api/src/modules/cart/checkout.service.ts",
+    "change": "modified",
+    "beforeSha256": "d173a35e256facceeb4ded491086bad335530c3d990c6a596d04a408c1f715c7",
+    "afterSha256": "54a069368b6c20550a4d75c60cba52625c45eca572eb617b69c2f5e95fc17046"
+  },
+  {
+    "file": "apps/api/src/modules/cart/pricing.service.ts",
+    "change": "modified",
+    "beforeSha256": "b5fb48b81b1d69880e17fb8b9d86e78ab45885f8b3126f13dc88a69456ec433b",
+    "afterSha256": "924725fad4e5ef07e81141b28fbdfde7404e4c1aab1390daea42689905293cc8"
+  },
+  {
+    "file": "apps/api/src/modules/customer/customer.postgres.ts",
+    "change": "added",
+    "beforeSha256": null,
+    "afterSha256": "67c693c876ef4f3510b77b9901f0551bad6bfd330c879ffe30e24fe8dfa9349e"
+  },
+  {
+    "file": "apps/api/src/modules/customer/customer.repository.ts",
+    "change": "modified",
+    "beforeSha256": "1a9a6d94878b857e12c956cfdc74c637f33185ce3f61c7764aa8cef4a0b46e47",
+    "afterSha256": "a71c14fd78291b2801eb81ad7ec0918311a638be0262d4154f2679bd8127fee5"
+  },
+  {
+    "file": "apps/api/src/modules/customer/customer.service.ts",
+    "change": "modified",
+    "beforeSha256": "781220daa0488fa4d7d6212c8784970b49d6ca5f3d5db00cef26aa061c076ba5",
+    "afterSha256": "4ff6a70439aee381c87452bea9b39e1848cdf78d4d72be54c4a2dec7e64b6b0a"
+  },
+  {
+    "file": "apps/api/src/modules/discovery/discovery.service.ts",
+    "change": "modified",
+    "beforeSha256": "bea3a7987d8e9e1ca657e2d895b60945d2c05d73d77e279816379580f0f79014",
+    "afterSha256": "868d0082deacdd565886510387dbe4669427474ac2eb2d31768f7b580e61f317"
+  },
+  {
+    "file": "apps/api/src/modules/finance/commission.service.ts",
+    "change": "modified",
+    "beforeSha256": "2c4ea3c7ef242ebab457b93ef5f43c77399a3e4ffa667125ce9c622295c34f16",
+    "afterSha256": "05e18c4ce67b0286656a52e5caccd628a39552e660f31296ce3cc0b81032d4e6"
+  },
+  {
+    "file": "apps/api/src/modules/finance/finance.router.ts",
+    "change": "modified",
+    "beforeSha256": "0a642c1578e02529b67bc0a3821d1bc42d211e86f77d6ea3e1cbd6fccccafbae",
+    "afterSha256": "27b1fef7c7c71223ac86ce2a8a047f52f858d915fb71fa78d12281aa1ebd9cac"
+  },
+  {
+    "file": "apps/api/src/modules/finance/financial-posting.service.ts",
+    "change": "modified",
+    "beforeSha256": "b37cbfa1f04505645c5c3311521b1f6b761f1ab9c3a5f97603e071625e83d4fa",
+    "afterSha256": "4ad0fb314443911d25e142ea990c88758ff08ddb84121f73d7005cb821651afb"
+  },
+  {
+    "file": "apps/api/src/modules/finance/ledger.repository.ts",
+    "change": "modified",
+    "beforeSha256": "3c14bd7a15e4ebb48eb5ab56f622b65cd2f97d81076d6daa067bb8ac4edffebc",
+    "afterSha256": "d1b9b8970e126e537d8d861812d0b40c440837fe40d79783be8f5bbcd537a9bd"
+  },
+  {
+    "file": "apps/api/src/modules/finance/profitability.service.ts",
+    "change": "modified",
+    "beforeSha256": "b5241a5ea56de1b1347ed43e630cb90e1f53f4ebd445a2596d0163263aa27bb8",
+    "afterSha256": "235e7c1ef49db1f2b5ad82e4533f1e98d8d5a37d85adc6c0a43e0c7d469c6935"
+  },
+  {
+    "file": "apps/api/src/modules/finance/reconciliation.service.ts",
+    "change": "modified",
+    "beforeSha256": "658c963adf0aa428964c19c156fa4ddf56a906b537b780905f32b08d1710f7f9",
+    "afterSha256": "fdfa82b396044964f9deced69103a04afd112b39345c1970f2304fde2d5785e2"
+  },
+  {
+    "file": "apps/api/src/modules/finance/rider-earnings.service.ts",
+    "change": "modified",
+    "beforeSha256": "ce196e5ecfc396459774f261917f027d39bd11a470d66f247e721a65abf08109",
+    "afterSha256": "bd006858dc248d3ebb542fbf7cff5293f398d093cbb5e4f33978c39870e3546c"
+  },
+  {
+    "file": "apps/api/src/modules/finance/rider-payout.service.ts",
+    "change": "modified",
+    "beforeSha256": "f94d9ea95748d2d4c5683340fe93f9ceaf5bb5cbd60609e82b07f1296e7284d7",
+    "afterSha256": "275935fe76a83422e1bd5070530b18c2822494c2814ac9f9a3019fa3c3265e36"
+  },
+  {
+    "file": "apps/api/src/modules/finance/settlement.service.ts",
+    "change": "modified",
+    "beforeSha256": "e0aa1715c5ab270cd097cc7ee9caa51bfacd67111ac0b354f0909e2366076b53",
+    "afterSha256": "2c4be846900b782bbe2a1a559da8d286cfe3ab005a070d7d9ade1723302933a8"
+  },
+  {
+    "file": "apps/api/src/modules/health/health.router.ts",
+    "change": "modified",
+    "beforeSha256": "07af70ca8378a4fcd187b3c287447626194172dc3af3f6c76d6ff85439e6f0c6",
+    "afterSha256": "9c3ecc6313f5b477f387b3d3d910b4bcbb38fa3d71d3f99c20ef86038619ddff"
+  },
+  {
+    "file": "apps/api/src/modules/maps/maps.provider.ts",
+    "change": "modified",
+    "beforeSha256": "6fbd2db67a9edf5ca43e82b1962603738ef8a18a924e87659fc07f7dccf8a5a7",
+    "afterSha256": "0cf91326ebf4c95f56e0eda9a035598f910be450843077e883ce3fa9052482cc"
+  },
+  {
+    "file": "apps/api/src/modules/merchant/catalogue.postgres.ts",
+    "change": "added",
+    "beforeSha256": null,
+    "afterSha256": "7ea5aa2a0fa55c27280af1ed5b28c6534cb6ad94143eee611f4b69df238cfd5f"
+  },
+  {
+    "file": "apps/api/src/modules/merchant/catalogue.repository.ts",
+    "change": "modified",
+    "beforeSha256": "22d6a0d75603d7cd049bda79eddb5e2cc6a246f0683c9312896609414e490e8e",
+    "afterSha256": "c03a91bdee877ef5d2aa665d71bdec83f8d821e3bf88cc0b1572e458b27702f3"
+  },
+  {
+    "file": "apps/api/src/modules/merchant/catalogue.router.ts",
+    "change": "modified",
+    "beforeSha256": "42eb8f4217b7cec659dd2a85031ec82e52ebaa5e01c3e1a3df8d65352378ce3b",
+    "afterSha256": "0c8e13802bb57465c36b7148f424533c19b9cecf236373b3816f633f5982f951"
+  },
+  {
+    "file": "apps/api/src/modules/merchant/catalogue.service.ts",
+    "change": "modified",
+    "beforeSha256": "5c4c0a1c4d20cbb14c0f132a88c527929ff2b2a53eab9bdeeaf18ce1528434b9",
+    "afterSha256": "b9403a6cbbb056f43cf88d9fb480b7d282e8b3dd9837baa6081a9d09e2da4db8"
+  },
+  {
+    "file": "apps/api/src/modules/merchant/membership.postgres.ts",
+    "change": "added",
+    "beforeSha256": null,
+    "afterSha256": "b819e67d2af9e33d653456ecb0f941866b5f0fc27b6763d4a51bfa3583801824"
+  },
+  {
+    "file": "apps/api/src/modules/merchant/merchant-orders.router.ts",
+    "change": "modified",
+    "beforeSha256": "6d5ac73bc44da1692430b5d36bc6049a68afbd74a1fe5f3123f95afea49a3bd2",
+    "afterSha256": "1cdb44e89387c5c3f0cd1eeb136bb8121caf63c91867743bb4d596931217e32b"
+  },
+  {
+    "file": "apps/api/src/modules/merchant/merchant.postgres.ts",
+    "change": "added",
+    "beforeSha256": null,
+    "afterSha256": "05a23fc63358e6e28be52169cda26b4ce60b7f8ba0ee65212f5ef2bc716eeaf3"
+  },
+  {
+    "file": "apps/api/src/modules/merchant/merchant.repository.ts",
+    "change": "modified",
+    "beforeSha256": "52b2a8f7f00865c6a17e8d01ad710fd4d36571b972fe21caa113a4d811dc3d14",
+    "afterSha256": "e1c5986efa4596c8b7c2db381c752e2106d8a11aa49c20372e1feafae5dde417"
+  },
+  {
+    "file": "apps/api/src/modules/merchant/merchant.service.ts",
+    "change": "modified",
+    "beforeSha256": "826cc3c3cd8e59140116782a91fa74250d1e90deb7ba020e82c3f8b628b579e6",
+    "afterSha256": "e32b02007f9f213f285247c41b8c46199ccbc2f20ca086499c9a532935c82c29"
+  },
+  {
+    "file": "apps/api/src/modules/operations/async-job.service.ts",
+    "change": "modified",
+    "beforeSha256": "a785f6d3d17cd3a7ed29a9ced5d3ed2c43bbd6606306f08c453a61d1e7049727",
+    "afterSha256": "3adbbea41c65e1a9104ac82aee5638ea6311daac31a8fd256b8d3145c66a7307"
+  },
+  {
+    "file": "apps/api/src/modules/operations/incident.service.ts",
+    "change": "modified",
+    "beforeSha256": "1bcd6ab42570da4e9b0c07a47e5c874431db1de6b1abdb304f51285289ef996b",
+    "afterSha256": "4956003d3343692a38c1e26807b1a7a251e33cb2b083fc0a5181eca5efe738b4"
+  },
+  {
+    "file": "apps/api/src/modules/operations/notification.service.ts",
+    "change": "modified",
+    "beforeSha256": "15ff592d3a4f2d622652996bf92c889b6cc994744af8163003417af9755f1d8d",
+    "afterSha256": "4f32654bcfa331026e7cbab9d41c47fdf2c9d4895b696c3082b56fd027143792"
+  },
+  {
+    "file": "apps/api/src/modules/operations/operations.repository.ts",
+    "change": "modified",
+    "beforeSha256": "e31817bbe48387eb16bac078b872d31e77a8dbac8caa99414dc9c4535f9c4ba4",
+    "afterSha256": "13bd707597387fd1ba3296b063aee142b198decb6f9d2ab7949df6ba3ebf7eca"
+  },
+  {
+    "file": "apps/api/src/modules/operations/operations.router.ts",
+    "change": "modified",
+    "beforeSha256": "cef585074a01cebab4aa8ba6bb960ac5791ea0b624143f1590534ebf0e801ae0",
+    "afterSha256": "e6a16d46e736bfdd115542a8c8a9077f5e10800cbc84fdc30c4a90900d779017"
+  },
+  {
+    "file": "apps/api/src/modules/operations/recovery.service.ts",
+    "change": "modified",
+    "beforeSha256": "d4ef63e7edbb55f0c7ed250b98b815613489bb7addc84af8a8e4ed4617de9d3e",
+    "afterSha256": "4a3128b18b1f5dd16248b1f92fea9ba2606f9afc594caa538a07fb6c8c7d2320"
+  },
+  {
+    "file": "apps/api/src/modules/operations/risk.service.ts",
+    "change": "modified",
+    "beforeSha256": "2f98174cc64309a239de9abea7c98ae782d14095c6e256b53adbde71cde28a01",
+    "afterSha256": "31eebd4090feb75ed4de18c7b7ebe2eeb67cdf0010568c8f98b7ce377761b78c"
+  },
+  {
+    "file": "apps/api/src/modules/operations/sla.service.ts",
+    "change": "modified",
+    "beforeSha256": "3a48103346d6701bc3804118a7d6b9ba093f79dce0539efeb1a560a83807fa0e",
+    "afterSha256": "1221c1322e8cb057b5e4cff5427c71ff56c423c49884b3c651984e28bf91b89c"
+  },
+  {
+    "file": "apps/api/src/modules/operations/support.service.ts",
+    "change": "modified",
+    "beforeSha256": "57b5c4f663242f2ee2c6451dc73964a2613143e802efca6aa0769a9c53c0251a",
+    "afterSha256": "713a0171af96b11dadf93c03d768d72f1b29ad78eef0b3162d159ef470d9e6b0"
+  },
+  {
+    "file": "apps/api/src/modules/operations/unified-order-view.service.ts",
+    "change": "modified",
+    "beforeSha256": "71276926dd8daa706a3d924c3570035660c7d75d1236a8c1886ca3fdac24869a",
+    "afterSha256": "e33abe02dbd9f2f49b3e91cdc854946d73bf50d47f818360f08c73fcddcd8c49"
+  },
+  {
+    "file": "apps/api/src/modules/order/delivery.repository.ts",
+    "change": "modified",
+    "beforeSha256": "21a2d9a8fb9ccd3b83cb16498a8699e119c046ccbad202b3e6afce2400fb6990",
+    "afterSha256": "02f1ffb5e102ccfdeaa2293acdc68d10d3fd305523db7dbfa457cf986b253fff"
+  },
+  {
+    "file": "apps/api/src/modules/order/dispatch.service.ts",
+    "change": "modified",
+    "beforeSha256": "47b3f25904ea30131b8628d615033fba323175a7b74cc47beea5e9e6c5b6d383",
+    "afterSha256": "8e105668418b60472a0e58feed602388d5088c9e497350d9cc1756647d4786e1"
+  },
+  {
+    "file": "apps/api/src/modules/order/order.repository.ts",
+    "change": "modified",
+    "beforeSha256": "c0029f56cf241a0789d28584f5f20fa18c664c27e4e75bc8d87b58013b38a47f",
+    "afterSha256": "720559fd5c3acd7d7dbb413ba8086b8818cefb95962c14e506d25ab7347e5925"
+  },
+  {
+    "file": "apps/api/src/modules/order/order.router.ts",
+    "change": "modified",
+    "beforeSha256": "96229f99bab2b9749d32520be0c7155de23399b4c3e08756f5abe43232a4a171",
+    "afterSha256": "f9a3a0f2cf478050c263b350e1acca552e990997ba5c35bc7e0219484e29f3c4"
+  },
+  {
+    "file": "apps/api/src/modules/order/order.service.ts",
+    "change": "modified",
+    "beforeSha256": "905b4ecd5d0a41a09718386e009c46f2cb4f533f05bb2addc98a8b923ab4a461",
+    "afterSha256": "72e883d29424a201077e8fe1b7fc799066c4d0eed278145e7cb644c5aaf9e318"
+  },
+  {
+    "file": "apps/api/src/modules/payment/payment.postgres.ts",
+    "change": "added",
+    "beforeSha256": null,
+    "afterSha256": "8a297e7e4bccc97947be2bd8ecbba2ba98b7768e50f582903d6f8d21da5d47a4"
+  },
+  {
+    "file": "apps/api/src/modules/payment/payment.repository.ts",
+    "change": "modified",
+    "beforeSha256": "40450198405f2efc56f507915adaa4070020f52f419294e53a2a645d375348c8",
+    "afterSha256": "53028e6486cce330b05e48bb2ee3238845f959cda0616797d4609e03a161ab7f"
+  },
+  {
+    "file": "apps/api/src/modules/payment/payment.router.ts",
+    "change": "modified",
+    "beforeSha256": "84339e739fbede3b126d5ce82524aa6fee8a1ace0860f3e363597aa9e4bffe98",
+    "afterSha256": "c9f11997d9636cb97d1bc0c0e8dc7c1cf1b253380959c25bc2b99a998dc0653f"
+  },
+  {
+    "file": "apps/api/src/modules/payment/payment.service.ts",
+    "change": "modified",
+    "beforeSha256": "7a31f3e5cf4659f38d1ef7d3b8bc9a7dfc6f6328c217a440bba584567b736951",
+    "afterSha256": "90ac3e200c5f55fdd0b8a4c187472ec325b25eab534cc0a1b80462b7ee93e963"
+  },
+  {
+    "file": "apps/api/src/modules/payment/providers/card.provider.ts",
+    "change": "modified",
+    "beforeSha256": "fa7d2cdac59e2218c08634270338f06d2b0f62e7c36a14d6d593fe880d92520c",
+    "afterSha256": "6f52d475bcf79cd38875a1bdec0705bb47bdd540b8edc0429588e25d08309c78"
+  },
+  {
+    "file": "apps/api/src/modules/payment/providers/mpesa.provider.ts",
+    "change": "modified",
+    "beforeSha256": "00e613e62f0c1cb320c4b16a013a6a794bf2e04b29094c2f9741eba971675151",
+    "afterSha256": "0b93677be6623a9a85bd4f5e41ef34e8f765b60cdc10fde800c4d4d6411b57e2"
+  },
+  {
+    "file": "apps/api/src/modules/realtime/event-broker.ts",
+    "change": "modified",
+    "beforeSha256": "cb6ecf19d2ec0bb1b4ea438913d4a0c99b5c4d3dd66e64559f1b0e49d70b4811",
+    "afterSha256": "ed7d43f75a95f8e2b476326eae65853f8446f36d74b411ce26027408feaa812e"
+  },
+  {
+    "file": "apps/api/src/modules/realtime/listener.ts",
+    "change": "added",
+    "beforeSha256": null,
+    "afterSha256": "0a6362089aed387c2220d24d1025b89c5abc58d878bb30a1c825667c886099ea"
+  },
+  {
+    "file": "apps/api/src/modules/realtime/outbox.ts",
+    "change": "added",
+    "beforeSha256": null,
+    "afterSha256": "278dc76c7dbfd4d4f63d15fe3b4499c122277b88f3c354e93ef229e1660aeff9"
+  },
+  {
+    "file": "apps/api/src/modules/realtime/realtime.router.ts",
+    "change": "modified",
+    "beforeSha256": "6cdc1001e1163a6eda6edc3f93c1246a64c2ea0fa27776c7aaa75be9f066a901",
+    "afterSha256": "f3f3fcc0be656fa1e496d04beb22c9ffd39097e9486aeccb0b0ef96583450d5e"
+  },
+  {
+    "file": "apps/api/src/modules/rider/rider-eligibility.service.ts",
+    "change": "modified",
+    "beforeSha256": "cee278128bbf157340c0baf7a853e4ff7fa9182db87436c4e2b4e76bb2050622",
+    "afterSha256": "041759164b26584b746f5634280eb08515c77d8d57f52eefeaab797f0e2b4428"
+  },
+  {
+    "file": "apps/api/src/modules/rider/rider-response.ts",
+    "change": "added",
+    "beforeSha256": null,
+    "afterSha256": "e1c18495eaf19816197874b41ee2aef5f1b0e5c474c2fcb265da84399eea84e2"
+  },
+  {
+    "file": "apps/api/src/modules/rider/rider.postgres.ts",
+    "change": "added",
+    "beforeSha256": null,
+    "afterSha256": "098d9f22ef9c394d93b1aa9f95770499c2216f6f403838a25a9bda5064d9ab17"
+  },
+  {
+    "file": "apps/api/src/modules/rider/rider.repository.ts",
+    "change": "modified",
+    "beforeSha256": "811b5e2ad36636a08b504468ddd55138378aaf099d362be2c1515fd90c9c1a54",
+    "afterSha256": "3a686d90c1910da4c2223f0c7de4ad8838c459f07adc9db88d91fdde4013be49"
+  },
+  {
+    "file": "apps/api/src/modules/rider/rider.router.ts",
+    "change": "modified",
+    "beforeSha256": "c8e985848b6ce5758200f6976deb36465d544baf66ea3ab5d9e417ac3a866658",
+    "afterSha256": "9ce86857752414ad458a1ba727cc022c96e85bc73a38a5b24af39729a066cd0a"
+  },
+  {
+    "file": "apps/api/src/modules/rider/rider.service.ts",
+    "change": "modified",
+    "beforeSha256": "4599a3a290184ba3081df1d1de1d7232b20bf4e2380e3bc2d16c098a50005ea9",
+    "afterSha256": "4734ca075a10bbda288e7a14568614a2598fa527e16c809311bc81589008c212"
+  },
+  {
+    "file": "apps/api/src/modules/serviceability/serviceability.service.ts",
+    "change": "modified",
+    "beforeSha256": "45b8ac30832ac27121ebc3d710151539254e2ef48a7f55ffc9112f00470dc80b",
+    "afterSha256": "338182d38442d39e9f3809051b259deffcd9b7dabe1b09c7dae63a605a17f3df"
+  },
+  {
+    "file": "package-lock.json",
+    "change": "modified",
+    "beforeSha256": "fe91a3f7160d4e50060b12c32a278a27c38ea7365fb0d246310b3448d522cb38",
+    "afterSha256": "9fffb74ee037821c8924008828b7283c0ef0ba0ffb55d9fe234e3831ce8be636"
+  },
+  {
+    "file": "package.json",
+    "change": "modified",
+    "beforeSha256": "1e5bca33c996640f93838899e89d3981468927cfee1dc77af43b7b375575b5f5",
+    "afterSha256": "69e15f016bfc9a9a3b21fc9e4755055183c3ed1cf43034a0ffa5604b98aa7596"
+  },
+  {
+    "file": "packages/config/src/index.ts",
+    "change": "modified",
+    "beforeSha256": "4980b49b84d366d444a82ba5e74dc67ceea6d84f4eafb6461e18c8babb1837cc",
+    "afterSha256": "cf7cd898df67cdd02b5e3e454a257d73ae177e07e9cc4cc8323a4c9efe55ca21"
+  },
+  {
+    "file": "packages/utils/src/index.ts",
+    "change": "modified",
+    "beforeSha256": "97953ae24abe759f87136d4f97af6a3bfd59081a52e960716bb275339144d6e4",
+    "afterSha256": "d30013093b51a4f050161e6f56b40e800e023d74d3a044a734dcd3add12171fa"
+  },
+  {
+    "file": "scripts/backup-restore-verify.ts",
+    "change": "modified",
+    "beforeSha256": "1e9ff31e1b7ad9503d9aa345c0e7da48b8aa6836b1e73fcfd73bf23c40958d19",
+    "afterSha256": "93ae8ba5ab96ff78a616b3389161f0207e4b0388f7e85f1cc33d5be29ebafe11"
+  },
+  {
+    "file": "scripts/db-migrate.ts",
+    "change": "modified",
+    "beforeSha256": "b37501cbe194edcee153a54a132efaed2665ee7fdba6210c39dab33059520134",
+    "afterSha256": "0c173ce61b5a327b866865d96b1d6e229da37c862d6b37e17ed58e3b1b187aad"
+  },
+  {
+    "file": "scripts/db-rollback.ts",
+    "change": "modified",
+    "beforeSha256": "d1bf2eb89270bb5edb95f40fca2606a5d589948038a50161c6658d43c553c815",
+    "afterSha256": "dd076af7bc1baeaf755fe54bdf6b8c6c84a4b833a8d6fb10c8464e45cd161c56"
+  },
+  {
+    "file": "scripts/outbox-worker.ts",
+    "change": "added",
+    "beforeSha256": null,
+    "afterSha256": "70423a7945d1fddd25747089b6a627d12151b48426eb7e0b8297be17c4c38f5b"
+  },
+  {
+    "file": "scripts/verify-foundation-restore.ts",
+    "change": "added",
+    "beforeSha256": null,
+    "afterSha256": "f943666816e79c6453fff047f29efc7edfa54acb89bf7b8a229a2ec50b3b053e"
+  },
+  {
+    "file": "server.ts",
+    "change": "modified",
+    "beforeSha256": "f85a12bd10eda540c702da87e56cc2413b2f06ce91d5e02f0c4ab10510268f9c",
+    "afterSha256": "a0bf274cdc17975bbdf4f0c47b871f2e8c2414d9986e0a58445f1ded617e8f02"
+  },
+  {
+    "file": "tests/e2e/smoke.test.ts",
+    "change": "modified",
+    "beforeSha256": "141d253d817e3b6db4bacdb31aa4d7a02893d25448c5fc5103db30725fa499ae",
+    "afterSha256": "46c93e5b787863e87aa5258f30410e191e35d72e1cd24dc93c498de1b85b79dc"
+  },
+  {
+    "file": "tests/foundation/durable-foundation.test.ts",
+    "change": "added",
+    "beforeSha256": null,
+    "afterSha256": "d45cdaaaea985d49b6348ea087979ede77bf0b68824b5390457f472152aaa70e"
+  },
+  {
+    "file": "tests/integration/backend-authorization.test.ts",
+    "change": "modified",
+    "beforeSha256": "45ade0e46bf28f3574b5a29325751bea30ad73208871e72d80b9acdadf45f600",
+    "afterSha256": "9edbc55330b0d92280a6c47ada20c11e2cee78068a98858b47b0088e6e45c071"
+  },
+  {
+    "file": "tests/integration/health.test.ts",
+    "change": "modified",
+    "beforeSha256": "770b9ddc71d7892e2a1fed16e5a6de6047bb0f1fb798429886ca6647ee045291",
+    "afterSha256": "164a79d925b030ef0d0773fd5d219f69fa3f86ce3707b8651b22fbb630eaf2c9"
+  },
+  {
+    "file": "tests/unit/sprint_11_payments_and_refunds.test.ts",
+    "change": "modified",
+    "beforeSha256": "36df6818737a6e4b30126b15e2f82cea70524355199b28ba94cebf18e06c42ac",
+    "afterSha256": "5bf89f1917692f9a6c71fad4ce66b3d60963a1a18b0272d67518d0ed3de78eb6"
+  },
+  {
+    "file": "tests/unit/sprint_14_production_hardening_and_qa.test.ts",
+    "change": "modified",
+    "beforeSha256": "640fc6666d72e1a75bc7085c72ef8b01a7663ed6998314cfb2612cae53fafa3b",
+    "afterSha256": "9f4822843aa5eb638f437abcda0c2743e6c59fc50a90951d45d96c090863f9a8"
+  }
+]

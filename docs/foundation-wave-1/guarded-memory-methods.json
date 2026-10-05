@@ -1,0 +1,482 @@
+[
+  {
+    "file": "apps/api/src/modules/auth/auth.repository.ts",
+    "method": "listUsers",
+    "reason": "Legacy method restricted to explicit memory adapter",
+    "durableReplacement": true
+  },
+  {
+    "file": "apps/api/src/modules/auth/auth.repository.ts",
+    "method": "getCustomerProfile",
+    "reason": "Legacy method restricted to explicit memory adapter",
+    "durableReplacement": true
+  },
+  {
+    "file": "apps/api/src/modules/auth/auth.repository.ts",
+    "method": "createCustomerProfile",
+    "reason": "Legacy method restricted to explicit memory adapter",
+    "durableReplacement": true
+  },
+  {
+    "file": "apps/api/src/modules/auth/auth.repository.ts",
+    "method": "getMerchantMemberships",
+    "reason": "Legacy method restricted to explicit memory adapter",
+    "durableReplacement": true
+  },
+  {
+    "file": "apps/api/src/modules/auth/auth.repository.ts",
+    "method": "getRiderProfile",
+    "reason": "Legacy method restricted to explicit memory adapter",
+    "durableReplacement": true
+  },
+  {
+    "file": "apps/api/src/modules/auth/auth.repository.ts",
+    "method": "listUserSessions",
+    "reason": "Legacy method restricted to explicit memory adapter",
+    "durableReplacement": true
+  },
+  {
+    "file": "apps/api/src/modules/auth/auth.repository.ts",
+    "method": "createPasswordResetToken",
+    "reason": "Legacy method restricted to explicit memory adapter",
+    "durableReplacement": true
+  },
+  {
+    "file": "apps/api/src/modules/auth/auth.repository.ts",
+    "method": "findPasswordResetToken",
+    "reason": "Legacy method restricted to explicit memory adapter",
+    "durableReplacement": true
+  },
+  {
+    "file": "apps/api/src/modules/auth/auth.repository.ts",
+    "method": "markPasswordResetTokenUsed",
+    "reason": "Legacy method restricted to explicit memory adapter",
+    "durableReplacement": true
+  },
+  {
+    "file": "apps/api/src/modules/auth/auth.repository.ts",
+    "method": "createVerificationToken",
+    "reason": "Legacy method restricted to explicit memory adapter",
+    "durableReplacement": true
+  },
+  {
+    "file": "apps/api/src/modules/auth/auth.repository.ts",
+    "method": "getLatestVerificationToken",
+    "reason": "Legacy method restricted to explicit memory adapter",
+    "durableReplacement": true
+  },
+  {
+    "file": "apps/api/src/modules/auth/auth.repository.ts",
+    "method": "incrementVerificationAttempt",
+    "reason": "Legacy method restricted to explicit memory adapter",
+    "durableReplacement": true
+  },
+  {
+    "file": "apps/api/src/modules/auth/auth.repository.ts",
+    "method": "markVerificationTokenVerified",
+    "reason": "Legacy method restricted to explicit memory adapter",
+    "durableReplacement": true
+  },
+  {
+    "file": "apps/api/src/modules/auth/auth.repository.ts",
+    "method": "listAuditLogs",
+    "reason": "Legacy method restricted to explicit memory adapter",
+    "durableReplacement": true
+  },
+  {
+    "file": "apps/api/src/modules/cart/cart.repository.ts",
+    "method": "saveDeliveryPricingRule",
+    "reason": "Legacy method restricted to explicit memory adapter",
+    "durableReplacement": true
+  },
+  {
+    "file": "apps/api/src/modules/cart/cart.repository.ts",
+    "method": "saveServiceFeeRule",
+    "reason": "Legacy method restricted to explicit memory adapter",
+    "durableReplacement": true
+  },
+  {
+    "file": "apps/api/src/modules/cart/cart.repository.ts",
+    "method": "updatePromotion",
+    "reason": "Legacy method restricted to explicit memory adapter",
+    "durableReplacement": true
+  },
+  {
+    "file": "apps/api/src/modules/customer/customer.repository.ts",
+    "method": "listAllCustomers",
+    "reason": "Legacy method restricted to explicit memory adapter",
+    "durableReplacement": true
+  },
+  {
+    "file": "apps/api/src/modules/merchant/catalogue.repository.ts",
+    "method": "createMenu",
+    "reason": "Legacy method restricted to explicit memory adapter",
+    "durableReplacement": true
+  },
+  {
+    "file": "apps/api/src/modules/merchant/catalogue.repository.ts",
+    "method": "findMenuById",
+    "reason": "Legacy method restricted to explicit memory adapter",
+    "durableReplacement": true
+  },
+  {
+    "file": "apps/api/src/modules/merchant/catalogue.repository.ts",
+    "method": "listMenusByMerchant",
+    "reason": "Legacy method restricted to explicit memory adapter",
+    "durableReplacement": true
+  },
+  {
+    "file": "apps/api/src/modules/merchant/catalogue.repository.ts",
+    "method": "updateMenu",
+    "reason": "Legacy method restricted to explicit memory adapter",
+    "durableReplacement": true
+  },
+  {
+    "file": "apps/api/src/modules/merchant/catalogue.repository.ts",
+    "method": "deleteMenu",
+    "reason": "Legacy method restricted to explicit memory adapter",
+    "durableReplacement": true
+  },
+  {
+    "file": "apps/api/src/modules/merchant/catalogue.repository.ts",
+    "method": "assignBranchesToMenu",
+    "reason": "Legacy method restricted to explicit memory adapter",
+    "durableReplacement": true
+  },
+  {
+    "file": "apps/api/src/modules/merchant/catalogue.repository.ts",
+    "method": "getBranchAssignedMenus",
+    "reason": "Legacy method restricted to explicit memory adapter",
+    "durableReplacement": true
+  },
+  {
+    "file": "apps/api/src/modules/merchant/catalogue.repository.ts",
+    "method": "createCategory",
+    "reason": "Legacy method restricted to explicit memory adapter",
+    "durableReplacement": true
+  },
+  {
+    "file": "apps/api/src/modules/merchant/catalogue.repository.ts",
+    "method": "findCategoryById",
+    "reason": "Legacy method restricted to explicit memory adapter",
+    "durableReplacement": true
+  },
+  {
+    "file": "apps/api/src/modules/merchant/catalogue.repository.ts",
+    "method": "listCategoriesByMenu",
+    "reason": "Legacy method restricted to explicit memory adapter",
+    "durableReplacement": true
+  },
+  {
+    "file": "apps/api/src/modules/merchant/catalogue.repository.ts",
+    "method": "updateCategory",
+    "reason": "Legacy method restricted to explicit memory adapter",
+    "durableReplacement": true
+  },
+  {
+    "file": "apps/api/src/modules/merchant/catalogue.repository.ts",
+    "method": "reorderCategories",
+    "reason": "Legacy method restricted to explicit memory adapter",
+    "durableReplacement": true
+  },
+  {
+    "file": "apps/api/src/modules/merchant/catalogue.repository.ts",
+    "method": "deleteCategory",
+    "reason": "Legacy method restricted to explicit memory adapter",
+    "durableReplacement": true
+  },
+  {
+    "file": "apps/api/src/modules/merchant/catalogue.repository.ts",
+    "method": "createItem",
+    "reason": "Legacy method restricted to explicit memory adapter",
+    "durableReplacement": true
+  },
+  {
+    "file": "apps/api/src/modules/merchant/catalogue.repository.ts",
+    "method": "findItemById",
+    "reason": "Legacy method restricted to explicit memory adapter",
+    "durableReplacement": true
+  },
+  {
+    "file": "apps/api/src/modules/merchant/catalogue.repository.ts",
+    "method": "listItemsByMenu",
+    "reason": "Legacy method restricted to explicit memory adapter",
+    "durableReplacement": true
+  },
+  {
+    "file": "apps/api/src/modules/merchant/catalogue.repository.ts",
+    "method": "listItemsByCategory",
+    "reason": "Legacy method restricted to explicit memory adapter",
+    "durableReplacement": true
+  },
+  {
+    "file": "apps/api/src/modules/merchant/catalogue.repository.ts",
+    "method": "updateItem",
+    "reason": "Legacy method restricted to explicit memory adapter",
+    "durableReplacement": true
+  },
+  {
+    "file": "apps/api/src/modules/merchant/catalogue.repository.ts",
+    "method": "reorderItems",
+    "reason": "Legacy method restricted to explicit memory adapter",
+    "durableReplacement": true
+  },
+  {
+    "file": "apps/api/src/modules/merchant/catalogue.repository.ts",
+    "method": "deleteItem",
+    "reason": "Legacy method restricted to explicit memory adapter",
+    "durableReplacement": true
+  },
+  {
+    "file": "apps/api/src/modules/merchant/catalogue.repository.ts",
+    "method": "setItemAvailability",
+    "reason": "Legacy method restricted to explicit memory adapter",
+    "durableReplacement": true
+  },
+  {
+    "file": "apps/api/src/modules/merchant/catalogue.repository.ts",
+    "method": "createModifierGroup",
+    "reason": "Legacy method restricted to explicit memory adapter",
+    "durableReplacement": true
+  },
+  {
+    "file": "apps/api/src/modules/merchant/catalogue.repository.ts",
+    "method": "findModifierGroupById",
+    "reason": "Legacy method restricted to explicit memory adapter",
+    "durableReplacement": true
+  },
+  {
+    "file": "apps/api/src/modules/merchant/catalogue.repository.ts",
+    "method": "listModifierGroupsByMerchant",
+    "reason": "Legacy method restricted to explicit memory adapter",
+    "durableReplacement": true
+  },
+  {
+    "file": "apps/api/src/modules/merchant/catalogue.repository.ts",
+    "method": "updateModifierGroup",
+    "reason": "Legacy method restricted to explicit memory adapter",
+    "durableReplacement": true
+  },
+  {
+    "file": "apps/api/src/modules/merchant/catalogue.repository.ts",
+    "method": "deleteModifierGroup",
+    "reason": "Legacy method restricted to explicit memory adapter",
+    "durableReplacement": true
+  },
+  {
+    "file": "apps/api/src/modules/merchant/catalogue.repository.ts",
+    "method": "createModifierOption",
+    "reason": "Legacy method restricted to explicit memory adapter",
+    "durableReplacement": true
+  },
+  {
+    "file": "apps/api/src/modules/merchant/catalogue.repository.ts",
+    "method": "findModifierOptionById",
+    "reason": "Legacy method restricted to explicit memory adapter",
+    "durableReplacement": true
+  },
+  {
+    "file": "apps/api/src/modules/merchant/catalogue.repository.ts",
+    "method": "listModifierOptionsByGroup",
+    "reason": "Legacy method restricted to explicit memory adapter",
+    "durableReplacement": true
+  },
+  {
+    "file": "apps/api/src/modules/merchant/catalogue.repository.ts",
+    "method": "updateModifierOption",
+    "reason": "Legacy method restricted to explicit memory adapter",
+    "durableReplacement": true
+  },
+  {
+    "file": "apps/api/src/modules/merchant/catalogue.repository.ts",
+    "method": "reorderModifierOptions",
+    "reason": "Legacy method restricted to explicit memory adapter",
+    "durableReplacement": true
+  },
+  {
+    "file": "apps/api/src/modules/merchant/catalogue.repository.ts",
+    "method": "deleteModifierOption",
+    "reason": "Legacy method restricted to explicit memory adapter",
+    "durableReplacement": true
+  },
+  {
+    "file": "apps/api/src/modules/merchant/catalogue.repository.ts",
+    "method": "attachModifierGroupsToItem",
+    "reason": "Legacy method restricted to explicit memory adapter",
+    "durableReplacement": true
+  },
+  {
+    "file": "apps/api/src/modules/merchant/catalogue.repository.ts",
+    "method": "getItemModifierGroups",
+    "reason": "Legacy method restricted to explicit memory adapter",
+    "durableReplacement": true
+  },
+  {
+    "file": "apps/api/src/modules/merchant/catalogue.repository.ts",
+    "method": "setBranchItemOverride",
+    "reason": "Legacy method restricted to explicit memory adapter",
+    "durableReplacement": true
+  },
+  {
+    "file": "apps/api/src/modules/merchant/catalogue.repository.ts",
+    "method": "getBranchItemOverride",
+    "reason": "Legacy method restricted to explicit memory adapter",
+    "durableReplacement": true
+  },
+  {
+    "file": "apps/api/src/modules/merchant/catalogue.repository.ts",
+    "method": "setBranchModifierOptionOverride",
+    "reason": "Legacy method restricted to explicit memory adapter",
+    "durableReplacement": true
+  },
+  {
+    "file": "apps/api/src/modules/merchant/catalogue.repository.ts",
+    "method": "getBranchModifierOptionOverride",
+    "reason": "Legacy method restricted to explicit memory adapter",
+    "durableReplacement": true
+  },
+  {
+    "file": "apps/api/src/modules/merchant/merchant.repository.ts",
+    "method": "listMerchants",
+    "reason": "Legacy method restricted to explicit memory adapter",
+    "durableReplacement": true
+  },
+  {
+    "file": "apps/api/src/modules/merchant/merchant.repository.ts",
+    "method": "listAllBranches",
+    "reason": "Legacy method restricted to explicit memory adapter",
+    "durableReplacement": true
+  },
+  {
+    "file": "apps/api/src/modules/merchant/merchant.repository.ts",
+    "method": "findServiceZoneById",
+    "reason": "Legacy method restricted to explicit memory adapter",
+    "durableReplacement": true
+  },
+  {
+    "file": "apps/api/src/modules/merchant/merchant.repository.ts",
+    "method": "createServiceZone",
+    "reason": "Legacy method restricted to explicit memory adapter",
+    "durableReplacement": true
+  },
+  {
+    "file": "apps/api/src/modules/merchant/merchant.repository.ts",
+    "method": "updateServiceZone",
+    "reason": "Legacy method restricted to explicit memory adapter",
+    "durableReplacement": true
+  },
+  {
+    "file": "apps/api/src/modules/merchant/merchant.repository.ts",
+    "method": "getBranchServiceZones",
+    "reason": "Legacy method restricted to explicit memory adapter",
+    "durableReplacement": true
+  },
+  {
+    "file": "apps/api/src/modules/payment/payment.repository.ts",
+    "method": "findAll",
+    "reason": "Legacy method restricted to explicit memory adapter",
+    "durableReplacement": true
+  },
+  {
+    "file": "apps/api/src/modules/payment/payment.repository.ts",
+    "method": "findRefunds",
+    "reason": "Legacy method restricted to explicit memory adapter",
+    "durableReplacement": true
+  },
+  {
+    "file": "apps/api/src/modules/payment/payment.repository.ts",
+    "method": "findPaymentsByOrderId",
+    "reason": "Legacy method restricted to explicit memory adapter",
+    "durableReplacement": true
+  },
+  {
+    "file": "apps/api/src/modules/payment/payment.repository.ts",
+    "method": "findPaymentByCheckoutRequestId",
+    "reason": "Legacy method restricted to explicit memory adapter",
+    "durableReplacement": true
+  },
+  {
+    "file": "apps/api/src/modules/payment/payment.repository.ts",
+    "method": "findPaymentByMerchantRequestId",
+    "reason": "Legacy method restricted to explicit memory adapter",
+    "durableReplacement": true
+  },
+  {
+    "file": "apps/api/src/modules/payment/payment.repository.ts",
+    "method": "findPaymentByProviderReference",
+    "reason": "Legacy method restricted to explicit memory adapter",
+    "durableReplacement": true
+  },
+  {
+    "file": "apps/api/src/modules/payment/payment.repository.ts",
+    "method": "getPaymentTimeline",
+    "reason": "Legacy method restricted to explicit memory adapter",
+    "durableReplacement": true
+  },
+  {
+    "file": "apps/api/src/modules/payment/payment.repository.ts",
+    "method": "findProviderEvent",
+    "reason": "Legacy method restricted to explicit memory adapter",
+    "durableReplacement": true
+  },
+  {
+    "file": "apps/api/src/modules/payment/payment.repository.ts",
+    "method": "findRefundById",
+    "reason": "Legacy method restricted to explicit memory adapter",
+    "durableReplacement": true
+  },
+  {
+    "file": "apps/api/src/modules/payment/payment.repository.ts",
+    "method": "findRefundsByPaymentId",
+    "reason": "Legacy method restricted to explicit memory adapter",
+    "durableReplacement": true
+  },
+  {
+    "file": "apps/api/src/modules/payment/payment.repository.ts",
+    "method": "findRefundsByOrderId",
+    "reason": "Legacy method restricted to explicit memory adapter",
+    "durableReplacement": true
+  },
+  {
+    "file": "apps/api/src/modules/payment/payment.repository.ts",
+    "method": "appendRefundTimeline",
+    "reason": "Legacy method restricted to explicit memory adapter",
+    "durableReplacement": true
+  },
+  {
+    "file": "apps/api/src/modules/payment/payment.repository.ts",
+    "method": "getRefundTimeline",
+    "reason": "Legacy method restricted to explicit memory adapter",
+    "durableReplacement": true
+  },
+  {
+    "file": "apps/api/src/modules/payment/payment.repository.ts",
+    "method": "getIdempotencyRecord",
+    "reason": "Legacy method restricted to explicit memory adapter",
+    "durableReplacement": true
+  },
+  {
+    "file": "apps/api/src/modules/payment/payment.repository.ts",
+    "method": "saveIdempotencyRecord",
+    "reason": "Legacy method restricted to explicit memory adapter",
+    "durableReplacement": true
+  },
+  {
+    "file": "apps/api/src/modules/payment/payment.repository.ts",
+    "method": "listPayments",
+    "reason": "Legacy method restricted to explicit memory adapter",
+    "durableReplacement": true
+  },
+  {
+    "file": "apps/api/src/modules/rider/rider.repository.ts",
+    "method": "listRiders",
+    "reason": "Legacy method restricted to explicit memory adapter",
+    "durableReplacement": true
+  },
+  {
+    "file": "apps/api/src/modules/rider/rider.repository.ts",
+    "method": "getMetrics",
+    "reason": "Legacy method restricted to explicit memory adapter",
+    "durableReplacement": true
+  }
+]

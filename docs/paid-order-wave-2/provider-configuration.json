@@ -1,0 +1,19 @@
+{
+  "checked_sources": [
+    "process environment",
+    "workspace .env if present"
+  ],
+  "configured": {
+    "STRIPE_SECRET_KEY": false,
+    "STRIPE_WEBHOOK_SECRET": false,
+    "STRIPE_ACCOUNT_ID": false,
+    "MPESA_CONSUMER_KEY": false,
+    "MPESA_CONSUMER_SECRET": false,
+    "MPESA_PASSKEY": false,
+    "MPESA_SHORTCODE": false,
+    "MPESA_CALLBACK_URL": false,
+    "MPESA_WEBHOOK_SECRET": false
+  },
+  "certification": "BLOCKED_BY_CONFIGURATION",
+  "credentials_or_values_recorded": false
+}

@@ -1,0 +1,46 @@
+{
+  "unit": {
+    "tests": 150,
+    "pass": 150,
+    "fail": 0,
+    "cancelled": 0,
+    "skipped": 0,
+    "todo": 0
+  },
+  "integration_daytime": {
+    "tests": 28,
+    "pass": 27,
+    "fail": 1,
+    "cancelled": 0,
+    "skipped": 0,
+    "todo": 0
+  },
+  "baseline_integration": {
+    "tests": 23,
+    "pass": 11,
+    "fail": 12,
+    "cancelled": 0,
+    "skipped": 0,
+    "todo": 0
+  },
+  "e2e": {
+    "assertions_passed": 1,
+    "clean_exit": false,
+    "note": "Original test retains background handles.",
+    "exit_code": 130
+  },
+  "typecheck": "passed",
+  "lint": "passed (TypeScript alias)",
+  "build": "passed; >500kB chunk warning",
+  "protected_files": 111,
+  "changed_protected_files": 0,
+  "integration_standard": {
+    "tests": 28,
+    "pass": 27,
+    "fail": 1,
+    "cancelled": 0,
+    "skipped": 0,
+    "todo": 0,
+    "exit_code": 1
+  }
+}

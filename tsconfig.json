@@ -1,0 +1,47 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "experimentalDecorators": true,
+    "useDefineForClassFields": false,
+    "module": "ESNext",
+    "lib": [
+      "ES2022",
+      "DOM",
+      "DOM.Iterable"
+    ],
+    "skipLibCheck": true,
+    "moduleResolution": "bundler",
+    "isolatedModules": true,
+    "moduleDetection": "force",
+    "allowJs": true,
+    "jsx": "react-jsx",
+    "paths": {
+      "@/*": [
+        "./*"
+      ],
+      "@deetoo/types": [
+        "./packages/types/src/index.ts"
+      ],
+      "@deetoo/validation": [
+        "./packages/validation/src/index.ts"
+      ],
+      "@deetoo/config": [
+        "./packages/config/src/index.ts"
+      ],
+      "@deetoo/utils": [
+        "./packages/utils/src/index.ts"
+      ],
+      "@deetoo/auth": [
+        "./packages/auth/src/index.ts"
+      ],
+      "@deetoo/api-client": [
+        "./packages/api-client/src/index.ts"
+      ],
+      "@deetoo/ui": [
+        "./packages/ui/src/index.tsx"
+      ]
+    },
+    "allowImportingTsExtensions": true,
+    "noEmit": true
+  }
+}

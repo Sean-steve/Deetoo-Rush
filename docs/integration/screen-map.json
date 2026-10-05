@@ -1,0 +1,90 @@
+[
+  {
+    "stitchScreen": "customer_app_discovery_marketplace",
+    "app": "customer",
+    "existingRoute": "/",
+    "existingView": "discovery",
+    "component": "apps/customer/src/CustomerApp.tsx",
+    "apis": [
+      "/restaurants",
+      "/restaurant-categories",
+      "/serviceability",
+      "/public/branches/:id/menu"
+    ],
+    "status": "Stitch presentation and existing API connections implemented; verification scope and limitations in completion-report.md",
+    "baseline": "Existing discovery, location, search and menu browsing; cart is a placeholder; sample promotions and ratings have no existing data binding.",
+    "integratedRoute": "/#customer"
+  },
+  {
+    "stitchScreen": "merchant_app_kitchen_display_live_orders",
+    "app": "merchant",
+    "existingRoute": "/",
+    "existingView": "orders",
+    "component": "apps/merchant/src/MerchantApp.tsx",
+    "apis": [
+      "/merchant/branches",
+      "/merchant/orders",
+      "/merchant/orders/:id/accept",
+      "/merchant/orders/:id/preparing",
+      "/merchant/orders/:id/ready"
+    ],
+    "status": "Stitch presentation and existing API connections implemented; verification scope and limitations in completion-report.md",
+    "baseline": "Orders are an empty placeholder, branch options hard-coded, status buttons change local state. Catalogue CRUD exists.",
+    "integratedRoute": "/#merchant",
+    "liveUpdates": "Authenticated API refresh every 5 seconds and on reconnect"
+  },
+  {
+    "stitchScreen": "rider_app_express_delivery_offer_run",
+    "app": "rider",
+    "existingRoute": "/",
+    "existingView": "availability",
+    "component": "apps/rider/src/RiderApp.tsx",
+    "apis": [
+      "/rider/status",
+      "/rider/location",
+      "/rider/offers/active",
+      "/rider/offers/:offerId/accept",
+      "/rider/deliveries/active"
+    ],
+    "status": "Stitch presentation and existing API connections implemented; verification scope and limitations in completion-report.md",
+    "baseline": "Availability/onboarding/vehicle/profile exist. Offer, delivery and earnings UI missing. Stitch embeds customer cart/navigation that must not be copied into rider app.",
+    "integratedRoute": "/#rider"
+  },
+  {
+    "stitchScreen": "admin_operations_live_dispatch_command_center",
+    "app": "admin",
+    "existingRoute": "/",
+    "existingView": "overview",
+    "component": "apps/admin/src/AdminApp.tsx",
+    "apis": [
+      "/admin/operations/overview",
+      "/admin/operations/incidents",
+      "/admin/orders",
+      "/admin/riders",
+      "/health/ready"
+    ],
+    "status": "Stitch presentation and existing API connections implemented; verification scope and limitations in completion-report.md",
+    "baseline": "Users, rider management, audit and health exist. Live command center missing; zones/ledger views contain demonstration data.",
+    "integratedRoute": "/#admin"
+  },
+  {
+    "stitchScreen": "deetoo_logo",
+    "app": "shared",
+    "existingRoute": null,
+    "existingView": null,
+    "component": "packages/ui/src/index.tsx",
+    "apis": [],
+    "status": "Stitch SVG mark integrated; shared typography used for wordmark",
+    "baseline": "Existing vector bicycle logo; Stitch branding reference available."
+  },
+  {
+    "stitchScreen": "friendly_modern_portrait_headshot_of_an_african_young_professional_woman_in",
+    "app": "asset",
+    "existingRoute": null,
+    "existingView": null,
+    "component": null,
+    "apis": [],
+    "status": "Intentionally excluded: sample portrait must not impersonate a real user",
+    "baseline": "Sample portrait: do not use as a real customer/rider identity."
+  }
+]

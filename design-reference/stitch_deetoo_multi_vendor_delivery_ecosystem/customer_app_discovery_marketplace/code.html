@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+
+<html lang="en"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"/><link href="https://fonts.googleapis.com/css2?family=Epilogue:wght@600;700;800&amp;family=Manrope:wght@400;600;700&amp;display=swap" rel="stylesheet"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/><style>@layer base{html,body{width:100vw;margin:0;padding:0;}body{overscroll-behavior:none;}.pb-safe{padding-bottom:env(safe-area-inset-bottom,0px);}.pt-safe{padding-top:env(safe-area-inset-top,0px);}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config = { darkMode: "class", theme: { extend: { "colors": { "on-secondary-fixed-variant": "#005231", "on-error": "#ffffff", "surface-bright": "#fbf9f6", "on-primary-fixed": "#3c0700", "error-container": "#ffdad6", "on-surface-variant": "#5a413a", "surface": "#fbf9f6", "on-secondary-fixed": "#002111", "surface-container-highest": "#e4e2df", "on-primary-container": "#fffbff", "secondary": "#006d42", "on-tertiary-fixed": "#1b1b1d", "tertiary-container": "#757476", "on-tertiary-fixed-variant": "#474649", "inverse-on-surface": "#f2f0ed", "tertiary": "#5c5b5e", "outline-variant": "#e3beb6", "error": "#ba1a1a", "tertiary-fixed": "#e5e1e4", "surface-dim": "#dbdad7", "on-primary-fixed-variant": "#8a1c00", "surface-container": "#efeeeb", "secondary-fixed-dim": "#72dba0", "background": "#fbf9f6", "tertiary-fixed-dim": "#c8c6c8", "on-secondary-container": "#007346", "secondary-fixed": "#8ff8ba", "on-background": "#1b1c1a", "outline": "#8f7069", "surface-container-low": "#f5f3f0", "primary": "#b02700", "primary-fixed-dim": "#ffb4a2", "secondary-container": "#8ff8ba", "on-tertiary": "#ffffff", "surface-tint": "#b42902", "on-error-container": "#93000a", "on-secondary": "#ffffff", "surface-container-lowest": "#ffffff", "on-primary": "#ffffff", "primary-container": "#d3401a", "surface-container-high": "#eae8e5", "on-tertiary-container": "#fffbfe", "primary-fixed": "#ffdad2", "surface-variant": "#e4e2df", "on-surface": "#1b1c1a", "inverse-primary": "#ffb4a2", "inverse-surface": "#30312f" }, "borderRadius": { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px" }, "spacing": { "margin-desktop": "3rem", "margin-tablet": "2rem", "space-2xs": "0.25rem", "space-3xl": "4rem", "space-xl": "2rem", "space-xs": "0.5rem", "gutter-mobile": "1rem", "space-2xl": "3rem", "margin-mobile": "1rem", "space-lg": "1.5rem", "gutter-desktop": "1.5rem", "space-md": "1rem", "space-sm": "0.75rem" }, "fontFamily": { "headline-lg": ["Epilogue"], "headline-md": ["Epilogue"], "numeric-price": ["Manrope"], "label-lg": ["Manrope"], "body-lg": ["Manrope"], "label-md": ["Manrope"], "display-lg-mobile": ["Epilogue"], "body-sm": ["Manrope"], "display-lg": ["Epilogue"], "label-sm": ["Manrope"], "body-md": ["Manrope"], "headline-sm": ["Epilogue"] }, "fontSize": { "headline-lg": ["32px", {"lineHeight": "38px", "letterSpacing": "-0.02em", "fontWeight": "700"}], "headline-md": ["24px", {"lineHeight": "30px", "letterSpacing": "-0.015em", "fontWeight": "700"}], "numeric-price": ["16px", {"lineHeight": "20px", "letterSpacing": "-0.01em", "fontWeight": "700"}], "label-lg": ["15px", {"lineHeight": "20px", "fontWeight": "600"}], "body-lg": ["18px", {"lineHeight": "28px", "fontWeight": "400"}], "label-md": ["13px", {"lineHeight": "16px", "fontWeight": "600"}], "display-lg-mobile": ["34px", {"lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "800"}], "body-sm": ["13px", {"lineHeight": "18px", "fontWeight": "400"}], "display-lg": ["48px", {"lineHeight": "56px", "letterSpacing": "-0.025em", "fontWeight": "800"}], "label-sm": ["11px", {"lineHeight": "14px", "letterSpacing": "0.04em", "fontWeight": "700"}], "body-md": ["15px", {"lineHeight": "22px", "fontWeight": "400"}], "headline-sm": ["20px", {"lineHeight": "26px", "letterSpacing": "-0.01em", "fontWeight": "600"}] } } } };</script><style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head><body class="bg-surface text-on-surface font-body-md text-body-md flex flex-col min-h-screen"><header class="fixed top-0 inset-x-0 z-50 bg-surface/85 backdrop-blur-xl pt-safe shadow-[0_1px_8px_rgba(27,28,26,0.04)]"><div class="h-20 px-margin-mobile flex items-center justify-between gap-space-sm"><div class="flex items-center gap-space-xs flex-1 min-w-0"><img alt="Deetoo Logo" class="h-8 w-auto object-contain shrink-0" src="https://lh3.googleusercontent.com/aida/AEtjO1XnyK1UuXWJ0FWPmTx1fcBRa_piNx1qkwfFKLFSsHL_9wNIO5-tfBGxLBbN382kKqAjLLlfvlxTWpuleUuNjKUoA6E4yBjzyCZYYUhmtmapaKMzhl-K6uzP-wj2D8Hu6sXXvf0c3aEtO8HnzT87gaZrEbe1brdW5GjmZjOlKBFoHWFLfgTRCGDQbuGwOHfjE97hRjiEOOfogoWYeQS5o3CyWBqqi5msIfoMI-Mqr68x0nh6U4dTt_yQoty2"/><button class="flex flex-col text-left min-w-0 justify-center h-11 px-space-xs rounded-lg hover:bg-surface-container/60 transition-colors" type="button"><span class="flex items-center gap-1 font-label-sm text-label-sm text-primary uppercase tracking-wide truncate"><span class="material-symbols-outlined text-[14px]">near_me</span>Delivering to</span><span class="flex items-center gap-1 font-label-md text-label-md text-on-surface font-bold truncate"><span class="truncate">Westlands, Nairobi</span><span class="text-outline font-normal shrink-0">•</span><span class="text-secondary font-label-sm text-label-sm shrink-0">20-30 min</span><span class="material-symbols-outlined text-[16px] text-on-surface-variant shrink-0">keyboard_arrow_down</span></span></button></div><div class="flex items-center gap-space-2xs shrink-0"><button aria-label="Notifications" class="w-11 h-11 flex items-center justify-center rounded-full hover:bg-surface-container text-on-surface-variant transition-colors relative" type="button"><span class="material-symbols-outlined text-[22px]">notifications</span><span class="absolute top-2.5 right-2.5 w-2 h-2 rounded-full bg-primary"></span></button><button aria-label="Profile" class="w-11 h-11 flex items-center justify-center rounded-full hover:opacity-90 transition-opacity" type="button"><img alt="Profile" class="w-8 h-8 rounded-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCciZ-KaaESlm9n38PxTJMeu3lpELSFkv9IB7lXySq7-RI_g0BwpIt6I0eOhgKyXcdBnrbW1GdnumAJV-H_uG9dEZmj45_bwVB25gSH4smJFn7n-MkhoRVtrdB5mW-MSvPaidjjNut1tmR16LNRhM5VPUkBqddCzsmkKnsABN1GsS_IZLlMw3ENu0DM_ZNToO9GP0RxFQEYYJEBrBjapsKwnvB_-EY-V2i1d0n2ftt5W0vfmpahYFx6ow"/></button></div></div></header><main class="flex-1 flex flex-col relative w-full pt-20 pb-36 bg-surface"><div class="flex flex-col w-full">
+<!-- Location & Context Sub-Bar (In-Page Quick Switcher) -->
+<section class="px-margin-mobile pt-space-xs pb-space-sm">
+<div class="relative bg-surface-container-low rounded-xl p-space-sm shadow-sm">
+<div class="flex items-center justify-between gap-space-xs">
+<button class="flex items-center gap-2 min-w-0 text-left group" id="locationToggleBtn" type="button">
+<div class="w-8 h-8 rounded-full bg-primary-fixed flex items-center justify-center text-on-primary-fixed shrink-0 group-hover:scale-105 transition-transform">
+<span class="material-symbols-outlined text-[18px]">location_on</span>
+</div>
+<div class="flex flex-col min-w-0">
+<span class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wide">Delivering Right Now</span>
+<div class="flex items-center gap-1 font-label-lg text-label-lg text-on-surface font-bold truncate">
+<span class="truncate" id="currentLocLabel">Delta Towers, Westlands</span>
+<span class="material-symbols-outlined text-[18px] text-primary transition-transform duration-200" id="locChevron">keyboard_arrow_down</span>
+</div>
+</div>
+</button>
+<div class="flex items-center gap-1.5 px-space-xs py-1 rounded-full bg-secondary-fixed text-on-secondary-fixed shrink-0 shadow-sm">
+<span class="material-symbols-outlined text-[14px]">bolt</span>
+<span class="font-label-sm text-label-sm font-bold">20-30m ETA</span>
+</div>
+</div>
+<!-- Quick Switcher Dropdown Modal/Card -->
+<div class="hidden absolute top-full left-0 right-0 mt-2 z-30 bg-surface-container-lowest rounded-xl shadow-xl p-space-sm transition-all duration-200" id="locationDropdown">
+<div class="font-label-sm text-label-sm text-on-surface-variant mb-space-xs uppercase tracking-wider px-space-xs">Saved Locations in Nairobi</div>
+<div class="space-y-1">
+<button class="w-full flex items-center justify-between p-space-xs rounded-lg hover:bg-surface-container-low text-left transition-colors" onclick="selectLocation('Delta Towers, Westlands (Work)', '20-30m')" type="button">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-[18px]">domain</span>
+<div>
+<div class="font-label-md text-label-md text-on-surface font-semibold">Delta Towers, Westlands</div>
+<div class="font-body-sm text-body-sm text-on-surface-variant">4th Floor, Off Chiromo Rd</div>
+</div>
+</div>
+<span class="font-label-sm text-label-sm text-secondary font-bold">Current</span>
+</button>
+<button class="w-full flex items-center justify-between p-space-xs rounded-lg hover:bg-surface-container-low text-left transition-colors" onclick="selectLocation('Riverside Park, Kileleshwa (Home)', '25-35m')" type="button">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-outline text-[18px]">home</span>
+<div>
+<div class="font-label-md text-label-md text-on-surface font-semibold">Riverside Park, Kileleshwa</div>
+<div class="font-body-sm text-body-sm text-on-surface-variant">Apt 4B, Gatundu Crescent</div>
+</div>
+</div>
+<span class="font-label-sm text-label-sm text-on-surface-variant">25m</span>
+</button>
+<button class="w-full flex items-center justify-between p-space-xs rounded-lg hover:bg-surface-container-low text-left transition-colors" onclick="selectLocation('Adlife Plaza, Kilimani', '18-28m')" type="button">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-outline text-[18px]">location_city</span>
+<div>
+<div class="font-label-md text-label-md text-on-surface font-semibold">Adlife Plaza, Kilimani</div>
+<div class="font-body-sm text-body-sm text-on-surface-variant">Ring Rd / Chania Ave</div>
+</div>
+</div>
+<span class="font-label-sm text-label-sm text-on-surface-variant">20m</span>
+</button>
+</div>
+</div>
+</div>
+</section>
+<!-- Interactive Search Bar -->
+<section class="px-margin-mobile pb-space-sm">
+<div class="relative flex items-center bg-surface-container-lowest rounded-xl shadow-sm px-space-sm py-2.5">
+<span class="material-symbols-outlined text-on-surface-variant text-[22px] mr-2">search</span>
+<input class="w-full bg-transparent border-none outline-none font-body-md text-body-md text-on-surface placeholder:text-on-surface-variant/70 focus:outline-none focus:ring-0" placeholder="Search dishes (Nyama Choma, Swahili, Burger)..." type="text"/>
+<button class="flex items-center justify-center w-8 h-8 rounded-full bg-surface-container hover:bg-surface-container-high transition-colors ml-1 text-on-surface-variant" type="button">
+<span class="material-symbols-outlined text-[18px]">tune</span>
+</button>
+</div>
+</section>
+<!-- Fast Filter Pills -->
+<section class="pb-space-md">
+<div class="flex items-center gap-2 overflow-x-auto px-margin-mobile no-scrollbar py-0.5">
+<button class="filter-pill shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-inverse-surface text-inverse-on-surface font-label-md text-label-md font-bold shadow-sm transition-transform active:scale-95" type="button">
+<span class="material-symbols-outlined text-[16px] text-secondary-fixed">tune</span>
+<span>All Curated</span>
+</button>
+<button class="filter-pill shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-surface-container-high text-on-surface font-label-md text-label-md hover:bg-surface-container-highest transition-colors" type="button">
+<span class="material-symbols-outlined text-[16px] text-primary" style="font-variation-settings: 'FILL' 1;">star</span>
+<span>Top Rated</span>
+</button>
+<button class="filter-pill shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-surface-container-high text-on-surface font-label-md text-label-md hover:bg-surface-container-highest transition-colors" type="button">
+<span class="material-symbols-outlined text-[16px] text-secondary">timer</span>
+<span>Under 30 min</span>
+</button>
+<button class="filter-pill shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-surface-container-high text-on-surface font-label-md text-label-md hover:bg-surface-container-highest transition-colors" type="button">
+<span class="material-symbols-outlined text-[16px] text-secondary">moped</span>
+<span>Free Delivery</span>
+</button>
+<button class="filter-pill shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-secondary-container text-on-secondary-container font-label-md text-label-md font-bold hover:opacity-90 transition-opacity" type="button">
+<span class="material-symbols-outlined text-[16px]">payments</span>
+<span>M-PESA Offers</span>
+</button>
+<button class="filter-pill shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-surface-container-high text-on-surface font-label-md text-label-md hover:bg-surface-container-highest transition-colors" type="button">
+<span class="material-symbols-outlined text-[16px]">eco</span>
+<span>Halal &amp; Vegan</span>
+</button>
+</div>
+</section>
+<!-- Karibu Deetoo Promotional Spotlight Card -->
+<section class="px-margin-mobile pb-space-lg">
+<div class="relative overflow-hidden rounded-xl bg-primary text-on-primary p-space-md shadow-md">
+<div class="relative z-10 flex flex-col gap-1.5">
+<div class="flex items-center justify-between">
+<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-on-primary/15 backdrop-blur-md font-label-sm text-label-sm text-primary-fixed uppercase tracking-wider font-bold">
+            Karibu Deetoo! 🇰🇪
+          </span>
+<span class="font-numeric-price text-label-md font-bold text-primary-fixed bg-on-primary/10 px-2 py-0.5 rounded">CODE: DEETOO254</span>
+</div>
+<h3 class="font-headline-sm text-headline-sm text-on-primary font-bold tracking-tight mt-1">
+          KES 300 off your first 3 orders
+        </h3>
+<p class="font-body-sm text-body-sm text-primary-fixed-dim max-w-[280px]">
+          Curated culinary gems in Karen, Westlands &amp; Kilimani. Free delivery unlocked on orders over KES 1,500.
+        </p>
+<div class="mt-2 flex items-center gap-2">
+<button class="h-8 px-4 rounded-full bg-surface-container-lowest text-primary font-label-md text-label-md font-bold hover:bg-primary-fixed transition-colors shadow-sm" type="button">
+            Claim Offer
+          </button>
+<span class="font-body-sm text-label-sm text-primary-fixed/80">Valid today in Nairobi</span>
+</div>
+</div>
+<!-- Decorative Backdrop Graphic Pattern -->
+<div class="absolute -right-6 -bottom-8 w-36 h-36 rounded-full bg-primary-container/60 blur-2xl pointer-events-none"></div>
+<div class="absolute right-3 top-3 text-on-primary/20 pointer-events-none">
+<span class="material-symbols-outlined text-[72px]">restaurant_menu</span>
+</div>
+</div>
+</section>
+<!-- Appetizing Cuisine Carousel -->
+<section class="pb-space-lg">
+<div class="flex items-center justify-between px-margin-mobile mb-space-xs">
+<div class="flex flex-col">
+<h2 class="font-headline-sm text-headline-sm text-on-surface font-bold">Explore Nairobi Cravings</h2>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Freshly cooked around your area</span>
+</div>
+<button class="font-label-md text-label-md text-primary font-bold hover:underline" type="button">View All</button>
+</div>
+<div class="flex items-start gap-space-sm overflow-x-auto px-margin-mobile no-scrollbar py-1">
+<!-- 1. Swahili Spiced -->
+<button class="flex flex-col items-center gap-1.5 shrink-0 group w-20" type="button">
+<div class="w-16 h-16 rounded-full overflow-hidden shadow-sm group-hover:scale-105 transition-transform bg-surface-container-high">
+<img class="w-full h-full object-cover" data-alt="Close up gourmet photography of authentic Kenyan coastal Swahili Biryani rice garnished with caramelised onions and cilantro in Nairobi luxury ceramic dish warm morning lighting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuABP2-PcNu9iC46fpl2wlraCoh9Nd3SBd0M4tF3YWzUGxWYl-Fz4VRVyxSfA_gfbEzW9_P7W5kf1jkrvIEeDSm0MIombsPyw6-gi-oJELE5eSO4AHPg0RmLqXHUtggwrsDk3Z1WEULPRcFMUua7wxaibQmnFLnR5_ohp5PqaBqXz0NhFutEc09v-BcuR-DseE00Hkyq1T31R_MGLGlmH-U-f0iVjwvhoTLnftJXjFEi3o66h_nn4XhCJg"/>
+</div>
+<span class="font-label-sm text-label-sm text-on-surface text-center font-semibold leading-tight">Swahili Spiced</span>
+</button>
+<!-- 2. Artisan Burgers -->
+<button class="flex flex-col items-center gap-1.5 shrink-0 group w-20" type="button">
+<div class="w-16 h-16 rounded-full overflow-hidden shadow-sm group-hover:scale-105 transition-transform bg-surface-container-high">
+<img class="w-full h-full object-cover" data-alt="Stacked artisan double beef smash burger with melted sharp cheddar cheese crispy onion rings and chipotle mayo on toasted brioche bun studio appetizing lighting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCPN2jyIPWZtPjl_77EKLuWEIkxrct321MjnU1fV6hVNtz10zNk1bX5K6XuvHn2t0wxb5HdhWQ6vCd9Injmq6iJqdAsgg4-OdMzY0KB980FzyhjfkNxc583Z3INN9EDqVnjgME3O9_77rYDDbL3zukX5Ye8y7C2GKcOwcsST2Jnu7GwV5UbsgMfhjtl3UDMbCg0cDwlvHnLn5iSGyx3nbDaswcgdXUz5CNLOYPv9bdq2m0D8t3isZe8nA"/>
+</div>
+<span class="font-label-sm text-label-sm text-on-surface text-center font-semibold leading-tight">Artisan Burgers</span>
+</button>
+<!-- 3. Flame Grill & BBQ -->
+<button class="flex flex-col items-center gap-1.5 shrink-0 group w-20" type="button">
+<div class="w-16 h-16 rounded-full overflow-hidden shadow-sm group-hover:scale-105 transition-transform bg-surface-container-high">
+<img class="w-full h-full object-cover" data-alt="Sizzling Kenyan Nyama Choma grilled goat meat on rustic wooden board with chopped red chili kachumbari salad warm vibrant culinary atmosphere" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBCMyOuk70BFHg8VuTJD67caCqgih97N3xGTBXo_i46poDi04kbDecxEzbUBEigcRRT9Z_8iSesWA7PRkWNmUsQtHPKbb_Zu-eyhUTS9iac3zz8iBA2-YJqot4zTpIEftljfS55q1Ii8RD9xAvtu5T8rGme8p_BvIRJ8i8wGxE5QNNuMFEvBj85A6Vx8SZoQmkiPH0NmQnLLh_WMcPNRoBlzakYtTpXH8mCxINaItocU8DPHjDPmOaVGw"/>
+</div>
+<span class="font-label-sm text-label-sm text-on-surface text-center font-semibold leading-tight">Flame BBQ</span>
+</button>
+<!-- 4. Woodfired Pizza -->
+<button class="flex flex-col items-center gap-1.5 shrink-0 group w-20" type="button">
+<div class="w-16 h-16 rounded-full overflow-hidden shadow-sm group-hover:scale-105 transition-transform bg-surface-container-high">
+<img class="w-full h-full object-cover" data-alt="Freshly baked artisanal woodfired Neapolitan pizza with blistered crust fresh mozzarella basil leaves and rich San Marzano tomato sauce" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA38V8EfLSvlKGfT1RXqUwk3pjgyalj8iqEfqkwuiMM_J5SHIlc6Q8zF2wmEJMynuc3dlxrWRrvTgjVP7rF1KvyOaxAAqgYwkuo9yiXkcDcCOV_StmZKP_y2LtpFdBqYDH6uEmecqOgCoqTL4rJ99i_Q5n8gYanPBMeQ1OlQj1aPFR-oB97IGaAxmDQqhF92BjpA0XvGLSgxHQqMwG4F7Vr95lU21H9FyU_lSJ1zLS1DMFpxQ4KJiqp2A"/>
+</div>
+<span class="font-label-sm text-label-sm text-on-surface text-center font-semibold leading-tight">Woodfired Pizza</span>
+</button>
+<!-- 5. Asian & Sushi -->
+<button class="flex flex-col items-center gap-1.5 shrink-0 group w-20" type="button">
+<div class="w-16 h-16 rounded-full overflow-hidden shadow-sm group-hover:scale-105 transition-transform bg-surface-container-high">
+<img class="w-full h-full object-cover" data-alt="Curated platter of premium salmon nigiri and spicy tuna maki sushi rolls with wasabi and pickled ginger on dark slate board" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCqpuyFeNLsUn33rHsHGmL3I75ZRHzt55vhyvrYC73Q01JuuEvu2uoMN0aSxqRDLRy_aYd2bXw2toWigdg96k9vYUHaabKHisJkiyxYeMWyLwAm2mjpE7mWrMRoC_txrSq4nAes1V0xSbrNZEeLU23Yxjr2Uej1nBhV6VnLdncc_eN_q_OKsupTFg2JD57zfVWww9UNTgI7RRrsph-wTiBTWCaFSk5osqVe_ybM826hQJBi8SiuHK2XWw"/>
+</div>
+<span class="font-label-sm text-label-sm text-on-surface text-center font-semibold leading-tight">Asian &amp; Sushi</span>
+</button>
+<!-- 6. Healthy Bowls -->
+<button class="flex flex-col items-center gap-1.5 shrink-0 group w-20" type="button">
+<div class="w-16 h-16 rounded-full overflow-hidden shadow-sm group-hover:scale-105 transition-transform bg-surface-container-high">
+<img class="w-full h-full object-cover" data-alt="Colorful Mediterranean quinoa power bowl with ripe avocado cherry tomatoes edamame chickpeas and tahini dressing" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBV6MA6uwj58pnbPUZAHJt_Ocdi_hLgd519HfPWn0uyRb82mbnSjv5iN4gDxFWeqQyDd3As7mGnJMU09GTPtCEFJz6abqyPZhUCp4JAJgevHKSkQ9_7SzE6xIOZNzriDCYe6PFlnIwG1apTKU0HXbnoiWq28P7FTXVzCosxMhj0_jGwWXJzBXiOvonYtlPIBd8dwh_ONrp6ie8SSBVFtHIcewVGd9IFHBGovV793PH9_glQRqu1O5hx1Q"/>
+</div>
+<span class="font-label-sm text-label-sm text-on-surface text-center font-semibold leading-tight">Healthy Bowls</span>
+</button>
+<!-- 7. Pastries & Cafe -->
+<button class="flex flex-col items-center gap-1.5 shrink-0 group w-20" type="button">
+<div class="w-16 h-16 rounded-full overflow-hidden shadow-sm group-hover:scale-105 transition-transform bg-surface-container-high">
+<img class="w-full h-full object-cover" data-alt="Flaky golden French croissants and poured Kenyan specialty single-origin latte art on a marble cafe bistro table" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBgJi0FbzH6qh_ieC2MQDX3sQbGFzrmKC51croOED3PHz9dgKjbn7vWU-PRk1-xb0OroBs9l_x54UiZDUoxLHEoAPKEBZ3oU0MPJmzPfSWv8XzWS5RIumYNOO6F3CpYrz1TZPiUpKAeX6ws1OCoE2KY6tDBJqrHKeAZa_B_LwP5FQ6HYu7ZZzjUrCv-RRMZTuq9WxvrdmWc_SLHaNV-vkFrlKCxdf7MmEwVKJT6r5pvgKOXGt_Up42Sew"/>
+</div>
+<span class="font-label-sm text-label-sm text-on-surface text-center font-semibold leading-tight">Pastries &amp; Cafe</span>
+</button>
+</div>
+</section>
+<!-- Featured Nairobi Culinary Icons Section -->
+<section class="px-margin-mobile space-y-space-md">
+<div class="flex items-center justify-between">
+<div>
+<h2 class="font-headline-sm text-headline-sm text-on-surface font-bold">Featured Nairobi Kitchens</h2>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Top-rated kitchens delivering to Westlands &amp; Kilimani</span>
+</div>
+<span class="font-label-sm text-label-sm text-secondary font-bold flex items-center gap-1">
+<span class="w-2 h-2 rounded-full bg-secondary animate-pulse"></span>
+        Live Deliveries
+      </span>
+</div>
+<!-- Restaurant Card 1: Mama Oliech Kitchen -->
+<article class="bg-surface-container-lowest rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-all flex flex-col group">
+<!-- Media Header -->
+<div class="relative h-48 w-full bg-surface-container overflow-hidden">
+<img class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" data-alt="Deep fried whole fresh lake Victoria Tilapia fish on a bed of fresh greens served with hot steaming white ugali and traditional sukuma wiki spinach gourmet presentation" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBJThtOV0oLW0qADp45GkceZPFr3nIiUvmTL81cZA42NsHR7v8CHC8SWDAoLlOSP2tRYWNFiw3AIRNiZo_8XLdm8iTZjo_bUbrjfNc34XZW9G8FdSnmCRCXel-Jw2zKNE7E1pWi9ZYh4EcPweqylTHDm3Z5JnOKhaUFlb5PEYIYBwX_Xm4oBNNNZhcH4eM0_uhH2WU42xe-FcS70MEYcDwLnxrCTujih84sXOk_czInd2pxCUrVijymxQ"/>
+<div class="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/10"></div>
+<!-- Badges Top Left -->
+<div class="absolute top-3 left-3 flex flex-wrap gap-1.5">
+<span class="px-2.5 py-1 rounded-full bg-primary text-on-primary font-label-sm text-label-sm font-bold shadow-sm">
+            Trending Local Hero
+          </span>
+<span class="px-2.5 py-1 rounded-full bg-surface-container-lowest/90 backdrop-blur text-on-surface font-label-sm text-label-sm font-semibold">
+            Authentic Luo &amp; Swahili
+          </span>
+</div>
+<!-- Rating Top Right -->
+<div class="absolute top-3 right-3 flex items-center gap-1 px-2.5 py-1 rounded-full bg-surface-container-lowest text-on-surface font-label-md text-label-md font-bold shadow-md">
+<span class="material-symbols-outlined text-[16px] text-primary" style="font-variation-settings: 'FILL' 1;">star</span>
+<span>4.9</span>
+<span class="text-on-surface-variant font-normal text-label-sm">(1.2k)</span>
+</div>
+<!-- Float Info Banner on Image Bottom -->
+<div class="absolute bottom-3 left-3 right-3 flex items-center justify-between text-white">
+<div class="flex items-center gap-2">
+<span class="font-label-sm text-label-sm bg-black/40 backdrop-blur-md px-2 py-0.5 rounded">Westlands Branch</span>
+<span class="font-label-sm text-label-sm bg-black/40 backdrop-blur-md px-2 py-0.5 rounded flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">schedule</span> 25-35 min
+            </span>
+</div>
+<span class="font-numeric-price text-label-sm font-bold bg-secondary/90 px-2 py-0.5 rounded text-white">KES 150 Delivery</span>
+</div>
+</div>
+<!-- Card Body Content -->
+<div class="p-space-sm flex flex-col gap-2">
+<div class="flex items-start justify-between gap-2">
+<div class="min-w-0">
+<h3 class="font-headline-sm text-headline-sm text-on-surface font-bold truncate">Mama Oliech Kitchen - Westlands</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant line-clamp-1">Lake Victoria Tilapia, Brown Ugali, Kienyeji Greens &amp; Kachumbari</p>
+</div>
+<button class="w-10 h-10 rounded-full bg-surface-container-high hover:bg-primary hover:text-on-primary text-on-surface flex items-center justify-center shrink-0 transition-colors shadow-sm" title="Quick Add Crispy Tilapia" type="button">
+<span class="material-symbols-outlined text-[20px]">add</span>
+</button>
+</div>
+<!-- Signature Dish Spotlight Inset -->
+<div class="bg-surface-container-low rounded-lg p-2.5 flex items-center justify-between gap-2">
+<div class="flex items-center gap-2.5 min-w-0">
+<div class="w-11 h-11 rounded-lg bg-surface-container-highest overflow-hidden shrink-0">
+<img class="w-full h-full object-cover" data-alt="Plate of golden crisp deep fried whole Tilapia fish garnished with fresh lemon wedges and red sliced onions" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAEbc6WKdv9NLJdJFe8yD1fAH_QBZhun-9WRLw2RGrbejNNNfPjqvzTokJCfx2qHEadJz_cTctVmlzmsJSZCr6cI2lrZW9-90GwYOBxn3BCZMU4QN3WCkDrAbEYSb1gShyiz6G5-0TuZUoJhI3YlwRp0ycPv8gIafRgpt3DW4K_UtV3K6ocFge9ZNSHOoAdpe9fNP8s--0y0iSzUE3jdGPKXG8e0k5vaFUTlzvqxJpkIZHVW0A26ePSGQ"/>
+</div>
+<div class="min-w-0">
+<div class="font-label-md text-label-md text-on-surface font-bold truncate">Whole Fried Tilapia + Ugali Combo</div>
+<div class="font-label-sm text-label-sm text-on-surface-variant">Crisp skin with spicy tomato salsa</div>
+</div>
+</div>
+<div class="text-right shrink-0">
+<div class="font-numeric-price text-label-md text-primary font-bold">KES 950</div>
+<span class="font-label-sm text-label-sm text-secondary font-bold">Most Ordered</span>
+</div>
+</div>
+</div>
+</article>
+<!-- Restaurant Card 2: The Talisman Karen & Express Kitchen -->
+<article class="bg-surface-container-lowest rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-all flex flex-col group">
+<div class="relative h-48 w-full bg-surface-container overflow-hidden">
+<img class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" data-alt="Artisanal feta and coriander crispy samosas served with chili ginger jam on upscale dark ceramic tableware in an airy Karen garden restaurant atmosphere" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDW9Vt62OYk1ZU8S9FeKfcc-lKz2jRlagocWv9RrAdY6_aXnETdfoXgCM6shm9wgMZUhw8m16dGABwZUwHgAaeY9Y1gWTjxJmDOlIgQhqP0nYialoTKJDgJ0ppAtPyIWrz2WXQRBaqPSQvP20McB6rgrUv62A26iwbeUfPTyi9E8zgSLSyP-SNAhoqAWhwycq92oMb1Ctg6pSIu0yEvcz4iOpspwO_CNl73M538r9p4FtcRA3o6Yag8zg"/>
+<div class="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/10"></div>
+<div class="absolute top-3 left-3 flex flex-wrap gap-1.5">
+<span class="px-2.5 py-1 rounded-full bg-surface-container-lowest/90 backdrop-blur text-primary font-label-sm text-label-sm font-bold shadow-sm">
+            Chef Special
+          </span>
+<span class="px-2.5 py-1 rounded-full bg-surface-container-lowest/90 backdrop-blur text-on-surface font-label-sm text-label-sm font-semibold">
+            Contemporary Bistro
+          </span>
+</div>
+<div class="absolute top-3 right-3 flex items-center gap-1 px-2.5 py-1 rounded-full bg-surface-container-lowest text-on-surface font-label-md text-label-md font-bold shadow-md">
+<span class="material-symbols-outlined text-[16px] text-primary" style="font-variation-settings: 'FILL' 1;">star</span>
+<span>4.8</span>
+<span class="text-on-surface-variant font-normal text-label-sm">(940)</span>
+</div>
+<div class="absolute bottom-3 left-3 right-3 flex items-center justify-between text-white">
+<div class="flex items-center gap-2">
+<span class="font-label-sm text-label-sm bg-black/40 backdrop-blur-md px-2 py-0.5 rounded">Karen Express Kitchen</span>
+<span class="font-label-sm text-label-sm bg-black/40 backdrop-blur-md px-2 py-0.5 rounded flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">schedule</span> 30-40 min
+            </span>
+</div>
+<span class="font-numeric-price text-label-sm font-bold bg-surface-container-lowest/90 px-2 py-0.5 rounded text-on-surface">KES 200 Delivery</span>
+</div>
+</div>
+<div class="p-space-sm flex flex-col gap-2">
+<div class="flex items-start justify-between gap-2">
+<div class="min-w-0">
+<h3 class="font-headline-sm text-headline-sm text-on-surface font-bold truncate">The Talisman - Karen &amp; Express</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant line-clamp-1">Feta &amp; Coriander Samosas, Charred Fillet Steaks, Zanzibar Sea Soup</p>
+</div>
+<button class="w-10 h-10 rounded-full bg-surface-container-high hover:bg-primary hover:text-on-primary text-on-surface flex items-center justify-center shrink-0 transition-colors shadow-sm" title="Quick Add Talisman Dish" type="button">
+<span class="material-symbols-outlined text-[20px]">add</span>
+</button>
+</div>
+<div class="bg-surface-container-low rounded-lg p-2.5 flex items-center justify-between gap-2">
+<div class="flex items-center gap-2.5 min-w-0">
+<div class="w-11 h-11 rounded-lg bg-surface-container-highest overflow-hidden shrink-0">
+<img class="w-full h-full object-cover" data-alt="Famous Talisman crispy spiced feta samosas with sweet and spicy dipping chutney sauce on white plate" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBZjJN-n0qTPNEXC4JjxJvpkwKU73kCcrkxGQDzDMn68z-semGNHpnZAw2udZAaTf2a_8kfz7Tp5qvc0j85TEz1KN8mrFw2t4AMoxUGdaorGFDHF0IyE4w9Jj7qWWrRA2Ba_wPAq0kZklQ_Euu4pBpgjv-aEBdOEej1eF8mFPTDjrSebkj2WaHn8KGiU-omGLoMefsdrkw9TuKXufyaDpDfyfoahqZ4d8yr8o4QRJxYhMM5Xe9TRb4Zhg"/>
+</div>
+<div class="min-w-0">
+<div class="font-label-md text-label-md text-on-surface font-bold truncate">Famous Spiced Feta Samosas (4 pcs)</div>
+<div class="font-label-sm text-label-sm text-on-surface-variant">Signature chili ginger marmalade</div>
+</div>
+</div>
+<div class="text-right shrink-0">
+<div class="font-numeric-price text-label-md text-primary font-bold">KES 880</div>
+<span class="font-label-sm text-label-sm text-on-surface-variant">Vegetarian</span>
+</div>
+</div>
+</div>
+</article>
+<!-- Restaurant Card 3: Urban Burger - Sarit Centre -->
+<article class="bg-surface-container-lowest rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-all flex flex-col group">
+<div class="relative h-48 w-full bg-surface-container overflow-hidden">
+<img class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" data-alt="Mouthwatering gourmet cheeseburger with double smashed patties truffle mushroom sauce melted gruyere cheese and rosemary salted french fries in upscale urban burger joint" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBZf5RO95-hsvzf9ZPFxTclGMHqi09SRz29laQX3qUkMQ0sYuXhD7pboEc_QSFFiG0vNRcgUdOWfQO97C5OGLhwtKWzpqRiLeLIWPPvdF0g-FXgqobjNGSTytMpgGWiu3iovcZHY7iSzPfofP8f_rfMHP7BmAf2S_FKUMl31sBEONiuMrGHkjNxomuB8af3X-mbHDpN49ZW2dW9EksOpqNgKOUR2Vah2bZaa5s17QyIAlpD-6GVu3G9MA"/>
+<div class="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/10"></div>
+<div class="absolute top-3 left-3 flex flex-wrap gap-1.5">
+<span class="px-2.5 py-1 rounded-full bg-secondary text-on-secondary font-label-sm text-label-sm font-bold shadow-sm flex items-center gap-1">
+<span class="material-symbols-outlined text-[13px]">bolt</span> Prep in 12 min
+          </span>
+<span class="px-2.5 py-1 rounded-full bg-surface-container-lowest/90 backdrop-blur text-on-surface font-label-sm text-label-sm font-semibold">
+            Sarit Centre Hub
+          </span>
+</div>
+<div class="absolute top-3 right-3 flex items-center gap-1 px-2.5 py-1 rounded-full bg-surface-container-lowest text-on-surface font-label-md text-label-md font-bold shadow-md">
+<span class="material-symbols-outlined text-[16px] text-primary" style="font-variation-settings: 'FILL' 1;">star</span>
+<span>4.7</span>
+<span class="text-on-surface-variant font-normal text-label-sm">(2.4k)</span>
+</div>
+<div class="absolute bottom-3 left-3 right-3 flex items-center justify-between text-white">
+<div class="flex items-center gap-2">
+<span class="font-label-sm text-label-sm bg-black/40 backdrop-blur-md px-2 py-0.5 rounded">Westlands / Sarit</span>
+<span class="font-label-sm text-label-sm bg-black/40 backdrop-blur-md px-2 py-0.5 rounded flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">schedule</span> 15-25 min
+            </span>
+</div>
+<span class="font-numeric-price text-label-sm font-bold bg-secondary/90 px-2 py-0.5 rounded text-white">KES 100 Delivery</span>
+</div>
+</div>
+<div class="p-space-sm flex flex-col gap-2">
+<div class="flex items-start justify-between gap-2">
+<div class="min-w-0">
+<h3 class="font-headline-sm text-headline-sm text-on-surface font-bold truncate">Urban Burger - Sarit Centre</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant line-clamp-1">Gourmet Smash Burgers, Rosemary Fries, Thick Oreo Shakes</p>
+</div>
+<button class="w-10 h-10 rounded-full bg-primary text-on-primary flex items-center justify-center shrink-0 hover:opacity-90 transition-opacity shadow-sm" title="Quick Add Burger Combo" type="button">
+<span class="material-symbols-outlined text-[20px]">add</span>
+</button>
+</div>
+<div class="bg-surface-container-low rounded-lg p-2.5 flex items-center justify-between gap-2">
+<div class="flex items-center gap-2.5 min-w-0">
+<div class="w-11 h-11 rounded-lg bg-surface-container-highest overflow-hidden shrink-0">
+<img class="w-full h-full object-cover" data-alt="Double smash cheeseburger with truffle oil and melted aged cheddar cheese close-up macro appetizing shot" src="https://lh3.googleusercontent.com/aida-public/AB6AXuB8ceS67k-KgllxJXWKjomwuEiU4dRyhkKEWTG1nWcdw4kDBLVRpX7Jv9NrDAZXC_a9ChOuAIgXLOPi8bAA3_-qt_Eo7lTlfTBUS5TFlZv0Hf1oDXTWC6raWklaKVvMS5JdIBVzSoVJ1UH7NX5XWaHyWozccxAR01uDhIVj9bzwwZKkjfYjxYwqEoEZ7iC5eKy71AevYVm5Im49WThJ0vkYnfJ5A7Z90IJ5KkWbEIGah3jmYPUQh0rugg"/>
+</div>
+<div class="min-w-0">
+<div class="font-label-md text-label-md text-on-surface font-bold truncate">Truffle Swiss Smash Burger</div>
+<div class="font-label-sm text-label-sm text-on-surface-variant">Includes skin-on seasoned fries</div>
+</div>
+</div>
+<div class="text-right shrink-0">
+<div class="font-numeric-price text-label-md text-primary font-bold">KES 1,250</div>
+<span class="font-label-sm text-label-sm text-secondary font-bold">In Bag (1)</span>
+</div>
+</div>
+</div>
+</article>
+<!-- Restaurant Card 4: Al-Yusra Swahili Delicacies -->
+<article class="bg-surface-container-lowest rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-all flex flex-col group">
+<div class="relative h-48 w-full bg-surface-container overflow-hidden">
+<img class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" data-alt="Fragrant traditional goat mutton biryani with slow-cooked spiced gravy boiled egg saffron grains and raita salad Nairobi restaurant table setting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBZBdgMAPr2hCc1xCFZTRLA0l0h0sYcEx8jrZO_hNk7SBU5QE02em9L154xY0ksoakziar65tRjVoGbWLzRT6DqoaMzFlxhwY7G-e7qGDTcMX8mU5gqbjEfeP1O1lPgaYXSBmj4WDpWkhps7X5F-i1HrK1ZiwoLkGnv2xPeDGvR9e0iBgsQ8dQ0rhfUffbdkfPyfhKnd-FVIkUgwUdhNSnmADjRJ6CHavdjH8xjZKJdXLVx3gb9HBYt_A"/>
+<div class="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/10"></div>
+<div class="absolute top-3 left-3 flex flex-wrap gap-1.5">
+<span class="px-2.5 py-1 rounded-full bg-secondary text-on-secondary font-label-sm text-label-sm font-bold shadow-sm flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">verified</span> 100% Halal Certified
+          </span>
+<span class="px-2.5 py-1 rounded-full bg-surface-container-lowest/90 backdrop-blur text-on-surface font-label-sm text-label-sm font-semibold">
+            Coastal Spices
+          </span>
+</div>
+<div class="absolute top-3 right-3 flex items-center gap-1 px-2.5 py-1 rounded-full bg-surface-container-lowest text-on-surface font-label-md text-label-md font-bold shadow-md">
+<span class="material-symbols-outlined text-[16px] text-primary" style="font-variation-settings: 'FILL' 1;">star</span>
+<span>4.8</span>
+<span class="text-on-surface-variant font-normal text-label-sm">(1.8k)</span>
+</div>
+<div class="absolute bottom-3 left-3 right-3 flex items-center justify-between text-white">
+<div class="flex items-center gap-2">
+<span class="font-label-sm text-label-sm bg-black/40 backdrop-blur-md px-2 py-0.5 rounded">CBD Hub / Rapid Express</span>
+<span class="font-label-sm text-label-sm bg-black/40 backdrop-blur-md px-2 py-0.5 rounded flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">schedule</span> 20-30 min
+            </span>
+</div>
+<span class="font-numeric-price text-label-sm font-bold bg-secondary/90 px-2 py-0.5 rounded text-white">KES 120 Delivery</span>
+</div>
+</div>
+<div class="p-space-sm flex flex-col gap-2">
+<div class="flex items-start justify-between gap-2">
+<div class="min-w-0">
+<h3 class="font-headline-sm text-headline-sm text-on-surface font-bold truncate">Al-Yusra Swahili Delicacies - CBD Hub</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant line-clamp-1">Mutton Biryani, Beef Pilau, Shawarma Rolls &amp; Mahamri</p>
+</div>
+<button class="w-10 h-10 rounded-full bg-surface-container-high hover:bg-primary hover:text-on-primary text-on-surface flex items-center justify-center shrink-0 transition-colors shadow-sm" title="Quick Add Biryani" type="button">
+<span class="material-symbols-outlined text-[20px]">add</span>
+</button>
+</div>
+<div class="bg-surface-container-low rounded-lg p-2.5 flex items-center justify-between gap-2">
+<div class="flex items-center gap-2.5 min-w-0">
+<div class="w-11 h-11 rounded-lg bg-surface-container-highest overflow-hidden shrink-0">
+<img class="w-full h-full object-cover" data-alt="Traditional Kenyan coastal spiced mutton pilau with fresh kachumbari tomato salad and banana" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBLxsmWIXUppqMxhqRwQMm3K2AS-w5BViqMwClo5DbSLaMgO23UTKhDN5Y7LtK1E2V78Vt1lHkuf_71fJi0MSFI2LGUXc6wvqzi-8VC-aJycFeK8CVz5GjAqD0q1xcmEEpIpp8sBHyTbwKbllrOVqSh8ImQmTat_ZsANu1aOzGDGy9nTjFNegzmEdiPvqjQhzJmGrSRc6Xr-byG3sazuoEAgZfzN3bJo07VITiZVLTW3FzuFtvcCQiWwA"/>
+</div>
+<div class="min-w-0">
+<div class="font-label-md text-label-md text-on-surface font-bold truncate">Zanzibari Mutton Biryani Special</div>
+<div class="font-label-sm text-label-sm text-on-surface-variant">Rich spiced sauce, fragrant basmati</div>
+</div>
+</div>
+<div class="text-right shrink-0">
+<div class="font-numeric-price text-label-md text-primary font-bold">KES 820</div>
+<span class="font-label-sm text-label-sm text-secondary font-bold">Chef Rec</span>
+</div>
+</div>
+</div>
+</article>
+</section>
+<!-- Live Delivery Telemetry Banner (Pinned Context Before Nav) -->
+<section class="px-margin-mobile pt-space-lg pb-space-sm">
+<div class="bg-surface-container-lowest rounded-xl p-space-sm shadow-md flex items-center justify-between gap-space-xs">
+<div class="flex items-center gap-2.5 min-w-0">
+<div class="relative w-10 h-10 rounded-full bg-secondary-fixed flex items-center justify-center text-on-secondary-fixed shrink-0">
+<span class="material-symbols-outlined text-[20px]">two_wheeler</span>
+<span class="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-secondary animate-ping"></span>
+</div>
+<div class="min-w-0">
+<div class="flex items-center gap-1.5">
+<span class="font-label-sm text-label-sm text-primary font-bold uppercase tracking-wider">Active Order #DT-8492</span>
+<span class="text-outline text-label-sm">•</span>
+<span class="font-label-sm text-label-sm text-secondary font-bold">ETA 18 min</span>
+</div>
+<div class="font-label-md text-label-md text-on-surface font-bold truncate">
+            Urban Burger • Rider Kiprono picking up
+          </div>
+</div>
+</div>
+<a class="shrink-0 flex items-center gap-1 px-3 py-1.5 rounded-full bg-surface-container-high hover:bg-surface-container-highest text-on-surface font-label-md text-label-md font-bold transition-colors" data-path="orders-and-tracking" href="#">
+<span>Track</span>
+<span class="material-symbols-outlined text-[16px]">arrow_forward</span>
+</a>
+</div>
+</section>
+<!-- Trust Badges & Local Community Endorsement -->
+<section class="px-margin-mobile py-space-sm mb-4">
+<div class="grid grid-cols-3 gap-2 text-center">
+<div class="bg-surface-container-low rounded-lg p-2 flex flex-col items-center">
+<span class="material-symbols-outlined text-primary text-[20px] mb-1">payments</span>
+<span class="font-label-sm text-label-sm text-on-surface font-bold">Instant M-Pesa</span>
+<span class="font-body-sm text-[10px] text-on-surface-variant">Lipa na M-Pesa STK</span>
+</div>
+<div class="bg-surface-container-low rounded-lg p-2 flex flex-col items-center">
+<span class="material-symbols-outlined text-secondary text-[20px] mb-1">verified_user</span>
+<span class="font-label-sm text-label-sm text-on-surface font-bold">100% Sealed</span>
+<span class="font-body-sm text-[10px] text-on-surface-variant">Tamper-proof bags</span>
+</div>
+<div class="bg-surface-container-low rounded-lg p-2 flex flex-col items-center">
+<span class="material-symbols-outlined text-on-surface text-[20px] mb-1">eco</span>
+<span class="font-label-sm text-label-sm text-on-surface font-bold">Electric Boda</span>
+<span class="font-body-sm text-[10px] text-on-surface-variant">Eco-friendly riders</span>
+</div>
+</div>
+</section>
+</div>
+<script>
+  // Fast Location Dropdown Micro-Interaction
+  const locBtn = document.getElementById('locationToggleBtn');
+  const locDropdown = document.getElementById('locationDropdown');
+  const locChevron = document.getElementById('locChevron');
+  const currentLocLabel = document.getElementById('currentLocLabel');
+
+  if (locBtn && locDropdown && locChevron) {
+    locBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const isHidden = locDropdown.classList.contains('hidden');
+      if (isHidden) {
+        locDropdown.classList.remove('hidden');
+        locChevron.style.transform = 'rotate(180deg)';
+      } else {
+        locDropdown.classList.add('hidden');
+        locChevron.style.transform = 'rotate(0deg)';
+      }
+    });
+
+    document.addEventListener('click', () => {
+      if (!locDropdown.classList.contains('hidden')) {
+        locDropdown.classList.add('hidden');
+        locChevron.style.transform = 'rotate(0deg)';
+      }
+    });
+  }
+
+  function selectLocation(name, eta) {
+    if (currentLocLabel) {
+      currentLocLabel.textContent = name;
+    }
+    if (locDropdown) {
+      locDropdown.classList.add('hidden');
+    }
+    if (locChevron) {
+      locChevron.style.transform = 'rotate(0deg)';
+    }
+  }
+
+  // Filter Pill active toggle micro-interaction
+  const filterPills = document.querySelectorAll('.filter-pill');
+  filterPills.forEach(pill => {
+    pill.addEventListener('click', () => {
+      filterPills.forEach(p => {
+        if (!p.classList.contains('bg-secondary-container')) {
+          p.classList.remove('bg-inverse-surface', 'text-inverse-on-surface');
+          p.classList.add('bg-surface-container-high', 'text-on-surface');
+        }
+      });
+      pill.classList.remove('bg-surface-container-high', 'text-on-surface');
+      pill.classList.add('bg-inverse-surface', 'text-inverse-on-surface');
+    });
+  });
+</script></main><aside class="fixed bottom-20 inset-x-0 z-40 px-margin-mobile pointer-events-none pb-2"><div class="pointer-events-auto mx-auto max-w-md w-full bg-inverse-surface text-inverse-on-surface rounded-xl shadow-[0_8px_24px_-4px_rgba(25,28,30,0.18)] p-space-sm flex items-center justify-between gap-space-sm transition-transform active:scale-[0.99]"><div class="flex items-center gap-space-sm min-w-0"><div class="w-10 h-10 rounded-lg bg-primary flex items-center justify-center text-on-primary shrink-0"><span class="material-symbols-outlined text-[20px]">local_mall</span></div><div class="flex flex-col min-w-0"><span class="font-label-md text-label-md text-inverse-on-surface font-bold truncate">2 items from Urban Gourmet Burger</span><span class="font-body-sm text-body-sm text-surface-container-highest truncate">KES 2,450 • Free delivery unlocked</span></div></div><a class="shrink-0 h-10 px-space-md rounded-full bg-primary text-on-primary font-label-md text-label-md flex items-center justify-center hover:opacity-95 transition-opacity" data-path="checkout-bag" href="#">View Bag</a></div></aside><nav class="fixed bottom-0 inset-x-0 z-50 pb-safe bg-surface/90 backdrop-blur-xl shadow-[0_-1px_10px_rgba(27,28,26,0.06)]" data-active-classes="text-primary font-bold"><div class="flex justify-around items-center h-16 px-space-xs"><a aria-current="page" class="flex flex-col items-center justify-center min-w-[64px] h-14 transition-colors group text-primary font-bold" data-path="home-discovery" href="#"><span class="material-symbols-outlined text-[24px]">explore</span><span class="font-label-sm text-label-sm mt-1">Discovery</span></a><a class="flex flex-col items-center justify-center min-w-[64px] h-14 text-on-surface-variant transition-colors group" data-path="search-and-browse" href="#"><span class="material-symbols-outlined text-[24px]">search</span><span class="font-label-sm text-label-sm mt-1">Search</span></a><a class="flex flex-col items-center justify-center min-w-[64px] h-14 text-on-surface-variant transition-colors group relative" data-path="orders-and-tracking" href="#"><div class="relative flex items-center justify-center"><span class="material-symbols-outlined text-[24px]">receipt_long</span><span class="absolute -top-1 -right-2 px-1.5 py-0.2 rounded-full bg-secondary text-on-secondary font-label-sm text-[10px] leading-tight font-bold">1</span></div><span class="font-label-sm text-label-sm mt-1">Orders</span></a><a class="flex flex-col items-center justify-center min-w-[64px] h-14 text-on-surface-variant transition-colors group" data-path="profile-and-addresses" href="#"><span class="material-symbols-outlined text-[24px]">person</span><span class="font-label-sm text-label-sm mt-1">Profile</span></a></div></nav></body></html>

@@ -1,0 +1,55 @@
+{
+  "date": "2026-09-24",
+  "commands": [
+    {
+      "name": "typecheck",
+      "exit": 0
+    },
+    {
+      "name": "build",
+      "exit": 0
+    },
+    {
+      "name": "test:unit",
+      "exit": 0
+    },
+    {
+      "name": "test:integration",
+      "exit": 0
+    },
+    {
+      "name": "test:e2e",
+      "exit": 0
+    },
+    {
+      "name": "openapi:validate",
+      "exit": 0
+    },
+    {
+      "name": "openapi:coverage",
+      "exit": 0
+    },
+    {
+      "name": "test:foundation",
+      "exit": 0
+    },
+    {
+      "name": "test:paid-order",
+      "exit": 0
+    }
+  ],
+  "tests": {
+    "unit": 163,
+    "integration": 209,
+    "api_smoke": 1,
+    "foundation": 33,
+    "paid_order": 14,
+    "total": 420,
+    "failed": 0,
+    "skipped": 0
+  },
+  "provider_certification": "BLOCKED_BY_CONFIGURATION",
+  "browser_acceptance": "NOT_VERIFIED",
+  "migration_applied": "027_hosted_card_checkout.sql",
+  "normal_runtime": "npm run dev; postgres; fixtures=false; readiness healthy"
+}

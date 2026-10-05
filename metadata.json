@@ -1,0 +1,6 @@
+{
+  "name": "Deetoo Engineering Platform",
+  "description": "Deetoo Food Delivery Platform — Production Hardening, Security, QA, Resilience, Disaster Recovery, Pilot Operations & Closed Launch Readiness.",
+  "requestFramePermissions": ["geolocation"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

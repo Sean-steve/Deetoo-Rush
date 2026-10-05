@@ -1,0 +1,78 @@
+{
+  "date": "2026-09-15",
+  "results": [
+    {
+      "name": "typecheck",
+      "command": "npm run typecheck",
+      "exitCode": 0,
+      "passed": null,
+      "failed": 0,
+      "skipped": 0,
+      "evidence": "docs/foundation-wave-1/evidence/typecheck.log"
+    },
+    {
+      "name": "build",
+      "command": "npm run build",
+      "exitCode": 0,
+      "passed": null,
+      "failed": 0,
+      "skipped": 0,
+      "evidence": "docs/foundation-wave-1/evidence/build.log"
+    },
+    {
+      "name": "unit",
+      "command": "npm run test:unit",
+      "exitCode": 0,
+      "passed": 152,
+      "failed": 0,
+      "skipped": 0,
+      "evidence": "docs/foundation-wave-1/evidence/unit.log"
+    },
+    {
+      "name": "integration",
+      "command": "npm run test:integration",
+      "exitCode": 0,
+      "passed": 209,
+      "failed": 0,
+      "skipped": 0,
+      "evidence": "docs/foundation-wave-1/evidence/integration.log"
+    },
+    {
+      "name": "e2e",
+      "command": "npm run test:e2e",
+      "exitCode": 0,
+      "passed": 1,
+      "failed": 0,
+      "skipped": 0,
+      "evidence": "docs/foundation-wave-1/evidence/e2e.log"
+    },
+    {
+      "name": "foundation",
+      "command": "REDIS_URL=redis://127.0.0.1:56379 DATABASE_URL=postgres://postgres:foundation_test_only@127.0.0.1:55432/deetoo_foundation npm run test:foundation",
+      "exitCode": 0,
+      "passed": 28,
+      "failed": 0,
+      "skipped": 0,
+      "evidence": "docs/foundation-wave-1/evidence/foundation.log"
+    },
+    {
+      "name": "dependency audit",
+      "command": "npm audit --omit=dev --json",
+      "exitCode": 0,
+      "reportedVulnerabilities": 0,
+      "evidence": "docs/foundation-wave-1/evidence/dependency-audit.json"
+    },
+    {
+      "name": "foundation clean database",
+      "command": "REDIS_URL=redis://127.0.0.1:56379/1 DATABASE_URL=postgres://postgres:foundation_test_only@127.0.0.1:55432/deetoo_foundation_clean_20260915_final npm run test:foundation",
+      "exitCode": 0,
+      "passed": 28,
+      "failed": 0,
+      "skipped": 0,
+      "freshMigrationsApplied": 21,
+      "evidence": "docs/foundation-wave-1/evidence/foundation-clean.log"
+    }
+  ],
+  "restoreEvidence": "docs/foundation-wave-1/restore-verification.json",
+  "hostedCIExecuted": false
+}

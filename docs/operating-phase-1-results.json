@@ -1,0 +1,38 @@
+[
+  {
+    "name": "typecheck",
+    "exit": 0
+  },
+  {
+    "name": "build",
+    "exit": 0
+  },
+  {
+    "name": "test:unit",
+    "exit": 0
+  },
+  {
+    "name": "test:integration",
+    "exit": 0
+  },
+  {
+    "name": "test:e2e",
+    "exit": 0
+  },
+  {
+    "name": "openapi:validate",
+    "exit": 0
+  },
+  {
+    "name": "openapi:coverage",
+    "exit": 0
+  },
+  {
+    "name": "test:foundation",
+    "exit": 0
+  },
+  {
+    "name": "test:paid-order",
+    "exit": 0
+  }
+]

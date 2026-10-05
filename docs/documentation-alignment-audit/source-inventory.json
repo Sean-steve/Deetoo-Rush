@@ -1,0 +1,110 @@
+[
+  {
+    "file": "01_Deetoo_PRD.pdf",
+    "pages": 8,
+    "chars": 29286,
+    "sha256": "561ac0b70140e57a2b7dae5238fe23b435a6e297c80d1b63b1750117b5e44cb0"
+  },
+  {
+    "file": "02_Deetoo_System_Architecture.pdf",
+    "pages": 9,
+    "chars": 22398,
+    "sha256": "30d70355cb55f1d2654243252a0b858c31ad0e7197370ab4400cbddf392a265a"
+  },
+  {
+    "file": "03_Deetoo_Domain_Model.pdf",
+    "pages": 7,
+    "chars": 22117,
+    "sha256": "2acf8cefa616b80a0c55d9da4cb6ff52f78cae3059cdc3ee92cf75092579ad70"
+  },
+  {
+    "file": "04_Deetoo_ERD_Database_Schema.pdf",
+    "pages": 8,
+    "chars": 26378,
+    "sha256": "c0fb3dbfddc0c43175d08ae9b9aed33abe146327a6688c06e895dd3cdd5acf1b"
+  },
+  {
+    "file": "05_Deetoo_State_Machines.pdf",
+    "pages": 7,
+    "chars": 20459,
+    "sha256": "a22f548faa2e62c14ee9986953730382e768953d5e0846be7257a46d4dcacc85"
+  },
+  {
+    "file": "06_Deetoo_Business_Rules.pdf",
+    "pages": 7,
+    "chars": 21734,
+    "sha256": "56619f1169feca912e8c61e5023d85fc9fb079206db9b83f10140a13073c24a8"
+  },
+  {
+    "file": "07_Deetoo_RBAC_Matrix.pdf",
+    "pages": 7,
+    "chars": 20824,
+    "sha256": "a39627d193ed5647a8fb1866f6db50614a0570a0b84f39cd10b72fa8da53c04d"
+  },
+  {
+    "file": "08_Deetoo_API_Specification.pdf",
+    "pages": 9,
+    "chars": 28800,
+    "sha256": "0bfb87dbab8d6f1763f8c29979963ec8f77b43e9914b87fa5d18c34546d367bc"
+  },
+  {
+    "file": "09_Deetoo_Payments_Ledger.pdf",
+    "pages": 7,
+    "chars": 21700,
+    "sha256": "6c4a7e8ec2675ab85daf94782113bb98ba37af05be4b67be11093fad84f2379d"
+  },
+  {
+    "file": "10_Deetoo_Dispatch_Specification.pdf",
+    "pages": 8,
+    "chars": 23501,
+    "sha256": "38c2dd326d52824e7d28202b24d8c3449e0abf2465ffffd9c8e5c8a7c2984929"
+  },
+  {
+    "file": "11_Deetoo_User_Journey_Flows.pdf",
+    "pages": 7,
+    "chars": 18891,
+    "sha256": "bc0bdca40810b28430c6121207826a2cac7143b7cdee1a9789a6d0a81c97a27d"
+  },
+  {
+    "file": "12_Deetoo_Feature_Matrix_Roadmap.pdf",
+    "pages": 6,
+    "chars": 18180,
+    "sha256": "45a2da632c069758136e241e829069df65c41086a90655f2d0de738a839a9637"
+  },
+  {
+    "file": "13_Deetoo_AI_Engineering_Rules.pdf",
+    "pages": 6,
+    "chars": 15832,
+    "sha256": "c50726a47ab6aad67a87479b417ef8a587a9df333d7c9f09f8d7d908f0004729"
+  },
+  {
+    "file": "14_Deetoo_Definition_of_Done.pdf",
+    "pages": 6,
+    "chars": 13023,
+    "sha256": "59eaba2940a380d842c841e41c55e66334e35bec2dac811a3b1c9a381c6125c9"
+  },
+  {
+    "file": "15_Deetoo_Profitability_Unit_Economics.pdf",
+    "pages": 7,
+    "chars": 18420,
+    "sha256": "958bfc0ded21c84c28f9c0767146122dca3f4207682e85cec50a54093c5fb59e"
+  },
+  {
+    "file": "16_Deetoo_Operations_Support_Runbook.pdf",
+    "pages": 7,
+    "chars": 19739,
+    "sha256": "b0010da6187e8080038ee3614b01f348f10da9ebdde373d7d013fcd5ded24a90"
+  },
+  {
+    "file": "17_Deetoo_Security_Privacy.pdf",
+    "pages": 8,
+    "chars": 26102,
+    "sha256": "5852303cb2d32d71bd2c878cd28ae5cd2585fb759ef598d6f3a47c5c61272ef9"
+  },
+  {
+    "file": "Deetoo_Product_Engineering_Specification_v1.0.pdf",
+    "pages": 28,
+    "chars": 111059,
+    "sha256": "2c583aeebae2ed21e464dd8377eabb5b9525410dc6a3aeeec0d432b314ed750f"
+  }
+]
