@@ -1168,27 +1168,53 @@ export class DispatchService {
       await riderRepository.updateWorkStatus(delivery.assigned_rider_id, RiderWorkStatus.ONLINE_AVAILABLE);
     }
 
-    // Complete the Order
-    try {
-      const order = await orderRepository.findById(delivery.order_id);
-      if (order && order.status !== OrderStatus.COMPLETED) {
-        const orderTransition = orderStateMachine.transition(order, {
-          targetStatus: OrderStatus.COMPLETED,
-          actorType: 'ADMIN',
-          actorId: adminUserId,
-          actorName: adminName,
-          note: `Force-completed by admin: ${reason}`,
-        });
+    // Complete the Order in the same transaction.
+    const order = await orderRepository.findById(delivery.order_id);
+    if (!order) {
+      throw new Error('Cannot force-complete delivery because its order is missing');
+    }
+    if (order.status !== OrderStatus.COMPLETED) {
+      const orderTransition = orderStateMachine.transition(order, {
+        targetStatus: OrderStatus.COMPLETED,
+        actorType: 'ADMIN',
+        actorId: adminUserId,
+        actorName: adminName,
+        note: `Force-completed by admin: ${reason}`,
+      });
 
-        await orderRepository.updateOrderStatus(
-          order.id,
-          orderTransition.newStatus,
-          orderTransition.updatedOrderFields,
-          orderTransition.timelineEntry
-        );
+      await orderRepository.updateOrderStatus(
+        order.id,
+        orderTransition.newStatus,
+        orderTransition.updatedOrderFields,
+        orderTransition.timelineEntry
+      );
+    }
+
+    // Verified Ops completion must not bypass Rider compensation.
+    if (delivery.assigned_rider_id) {
+      const pickupLat = delivery.pickup_location?.lat ?? delivery.pickup_location?.latitude;
+      const pickupLng = delivery.pickup_location?.lng ?? delivery.pickup_location?.longitude;
+      const dropoffLat = delivery.dropoff_location?.lat ?? delivery.dropoff_location?.latitude;
+      const dropoffLng = delivery.dropoff_location?.lng ?? delivery.dropoff_location?.longitude;
+      if (
+        ![pickupLat, pickupLng, dropoffLat, dropoffLng].every(
+          (value) => typeof value === 'number' && Number.isFinite(value),
+        )
+      ) {
+        throw new Error('Cannot force-complete Rider earning without authoritative delivery coordinates');
       }
-    } catch {
-      // Non-blocking
+      const earning = await riderEarningsService.calculateAndRecordEarning({
+        riderId: delivery.assigned_rider_id,
+        deliveryId: delivery.id,
+        orderId: delivery.order_id,
+        distanceMeters: calculateDistanceMeters(
+          pickupLat as number,
+          pickupLng as number,
+          dropoffLat as number,
+          dropoffLng as number,
+        ),
+      });
+      await financialPostingService.postRiderEarning(earning);
     }
 
     // Create audit proof
