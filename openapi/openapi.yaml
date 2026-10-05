@@ -6310,6 +6310,46 @@ paths:
       operationId: finance_post_disbursement_callback
       security: []
 
+  /admin/launch-readiness:
+    get:
+      summary: Evaluate production launch readiness and evidence gates
+      tags: [Operations (Admin/Ops)]
+      responses:
+        '200':
+          description: Launch readiness snapshot
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseGeneric'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+      operationId: operations_get_admin_launch_readiness
+      security:
+      - bearerAuth: []
+  /admin/launch-readiness/{gate}:
+    patch:
+      summary: Update a production launch evidence gate
+      tags: [Operations (Admin/Ops)]
+      parameters:
+      - name: gate
+        in: path
+        required: true
+        schema: { type: string }
+      responses:
+        '200':
+          description: Updated launch gate
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseGeneric'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+      operationId: operations_patch_admin_launch_readiness_gate
+      security:
+      - bearerAuth: []
+
 components:
   securitySchemes:
     bearerAuth:
