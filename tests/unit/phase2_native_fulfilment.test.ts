@@ -56,3 +56,41 @@ test('external push acceptance is SENT, while in-app delivery is DELIVERED', asy
   assert.equal(inApp.provider, 'IN_APP');
   assert.ok(inApp.delivered_at);
 });
+
+
+test('notification claims are leased and recoverable after worker loss', async () => {
+  operationsRepository.clearInMemory();
+
+  const now = new Date().toISOString();
+  await operationsRepository.createNotification({
+    id: '00000000-0000-4000-8000-000000000201',
+    recipient_type: 'RIDER',
+    recipient_id: 'phase2-lease-rider',
+    channel: 'PUSH',
+    template_code: 'RIDER_NEW_OFFER',
+    status: 'PENDING',
+    subject: 'Offer',
+    payload: { offerId: 'phase2-lease-offer' },
+    provider: 'SIMULATED',
+    retry_count: 0,
+    max_retries: 3,
+    idempotency_key: 'phase2-lease-notification',
+    created_at: now,
+  });
+
+  const first = await operationsRepository.claimPendingNotifications(10);
+  assert.equal(first.length, 1);
+  assert.equal(first[0].status, 'QUEUED');
+  assert.ok(first[0].scheduled_at);
+
+  const immediateSecondClaim = await operationsRepository.claimPendingNotifications(10);
+  assert.equal(immediateSecondClaim.length, 0);
+
+  await operationsRepository.updateNotification(first[0].id, {
+    status: 'QUEUED',
+    scheduled_at: new Date(Date.now() - 1_000).toISOString(),
+  });
+  const recovered = await operationsRepository.claimPendingNotifications(10);
+  assert.equal(recovered.length, 1);
+  assert.equal(recovered[0].id, first[0].id);
+});
