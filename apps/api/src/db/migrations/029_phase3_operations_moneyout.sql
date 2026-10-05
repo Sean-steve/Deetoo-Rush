@@ -33,7 +33,7 @@ CREATE TABLE IF NOT EXISTS disbursement_attempts (
   provider VARCHAR(50) NOT NULL,
   amount_minor BIGINT NOT NULL CHECK (amount_minor > 0),
   currency CHAR(3) NOT NULL DEFAULT 'KES',
-  status VARCHAR(30) NOT NULL CHECK (status IN ('CREATED','SUBMITTED','SUCCEEDED','FAILED')),
+  status VARCHAR(30) NOT NULL CHECK (status IN ('CREATED','SUBMITTED','UNKNOWN','SUCCEEDED','FAILED')),
   idempotency_key VARCHAR(255) NOT NULL UNIQUE,
   provider_request_id VARCHAR(255),
   provider_reference VARCHAR(255),
@@ -89,3 +89,11 @@ CREATE TABLE IF NOT EXISTS merchant_onboarding_state (
 
 CREATE INDEX IF NOT EXISTS idx_merchant_onboarding_stage
   ON merchant_onboarding_state(stage, updated_at);
+
+
+ALTER TABLE financial_adjustments
+  ADD COLUMN IF NOT EXISTS status VARCHAR(30) NOT NULL DEFAULT 'REQUESTED'
+    CHECK (status IN ('REQUESTED','APPROVED','POSTED','REJECTED')),
+  ADD COLUMN IF NOT EXISTS approved_at TIMESTAMPTZ,
+  ADD COLUMN IF NOT EXISTS rejected_at TIMESTAMPTZ,
+  ADD COLUMN IF NOT EXISTS rejection_reason TEXT;
