@@ -15,8 +15,8 @@ export function createApp(): Express {
   const app = express();
 
   // 1. Security & Core Middlewares
-  app.use(securityHeadersMiddleware);
   app.use(requestIdMiddleware);
+  app.use(securityHeadersMiddleware);
   app.use(requestLoggingMiddleware);
 
   // 2. Body Parser with payload limit (Section 28)
