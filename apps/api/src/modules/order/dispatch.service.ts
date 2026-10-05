@@ -1406,29 +1406,38 @@ export class DispatchService {
         break;
     }
 
-    // ETA calculation
+    // ETA is optional and provider-backed. Never invent a fixed travel speed or static ETA.
     let estimatedEtaMinutes: number | null = null;
     let estimatedArrivalAt: string | null = null;
 
     if (
       (delivery.status === DeliveryStatus.PICKED_UP || delivery.status === DeliveryStatus.EN_ROUTE) &&
-      riderLiveLocation && !riderLiveLocation.isStale
+      riderLiveLocation &&
+      !riderLiveLocation.isStale &&
+      riderSafe
     ) {
       const dropoffLat = delivery.dropoff_location.latitude ?? delivery.dropoff_location.lat;
       const dropoffLng = delivery.dropoff_location.longitude ?? delivery.dropoff_location.lng;
-      const distanceMeters = calculateDistanceMeters(
-        riderLiveLocation.latitude,
-        riderLiveLocation.longitude,
-        dropoffLat,
-        dropoffLng,
-        1.3
-      );
-      // Assume 25 km/h urban average
-      estimatedEtaMinutes = Math.max(2, Math.round(distanceMeters / (25 * (1000 / 60))));
-      estimatedArrivalAt = new Date(Date.now() + estimatedEtaMinutes * 60 * 1000).toISOString();
-    } else if (delivery.status === DeliveryStatus.ASSIGNED || delivery.status === DeliveryStatus.ARRIVED_PICKUP) {
-      estimatedEtaMinutes = 20;
-      estimatedArrivalAt = new Date(Date.now() + 20 * 60 * 1000).toISOString();
+      try {
+        const route = await routingProvider.route(
+          {
+            latitude: riderLiveLocation.latitude,
+            longitude: riderLiveLocation.longitude,
+          },
+          { latitude: dropoffLat, longitude: dropoffLng },
+          riderSafe.vehicleType,
+        );
+        estimatedEtaMinutes = Math.max(1, Math.ceil(route.durationSeconds / 60));
+        estimatedArrivalAt = new Date(
+          Date.now() + route.durationSeconds * 1000,
+        ).toISOString();
+      } catch (routingError) {
+        logger.warn('Customer ETA unavailable from routing provider', {
+          service: 'dispatch-engine',
+          deliveryId: delivery.id,
+          error: (routingError as Error).message,
+        });
+      }
     }
 
     const timeline = delivery.timeline || (await deliveryRepository.getTimelineByDeliveryId(delivery.id));
