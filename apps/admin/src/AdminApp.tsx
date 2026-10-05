@@ -61,6 +61,7 @@ import {
   Bike,
   Car,
   Radio,
+  Store,
 } from "lucide-react";
 
 export function AdminApp() {
@@ -428,48 +429,48 @@ function AdminAppInner() {
   const navigation = [
     ...(operationalRead
       ? [
-          { id: "command", label: "Overview / pulse" },
-          { id: "dispatch", label: "Live dispatch & fleet" },
-          { id: "orders", label: "Orders & deliveries" },
-          { id: "riders", label: "Riders" },
+          { id: "command", label: "Overview / pulse", icon:<Activity size={16}/>, group:"Live operations" },
+          { id: "dispatch", label: "Live dispatch & fleet", icon:<Radio size={16}/>, group:"Live operations" },
+          { id: "orders", label: "Orders & deliveries", icon:<FileText size={16}/>, group:"Live operations" },
+          { id: "riders", label: "Riders", icon:<Bike size={16}/>, group:"Live operations" },
         ]
       : []),
     ...(operationsAccess
       ? [
-          { id: "merchants", label: "Merchants & approvals" },
-          { id: "onboarding", label: "Merchant onboarding" },
-          { id: "branches", label: "Branches" },
-          { id: "zones", label: "Service zones" },
-          { id: "users", label: "Users & access" },
+          { id: "merchants", label: "Merchants & approvals", icon:<Store size={16}/>, group:"Marketplace" },
+          { id: "onboarding", label: "Merchant onboarding", icon:<CheckCircle2 size={16}/>, group:"Marketplace" },
+          { id: "branches", label: "Branches", icon:<MapPin size={16}/>, group:"Marketplace" },
+          { id: "zones", label: "Service zones", icon:<MapPin size={16}/>, group:"Marketplace" },
+          { id: "users", label: "Users & access", icon:<Users size={16}/>, group:"Marketplace" },
         ]
       : []),
-    { id: "incidents", label: "Fleet & incidents" },
-    { id: "support", label: "Support cases" },
+    { id: "incidents", label: "Fleet & incidents", icon:<AlertTriangle size={16}/>, group:"Care & risk" },
+    { id: "support", label: "Support cases", icon:<User size={16}/>, group:"Care & risk" },
     ...(operationalRead
-      ? [{ id: "payments", label: "M-PESA, cards & refunds" }]
+      ? [{ id: "payments", label: "M-PESA, cards & refunds", icon:<DollarSign size={16}/>, group:"Money" }]
       : []),
     ...(financeAccess
       ? [
-          { id: "ledger", label: "Financial ledger" },
-          { id: "accounts", label: "Ledger accounts" },
-          { id: "adjustments", label: "Financial adjustments" },
-          { id: "destinations", label: "Payout destinations" },
-          { id: "disbursements", label: "Disbursement attempts" },
-          { id: "settlements", label: "Merchant settlements" },
-          { id: "payouts", label: "Rider payouts" },
+          { id: "ledger", label: "Financial ledger", icon:<Database size={16}/>, group:"Money" },
+          { id: "accounts", label: "Ledger accounts", icon:<FileText size={16}/>, group:"Money" },
+          { id: "adjustments", label: "Financial adjustments", icon:<DollarSign size={16}/>, group:"Money" },
+          { id: "destinations", label: "Payout destinations", icon:<MapPin size={16}/>, group:"Money" },
+          { id: "disbursements", label: "Disbursement attempts", icon:<DollarSign size={16}/>, group:"Money" },
+          { id: "settlements", label: "Merchant settlements", icon:<Store size={16}/>, group:"Money" },
+          { id: "payouts", label: "Rider payouts", icon:<Bike size={16}/>, group:"Money" },
         ]
       : []),
-    { id: "notifications", label: "Notifications" },
-    { id: "jobs", label: "Background jobs" },
-    { id: "risk", label: "Risk signals" },
+    { id: "notifications", label: "Notifications", icon:<Radio size={16}/>, group:"System" },
+    { id: "jobs", label: "Background jobs", icon:<Server size={16}/>, group:"System" },
+    { id: "risk", label: "Risk signals", icon:<ShieldAlert size={16}/>, group:"Care & risk" },
     ...(operationsAccess
       ? [
-          { id: "configuration", label: "Dispatch & controls" },
-          { id: "launch", label: "Launch readiness" },
-          { id: "audit", label: "Audit trail" },
+          { id: "configuration", label: "Dispatch & controls", icon:<Filter size={16}/>, group:"System" },
+          { id: "launch", label: "Launch readiness", icon:<CheckCircle2 size={16}/>, group:"System" },
+          { id: "audit", label: "Audit trail", icon:<FileText size={16}/>, group:"System" },
         ]
       : []),
-    { id: "overview", label: "System health" },
+    { id: "overview", label: "System health", icon:<Activity size={16}/>, group:"System" },
   ];
   const selectedView = navigation.some((n) => n.id === activeTab)
     ? activeTab
