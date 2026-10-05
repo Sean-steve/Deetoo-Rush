@@ -561,7 +561,7 @@ describe('Sprint 10: Delivery Execution Lifecycle & Customer Tracking', () => {
     assert.equal(tracking.rider?.firstName, 'Boniface'); // First name only
     assert.equal(tracking.rider?.vehicleType, VehicleType.MOTORBIKE);
     assert.equal(tracking.rider?.vehicleRegistrationMasked, 'KM***Z'); // Masked registration
-    assert.ok(tracking.rider?.phoneProxy.includes('ext')); // Virtual proxy phone
+    assert.equal(tracking.rider?.phoneProxy, undefined); // No fabricated contact proxy without a real proxy provider.
 
     // Verify live location and calculated ETA
     assert.ok(tracking.riderLiveLocation);
