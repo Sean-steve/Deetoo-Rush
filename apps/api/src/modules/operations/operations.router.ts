@@ -24,6 +24,7 @@ import { fraudRiskService } from "./risk.service";
 import { unifiedOrderViewService } from "./unified-order-view.service";
 import { operationsSlaService } from "./sla.service";
 import { controlTowerService } from "./control-tower.service";
+import { launchReadinessService } from "./launch-readiness.service";
 
 export const operationsRouter = Router();
 operationsRouter.use(scopedResponseMiddleware);
@@ -83,6 +84,34 @@ operationsRouter.get(
   async (_req: Request, res: Response, next: NextFunction) => {
     try {
       res.json({ success: true, data: await controlTowerService.supplyByZone() });
+    } catch (error) { next(error); }
+  },
+);
+
+operationsRouter.get(
+  "/launch-readiness",
+  staffAuth,
+  async (_req: Request, res: Response, next: NextFunction) => {
+    try {
+      res.json({ success: true, data: await launchReadinessService.getReadiness() });
+    } catch (error) { next(error); }
+  },
+);
+
+operationsRouter.patch(
+  "/launch-readiness/:gate",
+  requireAuth,
+  requireRole("admin"),
+  async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      const data = await launchReadinessService.updateGate(
+        req.params.gate,
+        String(req.body?.status || '').toUpperCase(),
+        req.user!.id,
+        req.body?.evidence_reference ? String(req.body.evidence_reference) : undefined,
+        req.body?.note ? String(req.body.note) : undefined,
+      );
+      res.json({ success: true, data });
     } catch (error) { next(error); }
   },
 );
