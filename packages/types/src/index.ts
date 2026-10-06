@@ -2032,6 +2032,9 @@ export enum LedgerAccountType {
   REFUND_EXPENSE_PLATFORM = 'REFUND_EXPENSE_PLATFORM',         // Expense: platform-funded refunds / goodwill
   SETTLEMENT_CLEARING = 'SETTLEMENT_CLEARING',               // Asset/Clearing: outbound merchant bank/M-Pesa clearing
   RIDER_PAYOUT_CLEARING = 'RIDER_PAYOUT_CLEARING',           // Asset/Clearing: outbound rider M-Pesa B2C clearing
+  RIDER_CASH_RECEIVABLE = 'RIDER_CASH_RECEIVABLE',           // Asset: cash collected by a rider and owed to DeeToo
+  CASH_COLLECTION_LIABILITY = 'CASH_COLLECTION_LIABILITY',   // Liability: COD cash recorded against a Rider
+  CASH_SETTLEMENT_CLEARING = 'CASH_SETTLEMENT_CLEARING',     // Asset/Clearing: verified cash remittance to DeeToo
   GENERAL_ADJUSTMENT_CLEARING = 'GENERAL_ADJUSTMENT_CLEARING'  // Clearing: finance manual corrections
 }
 
