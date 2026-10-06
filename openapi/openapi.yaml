@@ -6350,6 +6350,257 @@ paths:
       security:
       - bearerAuth: []
 
+  /admin/dispatch/deliveries/{id}/eligible-riders:
+    get:
+      summary: Rank currently eligible Riders for manual dispatch fallback
+      tags: [Admin]
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema: { type: string }
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseGeneric'
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+      operationId: admin_get_dispatch_delivery_eligible_riders
+      security: [{ bearerAuth: [] }]
+
+  /admin/governance/events:
+    get:
+      summary: List privileged account-governance audit events
+      tags: [Admin]
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseGeneric'
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+      operationId: admin_get_governance_events
+      security: [{ bearerAuth: [] }]
+
+  /admin/governance/provision:
+    post:
+      summary: Provision a pending governed account
+      tags: [Admin]
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseGeneric'
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+      operationId: admin_post_governance_provision
+      security: [{ bearerAuth: [] }]
+
+  /admin/governance/users/{id}:
+    patch:
+      summary: Edit governed identity fields with audit reason
+      tags: [Admin]
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema: { type: string }
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseGeneric'
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+      operationId: admin_patch_governance_user
+      security: [{ bearerAuth: [] }]
+
+  /admin/governance/users/{id}/deactivate:
+    post:
+      summary: Non-destructively deactivate a governed identity
+      tags: [Admin]
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema: { type: string }
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseGeneric'
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+      operationId: admin_post_governance_user_deactivate
+      security: [{ bearerAuth: [] }]
+
+  /admin/governance/users/{id}/reactivate:
+    post:
+      summary: Reactivate a governed identity
+      tags: [Admin]
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema: { type: string }
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseGeneric'
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+      operationId: admin_post_governance_user_reactivate
+      security: [{ bearerAuth: [] }]
+
+  /admin/governance/riders/{id}:
+    patch:
+      summary: Edit privileged Rider profile fields
+      tags: [Admin]
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema: { type: string }
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseGeneric'
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+      operationId: admin_patch_governance_rider
+      security: [{ bearerAuth: [] }]
+
+  /admin/governance/merchants/{id}/deactivate:
+    post:
+      summary: Non-destructively deactivate a merchant
+      tags: [Admin]
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema: { type: string }
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseGeneric'
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+      operationId: admin_post_governance_merchant_deactivate
+      security: [{ bearerAuth: [] }]
+
+  /admin/support/cases/{id}/attachments/{mediaId}/read-url:
+    get:
+      summary: Get a case-scoped support evidence read URL
+      tags: [Admin]
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema: { type: string }
+      - name: mediaId
+        in: path
+        required: true
+        schema: { type: string }
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseGeneric'
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+      operationId: admin_get_support_attachment_read_url
+      security: [{ bearerAuth: [] }]
+
+  /admin/support/cases/{id}/force-close:
+    post:
+      summary: Super Admin override to close a support case
+      tags: [Admin]
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema: { type: string }
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseGeneric'
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+      operationId: admin_post_support_case_force_close
+      security: [{ bearerAuth: [] }]
+
+  /support/cases/{id}/attachments/{mediaId}/read-url:
+    get:
+      summary: Get participant-authorized support evidence read URL
+      tags: [Support]
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema: { type: string }
+      - name: mediaId
+        in: path
+        required: true
+        schema: { type: string }
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseGeneric'
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+      operationId: support_get_attachment_read_url
+      security: [{ bearerAuth: [] }]
+
+  /support/cases/{id}/resolution-response:
+    post:
+      summary: Accept or dispute a proposed support resolution
+      tags: [Support]
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema: { type: string }
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseGeneric'
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+      operationId: support_post_resolution_response
+      security: [{ bearerAuth: [] }]
+
+
 components:
   securitySchemes:
     bearerAuth:
