@@ -531,6 +531,7 @@ export enum UserRole {
   FINANCE = 'finance',
   OPS = 'ops',
   ADMIN = 'admin',
+  SUPER_ADMIN = 'super_admin',
 }
 
 export enum ResourceScope {
@@ -2494,11 +2495,15 @@ export interface SlaEvaluationResult {
 
 export type SupportCaseStatus =
   | 'OPEN'
+  | 'ASSIGNED'
   | 'IN_PROGRESS'
+  | 'IN_CONVERSATION'
   | 'WAITING_CUSTOMER'
   | 'WAITING_MERCHANT'
   | 'WAITING_RIDER'
   | 'WAITING_INTERNAL'
+  | 'RESOLUTION_PROPOSED'
+  | 'PARTY_CONFIRMATION'
   | 'RESOLVED'
   | 'CLOSED';
 
@@ -2517,7 +2522,20 @@ export type SupportCaseCategory =
   | 'ACCOUNT_ISSUE'
   | 'OTHER';
 
-export type SupportNoteVisibility = 'INTERNAL' | 'CUSTOMER_VISIBLE';
+export type SupportNoteVisibility =
+  | 'INTERNAL'
+  | 'CUSTOMER_VISIBLE'
+  | 'ALL_PARTICIPANTS'
+  | 'CUSTOMER_ONLY'
+  | 'MERCHANT_ONLY'
+  | 'RIDER_ONLY';
+
+export type SupportParticipantType = 'CUSTOMER' | 'MERCHANT' | 'RIDER';
+export type SupportConfirmationStatus =
+  | 'PENDING'
+  | 'ACCEPTED'
+  | 'ACKNOWLEDGED'
+  | 'DISPUTED';
 
 export type SupportResolutionCode =
   | 'REFUND_ISSUED'
@@ -2552,7 +2570,12 @@ export interface SupportCase {
   created_at: string;
   updated_at: string;
   resolved_at?: string | null;
+  resolution_proposed_at?: string | null;
+  closed_at?: string | null;
+  closure_reason?: string | null;
   notes?: SupportCaseNote[];
+  participants?: SupportCaseParticipant[];
+  attachments?: SupportCaseAttachment[];
 }
 
 export interface SupportCaseNote {
@@ -2562,7 +2585,35 @@ export interface SupportCaseNote {
   author_role?: string;
   author_name?: string;
   visibility: SupportNoteVisibility;
+  message_type?: 'MESSAGE' | 'SYSTEM' | 'RESOLUTION' | 'CONFIRMATION';
   body: string;
+  edited_at?: string | null;
+  attachments?: SupportCaseAttachment[];
+  created_at: string;
+}
+
+export interface SupportCaseParticipant {
+  id: string;
+  case_id: string;
+  participant_type: SupportParticipantType;
+  user_id?: string | null;
+  entity_id?: string | null;
+  display_name?: string | null;
+  required_confirmation: boolean;
+  confirmation_status: SupportConfirmationStatus;
+  confirmation_note?: string | null;
+  confirmed_at?: string | null;
+  last_read_at?: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface SupportCaseAttachment {
+  id: string;
+  case_id: string;
+  note_id?: string | null;
+  media_object_id: string;
+  uploaded_by?: string | null;
   created_at: string;
 }
 
