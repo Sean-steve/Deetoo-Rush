@@ -9,6 +9,7 @@ export type LogLevel = 'debug' | 'info' | 'warn' | 'error';
 
 export interface DeetooConfig {
   localWorkflow: boolean;
+  localWorkflowAllowLan: boolean;
   storage: { mode: "postgres" | "memory"; fixtures: boolean };
   environment: AppEnvironment;
   isProduction: boolean;
@@ -87,6 +88,10 @@ const storageMode = process.env.DEETOO_STORAGE_MODE || 'postgres';
 if (!['postgres', 'memory'].includes(storageMode) || (deployed && storageMode !== 'postgres')) throw new Error('Deployed environments require PostgreSQL storage');
 const fixtures = process.env.DEETOO_FIXTURES === 'true';
 const localWorkflow = process.env.DEETOO_LOCAL_WORKFLOW === 'true';
+const localWorkflowAllowLan = process.env.DEETOO_LOCAL_WORKFLOW_ALLOW_LAN === 'true';
+if (localWorkflowAllowLan && !localWorkflow) {
+  throw new Error('LAN local workflow requires DEETOO_LOCAL_WORKFLOW=true');
+}
 if (localWorkflow) {
   if (deployed || !['development','test'].includes(environment) || storageMode !== 'postgres') throw new Error('Local workflow requires non-deployed PostgreSQL');
   const database = new URL(process.env.DATABASE_URL || '');
@@ -106,6 +111,7 @@ function resolveEnv(key: string, defaultValue?: string): string {
 
 export const config: DeetooConfig = {
   localWorkflow,
+  localWorkflowAllowLan,
   storage: { mode: storageMode as "postgres" | "memory", fixtures },
   environment,
   isProduction: deployed,
