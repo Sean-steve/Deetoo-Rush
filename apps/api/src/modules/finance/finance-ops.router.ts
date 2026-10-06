@@ -356,7 +356,13 @@ financeOpsRouter.get(
         LEFT JOIN merchants m ON m.id=r.merchant_id
         ORDER BY (r.merchant_id IS NULL) DESC,r.effective_from DESC
       `);
-      return res.json({ data: result.rows.map((row) => ({ ...row, percentage_rate: Number(row.percentage_rate) })) });
+      return res.json({
+        data: result.rows.map((row) => ({
+          ...row,
+          percentage_rate: Number(row.percentage_rate),
+          percentage_display: `${(Number(row.percentage_rate) * 100).toFixed(2)}%`,
+        })),
+      });
     } catch (error) {
       next(error);
     }
@@ -427,6 +433,32 @@ financeOpsRouter.get(
         ORDER BY CASE r.status WHEN 'OPEN' THEN 0 ELSE 1 END,r.created_at DESC
       `);
       return res.json({ data: result.rows });
+    } catch (error) {
+      next(error);
+    }
+  },
+);
+
+financeOpsRouter.post(
+  "/commercial/review-requests/:id/resolve",
+  requireRole(UserRole.ADMIN, UserRole.FINANCE),
+  async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      if (config.storage.mode !== "postgres") {
+        throw new AppError(409, "POSTGRES_REQUIRED", "Commercial review workflow requires durable PostgreSQL storage");
+      }
+      const note = z.string().trim().min(3).max(2000).parse(req.body?.note);
+      const updated = await getDbPool().query(
+        `UPDATE merchant_commission_review_requests
+         SET status='REVIEWED',reviewed_by=$2,review_note=$3,reviewed_at=NOW()
+         WHERE id=$1::uuid AND status='OPEN'
+         RETURNING *`,
+        [req.params.id, req.user!.id, note],
+      );
+      if (!updated.rows[0]) {
+        throw new AppError(404, "COMMERCIAL_REVIEW_NOT_OPEN", "Open commercial review request not found");
+      }
+      return res.json({ data: updated.rows[0] });
     } catch (error) {
       next(error);
     }
