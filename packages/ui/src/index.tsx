@@ -518,6 +518,57 @@ export const Modal: React.FC<ModalProps> = ({
 export const Dialog = Modal;
 export const Drawer = Modal;
 
+export interface ToastProps {
+  message: string | null;
+  onDismiss: () => void;
+  kind?: "success" | "error" | "info";
+  durationMs?: number;
+}
+
+export function Toast({
+  message,
+  onDismiss,
+  kind = "success",
+  durationMs = 2400,
+}: ToastProps) {
+  useEffect(() => {
+    if (!message) return;
+    const timer = window.setTimeout(onDismiss, durationMs);
+    return () => window.clearTimeout(timer);
+  }, [message, durationMs, onDismiss]);
+
+  if (!message) return null;
+  const Icon =
+    kind === "success" ? CheckCircle : kind === "error" ? AlertCircle : Info;
+  const tone =
+    kind === "success"
+      ? "border-emerald-200 bg-emerald-950 text-emerald-50"
+      : kind === "error"
+        ? "border-rose-200 bg-rose-950 text-rose-50"
+        : "border-sky-200 bg-slate-950 text-slate-50";
+
+  return (
+    <div
+      role={kind === "error" ? "alert" : "status"}
+      aria-live={kind === "error" ? "assertive" : "polite"}
+      className={`fixed bottom-5 right-5 z-[100] max-w-sm rounded-2xl border px-4 py-3 shadow-xl ${tone}`}
+    >
+      <div className="flex items-center gap-3">
+        <Icon size={18} aria-hidden="true" className="shrink-0" />
+        <span className="text-sm font-semibold">{message}</span>
+        <button
+          type="button"
+          onClick={onDismiss}
+          aria-label="Dismiss notification"
+          className="ml-2 rounded-lg p-1 opacity-70 hover:opacity-100"
+        >
+          <X size={16} aria-hidden="true" />
+        </button>
+      </div>
+    </div>
+  );
+}
+
 // ==========================================
 // 8. Global Error Boundary Component
 // ==========================================

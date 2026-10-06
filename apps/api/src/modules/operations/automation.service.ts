@@ -17,6 +17,38 @@ export interface AutomationSweepResult {
   onboarding?: { readinessUpdated: number; advancedToReview: number };
 }
 
+async function recordFinanceAutomationRun(
+  runType: 'RECONCILIATION' | 'BATCH_GENERATION',
+  startedAt: Date,
+  status: 'SUCCEEDED' | 'FAILED',
+  result: Record<string, unknown> = {},
+  error?: unknown,
+): Promise<void> {
+  if (config.storage.mode !== 'postgres') return;
+  try {
+    await getDbPool().query(
+      `INSERT INTO finance_automation_runs(
+         run_type,status,result,error_message,started_at,finished_at
+       ) VALUES($1,$2,$3,$4,$5,NOW())`,
+      [
+        runType,
+        status,
+        JSON.stringify(result),
+        error ? (error instanceof Error ? error.message : String(error)) : null,
+        startedAt.toISOString(),
+      ],
+    );
+  } catch (recordError) {
+    logger.warn('Unable to persist finance automation run telemetry', {
+      service: 'automation',
+      metadata: {
+        runType,
+        error: recordError instanceof Error ? recordError.message : String(recordError),
+      },
+    });
+  }
+}
+
 async function withAutomationLock<T>(
   key: string,
   work: () => Promise<T>,
@@ -64,6 +96,9 @@ export class AutomationService {
           JOIN service_zones sz
             ON sz.status='ACTIVE'
            AND sz.boundary IS NOT NULL
+          JOIN operating_counties county
+            ON county.code=sz.county_code
+           AND county.enabled=TRUE
            AND ST_Covers(
              sz.boundary,
              ST_SetSRID(ST_Point(b.longitude,b.latitude),4326)
@@ -92,6 +127,9 @@ export class AutomationService {
           JOIN service_zones sz
             ON sz.status='ACTIVE'
            AND sz.boundary IS NOT NULL
+          JOIN operating_counties county
+            ON county.code=sz.county_code
+           AND county.enabled=TRUE
            AND ST_Covers(
              sz.boundary,
              ST_SetSRID(ST_Point(rp.last_known_longitude,rp.last_known_latitude),4326)
@@ -129,13 +167,28 @@ export class AutomationService {
   }
 
   async reconcileFinancials(): Promise<AutomationSweepResult['reconciliation'] | null> {
-    return withAutomationLock('financial-reconciliation', () =>
-      reconciliationService.autoReconcile(),
-    );
+    return withAutomationLock('financial-reconciliation', async () => {
+      const startedAt = new Date();
+      try {
+        const result = await reconciliationService.autoReconcile();
+        await recordFinanceAutomationRun(
+          'RECONCILIATION',
+          startedAt,
+          'SUCCEEDED',
+          result as unknown as Record<string, unknown>,
+        );
+        return result;
+      } catch (error) {
+        await recordFinanceAutomationRun('RECONCILIATION', startedAt, 'FAILED', {}, error);
+        throw error;
+      }
+    });
   }
 
   async prepareFinancialBatches(): Promise<AutomationSweepResult['finance'] | null> {
     return withAutomationLock('financial-batches', async () => {
+      const startedAt = new Date();
+      try {
       const db = getDbPool();
       let settlementsCreated = 0;
       let payoutsCreated = 0;
@@ -208,7 +261,18 @@ export class AutomationService {
         }
       }
 
-      return { settlementsCreated, payoutsCreated };
+      const result = { settlementsCreated, payoutsCreated };
+      await recordFinanceAutomationRun(
+        'BATCH_GENERATION',
+        startedAt,
+        'SUCCEEDED',
+        result as unknown as Record<string, unknown>,
+      );
+      return result;
+      } catch (error) {
+        await recordFinanceAutomationRun('BATCH_GENERATION', startedAt, 'FAILED', {}, error);
+        throw error;
+      }
     });
   }
 

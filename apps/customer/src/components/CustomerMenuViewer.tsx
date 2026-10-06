@@ -11,6 +11,7 @@ import {
   Badge,
   Modal,
   EmptyState,
+  Toast,
 } from "../../../../packages/ui/src/index";
 import { useAuth } from "../../../../packages/auth/src/react";
 import {
@@ -62,9 +63,7 @@ export function CustomerMenuViewer({
     Record<string, string[]>
   >({}); // groupId -> array of optionIds
   const [itemQuantity, setItemQuantity] = useState(1);
-  const [customizationSuccess, setCustomizationSuccess] = useState<
-    string | null
-  >(null);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   // Format minor units into KES
   const formatKES = (minor: number) => {
@@ -105,7 +104,6 @@ export function CustomerMenuViewer({
 
     setSelectedItem(item);
     setItemQuantity(1);
-    setCustomizationSuccess(null);
     setCartError(null);
 
     // Initialize required modifiers with first available option
@@ -482,14 +480,6 @@ export function CustomerMenuViewer({
               </div>
             </div>
 
-            {/* Customization Success Notice */}
-            {customizationSuccess && (
-              <div className="p-3 bg-emerald-50 border border-emerald-300 rounded-lg text-emerald-900 text-xs flex items-center gap-2">
-                <CheckCircle2 size={16} className="text-brand shrink-0" />
-                <span>{customizationSuccess}</span>
-              </div>
-            )}
-
             {/* Modifier Groups */}
             <div className="space-y-6 max-h-[50vh] overflow-y-auto pr-1">
               {selectedItem.modifier_groups.map((group) => {
@@ -665,7 +655,10 @@ export function CustomerMenuViewer({
                         modifier_option_ids:
                           Object.values(selectedModifiers).flat(),
                       });
-                      setCustomizationSuccess("Added to your bag.");
+                      setSelectedItem(null);
+                      setSelectedModifiers({});
+                      setItemQuantity(1);
+                      setToastMessage("Added to your bag.");
                       onCartChanged?.();
                     } catch (e: any) {
                       setCartError(
@@ -691,6 +684,11 @@ export function CustomerMenuViewer({
           </div>
         </Modal>
       )}
+      <Toast
+        message={toastMessage}
+        onDismiss={() => setToastMessage(null)}
+        kind="success"
+      />
     </div>
   );
 }

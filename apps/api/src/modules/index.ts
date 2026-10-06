@@ -18,18 +18,21 @@ import { riderRouter } from './rider/rider.router';
 import { realtimeRouter } from './realtime/realtime.router';
 import { paymentRouter } from './payment/payment.router';
 import { financeRouter } from './finance/finance.router';
+import { financeOpsRouter } from './finance/finance-ops.router';
 import { disbursementRouter } from './finance/disbursement.router';
 import { operationsRouter, customerSupportRouter, participantSupportRouter } from './operations/operations.router';
 import { deviceRouter } from './operations/device.router';
 import { mediaRouter } from './media/media.router';
 import { discoveryService } from './discovery/discovery.service';
 import { serviceabilityService } from './serviceability/serviceability.service';
+import { geographyRouter } from './geography/geography.router';
 import { mapsProvider } from './maps/maps.provider';
 
 export const v1Router = Router();
 
 // Domain Sub-routers
 v1Router.use('/auth', authRouter);
+v1Router.use('/admin/geography', geographyRouter);
 v1Router.use('/admin', adminRouter);
 v1Router.use('/admin/operations', operationsRouter);
 v1Router.use('/operations', operationsRouter);
@@ -43,6 +46,7 @@ v1Router.use('/checkout', checkoutRouter);
 v1Router.use('/orders', orderRouter);
 v1Router.use('/payments', paymentRouter);
 v1Router.use('/finance/disbursements', disbursementRouter);
+v1Router.use('/finance/ops', financeOpsRouter);
 v1Router.use('/finance', financeRouter);
 v1Router.use('/rider', riderRouter);
 v1Router.use('/realtime', realtimeRouter);

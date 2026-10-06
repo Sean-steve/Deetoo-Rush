@@ -10,6 +10,8 @@ import { OperationsConfig } from "./components/OperationsConfig";
 import { LaunchReadiness } from "./components/LaunchReadiness";
 import { SupportCaseConsole } from "./components/SupportCaseConsole";
 import { IdentityGovernance } from "./components/IdentityGovernance";
+import { GeographyControl } from "./components/GeographyControl";
+import { FinanceDashboard } from "./components/FinanceDashboard";
 
 function adminTabFromPath(){
   const path=window.location.pathname.replace(/^\/ops/,"").replace(/\/+$/,"");
@@ -427,8 +429,10 @@ function AdminAppInner() {
 
   // 3. AUTHENTICATED PLATFORM CONSOLE
   const superAdminAccess = hasRole(UserRole.SUPER_ADMIN);
-  const financeAccess = hasRole(UserRole.ADMIN) || hasRole(UserRole.FINANCE);
-  const operationsAccess = hasRole(UserRole.ADMIN) || hasRole(UserRole.OPS);
+  const financeAccess =
+    superAdminAccess || hasRole(UserRole.ADMIN) || hasRole(UserRole.FINANCE);
+  const operationsAccess =
+    superAdminAccess || hasRole(UserRole.ADMIN) || hasRole(UserRole.OPS);
   const operationalRead = operationsAccess || hasRole(UserRole.SUPPORT);
   const navigation = [
     ...(operationalRead
@@ -444,7 +448,7 @@ function AdminAppInner() {
           { id: "merchants", label: "Merchants & approvals", icon:<Store size={16}/>, group:"Marketplace" },
           { id: "onboarding", label: "Merchant onboarding", icon:<CheckCircle2 size={16}/>, group:"Marketplace" },
           { id: "branches", label: "Branches", icon:<MapPin size={16}/>, group:"Marketplace" },
-          { id: "zones", label: "Service zones", icon:<MapPin size={16}/>, group:"Marketplace" },
+          { id: "geography", label: "Operating geography", icon:<MapPin size={16}/>, group:"Marketplace" },
         ]
       : []),
     ...(operationalRead
@@ -462,13 +466,21 @@ function AdminAppInner() {
       : []),
     ...(financeAccess
       ? [
-          { id: "ledger", label: "Financial ledger", icon:<Database size={16}/>, group:"Finance" },
-          { id: "accounts", label: "Ledger accounts", icon:<FileText size={16}/>, group:"Finance" },
-          { id: "adjustments", label: "Financial adjustments", icon:<DollarSign size={16}/>, group:"Finance" },
-          { id: "destinations", label: "Payout destinations", icon:<MapPin size={16}/>, group:"Finance" },
-          { id: "disbursements", label: "Disbursement attempts", icon:<DollarSign size={16}/>, group:"Finance" },
+          { id: "financeOverview", label: "Overview", icon:<DollarSign size={16}/>, group:"Finance" },
+          { id: "reconciliation", label: "Reconciliation", icon:<CheckCircle2 size={16}/>, group:"Finance" },
           { id: "settlements", label: "Merchant settlements", icon:<Store size={16}/>, group:"Finance" },
           { id: "payouts", label: "Rider payouts", icon:<Bike size={16}/>, group:"Finance" },
+          { id: "approvalQueue", label: "Approval queue", icon:<CheckCircle2 size={16}/>, group:"Money-out" },
+          { id: "destinations", label: "Destinations", icon:<MapPin size={16}/>, group:"Money-out" },
+          { id: "disbursements", label: "Transfer attempts", icon:<DollarSign size={16}/>, group:"Money-out" },
+          { id: "moneyOutFailures", label: "Failures", icon:<AlertTriangle size={16}/>, group:"Money-out" },
+          { id: "ledger", label: "Journal", icon:<Database size={16}/>, group:"Accounting" },
+          { id: "accounts", label: "Ledger accounts", icon:<FileText size={16}/>, group:"Accounting" },
+          { id: "adjustments", label: "Adjustments", icon:<DollarSign size={16}/>, group:"Accounting" },
+          { id: "profitability", label: "Profitability", icon:<Activity size={16}/>, group:"Accounting" },
+          { id: "commissionRules", label: "Merchant commission", icon:<Store size={16}/>, group:"Commercial" },
+          { id: "commercialReviews", label: "Review requests", icon:<FileText size={16}/>, group:"Commercial" },
+          { id: "riderEarningRules", label: "Rider earnings rules", icon:<Bike size={16}/>, group:"Commercial" },
         ]
       : []),
     { id: "risk", label: "Risk signals", icon:<ShieldAlert size={16}/>, group:"Risk & Trust" },
@@ -504,6 +516,9 @@ function AdminAppInner() {
         {selectedView === "command" && <CommandCenter />}
         {selectedView === "support" && <SupportCaseConsole />}
         {selectedView === "governance" && <IdentityGovernance />}
+        {selectedView === "geography" && <GeographyControl />}
+        {selectedView === "financeOverview" && <FinanceDashboard mode="overview" />}
+        {selectedView === "reconciliation" && <FinanceDashboard mode="reconciliation" />}
         {adminViews[selectedView] && !["support", "governance"].includes(selectedView) && (
           <ResourceTable
             key={selectedView}
@@ -519,7 +534,7 @@ function AdminAppInner() {
                   "risk",
                 ].includes(selectedView) ||
                 (financeAccess &&
-                  ["accounts", "ledger", "adjustments", "destinations", "disbursements", "settlements", "payouts"].includes(
+                  ["accounts", "ledger", "adjustments", "destinations", "disbursements", "moneyOutFailures", "settlements", "payouts", "approvalQueue", "profitability", "commissionRules", "commercialReviews", "riderEarningRules"].includes(
                     selectedView,
                   ))
                   ? adminViews[selectedView].actions

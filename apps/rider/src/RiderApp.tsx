@@ -2,6 +2,7 @@ import { AccountSupport } from "../../../packages/ui/src/AccountSupport";
 import { RiderRun, RiderEarnings } from "./components/RiderRun";
 import {
   Navigation as AppNavigation,
+  NotificationInbox,
   errorMessage,
 } from "../../../packages/ui/src/workflows";
 /**
@@ -118,6 +119,7 @@ function RiderAppInner() {
     | "availability"
     | "vehicle"
     | "profile"
+    | "notifications"
     | "support"
     | "sessions"
   >("run");
@@ -824,6 +826,7 @@ function RiderAppInner() {
               { id: "vehicle", label: "Vehicle" },
               { id: "profile", label: "Profile" },
               { id: "sessions", label: "Sessions" },
+              { id: "notifications", label: "Notifications" },
               { id: "support", label: "Support" },
             ]}
           />
@@ -844,6 +847,7 @@ function RiderAppInner() {
               onChanged={fetchRiderStatus}
             />
           )}
+          {activeTab === "notifications" && <NotificationInbox />}
           {activeTab === "support" && <AccountSupport />}
           {activeTab === "earnings" && <RiderEarnings />}
           {activeTab === "availability" && (

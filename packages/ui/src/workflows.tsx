@@ -171,6 +171,80 @@ export function PageHeading({
     </div>
   );
 }
+export function NotificationInbox() {
+  const { apiClient } = useAuth();
+  const resource = useResource<any>("/support/notifications");
+  const notifications: any[] = resource.data?.notifications || [];
+
+  async function markRead(id: string) {
+    await apiClient.request(`/support/notifications/${encodeURIComponent(id)}/read`, {
+      method: "POST",
+    });
+    await resource.refresh();
+  }
+
+  return (
+    <div className="space-y-4">
+      <PageHeading
+        title="Notifications"
+        subtitle="Persistent updates stay here until you have seen them. Urgent background events may also arrive by push."
+        action={
+          <Button variant="outline" onClick={resource.refresh} isLoading={resource.loading}>
+            Refresh
+          </Button>
+        }
+      />
+      <ResourceState resource={resource}>
+        {notifications.length ? (
+          <div className="space-y-3">
+            {notifications.map((notification) => (
+              <Card
+                key={notification.id}
+                className={notification.read_at ? "opacity-70" : "border-emerald-200"}
+              >
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <h3 className="font-bold text-slate-900">
+                        {notification.subject || "DeeToo update"}
+                      </h3>
+                      {!notification.read_at && <Badge variant="success">New</Badge>}
+                    </div>
+                    <p className="mt-1 text-sm text-slate-600">
+                      {notification.payload?.message ||
+                        notification.payload?.description ||
+                        notification.template_code}
+                    </p>
+                    <p className="mt-2 text-xs text-slate-400">
+                      {notification.created_at
+                        ? new Date(notification.created_at).toLocaleString()
+                        : ""}
+                    </p>
+                  </div>
+                  {!notification.read_at && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => void markRead(notification.id)}
+                    >
+                      Mark read
+                    </Button>
+                  )}
+                </div>
+              </Card>
+            ))}
+          </div>
+        ) : (
+          <EmptyState
+            title="No notifications"
+            description="Persistent order, payment, payout and support updates will appear here."
+          />
+        )}
+      </ResourceState>
+    </div>
+  );
+}
+
 export function MetricCard({
   label,
   value,

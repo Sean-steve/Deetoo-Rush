@@ -950,6 +950,99 @@ export const participantSupportRouter = Router();
 
 participantSupportRouter.use(requireAuth);
 
+function participantNotificationScope(req: AuthenticatedRequest): {
+  recipientType: "CUSTOMER" | "MERCHANT" | "RIDER";
+  recipientIds: string[];
+} {
+  const viewer = { ...buildViewer(req), isStaff: false };
+  if (viewer.roles.includes("rider")) {
+    return {
+      recipientType: "RIDER",
+      recipientIds: [viewer.rider_id, viewer.id].filter(Boolean) as string[],
+    };
+  }
+  if (
+    viewer.roles.some((role: any) =>
+      ["merchant", "merchant_owner", "merchant_manager", "merchant_staff"].includes(role),
+    )
+  ) {
+    return {
+      recipientType: "MERCHANT",
+      recipientIds: [...(viewer.merchant_ids || []), viewer.id].filter(Boolean),
+    };
+  }
+  return { recipientType: "CUSTOMER", recipientIds: [viewer.id] };
+}
+
+participantSupportRouter.get(
+  "/notifications",
+  async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      const scope = participantNotificationScope(req);
+      const pages = await Promise.all(
+        scope.recipientIds.map((recipientId) =>
+          operationsRepository.findNotifications({
+            recipient_type: scope.recipientType,
+            recipient_id: recipientId,
+            limit: 50,
+          }),
+        ),
+      );
+      const notifications = Array.from(
+        new Map(
+          pages
+            .flatMap((page) => page.notifications)
+            .map((notification) => [notification.id, notification]),
+        ).values(),
+      )
+        .sort(
+          (a, b) =>
+            new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+        )
+        .slice(0, 50);
+      res.json({
+        success: true,
+        data: {
+          notifications,
+          total: notifications.length,
+          semantics: {
+            IN_APP: "PERSISTENT_INBOX",
+            PUSH: "URGENT_BACKGROUND",
+            MODAL: "DECISION_INPUT_ONLY",
+            TOAST: "TRANSIENT_UI_FEEDBACK",
+          },
+        },
+      });
+    } catch (err) {
+      next(err);
+    }
+  },
+);
+
+participantSupportRouter.post(
+  "/notifications/:id/read",
+  async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      const scope = participantNotificationScope(req);
+      const record = await operationsRepository.getNotificationById(req.params.id);
+      if (
+        !record ||
+        record.recipient_type !== scope.recipientType ||
+        !scope.recipientIds.includes(record.recipient_id)
+      ) {
+        throw new AppError(404, "NOTIFICATION_NOT_FOUND", "Notification not found");
+      }
+      const updated = await notificationService.markAsRead(
+        record.id,
+        record.recipient_id,
+      );
+      res.json({ success: true, data: updated });
+    } catch (err) {
+      next(err);
+    }
+  },
+);
+
 participantSupportRouter.post(
   "/cases",
   async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {

@@ -6621,6 +6621,148 @@ paths:
       security: [{ bearerAuth: [] }]
 
 
+  /admin/geography/counties:
+    get:
+      summary: Phase 2 operating county list
+      tags: [Admin]
+      responses:
+        '200': { description: Kenyan operating counties and polygon coverage }
+  /admin/geography/counties/{code}:
+    patch:
+      summary: Phase 2 enable or disable a Kenyan operating county
+      tags: [Admin]
+      parameters:
+      - in: path
+        name: code
+        required: true
+        schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [enabled]
+              properties:
+                enabled: { type: boolean }
+      responses:
+        '200': { description: County operating scope updated }
+  /admin/geography/markets:
+    get:
+      summary: Phase 2 list markets or towns under counties
+      tags: [Admin]
+      responses:
+        '200': { description: Markets returned }
+    post:
+      summary: Phase 2 create or enable a market or town
+      tags: [Admin]
+      responses:
+        '201': { description: Market created }
+  /admin/geography/zones:
+    get:
+      summary: Phase 2 polygon service-zone hierarchy
+      tags: [Admin]
+      responses:
+        '200': { description: Polygon service zones with county and market context }
+  /admin/geography/zones/{id}/hierarchy:
+    patch:
+      summary: Phase 2 assign a service zone to its county and market
+      tags: [Admin]
+      parameters:
+      - in: path
+        name: id
+        required: true
+        schema: { type: string, format: uuid }
+      responses:
+        '200': { description: Service-zone hierarchy updated }
+
+  /finance/ops/overview:
+    get:
+      summary: Phase 2 task-oriented Finance overview
+      tags: [Finance]
+      responses:
+        '200': { description: "Finance balances, queues and automation health" }
+  /finance/ops/payments:
+    get:
+      summary: Phase 2 payment and refund operational view
+      tags: [Finance]
+      responses:
+        '200': { description: "Payments with provider, internal and reconciliation state" }
+  /finance/ops/journal:
+    get:
+      summary: Phase 2 human-readable accounting journal
+      tags: [Finance]
+      responses:
+        '200': { description: Human-readable immutable ledger events }
+  /finance/ops/reconciliation:
+    get:
+      summary: Phase 2 reconciliation dashboard
+      tags: [Finance]
+      responses:
+        '200': { description: "Reconciliation counts, exceptions and automation history" }
+  /finance/ops/reconciliation/run:
+    post:
+      summary: Phase 2 authorized reconciliation run-now control
+      tags: [Finance]
+      responses:
+        '200': { description: Reconciliation run completed }
+  /finance/ops/money-out/approval-queue:
+    get:
+      summary: Phase 2 maker-checker money-out approval queue
+      tags: [Finance]
+      responses:
+        '200': { description: Settlement and payout batches awaiting human approval }
+  /finance/ops/commercial/commission-rules:
+    get:
+      summary: Phase 2 effective-dated merchant commission rules
+      tags: [Finance]
+      responses:
+        '200': { description: Commission rules returned }
+    post:
+      summary: Phase 2 create an effective-dated commission rule
+      tags: [Finance]
+      responses:
+        '201': { description: Commission rule created }
+  /finance/ops/commercial/review-requests:
+    get:
+      summary: Phase 2 merchant commercial review queue
+      tags: [Finance]
+      responses:
+        '200': { description: Commercial review requests returned }
+    post:
+      summary: Phase 2 merchant request for commercial review
+      tags: [Finance]
+      responses:
+        '201': { description: Commercial review requested }
+  /finance/ops/commercial/review-requests/{id}/resolve:
+    post:
+      summary: Phase 2 complete a merchant commercial review
+      tags: [Finance]
+      parameters:
+      - in: path
+        name: id
+        required: true
+        schema: { type: string, format: uuid }
+      responses:
+        '200': { description: Commercial review completed }
+  /finance/ops/commercial/merchant-rate:
+    get:
+      summary: Phase 2 merchant-visible resolved commission rate
+      tags: [Finance]
+      responses:
+        '200': { description: Effective merchant commission rule }
+  /finance/ops/commercial/rider-earning-rules:
+    get:
+      summary: Phase 2 effective-dated Rider earning rules
+      tags: [Finance]
+      responses:
+        '200': { description: Rider earning rules returned }
+    post:
+      summary: Phase 2 create an effective-dated Rider earning rule
+      tags: [Finance]
+      responses:
+        '201': { description: Rider earning rule created }
+
 components:
   securitySchemes:
     bearerAuth:

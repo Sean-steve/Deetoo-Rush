@@ -7,6 +7,8 @@ import {
 } from '@deetoo/types';
 import { operationsRepository } from '../../apps/api/src/modules/operations/operations.repository';
 import { notificationService } from '../../apps/api/src/modules/operations/notification.service';
+import { KENYA_COUNTIES } from '../../apps/api/src/modules/geography/geography.router';
+import { RiderEarningsService } from '../../apps/api/src/modules/finance/rider-earnings.service';
 
 test('pickup custody cannot be bypassed or casually reassigned after failure', () => {
   assert.equal(
@@ -93,4 +95,31 @@ test('notification claims are leased and recoverable after worker loss', async (
   const recovered = await operationsRepository.claimPendingNotifications(10);
   assert.equal(recovered.length, 1);
   assert.equal(recovered[0].id, first[0].id);
+});
+
+
+test('Phase 2 provisions every Kenyan county as a unique operating region', () => {
+  assert.equal(KENYA_COUNTIES.length, 47);
+  assert.equal(new Set(KENYA_COUNTIES.map(([code]) => code)).size, 47);
+  assert.deepEqual(KENYA_COUNTIES[0], ['001', 'Mombasa']);
+  assert.deepEqual(KENYA_COUNTIES[46], ['047', 'Nairobi']);
+});
+
+test('Rider earnings are decomposed into base, distance, waiting and bonuses', () => {
+  const service = new RiderEarningsService();
+  const estimate = service.estimateEarning({
+    distanceMeters: 5000,
+    waitingMinutes: 15,
+    bonusMinor: 1000,
+  });
+
+  assert.deepEqual(estimate, {
+    baseMinor: 15000,
+    distanceMinor: 9000,
+    waitingMinor: 2500,
+    bonusMinor: 1000,
+    zonePeakBonusMinor: 0,
+    stackedOrderMinor: 0,
+    totalMinor: 27500,
+  });
 });
