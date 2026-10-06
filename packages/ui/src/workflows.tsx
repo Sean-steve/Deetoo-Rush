@@ -159,7 +159,7 @@ export function PageHeading({
   action?: React.ReactNode;
 }) {
   return (
-    <div className="page-heading">
+    <div className="page-heading deetoo-page-heading">
       <div>
         {eyebrow && <p className="eyebrow">{eyebrow}</p>}
         <h1>{title}</h1>
@@ -178,10 +178,10 @@ export function MetricCard({
   detail?: string;
 }) {
   return (
-    <Card>
+    <Card className="dashboard-metric-card">
       <p className="eyebrow">{label}</p>
       <div className="metric-value">{value}</div>
-      {detail && <p className="text-sm text-slate-500">{detail}</p>}
+      {detail && <p className="dashboard-metric-detail text-sm text-slate-500">{detail}</p>}
     </Card>
   );
 }
@@ -245,7 +245,7 @@ export function Navigation({
   return (
     <nav
       aria-label="Application navigation"
-      className={mobile ? "bottom-navigation" : "app-navigation"}
+      className={mobile ? "bottom-navigation deetoo-navigation" : "app-navigation deetoo-navigation"}
     >
       {items.map((item,index) => (
         <React.Fragment key={item.id}>
@@ -296,7 +296,7 @@ export function OperationsLayout({
 }) {
   const initials=(userName||"DeeToo").split(/[\s@._-]+/).filter(Boolean).slice(0,2).map(part=>part[0]?.toUpperCase()).join("");
   return (
-    <div className="operations-layout">
+    <div className="operations-layout dashboard-workspace">
       <aside className="operations-sidebar">
         <div className="ops-brand">
           <DeetooLogo className="h-10 w-auto" />
@@ -325,7 +325,7 @@ export function OperationsLayout({
             <Button variant="outline" onClick={onLogout}>Sign out</Button>
           </div>
         </header>
-        <main className="operations-main">{children}</main>
+        <main className="operations-main dashboard-content">{children}</main>
       </div>
     </div>
   );
