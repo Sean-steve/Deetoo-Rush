@@ -343,6 +343,9 @@ export class OperationsRepository {
           updated.assigned_to_name || null,
           updated.acknowledged_at || null,
           updated.resolved_at || null,
+          updated.resolution_proposed_at || null,
+          updated.disputed_at || null,
+          updated.closed_at || null,
           updated.updated_at,
           id,
         ]
@@ -632,8 +635,9 @@ export class OperationsRepository {
         `UPDATE support_cases SET
           status = $1, priority = $2, resolution_code = $3, resolution_notes = $4,
           assigned_agent_id = $5, assigned_agent_name = $6, refund_id = $7,
-          resolved_at = $8, updated_at = $9
-        WHERE id = $10`,
+          resolved_at = $8, resolution_proposed_at = $9, disputed_at = $10,
+          closed_at = $11, updated_at = $12
+        WHERE id = $13`,
         [
           updated.status,
           updated.priority,
@@ -660,8 +664,9 @@ export class OperationsRepository {
     try {
       await pool.query(
         `INSERT INTO support_case_notes (
-          id, case_id, author_user_id, author_role, author_name, visibility, body, created_at
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+          id, case_id, author_user_id, author_role, author_name, visibility, body,
+          message_type, target_party, created_at
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
         [
           note.id,
           note.case_id,
@@ -670,6 +675,8 @@ export class OperationsRepository {
           note.author_name || null,
           note.visibility,
           note.body,
+          note.message_type || 'MESSAGE',
+          note.target_party || null,
           note.created_at,
         ]
       );
@@ -701,6 +708,8 @@ export class OperationsRepository {
           author_name: r.author_name,
           visibility: r.visibility,
           body: r.body,
+          message_type: r.message_type || 'MESSAGE',
+          target_party: r.target_party || null,
           created_at: new Date(r.created_at).toISOString(),
         }));
       }
@@ -739,7 +748,104 @@ export class OperationsRepository {
       created_at: new Date(row.created_at).toISOString(),
       updated_at: new Date(row.updated_at).toISOString(),
       resolved_at: row.resolved_at ? new Date(row.resolved_at).toISOString() : null,
+      resolution_proposed_at: row.resolution_proposed_at ? new Date(row.resolution_proposed_at).toISOString() : null,
+      disputed_at: row.disputed_at ? new Date(row.disputed_at).toISOString() : null,
+      closed_at: row.closed_at ? new Date(row.closed_at).toISOString() : null,
     };
+  }
+
+
+  public async addSupportCaseAttachment(input: {
+    id: string;
+    case_id: string;
+    note_id?: string | null;
+    media_object_id: string;
+    uploaded_by: string;
+    created_at: string;
+  }): Promise<any> {
+    if (config.storage.mode !== 'postgres') return input;
+    const res = await pool.query(
+      `INSERT INTO support_case_attachments
+        (id,case_id,note_id,media_object_id,uploaded_by,created_at)
+       VALUES($1,$2,$3,$4,$5,$6)
+       ON CONFLICT(case_id,media_object_id) DO UPDATE SET note_id=EXCLUDED.note_id
+       RETURNING *`,
+      [input.id,input.case_id,input.note_id || null,input.media_object_id,input.uploaded_by,input.created_at],
+    );
+    return res.rows[0];
+  }
+
+  public async getSupportCaseAttachments(caseId: string): Promise<any[]> {
+    if (config.storage.mode !== 'postgres') return [];
+    const res = await pool.query(
+      `SELECT a.*, m.content_type, m.byte_size, m.status AS media_status
+       FROM support_case_attachments a
+       JOIN media_objects m ON m.id=a.media_object_id
+       WHERE a.case_id=$1
+       ORDER BY a.created_at ASC`,
+      [caseId],
+    );
+    return res.rows;
+  }
+
+  public async resetSupportConfirmations(
+    caseId: string,
+    participants: Array<{party_type:'CUSTOMER'|'MERCHANT'|'RIDER'; party_id:string}>,
+  ): Promise<any[]> {
+    if (config.storage.mode !== 'postgres') return [];
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+      await client.query('DELETE FROM support_case_confirmations WHERE case_id=$1',[caseId]);
+      for (const participant of participants) {
+        await client.query(
+          `INSERT INTO support_case_confirmations
+            (id,case_id,party_type,party_id,decision,created_at,updated_at)
+           VALUES($1,$2,$3,$4,'PENDING',NOW(),NOW())`,
+          [durableEntityId(),caseId,participant.party_type,participant.party_id],
+        );
+      }
+      await client.query('COMMIT');
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      client.release();
+    }
+    return this.getSupportConfirmations(caseId);
+  }
+
+  public async getSupportConfirmations(caseId: string): Promise<any[]> {
+    if (config.storage.mode !== 'postgres') return [];
+    const res = await pool.query(
+      'SELECT * FROM support_case_confirmations WHERE case_id=$1 ORDER BY party_type',
+      [caseId],
+    );
+    return res.rows.map((row:any)=>({
+      ...row,
+      decided_at: row.decided_at ? new Date(row.decided_at).toISOString() : null,
+      created_at: new Date(row.created_at).toISOString(),
+      updated_at: new Date(row.updated_at).toISOString(),
+    }));
+  }
+
+  public async setSupportConfirmation(input: {
+    caseId:string;
+    partyType:'CUSTOMER'|'MERCHANT'|'RIDER';
+    partyId:string;
+    decision:'ACCEPTED'|'DISPUTED';
+    comment?:string;
+    decidedBy:string;
+  }): Promise<any> {
+    if (config.storage.mode !== 'postgres') return input;
+    const res = await pool.query(
+      `UPDATE support_case_confirmations
+       SET decision=$1,comment=$2,decided_by=$3,decided_at=NOW(),updated_at=NOW()
+       WHERE case_id=$4 AND party_type=$5 AND party_id=$6
+       RETURNING *`,
+      [input.decision,input.comment || null,input.decidedBy,input.caseId,input.partyType,input.partyId],
+    );
+    return res.rows[0] || null;
   }
 
   // ============================================================================
