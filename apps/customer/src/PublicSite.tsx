@@ -52,7 +52,7 @@ function Shell({children}:{children:React.ReactNode}){
         {nav.map(([label,href])=><a key={href} href={href}>{label}</a>)}
       </nav>
       <div className="public-nav-actions">
-        <a href="/customer" className="public-signin">Sign in</a>
+        <a href="/customer?auth=login" role="button" className="public-signin">Sign In</a>
         <a href="/customer" className="public-cta">Order food <ArrowRight size={15}/></a>
       </div>
     </header>
