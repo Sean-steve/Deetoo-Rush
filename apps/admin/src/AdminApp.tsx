@@ -441,7 +441,8 @@ function AdminAppInner() {
           { id: "command", label: "Live overview", icon:<Activity size={16}/>, group:"Operations" },
           { id: "orders", label: "Orders & deliveries", icon:<FileText size={16}/>, group:"Operations" },
           { id: "dispatch", label: "Dispatch", icon:<Radio size={16}/>, group:"Operations" },
-          { id: "incidents", label: "Fleet & incidents", icon:<AlertTriangle size={16}/>, group:"Operations" },
+          { id: "riders", label: "Rider fleet", icon:<Bike size={16}/>, group:"Operations" },
+          { id: "incidents", label: "Incidents", icon:<AlertTriangle size={16}/>, group:"Operations" },
         ]
       : []),
     ...(operationsAccess
@@ -455,11 +456,11 @@ function AdminAppInner() {
     ...(operationalRead
       ? [
           { id: "customers", label: "Customers", icon:<User size={16}/>, group:"People" },
-          { id: "riders", label: "Riders", icon:<Bike size={16}/>, group:"People" },
+          { id: "riderDirectory", label: "Rider directory", icon:<Bike size={16}/>, group:"People" },
         ]
       : []),
     ...(operationsAccess
-      ? [{ id: "users", label: "Staff & access", icon:<Users size={16}/>, group:"People" }]
+      ? [{ id: "identity", label: "Staff & access", icon:<Users size={16}/>, group:"People" }]
       : []),
     ...(supportAccess
       ? [{ id: "support", label: "Case inbox", icon:<User size={16}/>, group:"Support" }]
