@@ -17,6 +17,7 @@ export function GeographyControl() {
   const [marketCounty, setMarketCounty] = useState("047");
   const [marketName, setMarketName] = useState("");
   const [marketBusy, setMarketBusy] = useState(false);
+  const [zoneBusyId, setZoneBusyId] = useState<string | null>(null);
   const [busyCode, setBusyCode] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -33,6 +34,29 @@ export function GeographyControl() {
       setError(errorMessage(cause));
     } finally {
       setBusyCode(null);
+    }
+  }
+
+  async function assignZoneHierarchy(
+    zoneId: string,
+    countyCode: string,
+    marketId: string | null,
+  ) {
+    setZoneBusyId(zoneId);
+    setError(null);
+    try {
+      await apiClient.request(
+        `/admin/geography/zones/${encodeURIComponent(zoneId)}/hierarchy`,
+        {
+          method: "PATCH",
+          body: JSON.stringify({ county_code: countyCode, market_id: marketId }),
+        },
+      );
+      await zones.refresh();
+    } catch (cause) {
+      setError(errorMessage(cause));
+    } finally {
+      setZoneBusyId(null);
     }
   }
 
@@ -210,8 +234,52 @@ export function GeographyControl() {
                         <MapPin size={14} /> {zone.name}
                       </span>
                     </td>
-                    <td>{zone.county_name || "Unassigned"}</td>
-                    <td>{zone.market_name || "Unassigned"}</td>
+                    <td>
+                      <select
+                        aria-label={`County for ${zone.name}`}
+                        className="rounded-lg border border-slate-300 bg-white px-2 py-1 text-sm"
+                        value={zone.county_code || ""}
+                        disabled={zoneBusyId === zone.id}
+                        onChange={(event) =>
+                          void assignZoneHierarchy(zone.id, event.target.value, null)
+                        }
+                      >
+                        <option value="" disabled>Assign county</option>
+                        {(counties.data || []).map((county: any) => (
+                          <option key={county.code} value={county.code}>
+                            {county.name}
+                          </option>
+                        ))}
+                      </select>
+                    </td>
+                    <td>
+                      {zone.county_code ? (
+                        <select
+                          aria-label={`Market for ${zone.name}`}
+                          className="rounded-lg border border-slate-300 bg-white px-2 py-1 text-sm"
+                          value={zone.market_id || ""}
+                          disabled={zoneBusyId === zone.id}
+                          onChange={(event) =>
+                            void assignZoneHierarchy(
+                              zone.id,
+                              zone.county_code,
+                              event.target.value || null,
+                            )
+                          }
+                        >
+                          <option value="">Unassigned</option>
+                          {(markets.data || [])
+                            .filter((market: any) => market.county_code === zone.county_code)
+                            .map((market: any) => (
+                              <option key={market.id} value={market.id}>
+                                {market.name}
+                              </option>
+                            ))}
+                        </select>
+                      ) : (
+                        "Assign county first"
+                      )}
+                    </td>
                     <td>
                       <Badge variant={zone.has_polygon ? "success" : "danger"}>
                         {zone.has_polygon ? "PostGIS polygon" : "Missing polygon"}
