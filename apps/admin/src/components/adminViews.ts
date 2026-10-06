@@ -1,10 +1,5 @@
-import {
-  SettlementCalculateSchema,
-  RiderPayoutCalculateSchema,
-  FinancialAdjustmentCreateSchema,
-  ServiceZoneSchema,
-} from "@deetoo/validation";
-import { TableConfig, RowAction } from "./ResourceTable";
+import { FinancialAdjustmentCreateSchema } from "@deetoo/validation";
+import { TableConfig } from "./ResourceTable";
 const id = (row: any) => encodeURIComponent(row.id);
 const status = { key: "status", label: "Status" };
 const note = { key: "note", label: "Audit note" };
@@ -176,76 +171,45 @@ export const adminViews: Record<string, TableConfig> = {
     ],
   },
   ledger: {
-    title: "Financial ledger",
-    endpoint: "/finance/transactions",
-    listKey: "transactions",
-    searchable: true,
+    title: "Journal",
+    endpoint: "/finance/ops/journal",
     columns: [
-      { key: "id", label: "Transaction" },
-      { key: "reference_id", label: "Reference" },
-      { key: "description", label: "Description" },
+      { key: "event", label: "Financial event" },
+      { key: "amount_minor", label: "Amount", money: true },
       { key: "effective_at", label: "Effective at" },
+      status,
     ],
   },
   accounts: {
-    toolbar: [
-      {
-        label: "Request adjustment",
-        endpoint: () => "/finance/adjustments",
-        schema: FinancialAdjustmentCreateSchema,
-        fields: [
-          { key: "targetAccountId", label: "Target account ID" },
-          { key: "offsetAccountId", label: "Offset account ID" },
-          {
-            key: "direction",
-            label: "Direction",
-            options: ["DEBIT", "CREDIT"],
-          },
-          { key: "amountMinor", label: "Amount (minor units)", type: "number" },
-          {
-            key: "reasonCode",
-            label: "Reason",
-            options: [
-              "MERCHANT_CORRECTION",
-              "RIDER_CORRECTION",
-              "CUSTOMER_REFUND_ADJUSTMENT",
-              "PAYMENT_PROCESSOR_ADJUSTMENT",
-              "MANUAL_FINANCE_CORRECTION",
-            ],
-          },
-          { key: "note", label: "Audit note" },
-        ],
-      },
-    ],
     title: "Ledger accounts",
     endpoint: "/finance/accounts",
     listKey: "accounts",
     columns: [
-      { key: "id", label: "Account" },
-      { key: "type", label: "Type" },
-      { key: "owner_type", label: "Owner" },
+      { key: "account_type", label: "Account" },
+      { key: "owner_type", label: "Owner type" },
+      { key: "currency", label: "Currency" },
       { key: "balance_minor", label: "Balance", money: true },
     ],
     detail: (r) => `/finance/accounts/${id(r)}/entries`,
   },
   payments: {
-    title: "M-PESA & card payments",
-    endpoint: "/payments/admin/all",
+    title: "Payments & refunds",
+    endpoint: "/finance/ops/payments",
     pageable: true,
     searchable: true,
     columns: [
-      { key: "id", label: "Payment" },
-      { key: "order_id", label: "Order" },
-      { key: "method", label: "Method" },
-      status,
+      { key: "order_number", label: "Order" },
+      { key: "provider", label: "Provider" },
+      { key: "provider_reference", label: "Provider reference" },
+      { key: "internal_status", label: "Internal status" },
+      { key: "reconciliation_status", label: "Reconciliation" },
       { key: "amount_minor", label: "Amount", money: true },
+      { key: "captured_minor", label: "Captured", money: true },
+      { key: "refunded_minor", label: "Refunded", money: true },
+      { key: "failure_reason", label: "Failure" },
     ],
     detail: (r) => `/payments/admin/${id(r)}/refunds`,
     actions: [
-      {
-        label: "Reconcile payment",
-        endpoint: (r) => `/payments/admin/${id(r)}/reconcile`,
-      },
       {
         label: "Request refund",
         endpoint: (r) => `/payments/admin/${id(r)}/refunds`,
@@ -270,31 +234,20 @@ export const adminViews: Record<string, TableConfig> = {
           },
           note,
         ],
-        when: (r) => ["CAPTURED", "PARTIALLY_REFUNDED"].includes(r.status),
+        when: (r) => ["CAPTURED", "PARTIALLY_REFUNDED"].includes(r.internal_status),
       },
     ],
   },
   settlements: {
-    toolbar: [
-      {
-        label: "Calculate settlement",
-        endpoint: () => "/finance/settlements/calculate",
-        schema: SettlementCalculateSchema,
-        fields: [
-          { key: "merchantId", label: "Merchant ID" },
-          { key: "periodStart", label: "Period start", type: "date" },
-          { key: "periodEnd", label: "Period end", type: "date" },
-        ],
-      },
-    ],
     title: "Merchant settlements",
     endpoint: "/finance/settlements",
     listKey: "settlements",
     columns: [
-      { key: "id", label: "Settlement" },
+      { key: "settlement_number", label: "Settlement" },
       { key: "merchant_id", label: "Merchant" },
       status,
       { key: "net_settlement_amount_minor", label: "Net payable", money: true },
+      { key: "period_end", label: "Period end" },
     ],
     actions: [
       {
@@ -312,26 +265,15 @@ export const adminViews: Record<string, TableConfig> = {
     ],
   },
   payouts: {
-    toolbar: [
-      {
-        label: "Calculate rider payout",
-        endpoint: () => "/finance/payouts/calculate",
-        schema: RiderPayoutCalculateSchema,
-        fields: [
-          { key: "riderId", label: "Rider ID" },
-          { key: "periodStart", label: "Period start", type: "date" },
-          { key: "periodEnd", label: "Period end", type: "date" },
-        ],
-      },
-    ],
     title: "Rider payouts",
     endpoint: "/finance/payouts",
     listKey: "payouts",
     columns: [
-      { key: "id", label: "Payout" },
+      { key: "payout_number", label: "Payout" },
       { key: "rider_id", label: "Rider" },
       status,
       { key: "amount_minor", label: "Amount", money: true },
+      { key: "period_end", label: "Period end" },
     ],
     actions: [
       {
@@ -345,6 +287,120 @@ export const adminViews: Record<string, TableConfig> = {
         endpoint: (r) => `/finance/payouts/${id(r)}/pay`,
         fields: [{ key: "destination_id", label: "Payout destination ID" }],
         when: (r) => r.status === "APPROVED",
+      },
+    ],
+  },
+  approvalQueue: {
+    title: "Money-out approval queue",
+    endpoint: "/finance/ops/money-out/approval-queue",
+    columns: [
+      { key: "resource_type", label: "Type" },
+      { key: "reference", label: "Batch" },
+      { key: "owner_id", label: "Beneficiary" },
+      { key: "amount_minor", label: "Amount", money: true },
+      status,
+      { key: "created_at", label: "Created" },
+    ],
+    actions: [
+      {
+        label: "Approve",
+        endpoint: (r) =>
+          r.resource_type === "MERCHANT_SETTLEMENT"
+            ? `/finance/settlements/${id(r)}/approve`
+            : `/finance/payouts/${id(r)}/approve`,
+        fields: [note],
+      },
+    ],
+  },
+  profitability: {
+    title: "Profitability",
+    endpoint: "/finance/profitability",
+    listKey: "recent_orders",
+    columns: [
+      { key: "order_number", label: "Order" },
+      { key: "gmv_minor", label: "GMV", money: true },
+      { key: "gross_platform_revenue_minor", label: "Platform revenue", money: true },
+      { key: "rider_cost_minor", label: "Rider cost", money: true },
+      { key: "contribution_profit_minor", label: "Contribution", money: true },
+      { key: "contribution_margin_pct", label: "Margin %" },
+    ],
+  },
+  commissionRules: {
+    title: "Merchant commission rules",
+    endpoint: "/finance/ops/commercial/commission-rules",
+    columns: [
+      { key: "merchant_name", label: "Merchant" },
+      { key: "percentage_display", label: "Rate" },
+      { key: "fixed_fee_minor", label: "Fixed fee", money: true },
+      { key: "rule_source", label: "Source" },
+      { key: "effective_from", label: "Effective from" },
+      status,
+    ],
+    toolbar: [
+      {
+        label: "Set platform default",
+        endpoint: () => "/finance/ops/commercial/commission-rules",
+        body: { merchant_id: null },
+        fields: [
+          { key: "percentage_rate", label: "Rate (0 to 1)", type: "number" },
+          { key: "fixed_fee_minor", label: "Fixed fee (minor units)", type: "number", required: false },
+        ],
+      },
+      {
+        label: "Set merchant rule",
+        endpoint: () => "/finance/ops/commercial/commission-rules",
+        fields: [
+          { key: "merchant_id", label: "Merchant ID" },
+          { key: "percentage_rate", label: "Rate (0 to 1)", type: "number" },
+          { key: "fixed_fee_minor", label: "Fixed fee (minor units)", type: "number", required: false },
+        ],
+      },
+    ],
+  },
+  commercialReviews: {
+    title: "Commercial review requests",
+    endpoint: "/finance/ops/commercial/review-requests",
+    columns: [
+      { key: "merchant_name", label: "Merchant" },
+      { key: "reason", label: "Request" },
+      status,
+      { key: "created_at", label: "Requested" },
+      { key: "review_note", label: "Finance note" },
+    ],
+    actions: [
+      {
+        label: "Complete review",
+        endpoint: (r) => `/finance/ops/commercial/review-requests/${id(r)}/resolve`,
+        fields: [{ key: "note", label: "Review outcome / note" }],
+        when: (r) => r.status === "OPEN",
+      },
+    ],
+  },
+  riderEarningRules: {
+    title: "Rider earnings rules",
+    endpoint: "/finance/ops/commercial/rider-earning-rules",
+    columns: [
+      { key: "base_amount_minor", label: "Base", money: true },
+      { key: "per_kilometre_amount_minor", label: "Per km", money: true },
+      { key: "waiting_amount_minor_per_minute", label: "Waiting / min", money: true },
+      { key: "zone_peak_bonus_minor", label: "Zone / peak bonus", money: true },
+      { key: "stacked_order_component_minor", label: "Stacked order", money: true },
+      { key: "effective_from", label: "Effective from" },
+      status,
+    ],
+    toolbar: [
+      {
+        label: "Create earnings rule",
+        endpoint: () => "/finance/ops/commercial/rider-earning-rules",
+        fields: [
+          { key: "base_amount_minor", label: "Base amount (minor units)", type: "number" },
+          { key: "per_kilometre_amount_minor", label: "Per-kilometre amount", type: "number" },
+          { key: "included_distance_meters", label: "Included distance (metres)", type: "number" },
+          { key: "waiting_amount_minor_per_minute", label: "Waiting amount / minute", type: "number" },
+          { key: "included_waiting_minutes", label: "Included waiting minutes", type: "number" },
+          { key: "zone_peak_bonus_minor", label: "Zone / peak bonus", type: "number" },
+          { key: "stacked_order_component_minor", label: "Stacked-order component", type: "number" },
+        ],
       },
     ],
   },
@@ -531,6 +587,20 @@ export const adminViews: Record<string, TableConfig> = {
       status,
       { key: "amount_minor", label: "Amount", money: true },
       { key: "provider_reference", label: "Provider reference" },
+    ],
+  },
+  moneyOutFailures: {
+    title: "Money-out failures",
+    endpoint: "/finance/disbursements?status=FAILED",
+    listKey: "attempts",
+    columns: [
+      { key: "resource_type", label: "Type" },
+      { key: "resource_id", label: "Batch" },
+      { key: "provider", label: "Provider" },
+      { key: "amount_minor", label: "Amount", money: true },
+      { key: "failure_code", label: "Code" },
+      { key: "failure_reason", label: "Failure reason" },
+      { key: "updated_at", label: "Last update" },
     ],
   },
   adjustments: {
