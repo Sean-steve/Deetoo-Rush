@@ -679,7 +679,7 @@ function CustomerAppInner() {
                 <div className="space-y-5">
                   <section className="customer-hero">
                     <p className="uppercase text-xs tracking-wider">
-                      Deetoo · Nairobi kitchens
+                      DeeToo · nearby kitchens
                     </p>
                     <h1>Good food. At your door.</h1>
                     <p>
@@ -785,7 +785,7 @@ function CustomerAppInner() {
                       <p className="text-xs text-slate-500">
                         {serviceability?.zone_name
                           ? `In ${serviceability.zone_name} Delivery Zone · Real-time operational availability`
-                          : "Discover open branches and artisanal kitchens in Nairobi"}
+                          : "Discover kitchens available for your selected delivery location"}
                       </p>
                     </div>
 
