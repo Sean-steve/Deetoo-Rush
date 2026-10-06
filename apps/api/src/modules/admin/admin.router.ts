@@ -606,6 +606,58 @@ adminRouter.patch(
   }
 );
 
+adminRouter.delete(
+  '/merchants/:id',
+  requireRole(UserRole.SUPER_ADMIN),
+  async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      const reason = String(req.body?.reason || '').trim();
+      if (!reason) throw new AppError(400, 'REASON_REQUIRED', 'Merchant deactivation requires an explicit reason');
+      const merchant = await merchantRepository.findMerchantById(req.params.id);
+      if (!merchant) throw new AppError(404, 'MERCHANT_NOT_FOUND', 'Merchant not found');
+
+      const branches = await merchantRepository.listBranchesByMerchant(req.params.id);
+      for (const branch of branches) {
+        await merchantRepository.updateBranch(branch.id, {
+          status: BranchAdminStatus.DISABLED,
+          operational_status: BranchOperationalStatus.CLOSED,
+        });
+      }
+      const updated = await merchantRepository.updateMerchant(req.params.id, {
+        status: MerchantStatus.DISABLED,
+      });
+
+      await authRepository.createAuditLog({
+        actor_user_id: req.user!.id,
+        actor_role: UserRole.SUPER_ADMIN,
+        action: AuditAction.MERCHANT_UPDATED,
+        resource_type: 'MERCHANT',
+        resource_id: req.params.id,
+        request_id: (req as any).requestId,
+        reason,
+        metadata: {
+          lifecycle_action: 'DEACTIVATED',
+          before: merchant,
+          after: updated,
+          disabled_branch_ids: branches.map((branch) => branch.id),
+        },
+      });
+
+      res.json({
+        data: {
+          id: req.params.id,
+          status: updated?.status,
+          disabled_branches: branches.length,
+          retained_history: true,
+        },
+        requestId: (req as any).requestId,
+      });
+    } catch (error) {
+      next(error);
+    }
+  },
+);
+
 /**
  * POST /api/v1/admin/merchants/:id/approve
  */
