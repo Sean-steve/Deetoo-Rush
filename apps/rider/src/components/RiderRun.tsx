@@ -70,7 +70,7 @@ const runSteps = [
   },
 ];
 
-function runStage(status?: string): string {
+export function runStage(status?: string): string {
   if (status === "DELIVERED") return "complete";
   if (["PICKED_UP", "EN_ROUTE", "ARRIVED_DROPOFF"].includes(status || ""))
     return "customer";
@@ -78,7 +78,7 @@ function runStage(status?: string): string {
   return "restaurant";
 }
 
-function instructionFor(status?: string): {
+export function instructionFor(status?: string): {
   eyebrow: string;
   title: string;
   detail: string;
