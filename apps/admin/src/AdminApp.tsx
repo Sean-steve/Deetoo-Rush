@@ -9,6 +9,7 @@ import { adminViews } from "./components/adminViews";
 import { OperationsConfig } from "./components/OperationsConfig";
 import { LaunchReadiness } from "./components/LaunchReadiness";
 import { SupportCaseConsole } from "./components/SupportCaseConsole";
+import { IdentityGovernance } from "./components/IdentityGovernance";
 
 function adminTabFromPath(){
   const path=window.location.pathname.replace(/^\/ops/,"").replace(/\/+$/,"");
@@ -502,7 +503,8 @@ function AdminAppInner() {
         <AuthenticatorPanel />
         {selectedView === "command" && <CommandCenter />}
         {selectedView === "support" && <SupportCaseConsole />}
-        {adminViews[selectedView] && selectedView !== "support" && (
+        {selectedView === "governance" && <IdentityGovernance />}
+        {adminViews[selectedView] && !["support", "governance"].includes(selectedView) && (
           <ResourceTable
             key={selectedView}
             config={{
