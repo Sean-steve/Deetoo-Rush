@@ -5,6 +5,7 @@ import { mediaService } from './media.service';
 import { deliveryRepository } from '../order/delivery.repository';
 import { riderRepository } from '../rider/rider.repository';
 import { DeliveryStatus } from '@deetoo/types';
+import { operationsRepository } from '../operations/operations.repository';
 
 export const mediaRouter = Router();
 mediaRouter.use(requireAuth);
@@ -138,10 +139,42 @@ mediaRouter.get(
           : r.has('support')
             ? ['DELIVERY_PROOF', 'DELIVERY_INCIDENT', 'SUPPORT_ATTACHMENT']
             : [];
+      let purposes = privilegedPurposes;
+      const media = await mediaService.getVerifiedRecord(req.params.id);
+      if (
+        media.purpose === 'SUPPORT_ATTACHMENT' &&
+        media.reference_id &&
+        purposes !== '*'
+      ) {
+        const supportCase = await operationsRepository.getSupportCaseById(
+          media.reference_id,
+        );
+        if (supportCase) {
+          const userRoles = roles(req);
+          const isCustomer =
+            userRoles.has('customer') && supportCase.customer_id === req.user!.id;
+          const isRider =
+            userRoles.has('rider') &&
+            (supportCase.rider_id === req.user!.rider_id ||
+              supportCase.rider_id === req.user!.id);
+          const isMerchant =
+            ['merchant','merchant_owner','merchant_manager','merchant_staff'].some(
+              (role) => userRoles.has(role),
+            ) &&
+            Boolean(
+              supportCase.merchant_id &&
+                req.user!.merchant_ids?.includes(supportCase.merchant_id),
+            );
+          if (isCustomer || isRider || isMerchant) {
+            purposes = ['SUPPORT_ATTACHMENT'];
+          }
+        }
+      }
+
       const readUrl = await mediaService.getReadUrl(
         req.params.id,
         req.user!.id,
-        privilegedPurposes,
+        purposes,
       );
       res.json({
         data: { url: readUrl, expires_in_seconds: 300 },
