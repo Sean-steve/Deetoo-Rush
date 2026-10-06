@@ -2691,3 +2691,96 @@ textarea {
     transition: none !important;
   }
 }
+
+
+.rider-nav-shell {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0,1fr) auto;
+  gap: .6rem;
+  align-items: start;
+  padding: .75rem;
+  border-bottom: 1px solid var(--deetoo-outline-variant);
+  background: var(--deetoo-surface-container-lowest);
+}
+.rider-nav-shell .app-navigation {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0,1fr));
+  gap: .35rem;
+}
+.rider-nav-shell .app-navigation button {
+  min-height: 44px;
+  justify-content: center;
+  gap: .35rem;
+  padding-inline: .55rem;
+  border-radius: .8rem;
+  font-size: .72rem;
+}
+.rider-more-menu { position: relative; }
+.rider-more-menu > summary {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: .35rem;
+  padding: .6rem .75rem;
+  border: 1px solid var(--deetoo-outline-variant);
+  border-radius: .8rem;
+  background: var(--deetoo-surface-container-low);
+  color: var(--deetoo-on-surface);
+  cursor: pointer;
+  font-size: .72rem;
+  font-weight: 800;
+  list-style: none;
+}
+.rider-more-menu > summary::-webkit-details-marker { display:none; }
+.rider-more-menu-panel {
+  position: absolute;
+  z-index: 1030;
+  top: calc(100% + .45rem);
+  right: 0;
+  width: min(290px, calc(100vw - 2rem));
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: .4rem;
+  padding: .55rem;
+  border: 1px solid var(--deetoo-outline-variant);
+  border-radius: 1rem;
+  background: var(--deetoo-surface-container-lowest);
+  box-shadow: var(--deetoo-shadow-floating);
+}
+.rider-more-menu-panel button {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  gap: .45rem;
+  padding: .6rem .7rem;
+  border-radius: .75rem;
+  color: var(--deetoo-on-surface-variant);
+  text-align: left;
+  font-size: .72rem;
+  font-weight: 750;
+}
+.rider-more-menu-panel button[aria-current="page"] {
+  background: var(--deetoo-primary-fixed);
+  color: var(--deetoo-on-primary-fixed);
+}
+.rider-performance-visual h3 {
+  font-size: .95rem;
+  font-weight: 850;
+}
+
+@media (max-width: 520px) {
+  .rider-nav-shell {
+    grid-template-columns: minmax(0,1fr) auto;
+    padding: .55rem;
+  }
+  .rider-nav-shell .app-navigation button {
+    flex-direction: column;
+    gap: .15rem;
+    padding: .35rem .2rem;
+    font-size: .62rem;
+  }
+  .rider-more-menu > summary span { display:none; }
+}
