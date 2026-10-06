@@ -5,6 +5,7 @@ declare const __DEV__: boolean;
 export interface RiderAndroidBootstrap {
   apiBaseUrl: string;
   secureStore: SecureCredentialStore;
+  requestIdFactory?: () => string;
 }
 
 export function isLocalDevelopmentApiOrigin(value: string): boolean {
@@ -53,5 +54,10 @@ export function createRiderAndroidSession(config: RiderAndroidBootstrap): Native
     );
   }
 
-  return new NativeAuthSession(baseUrl + '/api/v1', 'rider', config.secureStore);
+  return new NativeAuthSession(
+    baseUrl + '/api/v1',
+    'rider',
+    config.secureStore,
+    config.requestIdFactory,
+  );
 }
