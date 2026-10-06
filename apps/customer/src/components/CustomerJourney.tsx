@@ -9,7 +9,15 @@ import {
   Input,
   Select,
   Price,
+  Countdown,
+  InlineBanner,
+  ProgressSteps,
+  StickyActionBar,
 } from "../../../../packages/ui/src/index";
+import {
+  LocationMap,
+  type MapPoint,
+} from "../../../../packages/ui/src/LocationMap";
 import {
   errorMessage,
   PageHeading,
@@ -27,6 +35,30 @@ import {
   Payment,
 } from "@deetoo/types";
 import { PaymentInitiateSchema } from "@deetoo/validation";
+import {
+  Bike,
+  CheckCircle2,
+  Clock3,
+  MapPin,
+  ShieldCheck,
+  Store,
+} from "lucide-react";
+
+const deliveryProgressSteps = [
+  { id: "confirmed", label: "Confirmed", description: "Payment and kitchen confirmation" },
+  { id: "preparing", label: "Preparing", description: "Your order is being prepared" },
+  { id: "collecting", label: "Rider collecting", description: "Courier assigned or at the restaurant" },
+  { id: "on_way", label: "On the way", description: "Your order is travelling to you" },
+  { id: "delivered", label: "Delivered", description: "Handover complete" },
+];
+
+function customerProgressStage(orderStatus?: string, deliveryStatus?: string): string {
+  if (orderStatus === "COMPLETED" || deliveryStatus === "DELIVERED") return "delivered";
+  if (["PICKED_UP", "EN_ROUTE", "ARRIVED_DROPOFF"].includes(deliveryStatus || "")) return "on_way";
+  if (["ASSIGNED", "OFFERED", "ARRIVED_PICKUP"].includes(deliveryStatus || "")) return "collecting";
+  if (["ACCEPTED", "PREPARING", "READY"].includes(orderStatus || "")) return "preparing";
+  return "confirmed";
+}
 
 export function CustomerJourney({
   view,
@@ -56,11 +88,7 @@ export function CustomerJourney({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const key = useRef<string | null>(null);
-  const [now, setNow] = useState(Date.now());
-  useEffect(() => {
-    const timer = setInterval(() => setNow(Date.now()), 1000);
-    return () => clearInterval(timer);
-  }, []);
+  const [quoteExpired, setQuoteExpired] = useState(false);
   const action = async (fn: () => Promise<void>) => {
     setBusy(true);
     setError(null);
@@ -75,6 +103,7 @@ export function CustomerJourney({
   const mutateCart = (fn: () => Promise<unknown>) =>
     action(async () => {
       setQuote(null);
+      setQuoteExpired(false);
       key.current = null;
       await fn();
       await cart.refresh();
@@ -137,7 +166,10 @@ export function CustomerJourney({
         </ResourceState>
       </>
     );
-  const expired = quote && new Date(quote.expires_at).getTime() <= now;
+  const expired = Boolean(
+    quote &&
+      (quoteExpired || new Date(quote.expires_at).getTime() <= Date.now()),
+  );
   return (
     <>
       <PageHeading title="Your bag" eyebrow="Made for your cravings" />
@@ -264,6 +296,7 @@ export function CustomerJourney({
                     onChange={(e) => {
                       setAddressId(e.target.value);
                       setQuote(null);
+                      setQuoteExpired(false);
                       key.current = null;
                     }}
                   >
@@ -284,6 +317,7 @@ export function CustomerJourney({
                     onChange={(e) => {
                       setNotes(e.target.value);
                       setQuote(null);
+                      setQuoteExpired(false);
                       key.current = null;
                     }}
                   />
@@ -371,6 +405,7 @@ export function CustomerJourney({
                         payment_method: paymentMethod,
                       });
                       setQuote(result.data);
+                      setQuoteExpired(false);
                       key.current = crypto.randomUUID();
                     })
                   }
