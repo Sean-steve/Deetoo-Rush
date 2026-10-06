@@ -9,11 +9,13 @@ import {
   Button,
   Card,
   Badge,
-  Modal,
+  BottomSheet,
   EmptyState,
   Toast,
   FilterChip,
+  InlineBanner,
   ListSkeleton,
+  StickyActionBar,
 } from "../../../../packages/ui/src/index";
 import { useAuth } from "../../../../packages/auth/src/react";
 import {
@@ -443,32 +445,35 @@ export function CustomerMenuViewer({
           MODAL: Item Customization & Modifier Selections
       ========================================== */}
       {selectedItem && (
-        <Modal
+        <BottomSheet
           isOpen={!!selectedItem}
           onClose={() => setSelectedItem(null)}
-          title={`Customize: ${selectedItem.name}`}
+          title={selectedItem.name}
+          description="Choose your options, quantity and extras."
           size="lg"
         >
           <div className="space-y-6">
             {/* Food Header Card */}
-            <div className="flex items-center gap-4 p-3 bg-slate-50 rounded-xl border border-slate-200">
-              {selectedItem.image_url && (
+            <div className="customer-item-sheet-hero">
+              {selectedItem.image_url ? (
                 <img
                   src={selectedItem.image_url}
-                  alt={selectedItem.name}
-                  className="w-20 h-20 rounded-lg object-cover shrink-0 shadow-xs"
+                  alt=""
+                  className="customer-item-sheet-image"
                 />
+              ) : (
+                <div className="customer-item-sheet-placeholder">
+                  <Sparkles size={30} aria-hidden="true" />
+                </div>
               )}
               <div>
-                <h3 className="font-bold text-sm text-slate-900">
-                  {selectedItem.name}
-                </h3>
-                <p className="text-xs text-slate-600 mt-0.5">
-                  {selectedItem.description}
+                <p className="customer-item-sheet-price">
+                  {formatKES(selectedItem.price_minor)}
                 </p>
-                <div className="text-xs font-bold text-brand mt-1">
-                  Base Price: {formatKES(selectedItem.price_minor)}
-                </div>
+                <p className="customer-item-sheet-description">
+                  {selectedItem.description ||
+                    "Freshly prepared and customized to your selection."}
+                </p>
               </div>
             </div>
 
@@ -586,50 +591,35 @@ export function CustomerMenuViewer({
             </div>
 
             {cartError && (
-              <p role="alert" className="text-rose-700">
-                {cartError}
-              </p>
+              <InlineBanner kind="danger">{cartError}</InlineBanner>
             )}
-            {/* Quantity Selector & Live Total Price Bar */}
-            <div className="p-4 bg-slate-900 text-white rounded-xl flex flex-col sm:flex-row items-center justify-between gap-4 shadow-lg">
-              <div className="flex items-center gap-3">
-                <span className="text-xs text-slate-300 font-medium">
-                  Quantity:
-                </span>
-                <div className="flex items-center gap-2 bg-slate-800 rounded-lg p-1 border border-slate-700">
-                  <button
-                    onClick={() =>
-                      setItemQuantity(Math.max(1, itemQuantity - 1))
-                    }
-                    className="w-7 h-7 rounded bg-slate-700 hover:bg-slate-600 flex items-center justify-center font-bold text-sm cursor-pointer"
-                  >
-                    -
-                  </button>
-                  <span className="w-8 text-center font-bold text-sm">
-                    {itemQuantity}
-                  </span>
-                  <button
-                    onClick={() => setItemQuantity(itemQuantity + 1)}
-                    className="w-7 h-7 rounded bg-slate-700 hover:bg-slate-600 flex items-center justify-center font-bold text-sm cursor-pointer"
-                  >
-                    +
-                  </button>
-                </div>
+            {/* Quantity Selector & Sticky purchase action */}
+            <div className="customer-item-quantity">
+              <span>Quantity</span>
+              <div>
+                <button
+                  type="button"
+                  aria-label="Decrease quantity"
+                  onClick={() => setItemQuantity(Math.max(1, itemQuantity - 1))}
+                >
+                  −
+                </button>
+                <strong>{itemQuantity}</strong>
+                <button
+                  type="button"
+                  aria-label="Increase quantity"
+                  onClick={() => setItemQuantity(itemQuantity + 1)}
+                >
+                  +
+                </button>
               </div>
+            </div>
 
-              <div className="flex items-center gap-4 w-full sm:w-auto justify-between sm:justify-end">
-                <div className="text-right">
-                  <span className="text-[11px] text-slate-400 block">
-                    Calculated Total
-                  </span>
-                  <span className="text-base font-black text-emerald-400 font-mono">
-                    {formatKES(calculateTotalPrice(selectedItem))}
-                  </span>
-                </div>
-
+            <StickyActionBar
+              primary={
                 <Button
                   variant="primary"
-                  size="md"
+                  fullWidth
                   disabled={!isSelectionValid(selectedItem)}
                   isLoading={adding}
                   onClick={async () => {
@@ -660,12 +650,13 @@ export function CustomerMenuViewer({
                       setAdding(false);
                     }
                   }}
-                  className="bg-brand hover:bg-[#008c44] text-white font-bold cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {isAuthenticated ? "Add to bag" : "Sign in to add"}
+                  {isAuthenticated
+                    ? `Add · ${formatKES(calculateTotalPrice(selectedItem))}`
+                    : "Sign in to add"}
                 </Button>
-              </div>
-            </div>
+              }
+            />
 
             <div className="p-2.5 bg-slate-50 border border-slate-200 rounded text-[11px] text-slate-500 flex items-center gap-2">
               <Info size={14} className="text-slate-400 shrink-0" />
@@ -674,7 +665,7 @@ export function CustomerMenuViewer({
               </span>
             </div>
           </div>
-        </Modal>
+        </BottomSheet>
       )}
       <Toast
         message={toastMessage}
