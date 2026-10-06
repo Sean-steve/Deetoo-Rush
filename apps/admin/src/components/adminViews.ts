@@ -104,6 +104,7 @@ export const adminViews: Record<string, TableConfig> = {
           { key: "email", label: "Email", required: false },
           { key: "phone", label: "Phone", required: false },
           { key: "description", label: "Description", required: false },
+          { key: "reason", label: "Governance reason" },
         ],
       },
       {
@@ -112,6 +113,13 @@ export const adminViews: Record<string, TableConfig> = {
         roles: ["super_admin"],
         fields: [{ key: "reason", label: "Governance reason" }],
         when: (r) => r.status !== "DISABLED",
+      },
+      {
+        label: "Reactivate merchant",
+        endpoint: (r) => `/admin/governance/merchants/${id(r)}/reactivate`,
+        roles: ["super_admin"],
+        fields: [{ key: "reason", label: "Governance reason" }],
+        when: (r) => r.status === "DISABLED",
       },
       {
         label: "Approve merchant",
