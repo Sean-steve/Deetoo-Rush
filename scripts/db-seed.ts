@@ -231,7 +231,48 @@ async function seed() {
          WHERE m.status='ACTIVE' AND m.approval_status='APPROVED'`
       );
 
+      const hiddenMenus = await client.query(
+        `SELECT
+           mn.id AS menu_id,
+           mn.name AS menu_name,
+           m.display_name AS merchant_name,
+           m.status AS merchant_status,
+           m.approval_status,
+           b.name AS branch_name,
+           b.status AS branch_status,
+           EXISTS (
+             SELECT 1
+             FROM branch_service_zones bsz
+             JOIN service_zones sz ON sz.id=bsz.service_zone_id
+             WHERE bsz.branch_id=b.id
+               AND bsz.status='ACTIVE'
+               AND sz.status='ACTIVE'
+           ) AS has_active_zone
+         FROM menus mn
+         JOIN merchants m ON m.id=mn.merchant_id
+         JOIN merchant_branches b ON b.id=mn.branch_id
+         WHERE mn.is_active
+           AND (
+             m.status <> 'ACTIVE'
+             OR m.approval_status <> 'APPROVED'
+             OR b.status <> 'ACTIVE'
+             OR NOT EXISTS (
+               SELECT 1
+               FROM branch_service_zones bsz
+               JOIN service_zones sz ON sz.id=bsz.service_zone_id
+               WHERE bsz.branch_id=b.id
+                 AND bsz.status='ACTIVE'
+                 AND sz.status='ACTIVE'
+             )
+           )`
+      );
+
       await client.query('COMMIT');
+      for (const menu of hiddenMenus.rows) {
+        logger.warn('Active menu is not customer-discoverable', {
+          metadata: menu,
+        });
+      }
       logger.info('Development commercial baseline configured', {
         metadata: visibility.rows[0],
       });
