@@ -343,9 +343,6 @@ export class OperationsRepository {
           updated.assigned_to_name || null,
           updated.acknowledged_at || null,
           updated.resolved_at || null,
-          updated.resolution_proposed_at || null,
-          updated.disputed_at || null,
-          updated.closed_at || null,
           updated.updated_at,
           id,
         ]
