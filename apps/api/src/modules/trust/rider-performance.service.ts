@@ -203,22 +203,6 @@ export class RiderPerformanceService {
       },
     };
 
-    if (config.storage.mode === "postgres") {
-      await getDbPool().query(
-        `INSERT INTO rider_performance_snapshots
-          (id,rider_id,window_start,window_end,metrics,generated_at)
-         VALUES ($1,$2,$3,$4,$5,$6)`,
-        [
-          randomUUID(),
-          riderId,
-          metrics.window_start,
-          metrics.window_end,
-          JSON.stringify(metrics),
-          new Date().toISOString(),
-        ],
-      );
-    }
-
     return metrics;
   }
 }
