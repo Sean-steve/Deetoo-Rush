@@ -162,6 +162,11 @@ export function BranchSettings({
                         ? "number"
                         : "text"
                     }
+                    step={
+                      key === "latitude" || key === "longitude"
+                        ? "any"
+                        : undefined
+                    }
                     onChange={(e) =>
                       setFields({ ...fields, [key]: e.target.value })
                     }
