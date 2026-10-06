@@ -85,12 +85,12 @@ function stageLabel(stage?: string): string {
     .replace(/(^|\s)\S/g, (value) => value.toUpperCase());
 }
 
-function readinessCount(readiness: any): number {
+export function readinessCount(readiness: any): number {
   return readinessChecks.filter((check) => Boolean(readiness?.[check.key]))
     .length;
 }
 
-function blockerLabels(readiness: any): string[] {
+export function blockerLabels(readiness: any): string[] {
   return readinessChecks
     .filter((check) => !readiness?.[check.key])
     .map((check) => check.label);
