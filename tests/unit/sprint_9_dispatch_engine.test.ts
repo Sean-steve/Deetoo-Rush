@@ -20,6 +20,8 @@ import { dispatchService } from '../../apps/api/src/modules/order/dispatch.servi
 import { riderRepository } from '../../apps/api/src/modules/rider/rider.repository';
 import { riderLocationStore } from '../../apps/api/src/db/redis';
 import { randomUUID } from 'crypto';
+import { config } from '../../packages/config/src/index';
+import { routingProvider } from '../../apps/api/src/modules/maps/routing.provider';
 
 test('1. Delivery State Machine enforces strict lifecycle transitions and prevents illegal state jumps', () => {
   // Valid happy path
@@ -518,4 +520,32 @@ test('9. Unanswered rider offers expire automatically before the next dispatch c
   const stored = await deliveryRepository.findOfferById(offer.id);
   assert.equal(stored?.status, DeliveryOfferStatus.EXPIRED);
   assert.equal(await deliveryRepository.findActiveOfferByDeliveryId(deliveryId), null);
+});
+
+
+test('10. Local PostgreSQL workflow uses simulated routing without Google Routes credentials', async () => {
+  const originalMode = config.storage.mode;
+  const originalLocalWorkflow = config.localWorkflow;
+  try {
+    config.storage.mode = 'postgres';
+    config.localWorkflow = true;
+
+    const result = await routingProvider.pickupMatrix(
+      [{
+        id: 'rider_local_routing',
+        latitude: -1.286389,
+        longitude: 36.817223,
+        vehicleType: 'MOTORBIKE',
+      }],
+      { latitude: -1.2833, longitude: 36.8167 },
+    );
+
+    assert.equal(result.length, 1);
+    assert.equal(result[0].provider, 'SIMULATION');
+    assert.ok(result[0].distanceMeters > 0);
+    assert.ok(result[0].durationSeconds >= 60);
+  } finally {
+    config.storage.mode = originalMode;
+    config.localWorkflow = originalLocalWorkflow;
+  }
 });
