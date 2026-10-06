@@ -86,3 +86,34 @@ test('Admin Web authenticates independently and reaches admin-scoped APIs', asyn
 
   await context.close();
 });
+
+
+test('Phase 1 UI foundation exposes dense Admin layout and honors reduced motion', async ({ browser }) => {
+  const context = await browser.newContext({
+    viewport: { width: 1440, height: 900 },
+    reducedMotion: 'reduce',
+  });
+  const page = await context.newPage();
+  await page.goto('http://127.0.0.1:5175');
+
+  await page.getByPlaceholder('admin@deetoo.ke').fill('admin@deetoo.ke');
+  await page.locator('input[type="password"]').fill('AdminPass123!');
+  await page.getByRole('button', { name: 'Sign In to Platform Admin' }).click();
+
+  const workspace = page.locator('.operations-layout');
+  await expect(workspace).toHaveAttribute('data-density', 'dense');
+
+  const animationDuration = await page.locator('.operations-main').evaluate((element) => {
+    const value = getComputedStyle(element).animationDuration;
+    const amount = Number.parseFloat(value);
+    return value.endsWith('ms') ? amount : amount * 1000;
+  });
+  expect(animationDuration).toBeLessThanOrEqual(1);
+
+  const signOutHeight = await page
+    .getByRole('button', { name: 'Sign out' })
+    .evaluate((element) => element.getBoundingClientRect().height);
+  expect(signOutHeight).toBeGreaterThanOrEqual(38);
+
+  await context.close();
+});
