@@ -77,6 +77,7 @@ export function RiderWalletPanel() {
             <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
               <MetricCard label="Available earnings" value={money(wallet.data.available_earnings_minor)} />
               <MetricCard label="Pending earnings" value={money(wallet.data.pending_earnings_minor)} />
+              <MetricCard label="Adjustments" value={money(wallet.data.adjustments_minor)} />
               <MetricCard label="Cash collected" value={money(wallet.data.cash_collected_minor)} />
               <MetricCard label="Cash owed to DeeToo" value={money(wallet.data.cash_owed_minor)} />
               <MetricCard
