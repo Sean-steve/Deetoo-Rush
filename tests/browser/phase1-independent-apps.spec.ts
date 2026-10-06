@@ -146,3 +146,50 @@ test('Phase 2 Customer discovery is visual and item customization uses a bottom 
 
   await context.close();
 });
+
+
+test('Phase 3 Merchant workspace exposes persistent store control and urgency-first kitchen board', async ({ browser }) => {
+  const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+  const page = await context.newPage();
+  await page.goto('http://127.0.0.1:5174');
+
+  await page.getByPlaceholder('merchant.owner@deetoo.ke').fill('merchant@deetoo.ke');
+  await page.locator('input[type="password"]').fill('MerchantPass123!');
+  await page.getByRole('button', { name: 'Sign In to Restaurant Console' }).click();
+
+  await expect(page.locator('.merchant-branch-command')).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByRole('group', { name: 'Store operating status' })).toBeVisible();
+  await expect(page.locator('.merchant-kitchen-summary')).toBeVisible();
+  await expect(page.locator('.merchant-kitchen-board')).toBeVisible();
+
+  const columnHeadings = page.locator('.merchant-kitchen-column-head h2');
+  await expect(columnHeadings).toHaveCount(3);
+  await expect(columnHeadings.nth(0)).toHaveText('New orders');
+  await expect(columnHeadings.nth(1)).toHaveText('Preparing');
+  await expect(columnHeadings.nth(2)).toHaveText('Ready');
+
+  await context.close();
+});
+
+test('Phase 3 Admin exposes control tower, query filters and narrative support workspace', async ({ browser }) => {
+  const context = await browser.newContext({ viewport: { width: 1600, height: 1000 } });
+  const page = await context.newPage();
+  await page.goto('http://127.0.0.1:5175');
+
+  await page.getByPlaceholder('admin@deetoo.ke').fill('admin@deetoo.ke');
+  await page.locator('input[type="password"]').fill('AdminPass123!');
+  await page.getByRole('button', { name: 'Sign In to Platform Admin' }).click();
+
+  await expect(page.getByRole('heading', { name: 'Operations control tower' })).toBeVisible();
+  await expect(page.locator('.admin-control-kpis')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Action required' })).toBeVisible();
+
+  await page.getByRole('button', { name: 'Orders & deliveries' }).click();
+  await expect(page.getByLabel('Order status')).toBeVisible();
+
+  await page.getByRole('button', { name: 'Case inbox' }).click();
+  await expect(page.getByRole('heading', { name: 'Support & case resolution' })).toBeVisible();
+  await expect(page.locator('.admin-case-workspace')).toBeVisible();
+
+  await context.close();
+});
