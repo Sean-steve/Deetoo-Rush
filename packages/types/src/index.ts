@@ -2239,6 +2239,7 @@ export interface RiderWalletSummary {
   gross_payable_balance_minor: number;
   available_earnings_minor: number;
   pending_earnings_minor: number;
+  adjustments_minor: number;
   cash_collected_minor: number;
   cash_settled_minor: number;
   cash_owed_minor: number;
