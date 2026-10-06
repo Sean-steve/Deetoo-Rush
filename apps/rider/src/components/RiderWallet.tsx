@@ -7,6 +7,7 @@ import {
   FormField,
   Input,
   InlineBanner,
+  ProgressBar,
 } from "../../../../packages/ui/src/index";
 import {
   MetricCard,
@@ -162,25 +163,73 @@ export function RiderPerformancePanel() {
       <ResourceState resource={performance}>
         {performance.data && (
           <>
-            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-              <MetricCard label="Completion rate" value={rate(performance.data.completion_rate)} />
-              <MetricCard label="Offer acceptance" value={rate(performance.data.offer_acceptance_rate)} />
-              <MetricCard label="Pickup punctuality" value={rate(performance.data.pickup_punctuality_rate)} />
-              <MetricCard label="Delivery punctuality" value={rate(performance.data.delivery_punctuality_rate)} />
-              <MetricCard
-                label="Customer rating"
-                value={
-                  performance.data.customer_rating == null
-                    ? "No verified ratings"
-                    : `${performance.data.customer_rating.toFixed(2)} / 5 (${performance.data.customer_rating_count})`
-                }
-              />
-              <MetricCard
-                label="Confirmed conduct incidents"
-                value={performance.data.confirmed_conduct_incidents}
-              />
-              <MetricCard label="Cancellation rate" value={rate(performance.data.cancellation_rate)} />
-              <MetricCard label="GPS reliability" value={rate(performance.data.gps_reliability_rate)} />
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Card className="rider-performance-visual">
+                <h3>Delivery performance</h3>
+                <div className="space-y-4 mt-4">
+                  <ProgressBar
+                    label="Completion"
+                    value={Math.round(Number(performance.data.completion_rate || 0) * 100)}
+                    showValue
+                  />
+                  <ProgressBar
+                    label="Offer acceptance"
+                    value={Math.round(Number(performance.data.offer_acceptance_rate || 0) * 100)}
+                    showValue
+                  />
+                  {performance.data.pickup_punctuality_rate != null && (
+                    <ProgressBar
+                      label="Pickup punctuality"
+                      value={Math.round(Number(performance.data.pickup_punctuality_rate) * 100)}
+                      showValue
+                    />
+                  )}
+                  {performance.data.delivery_punctuality_rate != null && (
+                    <ProgressBar
+                      label="Delivery punctuality"
+                      value={Math.round(Number(performance.data.delivery_punctuality_rate) * 100)}
+                      showValue
+                    />
+                  )}
+                  {performance.data.gps_reliability_rate != null && (
+                    <ProgressBar
+                      label="GPS reliability"
+                      value={Math.round(Number(performance.data.gps_reliability_rate) * 100)}
+                      showValue
+                    />
+                  )}
+                </div>
+              </Card>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <MetricCard
+                  label="Customer rating"
+                  value={
+                    performance.data.customer_rating == null
+                      ? "No verified ratings"
+                      : `${performance.data.customer_rating.toFixed(2)} / 5`
+                  }
+                  detail={
+                    performance.data.customer_rating == null
+                      ? undefined
+                      : `${performance.data.customer_rating_count} verified ratings`
+                  }
+                />
+                <MetricCard
+                  label="Cancellation rate"
+                  value={rate(performance.data.cancellation_rate)}
+                />
+                <MetricCard
+                  label="Confirmed conduct incidents"
+                  value={performance.data.confirmed_conduct_incidents}
+                />
+                <MetricCard
+                  label="Signals available"
+                  value={Object.values(performance.data.sample_sizes || {}).filter(
+                    (value) => Number(value) > 0,
+                  ).length}
+                  detail="Metrics remain explainable and human-reviewed."
+                />
+              </div>
             </div>
             <Card>
               <h3 className="font-bold text-slate-900">How these metrics are calculated</h3>
