@@ -44,6 +44,8 @@
     "typecheck:rider-android": "pnpm --filter @deetoo/rider-android typecheck",
     "build:rider-android": "pnpm --filter @deetoo/rider-android export:android",
     "worker:notifications": "tsx --import dotenv/config scripts/notification-worker.ts",
+    "worker:automation": "tsx --import dotenv/config scripts/automation-worker.ts",
+    "workers:start": "tsx --import dotenv/config scripts/worker-supervisor.ts",
     "test:phase2": "NODE_ENV=test DEETOO_STORAGE_MODE=memory DEETOO_FIXTURES=true tsx --test tests/unit/phase2_native_fulfilment.test.ts",
     "prebuild:rider-android": "pnpm --filter @deetoo/rider-android prebuild:android",
     "test:phase3": "NODE_ENV=test DEETOO_STORAGE_MODE=memory DEETOO_FIXTURES=true tsx --test tests/unit/phase3_operations_moneyout.test.ts"
