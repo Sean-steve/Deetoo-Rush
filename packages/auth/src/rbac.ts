@@ -251,10 +251,12 @@ export function hasRole(
   const canonicalRequired = typeof requiredRole === 'string' ? normalizeRole(requiredRole) : requiredRole;
   return session.roles.some((r) => {
     const canonical = typeof r === 'string' ? normalizeRole(r) : r;
-    return (
-      canonical === UserRole.SUPER_ADMIN ||
-      (canonicalRequired && canonical === canonicalRequired)
-    );
+    if (canonical === UserRole.SUPER_ADMIN) return true;
+    if (canonicalRequired === UserRole.SUPER_ADMIN) {
+      return canonical === UserRole.SUPER_ADMIN;
+    }
+    if (canonical === UserRole.ADMIN) return true;
+    return Boolean(canonicalRequired && canonical === canonicalRequired);
   });
 }
 
