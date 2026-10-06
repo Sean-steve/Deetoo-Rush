@@ -18,6 +18,8 @@ import {
   ResourceState,
   useResource,
 } from "../../../../packages/ui/src/workflows";
+import { LocateFixed } from "lucide-react";
+import { getBrowserCurrentLocation } from "../../../../packages/ui-web/src/geolocation";
 export function BranchSettings({
   branchId,
   canManage,
@@ -35,11 +37,14 @@ export function BranchSettings({
     name: "",
     address_line1: "",
     phone: "",
+    latitude: "",
+    longitude: "",
     prep_default_min: "",
     min_order_minor: "",
   });
   const [hours, setHours] = useState<any[]>([]);
   const [busy, setBusy] = useState(false);
+  const [isLocating, setIsLocating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState("");
   useEffect(() => {
@@ -48,6 +53,8 @@ export function BranchSettings({
         name: branch.data.name,
         address_line1: branch.data.address_line1,
         phone: branch.data.phone || "",
+        latitude: String(branch.data.latitude ?? ""),
+        longitude: String(branch.data.longitude ?? ""),
         prep_default_min: String(branch.data.prep_default_min),
         min_order_minor: String(branch.data.min_order_minor),
       });
@@ -55,6 +62,25 @@ export function BranchSettings({
   useEffect(() => {
     if (schedule.data) setHours(schedule.data.map((h) => ({ ...h })));
   }, [schedule.data]);
+  async function useCurrentLocation() {
+    setIsLocating(true);
+    setError(null);
+    setSaved("");
+    try {
+      const coords = await getBrowserCurrentLocation();
+      setFields((current) => ({
+        ...current,
+        latitude: String(coords.latitude),
+        longitude: String(coords.longitude),
+      }));
+      setSaved("GPS coordinates updated. Save the branch to persist them.");
+    } catch (e) {
+      setError(errorMessage(e));
+    } finally {
+      setIsLocating(false);
+    }
+  }
+
   async function save(
     endpoint: string,
     method: string,
@@ -101,6 +127,8 @@ export function BranchSettings({
                   {
                     ...fields,
                     phone: fields.phone || undefined,
+                    latitude: Number(fields.latitude),
+                    longitude: Number(fields.longitude),
                     prep_default_min: Number(fields.prep_default_min),
                     min_order_minor: Number(fields.min_order_minor),
                   },
@@ -116,6 +144,8 @@ export function BranchSettings({
                       name: "Branch name",
                       address_line1: "Street address",
                       phone: "Phone",
+                      latitude: "Latitude",
+                      longitude: "Longitude",
                       prep_default_min: "Default preparation (minutes)",
                       min_order_minor: "Minimum order (minor units)",
                     }[key]
@@ -125,7 +155,10 @@ export function BranchSettings({
                     disabled={!canManage}
                     value={value}
                     type={
-                      key.endsWith("_min") || key.endsWith("_minor")
+                      key.endsWith("_min") ||
+                      key.endsWith("_minor") ||
+                      key === "latitude" ||
+                      key === "longitude"
                         ? "number"
                         : "text"
                     }
@@ -136,9 +169,21 @@ export function BranchSettings({
                 </FormField>
               ))}
               {canManage && (
-                <Button type="submit" isLoading={busy}>
-                  Save branch
-                </Button>
+                <div className="flex flex-wrap gap-3">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    disabled={busy || isLocating}
+                    onClick={() => void useCurrentLocation()}
+                    className="gap-2"
+                  >
+                    <LocateFixed size={15} />
+                    {isLocating ? "Getting GPS…" : "Use current location"}
+                  </Button>
+                  <Button type="submit" isLoading={busy}>
+                    Save branch
+                  </Button>
+                </div>
               )}
             </form>
           </Card>
