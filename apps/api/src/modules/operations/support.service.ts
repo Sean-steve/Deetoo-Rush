@@ -515,7 +515,7 @@ export class SupportService {
     },
     actor: SupportViewer,
   ): Promise<{ refund: Refund; supportCase: SupportCase }> {
-    if (!actor.roles.some(role => ['admin','finance'].includes(role))) {
+    if (!actor.roles.some(role => ['super_admin','admin','finance'].includes(role))) {
       throw new AppError(403, 'REFUND_APPROVAL_REQUIRED', 'Support refund execution requires the configured approval workflow');
     }
     const supportCase = await operationsRepository.getSupportCaseById(caseId);
