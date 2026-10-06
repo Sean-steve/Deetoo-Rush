@@ -33,7 +33,7 @@ operationsRouter.use(async (req: AuthenticatedRequest, res, next) => {
   requireAuth(req, res, (error) => {
     if (error) return next(error);
     const roles = req.user!.roles;
-    if (roles.includes("finance" as any) && !roles.some(r => ["admin", "ops", "support"].includes(r))
+    if (roles.includes("finance" as any) && !roles.some(r => ["super_admin", "admin", "ops", "support"].includes(r))
       && !["/recovery/reconcile-payment", "/recovery/reconcile-ledger"].includes(req.path)) {
       return next(new AppError(403, "FORBIDDEN_ROLE", "Finance operational access is read-only"));
     }
@@ -44,7 +44,7 @@ operationsRouter.use(async (req: AuthenticatedRequest, res, next) => {
 function buildViewer(req: AuthenticatedRequest): SupportViewer {
   const roles = req.user?.roles || req.session?.roles || ["customer"];
   const isStaff = roles.some((r: any) =>
-    ["admin", "ops", "support", "finance"].includes(r),
+    ["super_admin", "admin", "ops", "support", "finance"].includes(r),
   );
   return {
     id: req.user?.id || req.session?.user_id || "anonymous",
@@ -65,7 +65,7 @@ const opsAuth = [requireAuth, requireRole("admin", "ops")];
 const financeAuth = [requireAuth, requireRole("admin", "finance")];
 const staffAuth = [
   requireAuth,
-  requireRole("admin", "ops", "support", "finance"),
+  requireRole("super_admin", "admin", "ops", "support", "finance"),
 ];
 
 operationsRouter.get(
@@ -489,6 +489,12 @@ operationsRouter.post(
         viewer,
         req.body.visibility || "INTERNAL",
         req.body.body,
+        {
+          attachmentIds: Array.isArray(req.body.attachmentIds)
+            ? req.body.attachmentIds.map(String)
+            : [],
+          messageType: req.body.messageType || "MESSAGE",
+        },
       );
       res.status(201).json({ success: true, data: note });
     } catch (err) {
@@ -545,6 +551,25 @@ operationsRouter.post(
         req.body.resolutionCode,
         req.body.resolutionNotes,
         viewer,
+      );
+      res.json({ success: true, data: updated });
+    } catch (err) {
+      next(err);
+    }
+  },
+);
+
+operationsRouter.post(
+  "/support/cases/:id/confirm-resolution",
+  requireAuth,
+  async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      const viewer = buildViewer(req);
+      const updated = await supportService.confirmResolution(
+        req.params.id,
+        viewer,
+        Boolean(req.body?.accepted),
+        req.body?.note ? String(req.body.note).slice(0, 2000) : undefined,
       );
       res.json({ success: true, data: updated });
     } catch (err) {
@@ -1018,10 +1043,40 @@ customerSupportRouter.post(
       const note = await supportService.addNote(
         req.params.id,
         viewer,
-        "CUSTOMER_VISIBLE",
+        "ALL_PARTICIPANTS",
         req.body.body,
+        {
+          attachmentIds: Array.isArray(req.body.attachmentIds)
+            ? req.body.attachmentIds.map(String)
+            : [],
+        },
       );
       res.status(201).json({ success: true, data: note });
+    } catch (err) {
+      next(err);
+    }
+  },
+);
+
+customerSupportRouter.post(
+  "/cases/:id/confirm-resolution",
+  requireAuth,
+  async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      const viewer = {
+        ...buildViewer(req),
+        isStaff: false,
+        roles: ["customer"],
+        merchant_ids: [],
+        rider_id: undefined,
+      };
+      const updated = await supportService.confirmResolution(
+        req.params.id,
+        viewer,
+        Boolean(req.body?.accepted),
+        req.body?.note ? String(req.body.note).slice(0, 2000) : undefined,
+      );
+      res.json({ success: true, data: updated });
     } catch (err) {
       next(err);
     }
@@ -1071,6 +1126,160 @@ customerSupportRouter.post(
       res.json({ success: true, data: result });
     } catch (err) {
       next(err);
+    }
+  },
+);
+
+
+// ============================================================================
+// AUTHENTICATED MULTI-PARTY SUPPORT CONVERSATIONS
+// Merchant and Rider apps can participate without receiving administrative access.
+// ============================================================================
+
+export const participantSupportRouter = Router();
+participantSupportRouter.use(requireAuth);
+
+function participantViewer(req: AuthenticatedRequest): SupportViewer {
+  return {
+    ...buildViewer(req),
+    isStaff: false,
+  };
+}
+
+participantSupportRouter.get(
+  "/cases",
+  async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      const viewer = participantViewer(req);
+      const result = await supportService.listCases(
+        {
+          status: req.query.status as any,
+          priority: req.query.priority as any,
+          limit: req.query.limit ? Number(req.query.limit) : 50,
+          offset: req.query.offset ? Number(req.query.offset) : 0,
+        },
+        viewer,
+      );
+      res.json({ success: true, data: result });
+    } catch (error) {
+      next(error);
+    }
+  },
+);
+
+participantSupportRouter.get(
+  "/cases/:id",
+  async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      const data = await supportService.getCaseById(
+        req.params.id,
+        participantViewer(req),
+      );
+      res.json({ success: true, data });
+    } catch (error) {
+      next(error);
+    }
+  },
+);
+
+participantSupportRouter.post(
+  "/cases",
+  async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      const viewer = participantViewer(req);
+      const roles = viewer.roles.map(String);
+      const isRider = roles.includes("rider");
+      const isMerchant = roles.some((role) =>
+        ["merchant", "merchant_owner", "merchant_manager", "merchant_staff"].includes(role),
+      );
+      if (!isRider && !isMerchant) {
+        throw new AppError(
+          403,
+          "SUPPORT_PARTICIPANT_ROLE_REQUIRED",
+          "This support endpoint is for Merchant and Rider participants",
+        );
+      }
+
+      let orderId = req.body?.order_id ? String(req.body.order_id) : undefined;
+      let deliveryId = req.body?.delivery_id ? String(req.body.delivery_id) : undefined;
+
+      if (isRider) {
+        if (deliveryId) {
+          const delivery = await deliveryRepository.findById(deliveryId);
+          if (!delivery || delivery.assigned_rider_id !== viewer.rider_id) deny();
+          orderId = orderId || delivery.order_id;
+          if (orderId !== delivery.order_id) deny();
+        } else if (!viewer.rider_id) {
+          deny();
+        }
+      }
+
+      if (isMerchant && orderId) {
+        await orderScope(req.user!, orderId);
+      }
+
+      const merchantId = isMerchant
+        ? viewer.merchant_ids?.[0]
+        : undefined;
+
+      const supportCase = await supportService.createCase({
+        merchant_id: merchantId,
+        rider_id: isRider ? viewer.rider_id : undefined,
+        order_id: orderId,
+        delivery_id: deliveryId,
+        category: req.body?.category || (isRider ? "RIDER_ISSUE" : "MERCHANT_ISSUE"),
+        priority: req.body?.priority,
+        subject: String(req.body?.subject || "Support request").slice(0, 255),
+        description: String(req.body?.description || "").slice(0, 10000),
+        creator: {
+          id: viewer.id,
+          name: viewer.name,
+          role: roles[0] || "participant",
+        },
+      });
+
+      res.status(201).json({ success: true, data: supportCase });
+    } catch (error) {
+      next(error);
+    }
+  },
+);
+
+participantSupportRouter.post(
+  "/cases/:id/messages",
+  async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      const note = await supportService.addNote(
+        req.params.id,
+        participantViewer(req),
+        "ALL_PARTICIPANTS",
+        String(req.body?.body || "").slice(0, 10000),
+        {
+          attachmentIds: Array.isArray(req.body?.attachmentIds)
+            ? req.body.attachmentIds.map(String)
+            : [],
+        },
+      );
+      res.status(201).json({ success: true, data: note });
+    } catch (error) {
+      next(error);
+    }
+  },
+);
+
+participantSupportRouter.post(
+  "/cases/:id/confirm-resolution",
+  async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      const updated = await supportService.confirmResolution(
+        req.params.id,
+        participantViewer(req),
+        Boolean(req.body?.accepted),
+        req.body?.note ? String(req.body.note).slice(0, 2000) : undefined,
+      );
+      res.json({ success: true, data: updated });
+    } catch (error) {
+      next(error);
     }
   },
 );
