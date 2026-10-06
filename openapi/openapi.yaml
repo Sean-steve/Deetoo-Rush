@@ -6141,6 +6141,23 @@ paths:
       operationId: operations_get_admin_supply
       security:
       - bearerAuth: []
+  /admin/merchant-onboarding:
+    get:
+      summary: List merchant onboarding pipeline
+      description: Unambiguous canonical route for the merchant onboarding work queue. The legacy /admin/merchants/onboarding route remains supported for compatibility.
+      tags: [Admin]
+      responses:
+        '200':
+          description: Merchant onboarding work queue
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseGeneric'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+      operationId: admin_get_merchant_onboarding
+      security:
+      - bearerAuth: []
   /admin/merchants/onboarding:
     get:
       summary: List merchant onboarding pipeline
