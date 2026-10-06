@@ -341,7 +341,7 @@ adminRouter.post(
  */
 adminRouter.post(
   '/users/:id/roles',
-  requireRole(UserRole.SUPER_ADMIN),
+  requireRole(UserRole.ADMIN),
   async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
       const targetUserId = req.params.id;
@@ -350,6 +350,11 @@ adminRouter.post(
       if (!Array.isArray(roles) || roles.length === 0 || roles.some(role => !Object.values(UserRole).includes(role))) {
         throw new AppError(400, 'VALIDATION_FAILED', 'Roles must be a non-empty array of valid roles');
       }
+
+      await adminGovernanceService.assertSuperAdminAuthority(
+        req.user!.id,
+        { allowInitialBootstrap: roles.includes(UserRole.SUPER_ADMIN) },
+      );
 
       const user = await authRepository.findUserById(targetUserId);
       if (!user) {
