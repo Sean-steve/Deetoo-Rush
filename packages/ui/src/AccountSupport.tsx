@@ -30,6 +30,11 @@ export function AccountSupport({
   const [subject, setSubject] = useState("");
   const [description, setDescription] = useState("");
   const [orderId, setOrderId] = useState("");
+  const [caseKind, setCaseKind] = useState<"SUPPORT" | "DISPUTE">("SUPPORT");
+  const [extraPaymentOrderId, setExtraPaymentOrderId] = useState("");
+  const [extraPaymentRequested, setExtraPaymentRequested] = useState("");
+  const [extraPaymentDescription, setExtraPaymentDescription] = useState("");
+  const [actionMessage, setActionMessage] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [caseId, setCaseId] = useState<string | null>(null);
@@ -72,17 +77,35 @@ export function AccountSupport({
     e.preventDefault();
     setBusy(true);
     setError(null);
+    setActionMessage(null);
     try {
-      const created = await apiClient.request<any>(`${supportBase}/cases`, {
-        method: "POST",
-        body: JSON.stringify({
-          subject,
-          description,
-          category: "ORDER_ISSUE",
-          ...(orderId ? { order_id: orderId } : {}),
-        }),
-      });
-      const createdCaseId = created.data?.id;
+      const created =
+        caseKind === "DISPUTE"
+          ? await apiClient.request<any>("/trust/disputes", {
+              method: "POST",
+              body: JSON.stringify({
+                subject,
+                description,
+                category: "DISPUTE",
+                allegation_code: "PARTICIPANT_DISPUTE",
+                ...(orderId ? { order_id: orderId } : {}),
+              }),
+            })
+          : await apiClient.request<any>(`${supportBase}/cases`, {
+              method: "POST",
+              body: JSON.stringify({
+                subject,
+                description,
+                category: "ORDER_ISSUE",
+                ...(orderId ? { order_id: orderId } : {}),
+              }),
+            });
+      const createdCaseId =
+        caseKind === "DISPUTE"
+          ? created.data?.support_case?.id
+          : created.data?.id;
+      const createdTrustCaseId =
+        caseKind === "DISPUTE" ? created.data?.trust_case?.id : null;
       if (createdCaseId && files.length) {
         const mediaIds = await uploadEvidence(createdCaseId, files);
         await apiClient.request(
@@ -97,11 +120,67 @@ export function AccountSupport({
             }),
           },
         );
+        if (createdTrustCaseId) {
+          for (const mediaId of mediaIds) {
+            await apiClient.request(
+              `/trust/disputes/${encodeURIComponent(createdTrustCaseId)}/evidence`,
+              {
+                method: "POST",
+                body: JSON.stringify({
+                  evidence_type: "DOCUMENT",
+                  media_object_id: mediaId,
+                  summary: "Participant-supplied dispute evidence",
+                }),
+              },
+            );
+          }
+        }
       }
       setSubject("");
       setDescription("");
       setFiles([]);
+      setCaseKind("SUPPORT");
       if (createdCaseId) setCaseId(createdCaseId);
+      setActionMessage(
+        caseKind === "DISPUTE"
+          ? "Dispute opened with evidence snapshots and a shared support conversation."
+          : "Support case created.",
+      );
+      await cases.refresh();
+    } catch (e) {
+      setError(errorMessage(e));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const reportExtraPayment = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setBusy(true);
+    setError(null);
+    setActionMessage(null);
+    try {
+      const requestedMinor = Math.round(Number(extraPaymentRequested) * 100);
+      if (!extraPaymentOrderId.trim() || !Number.isSafeInteger(requestedMinor) || requestedMinor < 0) {
+        throw new Error("Enter an order ID and a valid amount requested by the Rider.");
+      }
+      const created = await apiClient.request<any>("/trust/conduct/extra-payment", {
+        method: "POST",
+        body: JSON.stringify({
+          order_id: extraPaymentOrderId.trim(),
+          requested_amount_minor: requestedMinor,
+          description: extraPaymentDescription.trim() || undefined,
+        }),
+      });
+      const supportCaseId = created.data?.support_case?.id;
+      const due = Number(created.data?.conduct_report?.authoritative_amount_minor || 0);
+      setExtraPaymentOrderId("");
+      setExtraPaymentRequested("");
+      setExtraPaymentDescription("");
+      if (supportCaseId) setCaseId(supportCaseId);
+      setActionMessage(
+        `Report created. DeeToo's recorded amount due at handover was KES ${(due / 100).toFixed(2)}. The allegation requires human review.`,
+      );
       await cases.refresh();
     } catch (e) {
       setError(errorMessage(e));
@@ -116,6 +195,11 @@ export function AccountSupport({
     <>
       <PageHeading title="Support & notifications" />
       {error && <ErrorState message={error} />}
+      {actionMessage && (
+        <div className="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-900">
+          {actionMessage}
+        </div>
+      )}
       <div className="workflow-grid">
         <section className="space-y-4">
           <ResourceState resource={cases}>
@@ -127,7 +211,7 @@ export function AccountSupport({
                   <input
                     type="file"
                     multiple
-                    accept="image/jpeg,image/png,image/webp,application/pdf"
+                    accept="image/jpeg,image/png,image/webp,video/mp4,video/quicktime,application/pdf"
                     onChange={(e) => setFiles(Array.from(e.target.files || []))}
                     className="block w-full text-xs text-slate-500 mb-3"
                   />
@@ -228,7 +312,7 @@ export function AccountSupport({
                           setBusy(true);
                           try {
                             await apiClient.request(
-                              `/customer/support/cases/${encodeURIComponent(caseId!)}/resolution-response`,
+                              `${supportBase}/cases/${encodeURIComponent(caseId!)}/resolution-response`,
                               {
                                 method: "POST",
                                 body: JSON.stringify({
@@ -329,6 +413,16 @@ export function AccountSupport({
         <Card className="h-fit">
           <h2 className="text-xl font-bold mb-4">How can we help?</h2>
           <form onSubmit={create} className="space-y-4">
+            <FormField label="Case type" required>
+              <select
+                className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm"
+                value={caseKind}
+                onChange={(e) => setCaseKind(e.target.value as "SUPPORT" | "DISPUTE")}
+              >
+                <option value="SUPPORT">Support request</option>
+                <option value="DISPUTE">Formal dispute</option>
+              </select>
+            </FormField>
             <FormField label="Subject" required>
               <Input
                 required
@@ -355,15 +449,52 @@ export function AccountSupport({
               <input
                 type="file"
                 multiple
-                accept="image/jpeg,image/png,image/webp,application/pdf"
+                accept="image/jpeg,image/png,image/webp,video/mp4,video/quicktime,application/pdf"
                 onChange={(e) => setFiles(Array.from(e.target.files || []))}
                 className="block w-full text-xs text-slate-500"
               />
             </FormField>
             <Button type="submit" isLoading={busy}>
-              Create support case
+              {caseKind === "DISPUTE" ? "Open dispute" : "Create support case"}
             </Button>
           </form>
+
+          {mode === "customer" && (
+            <div className="mt-6 border-t border-slate-200 pt-5">
+              <h3 className="font-bold text-slate-900">Report extra payment request</h3>
+              <p className="mt-1 text-xs text-slate-500">
+                Use this when a Rider asks for money outside the amount shown by DeeToo. The report creates an evidence-backed conduct case; enforcement remains human-reviewed.
+              </p>
+              <form onSubmit={reportExtraPayment} className="mt-4 space-y-3">
+                <FormField label="Order ID" required>
+                  <Input
+                    required
+                    value={extraPaymentOrderId}
+                    onChange={(e) => setExtraPaymentOrderId(e.target.value)}
+                  />
+                </FormField>
+                <FormField label="Amount Rider requested (KES)" required>
+                  <Input
+                    required
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={extraPaymentRequested}
+                    onChange={(e) => setExtraPaymentRequested(e.target.value)}
+                  />
+                </FormField>
+                <FormField label="What happened?">
+                  <Textarea
+                    value={extraPaymentDescription}
+                    onChange={(e) => setExtraPaymentDescription(e.target.value)}
+                  />
+                </FormField>
+                <Button type="submit" variant="outline" isLoading={busy}>
+                  Report extra payment request
+                </Button>
+              </form>
+            </div>
+          )}
         </Card>
       </div>
     </>
