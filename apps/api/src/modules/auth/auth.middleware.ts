@@ -192,9 +192,13 @@ export function requireRole(...allowedRoles: (UserRole | string)[]) {
       return next(new AppError(401, "UNAUTHORIZED", "Authentication required"));
     }
 
-    const hasAllowed = allowedRoles.some((role) =>
-      req.session!.roles.includes(role as UserRole),
+    const requiresSuperAdmin = allowedRoles.some(
+      (role) => String(role).toLowerCase() === UserRole.SUPER_ADMIN,
     );
+    const isSuperAdmin = req.session.roles.includes(UserRole.SUPER_ADMIN);
+    const hasAllowed =
+      (isSuperAdmin && !requiresSuperAdmin) ||
+      allowedRoles.some((role) => req.session!.roles.includes(role as UserRole));
     if (!hasAllowed) {
       return next(
         new AppError(
