@@ -9,6 +9,22 @@ export const adminViews: Record<string, TableConfig> = {
     endpoint: "/admin/orders",
     pageable: true,
     searchable: true,
+    filters: [
+      {
+        key: "status",
+        label: "Order status",
+        options: [
+          "PENDING_PAYMENT",
+          "PLACED",
+          "ACCEPTED",
+          "PREPARING",
+          "READY",
+          "COMPLETED",
+          "CANCELLED",
+          "REJECTED",
+        ],
+      },
+    ],
     columns: [
       { key: "order_number", label: "Order" },
       { key: "customer_name", label: "Customer" },
@@ -33,6 +49,29 @@ export const adminViews: Record<string, TableConfig> = {
     refreshInterval: 5000,
     pageable: true,
     searchable: true,
+    filters: [
+      {
+        key: "status",
+        label: "Delivery status",
+        options: [
+          "UNASSIGNED",
+          "OFFERED",
+          "ASSIGNED",
+          "ARRIVED_PICKUP",
+          "PICKED_UP",
+          "EN_ROUTE",
+          "ARRIVED_DROPOFF",
+          "DELIVERED",
+          "FAILED",
+        ],
+      },
+      {
+        key: "attention",
+        param: "attention_required",
+        label: "Dispatch attention",
+        options: [{ value: "true", label: "Attention required" }],
+      },
+    ],
     columns: [
       { key: "order_number", label: "Order" },
       { key: "branch_name", label: "Kitchen" },
@@ -81,6 +120,18 @@ export const adminViews: Record<string, TableConfig> = {
     pageable: true,
     offsetPaging: true,
     searchable: true,
+    filters: [
+      {
+        key: "approval_status",
+        label: "Approval",
+        options: ["PENDING_REVIEW", "APPROVED", "REJECTED"],
+      },
+      {
+        key: "status",
+        label: "Merchant status",
+        options: ["ACTIVE", "DISABLED"],
+      },
+    ],
     columns: [
       { key: "display_name", label: "Merchant" },
       { key: "approval_status", label: "Approval" },
@@ -197,6 +248,23 @@ export const adminViews: Record<string, TableConfig> = {
     endpoint: "/finance/ops/payments",
     pageable: true,
     searchable: true,
+    filters: [
+      {
+        key: "status",
+        label: "Payment status",
+        options: ["CREATED", "INITIATED", "PENDING", "CAPTURED", "FAILED", "REFUNDED", "PARTIALLY_REFUNDED"],
+      },
+      {
+        key: "reconciliation_status",
+        label: "Reconciliation",
+        options: ["MATCHED", "UNRECONCILED", "MISMATCHED", "MANUAL_REVIEW"],
+      },
+      {
+        key: "method",
+        label: "Method",
+        options: ["MPESA", "CARD"],
+      },
+    ],
     columns: [
       { key: "order_number", label: "Order" },
       { key: "provider", label: "Provider" },
@@ -409,6 +477,18 @@ export const adminViews: Record<string, TableConfig> = {
     title: "Fleet & incidents",
     endpoint: "/admin/operations/incidents",
     listKey: "incidents",
+    filters: [
+      {
+        key: "status",
+        label: "Incident status",
+        options: ["OPEN", "ACKNOWLEDGED", "INVESTIGATING", "RESOLVED", "DISMISSED"],
+      },
+      {
+        key: "severity",
+        label: "Severity",
+        options: ["CRITICAL", "HIGH", "MEDIUM", "LOW"],
+      },
+    ],
     columns: [
       { key: "id", label: "Incident" },
       { key: "title", label: "Issue" },
@@ -587,6 +667,18 @@ export const adminViews: Record<string, TableConfig> = {
     title: "Notifications",
     endpoint: "/admin/operations/notifications",
     listKey: "notifications",
+    filters: [
+      {
+        key: "status",
+        label: "Delivery status",
+        options: ["PENDING", "QUEUED", "SENT", "DELIVERED", "FAILED", "CANCELLED"],
+      },
+      {
+        key: "channel",
+        label: "Channel",
+        options: ["IN_APP", "PUSH", "SMS", "EMAIL"],
+      },
+    ],
     columns: [
       { key: "id", label: "Notification" },
       { key: "channel", label: "Channel" },
@@ -605,6 +697,13 @@ export const adminViews: Record<string, TableConfig> = {
     title: "Failed background jobs",
     endpoint: "/admin/operations/dead-letter-jobs",
     listKey: "jobs",
+    filters: [
+      {
+        key: "status",
+        label: "Job status",
+        options: ["DEAD_LETTER", "RETRIED", "RESOLVED"],
+      },
+    ],
     columns: [
       { key: "id", label: "Job" },
       { key: "job_type", label: "Type" },
@@ -741,6 +840,18 @@ export const adminViews: Record<string, TableConfig> = {
     title: "Risk signals",
     endpoint: "/admin/operations/risk-signals",
     listKey: "signals",
+    filters: [
+      {
+        key: "status",
+        label: "Review status",
+        options: ["OPEN", "CONFIRMED", "DISMISSED"],
+      },
+      {
+        key: "severity",
+        label: "Severity",
+        options: ["CRITICAL", "HIGH", "MEDIUM", "LOW"],
+      },
+    ],
     columns: [
       { key: "id", label: "Signal" },
       { key: "signal_type", label: "Type" },
