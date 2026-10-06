@@ -30,6 +30,8 @@ import {
   Modal,
   FormField,
   Input,
+  InlineBanner,
+  SegmentedControl,
 } from "../../../packages/ui/src/index";
 import { AuthProvider, useAuth } from "../../../packages/auth/src/react";
 import {
@@ -409,23 +411,56 @@ function MerchantAppInner() {
         }
       >
         <ResourceState resource={branches}>
-          <Card className="mb-6">
-            <div className="flex flex-wrap items-end gap-4">
-              <div className="flex-1 min-w-48">
-                <FormField label="Kitchen branch">
+          <section className="merchant-branch-command">
+            <div className="merchant-branch-command-main">
+              <div className="merchant-branch-select">
+                <FormField label="Operating branch">
                   <Select
                     value={selectedBranch}
-                    onChange={(e) => setSelectedBranch(e.target.value)}
+                    onChange={(event) => setSelectedBranch(event.target.value)}
                   >
                     <option value="">Select branch</option>
-                    {branches.data?.map((b) => (
-                      <option key={b.id} value={b.id}>
-                        {b.name}
+                    {branches.data?.map((item) => (
+                      <option key={item.id} value={item.id}>
+                        {item.name}
                       </option>
                     ))}
                   </Select>
                 </FormField>
+                {branch && (
+                  <p className="merchant-branch-location">
+                    {branch.address_text || branch.address_line1 || branch.city}
+                  </p>
+                )}
               </div>
+
+              {branch && (
+                <div className="merchant-store-state">
+                  <div className="merchant-store-state-label">
+                    <span>Store status</span>
+                    <StatusBadge status={branch.operational_status} />
+                  </div>
+                  <SegmentedControl
+                    ariaLabel="Store operating status"
+                    value={branch.operational_status}
+                    disabled={!canManageStoreStatus || savingStatus}
+                    onChange={(value) => void updateStatus(value)}
+                    options={[
+                      { value: "OPEN", label: "Open" },
+                      { value: "PAUSED", label: "Paused" },
+                      { value: "CLOSED", label: "Closed" },
+                    ]}
+                  />
+                  <p>
+                    {branch.operational_status === "OPEN"
+                      ? "Accepting new customer orders."
+                      : branch.operational_status === "PAUSED"
+                        ? "New orders are temporarily paused while current work can continue."
+                        : "Not accepting customer orders."}
+                  </p>
+                </div>
+              )}
+
               {canCreateBranch && (
                 <Button
                   variant="outline"
@@ -438,34 +473,14 @@ function MerchantAppInner() {
                   Add branch
                 </Button>
               )}
-              {branch && (
-                <>
-                  <StatusBadge status={branch.operational_status} />
-                  <div className="flex gap-2">
-                    {["OPEN", "PAUSED", "CLOSED"].map((status) => (
-                      <Button
-                        key={status}
-                        variant="outline"
-                        disabled={
-                          !canManageStoreStatus ||
-                          savingStatus ||
-                          Boolean(branches.error)
-                        }
-                        onClick={() => updateStatus(status)}
-                      >
-                        {status.toLowerCase()}
-                      </Button>
-                    ))}
-                  </div>
-                </>
-              )}
             </div>
+
             {branchError && (
-              <p role="alert" className="text-rose-700 mt-3">
+              <InlineBanner kind="danger" className="mt-3">
                 {branchError}
-              </p>
+              </InlineBanner>
             )}
-          </Card>
+          </section>
         </ResourceState>
         {canCreateBranch && (
           <Modal
