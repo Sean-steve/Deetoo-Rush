@@ -595,6 +595,46 @@ export function CustomerOrder({
       setBusy(false);
     }
   };
+  const progressStage = customerProgressStage(
+    order.data?.status,
+    tracking.data?.deliveryStatus,
+  );
+  const trackingPoints: MapPoint[] = tracking.data
+    ? [
+        tracking.data.restaurant?.location && {
+          id: "restaurant",
+          label: tracking.data.restaurant.name || "Restaurant",
+          latitude:
+            tracking.data.restaurant.location.latitude ??
+            tracking.data.restaurant.location.lat,
+          longitude:
+            tracking.data.restaurant.location.longitude ??
+            tracking.data.restaurant.location.lng,
+          kind: "pickup" as const,
+        },
+        tracking.data.dropoff?.location && {
+          id: "dropoff",
+          label: tracking.data.dropoff.address || "Delivery address",
+          latitude:
+            tracking.data.dropoff.location.latitude ??
+            tracking.data.dropoff.location.lat,
+          longitude:
+            tracking.data.dropoff.location.longitude ??
+            tracking.data.dropoff.location.lng,
+          kind: "dropoff" as const,
+        },
+        tracking.data.riderLiveLocation && {
+          id: "rider",
+          label: tracking.data.rider?.firstName
+            ? `${tracking.data.rider.firstName}'s latest location`
+            : "Rider's latest location",
+          latitude: tracking.data.riderLiveLocation.latitude,
+          longitude: tracking.data.riderLiveLocation.longitude,
+          kind: "rider" as const,
+        },
+      ].filter(Boolean) as MapPoint[]
+    : [];
+
   return (
     <>
       <Button variant="ghost" onClick={onBack}>
@@ -611,58 +651,148 @@ export function CustomerOrder({
             {error && <ErrorState message={error} />}
             <div className="workflow-grid">
               <div className="space-y-5">
-                <Card>
-                  <h2 className="text-xl font-bold mb-4">Order updates</h2>
-                  <Timeline entries={order.data.timeline || []} />
-                  <p className="text-sm mt-3">This order is separate from your bag. Removing bag items does not cancel it.</p>
-                </Card>
-                <Card>
-                  <h2 className="text-xl font-bold mb-4">Delivery tracking</h2>
+                <Card className="customer-tracking-hero">
+                  <div className="customer-tracking-hero-head">
+                    <div>
+                      <p className="eyebrow">Live delivery</p>
+                      {tracking.data?.estimatedArrivalAt ? (
+                        <>
+                          <h2>
+                            Arriving around{" "}
+                            {new Date(
+                              tracking.data.estimatedArrivalAt,
+                            ).toLocaleTimeString([], {
+                              hour: "numeric",
+                              minute: "2-digit",
+                            })}
+                          </h2>
+                          <p>
+                            About {tracking.data.estimatedEtaMinutes} minutes
+                            away based on the latest provider route.
+                          </p>
+                        </>
+                      ) : (
+                        <>
+                          <h2>
+                            {tracking.data?.statusMessage ||
+                              trackingMessage ||
+                              "We’re preparing your order"}
+                          </h2>
+                          <p>
+                            DeeToo only shows an ETA when live Rider GPS and the
+                            routing provider can support one.
+                          </p>
+                        </>
+                      )}
+                    </div>
+                    <StatusBadge
+                      status={
+                        tracking.data?.deliveryStatus || order.data.status
+                      }
+                    />
+                  </div>
+
+                  <ProgressSteps
+                    steps={deliveryProgressSteps}
+                    current={progressStage}
+                  />
+
                   {trackingMessage ? (
-                    <p role="status">{trackingMessage}</p>
+                    <InlineBanner kind="info">{trackingMessage}</InlineBanner>
                   ) : (
-                    <ResourceState resource={tracking}>
+                    <ResourceState resource={tracking} compact>
                       {tracking.data && (
-                        <div className="space-y-3">
-                          <StatusBadge status={tracking.data.deliveryStatus} />
-                          <p>{tracking.data.statusMessage}</p>
-                          {tracking.data.rider && (
-                            <p>Rider: {tracking.data.rider.firstName}</p>
+                        <div className="space-y-4">
+                          {trackingPoints.length > 0 && (
+                            <LocationMap points={trackingPoints} />
                           )}
-                          {tracking.data.estimatedEtaMinutes != null && (
-                            <p>
-                              Estimated arrival in{" "}
-                              {tracking.data.estimatedEtaMinutes} minutes
-                            </p>
+
+                          <div className="customer-tracking-cards">
+                            <div className="customer-rider-card">
+                              <div className="customer-rider-avatar">
+                                <Bike size={22} aria-hidden="true" />
+                              </div>
+                              <div>
+                                <span className="eyebrow">Your Rider</span>
+                                <strong>
+                                  {tracking.data.rider?.firstName ||
+                                    "Rider assignment in progress"}
+                                </strong>
+                                {tracking.data.rider && (
+                                  <p>
+                                    {tracking.data.rider.vehicleType ||
+                                      "Delivery vehicle"}
+                                    {tracking.data.rider
+                                      .vehicleRegistrationMasked
+                                      ? ` · ${tracking.data.rider.vehicleRegistrationMasked}`
+                                      : ""}
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+
+                            <div className="customer-dropoff-card">
+                              <MapPin size={18} aria-hidden="true" />
+                              <div>
+                                <span className="eyebrow">Delivering to</span>
+                                <strong>
+                                  {tracking.data.dropoff?.address ||
+                                    "Your selected address"}
+                                </strong>
+                              </div>
+                            </div>
+                          </div>
+
+                          {tracking.data.riderLiveLocation?.isStale && (
+                            <InlineBanner kind="warning">
+                              The Rider’s latest GPS update is overdue. The map
+                              is showing the last known position.
+                            </InlineBanner>
                           )}
-                          <p>{tracking.data.dropoff?.address}</p>
-                          {tracking.data.riderLiveLocation && (
-                            <p className="text-sm">
-                              {tracking.data.riderLiveLocation.isStale ? "Last known rider position (GPS update overdue):" : "Latest rider position:"}{" "}
-                              {tracking.data.riderLiveLocation.latitude},{" "}
-                              {tracking.data.riderLiveLocation.longitude}
-                            </p>
-                          )}
-                          {tracking.data.rider && !tracking.data.riderLiveLocation && (
-                            <p role="status">Waiting for your courier’s GPS update. Location appears when their device sends it.</p>
-                          )}
-                          {tracking.updatedAt && <p className="text-xs">Last checked: {tracking.updatedAt.toLocaleTimeString()}</p>}
+
+                          {tracking.data.rider &&
+                            !tracking.data.riderLiveLocation && (
+                              <InlineBanner kind="info">
+                                Waiting for the Rider’s device to send a live
+                                GPS update.
+                              </InlineBanner>
+                            )}
+
                           {tracking.data.deliveryOtp && (
-                            <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                            <div className="customer-delivery-pin">
+                              <div>
+                                <span className="eyebrow">Delivery PIN</span>
+                                <strong>{tracking.data.deliveryOtp}</strong>
+                              </div>
                               <p>
-                                Delivery code:{" "}
-                                <strong className="text-lg">{tracking.data.deliveryOtp}</strong>
-                              </p>
-                              <p className="mt-1 text-xs text-slate-500">
-                                Share this only with the assigned Rider at handover. The Rider cannot normally complete delivery without it.
+                                Share this only with the assigned Rider when you
+                                receive the order.
                               </p>
                             </div>
+                          )}
+
+                          {tracking.updatedAt && (
+                            <p className="customer-tracking-updated">
+                              Last checked{" "}
+                              {tracking.updatedAt.toLocaleTimeString()}
+                            </p>
                           )}
                         </div>
                       )}
                     </ResourceState>
                   )}
                 </Card>
+
+                <details className="customer-order-activity">
+                  <summary>Order details & activity</summary>
+                  <div>
+                    <Timeline entries={order.data.timeline || []} />
+                    <p>
+                      This order is separate from your bag. Removing bag items
+                      does not cancel it.
+                    </p>
+                  </div>
+                </details>
               </div>
               <div className="space-y-5">
                 <Card>
