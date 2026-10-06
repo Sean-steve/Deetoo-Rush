@@ -8,10 +8,18 @@ const PORT = config.port;
 async function startServer() {
   const app = createApp();
   const stopRealtime = startRealtimeListener();
-  const server = app.listen(PORT, config.localWorkflow ? '127.0.0.1' : '0.0.0.0', () => {
+  const bindHost =
+    config.localWorkflow && !config.localWorkflowAllowLan ? '127.0.0.1' : '0.0.0.0';
+  const server = app.listen(PORT, bindHost, () => {
     logger.info(`Deetoo Central API running on port ${PORT}`, {
       service: 'deetoo-api',
-      metadata: { port: PORT, env: process.env.NODE_ENV || process.env.APP_ENV || 'development' },
+      metadata: {
+        port: PORT,
+        bindHost,
+        localWorkflow: config.localWorkflow,
+        localWorkflowAllowLan: config.localWorkflowAllowLan,
+        env: process.env.NODE_ENV || process.env.APP_ENV || 'development',
+      },
     });
   });
   const shutdown = async () => {
