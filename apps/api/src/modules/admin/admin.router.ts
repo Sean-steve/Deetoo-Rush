@@ -587,6 +587,17 @@ adminRouter.post(
  * GET /api/v1/admin/merchants/:id
  */
 adminRouter.get(
+  '/merchant-onboarding',
+  requireRole(UserRole.ADMIN, UserRole.OPS),
+  async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      const data = await merchantOnboardingService.list(req.query.stage as string | undefined);
+      res.json({ data, requestId: (req as any).requestId });
+    } catch (error) { next(error); }
+  },
+);
+
+adminRouter.get(
   '/merchants/onboarding',
   requireRole(UserRole.ADMIN, UserRole.OPS),
   async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
