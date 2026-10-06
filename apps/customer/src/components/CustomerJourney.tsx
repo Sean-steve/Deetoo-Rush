@@ -170,6 +170,38 @@ export function CustomerJourney({
     quote &&
       (quoteExpired || new Date(quote.expires_at).getTime() <= Date.now()),
   );
+  const selectedAddress = addresses.find((address) => address.id === addressId);
+
+  const reviewCheckout = () =>
+    action(async () => {
+      const result = await apiClient.generateCheckoutQuote({
+        address_id: addressId,
+        notes,
+        payment_method: paymentMethod,
+      });
+      setQuote(result.data);
+      setQuoteExpired(false);
+      key.current = crypto.randomUUID();
+    });
+
+  const placeOrder = () =>
+    quote
+      ? action(async () => {
+          key.current ||= crypto.randomUUID();
+          const result = await apiClient.createOrder(
+            {
+              quote_id: quote.quote_id,
+              special_instructions: notes,
+            },
+            key.current,
+          );
+          setOrderId(result.data.id);
+          setQuote(null);
+          setQuoteExpired(false);
+          onCartChange();
+        })
+      : Promise.resolve();
+
   return (
     <>
       <PageHeading title="Your bag" eyebrow="Made for your cravings" />
@@ -288,130 +320,195 @@ export function CustomerJourney({
                   )}
                 </Card>
               </section>
-              <Card className="h-fit space-y-4">
-                <h2 className="text-xl font-bold">Delivery & checkout</h2>
-                <FormField label="Delivery address">
-                  <Select
-                    value={addressId}
-                    onChange={(e) => {
-                      setAddressId(e.target.value);
-                      setQuote(null);
-                      setQuoteExpired(false);
-                      key.current = null;
-                    }}
-                  >
-                    <option value="">Choose an address</option>
-                    {addresses.map((address) => (
-                      <option key={address.id} value={address.id}>
-                        {address.label}: {address.address_line1}
-                      </option>
-                    ))}
-                  </Select>
-                </FormField>
-                <Button variant="outline" onClick={onAddress}>
-                  Add address
-                </Button>
-                <FormField label="Delivery notes">
-                  <Input
-                    value={notes}
-                    onChange={(e) => {
-                      setNotes(e.target.value);
-                      setQuote(null);
-                      setQuoteExpired(false);
-                      key.current = null;
-                    }}
-                  />
-                </FormField>
-                <FormField label="Payment method">
-                  <Select value={paymentMethod} disabled={busy} onChange={(e) => {
-                    setPaymentMethod(e.target.value as "MPESA" | "CARD");
-                    setQuote(null);
-                    key.current = null;
-                  }}>
-                    <option value="MPESA">M-PESA</option>
-                    <option value="CARD">Card</option>
-                  </Select>
-                </FormField>
-                {quote ? (
-                  <>
+              <Card className="customer-checkout-card h-fit">
+                <div className="customer-checkout-heading">
+                  <div>
+                    <p className="eyebrow">Checkout</p>
+                    <h2>Confirm the important details</h2>
+                  </div>
+                  <ShieldCheck size={22} aria-hidden="true" />
+                </div>
+
+                <div className="customer-checkout-decisions">
+                  <section className="customer-checkout-decision">
+                    <div className="customer-checkout-decision-icon">
+                      <MapPin size={18} aria-hidden="true" />
+                    </div>
+                    <div className="min-w-0">
+                      <div className="customer-checkout-decision-title">
+                        <strong>Delivery address</strong>
+                        {selectedAddress && <CheckCircle2 size={16} aria-label="Confirmed" />}
+                      </div>
+                      <FormField label="Choose where to deliver">
+                        <Select
+                          value={addressId}
+                          onChange={(event) => {
+                            setAddressId(event.target.value);
+                            setQuote(null);
+                            setQuoteExpired(false);
+                            key.current = null;
+                          }}
+                        >
+                          <option value="">Choose an address</option>
+                          {addresses.map((address) => (
+                            <option key={address.id} value={address.id}>
+                              {address.label}: {address.address_line1}
+                            </option>
+                          ))}
+                        </Select>
+                      </FormField>
+                      <Button variant="ghost" size="sm" onClick={onAddress}>
+                        Add another address
+                      </Button>
+                    </div>
+                  </section>
+
+                  <section className="customer-checkout-decision">
+                    <div className="customer-checkout-decision-icon">
+                      <Store size={18} aria-hidden="true" />
+                    </div>
+                    <div className="min-w-0">
+                      <div className="customer-checkout-decision-title">
+                        <strong>Delivery instructions</strong>
+                        {notes.trim() && <CheckCircle2 size={16} aria-label="Added" />}
+                      </div>
+                      <FormField label="Notes for the Rider">
+                        <Input
+                          value={notes}
+                          placeholder="Gate, floor, landmark or handover note"
+                          onChange={(event) => {
+                            setNotes(event.target.value);
+                            setQuote(null);
+                            setQuoteExpired(false);
+                            key.current = null;
+                          }}
+                        />
+                      </FormField>
+                    </div>
+                  </section>
+
+                  <section className="customer-checkout-decision">
+                    <div className="customer-checkout-decision-icon">
+                      <ShieldCheck size={18} aria-hidden="true" />
+                    </div>
+                    <div className="min-w-0">
+                      <div className="customer-checkout-decision-title">
+                        <strong>Payment method</strong>
+                        <CheckCircle2 size={16} aria-label="Confirmed" />
+                      </div>
+                      <FormField label="How you want to pay">
+                        <Select
+                          value={paymentMethod}
+                          disabled={busy}
+                          onChange={(event) => {
+                            setPaymentMethod(event.target.value as "MPESA" | "CARD");
+                            setQuote(null);
+                            setQuoteExpired(false);
+                            key.current = null;
+                          }}
+                        >
+                          <option value="MPESA">M-PESA</option>
+                          <option value="CARD">Card</option>
+                        </Select>
+                      </FormField>
+                    </div>
+                  </section>
+                </div>
+
+                <section className="customer-checkout-summary">
+                  <div className="customer-checkout-summary-heading">
+                    <strong>{quote ? "Confirmed price" : "Estimated price"}</strong>
+                    {quote && !expired && (
+                      <span className="customer-quote-countdown">
+                        Price confirmed for{" "}
+                        <Countdown
+                          expiresAt={quote.expires_at}
+                          warningAtSeconds={60}
+                          onExpire={() => setQuoteExpired(true)}
+                        />
+                      </span>
+                    )}
+                  </div>
+
+                  {quote ? (
+                    <>
+                      <PriceBreakdown
+                        rows={[
+                          ["Subtotal", quote.gross_subtotal_minor],
+                          ["Discount", -quote.discount_minor],
+                          ["Delivery", quote.delivery_fee_minor],
+                          [
+                            "Service fee",
+                            quote.service_fee_minor -
+                              (quote.pricing_rule_snapshot?.rounding_adjustment_minor || 0),
+                          ],
+                          [
+                            "M-PESA rounding",
+                            quote.pricing_rule_snapshot?.rounding_adjustment_minor || 0,
+                          ],
+                          ["Tax", quote.tax_minor],
+                          ["Total", quote.total_minor],
+                        ]}
+                      />
+                      {expired && (
+                        <InlineBanner kind="warning">
+                          This confirmed price expired. Refresh it before placing the order.
+                        </InlineBanner>
+                      )}
+                    </>
+                  ) : (
                     <PriceBreakdown
                       rows={[
-                        ["Subtotal", quote.gross_subtotal_minor],
-                        ["Discount", -quote.discount_minor],
-                        ["Delivery", quote.delivery_fee_minor],
-                        ["Service fee", quote.service_fee_minor - (quote.pricing_rule_snapshot?.rounding_adjustment_minor || 0)],
-                        ["M-PESA rounding", quote.pricing_rule_snapshot?.rounding_adjustment_minor || 0],
-                        ["Tax", quote.tax_minor],
-                        ["Total", quote.total_minor],
+                        ["Subtotal", cart.data.pricing.subtotal_minor],
+                        [
+                          "Estimated delivery",
+                          cart.data.pricing.estimated_delivery_fee_minor,
+                        ],
+                        [
+                          "Estimated service fee",
+                          cart.data.pricing.estimated_service_fee_minor,
+                        ],
+                        ["Discount", -cart.data.pricing.discount_minor],
+                        ["Estimated total", cart.data.pricing.estimated_total_minor],
                       ]}
                     />
-                    <p role="status" className="text-sm">
-                      {expired
-                        ? "This quote expired. Refresh it before ordering."
-                        : `Quote valid until ${new Date(quote.expires_at).toLocaleTimeString()}`}
-                    </p>
-                    <Button
-                      disabled={busy || Boolean(expired)}
-                      className="w-full"
-                      isLoading={busy}
-                      onClick={() =>
-                        action(async () => {
-                          key.current ||= crypto.randomUUID();
-                          const result = await apiClient.createOrder(
-                            {
-                              quote_id: quote.quote_id,
-                              special_instructions: notes,
-                            },
-                            key.current,
-                          );
-                          setOrderId(result.data.id);
-                          setQuote(null);
-                          onCartChange();
-                        })
-                      }
-                    >
-                      Place order · <Price minor={quote.total_minor} />
-                    </Button>
-                  </>
-                ) : (
-                  <PriceBreakdown
-                    rows={[
-                      ["Subtotal", cart.data.pricing.subtotal_minor],
-                      [
-                        "Estimated delivery",
-                        cart.data.pricing.estimated_delivery_fee_minor,
-                      ],
-                      [
-                        "Estimated service fee",
-                        cart.data.pricing.estimated_service_fee_minor,
-                      ],
-                      ["Discount", -cart.data.pricing.discount_minor],
-                      [
-                        "Estimated total",
-                        cart.data.pricing.estimated_total_minor,
-                      ],
-                    ]}
-                  />
-                )}
-                <Button
-                  variant={quote && !expired ? "outline" : "primary"}
-                  className="w-full"
-                  disabled={busy || !addressId}
-                  onClick={() =>
-                    action(async () => {
-                      const result = await apiClient.generateCheckoutQuote({
-                        address_id: addressId,
-                        notes,
-                        payment_method: paymentMethod,
-                      });
-                      setQuote(result.data);
-                      setQuoteExpired(false);
-                      key.current = crypto.randomUUID();
-                    })
+                  )}
+                </section>
+
+                <StickyActionBar
+                  secondary={
+                    quote && !expired ? (
+                      <Button
+                        variant="ghost"
+                        disabled={busy || !addressId}
+                        onClick={() => void reviewCheckout()}
+                      >
+                        Refresh price
+                      </Button>
+                    ) : undefined
                   }
-                >
-                  {quote ? "Refresh checkout quote" : "Review checkout"}
-                </Button>
+                  primary={
+                    quote && !expired ? (
+                      <Button
+                        fullWidth
+                        isLoading={busy}
+                        disabled={busy}
+                        onClick={() => void placeOrder()}
+                      >
+                        Place order · <Price minor={quote.total_minor} />
+                      </Button>
+                    ) : (
+                      <Button
+                        fullWidth
+                        isLoading={busy}
+                        disabled={busy || !addressId}
+                        onClick={() => void reviewCheckout()}
+                      >
+                        {quote ? "Refresh confirmed price" : "Review checkout"}
+                      </Button>
+                    )
+                  }
+                />
               </Card>
             </div>
           )
