@@ -429,8 +429,10 @@ function AdminAppInner() {
 
   // 3. AUTHENTICATED PLATFORM CONSOLE
   const superAdminAccess = hasRole(UserRole.SUPER_ADMIN);
-  const financeAccess = hasRole(UserRole.ADMIN) || hasRole(UserRole.FINANCE);
-  const operationsAccess = hasRole(UserRole.ADMIN) || hasRole(UserRole.OPS);
+  const financeAccess =
+    superAdminAccess || hasRole(UserRole.ADMIN) || hasRole(UserRole.FINANCE);
+  const operationsAccess =
+    superAdminAccess || hasRole(UserRole.ADMIN) || hasRole(UserRole.OPS);
   const operationalRead = operationsAccess || hasRole(UserRole.SUPPORT);
   const navigation = [
     ...(operationalRead
