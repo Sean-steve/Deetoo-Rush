@@ -13,3 +13,5 @@ export * from './async-job.service';
 export * from './risk.service';
 export * from './unified-order-view.service';
 export * from './operations.router';
+
+export * from './automation.service';
