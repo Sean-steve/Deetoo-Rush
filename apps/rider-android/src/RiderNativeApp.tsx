@@ -121,6 +121,13 @@ export function RiderNativeApp() {
   const [pickupCode, setPickupCode] = useState('');
   const [deliveryOtp, setDeliveryOtp] = useState('');
   const [incidentNote, setIncidentNote] = useState('');
+  const [supportCases, setSupportCases] = useState<any[]>([]);
+  const [supportCaseId, setSupportCaseId] = useState<string | null>(null);
+  const [supportDetail, setSupportDetail] = useState<any>(null);
+  const [supportSubject, setSupportSubject] = useState('');
+  const [supportDescription, setSupportDescription] = useState('');
+  const [supportReply, setSupportReply] = useState('');
+  const [supportResolutionNote, setSupportResolutionNote] = useState('');
   const [cameraOpen, setCameraOpen] = useState(false);
   const [cameraPermission, requestCameraPermission] = useCameraPermissions();
   const cameraRef = useRef<any>(null);
@@ -128,16 +135,18 @@ export function RiderNativeApp() {
   const refresh = useCallback(async () => {
     if (!user) return;
     try {
-      const [riderStatus, activeOffer, activeDelivery, riderEarnings] = await Promise.all([
+      const [riderStatus, activeOffer, activeDelivery, riderEarnings, riderSupport] = await Promise.all([
         client.request<any>('/rider/status'),
         client.request<any>('/rider/offers/active'),
         client.request<any>('/rider/deliveries/active'),
         client.request<any>('/rider/earnings'),
+        client.request<any>('/support/cases'),
       ]);
       setStatus(riderStatus.data);
       setOffer(activeOffer.data);
       setActive(activeDelivery.data);
       setEarnings(riderEarnings.data);
+      setSupportCases(riderSupport.data?.cases || []);
       const deliveryId = activeDelivery.data?.delivery?.id;
       if (deliveryId) {
         const deliveryDetail = await client.request<any>(
@@ -147,11 +156,20 @@ export function RiderNativeApp() {
       } else {
         setDetail(null);
       }
+
+      if (supportCaseId) {
+        const support = await client.request<any>(
+          '/support/cases/' + encodeURIComponent(supportCaseId),
+        );
+        setSupportDetail(support.data);
+      } else {
+        setSupportDetail(null);
+      }
       setMessage(null);
     } catch (error) {
       setMessage(errorMessage(error));
     }
-  }, [client, user]);
+  }, [client, supportCaseId, user]);
 
   useEffect(() => {
     void (async () => {
@@ -233,6 +251,9 @@ export function RiderNativeApp() {
       setActive(null);
       setDetail(null);
       setEarnings(null);
+      setSupportCases([]);
+      setSupportCaseId(null);
+      setSupportDetail(null);
       setPushReady(false);
     } finally {
       setBusy(false);
@@ -277,6 +298,57 @@ export function RiderNativeApp() {
         accuracy_meters: location.coords.accuracy || 0,
       }),
     });
+  }
+
+  async function createSupportCase() {
+    if (!supportSubject.trim() || !supportDescription.trim()) return;
+    await perform(async () => {
+      await client.request('/support/cases', {
+        method: 'POST',
+        body: JSON.stringify({
+          subject: supportSubject.trim(),
+          description: supportDescription.trim(),
+          category: active?.delivery?.id ? 'DELIVERY_ISSUE' : 'RIDER_ISSUE',
+          delivery_id: active?.delivery?.id || undefined,
+          order_id: active?.delivery?.order_id || undefined,
+        }),
+      });
+      setSupportSubject('');
+      setSupportDescription('');
+    }, 'Support conversation created.');
+  }
+
+  async function sendSupportReply() {
+    if (!supportCaseId || !supportReply.trim()) return;
+    await perform(async () => {
+      await client.request(
+        '/support/cases/' + encodeURIComponent(supportCaseId) + '/messages',
+        {
+          method: 'POST',
+          body: JSON.stringify({ body: supportReply.trim() }),
+        },
+      );
+      setSupportReply('');
+    }, 'Reply sent.');
+  }
+
+  async function confirmSupportResolution(accepted: boolean) {
+    if (!supportCaseId) return;
+    await perform(async () => {
+      await client.request(
+        '/support/cases/' +
+          encodeURIComponent(supportCaseId) +
+          '/confirm-resolution',
+        {
+          method: 'POST',
+          body: JSON.stringify({
+            accepted,
+            note: supportResolutionNote.trim() || undefined,
+          }),
+        },
+      );
+      setSupportResolutionNote('');
+    }, accepted ? 'Resolution accepted.' : 'Case reopened for further discussion.');
   }
 
   async function capturePhotoProof() {
@@ -610,6 +682,125 @@ export function RiderNativeApp() {
           </View>
         )}
 
+        <View style={styles.card}>
+          <Text style={styles.sectionTitle}>Support</Text>
+          <Text style={styles.muted}>
+            Keep delivery and account issues in one conversation with DeeToo Support.
+          </Text>
+
+          {supportCases.slice(0, 5).map((supportCase: any) => (
+            <Pressable
+              key={supportCase.id}
+              onPress={() => setSupportCaseId(supportCase.id)}
+              style={styles.supportCaseRow}
+            >
+              <View style={{ flex: 1 }}>
+                <Text style={styles.supportCaseTitle}>{supportCase.subject}</Text>
+                <Text style={styles.muted}>
+                  {supportCase.case_number || supportCase.id} · {supportCase.status}
+                </Text>
+              </View>
+              <Text style={styles.link}>Open</Text>
+            </Pressable>
+          ))}
+
+          {supportCaseId && supportDetail?.case && (
+            <View style={styles.supportConversation}>
+              <Text style={styles.bigText}>{supportDetail.case.subject}</Text>
+              {(supportDetail.notes || []).map((note: any) => (
+                <View key={note.id} style={styles.supportMessage}>
+                  <Text style={styles.supportMessageMeta}>
+                    {note.author_name || note.author_role || 'DeeToo'}
+                  </Text>
+                  <Text>{note.body}</Text>
+                </View>
+              ))}
+
+              {supportDetail.case.status === 'PARTY_CONFIRMATION' && (
+                <View style={styles.supportResolution}>
+                  <Text style={styles.supportCaseTitle}>Proposed resolution</Text>
+                  <Text style={styles.muted}>
+                    {supportDetail.case.resolution_notes || 'Support proposed a resolution.'}
+                  </Text>
+                  <TextInput
+                    value={supportResolutionNote}
+                    onChangeText={setSupportResolutionNote}
+                    placeholder="Optional response"
+                    style={[styles.input, styles.textArea]}
+                    multiline
+                  />
+                  <ActionButton
+                    label="Accept resolution"
+                    disabled={busy}
+                    onPress={() => void confirmSupportResolution(true)}
+                  />
+                  <ActionButton
+                    label="I still have a concern"
+                    danger
+                    disabled={busy}
+                    onPress={() => void confirmSupportResolution(false)}
+                  />
+                </View>
+              )}
+
+              {supportDetail.case.status !== 'CLOSED' && (
+                <>
+                  <TextInput
+                    value={supportReply}
+                    onChangeText={setSupportReply}
+                    placeholder="Reply to Support"
+                    style={[styles.input, styles.textArea]}
+                    multiline
+                  />
+                  <ActionButton
+                    label="Send reply"
+                    disabled={busy || supportReply.trim().length < 1}
+                    onPress={() => void sendSupportReply()}
+                  />
+                </>
+              )}
+            </View>
+          )}
+
+          {!supportCaseId && (
+            <>
+              <TextInput
+                value={supportSubject}
+                onChangeText={setSupportSubject}
+                placeholder="What do you need help with?"
+                style={styles.input}
+              />
+              <TextInput
+                value={supportDescription}
+                onChangeText={setSupportDescription}
+                placeholder="Describe what happened"
+                style={[styles.input, styles.textArea]}
+                multiline
+              />
+              <ActionButton
+                label="Start support conversation"
+                disabled={
+                  busy ||
+                  supportSubject.trim().length < 3 ||
+                  supportDescription.trim().length < 3
+                }
+                onPress={() => void createSupportCase()}
+              />
+            </>
+          )}
+
+          {supportCaseId && (
+            <ActionButton
+              label="Back to cases"
+              disabled={busy}
+              onPress={() => {
+                setSupportCaseId(null);
+                setSupportDetail(null);
+              }}
+            />
+          )}
+        </View>
+
         <ActionButton label="Refresh" disabled={busy} onPress={() => void refresh()} />
       </ScrollView>
     </SafeAreaView>
@@ -643,6 +834,36 @@ const styles = StyleSheet.create({
   offerCard: { backgroundColor: '#E8FFF2', borderColor: '#00BF62', borderWidth: 1.5, borderRadius: 26, padding: 18, gap: 10 },
   notice: { padding: 13, backgroundColor: '#FFF6DA', borderRadius: 16, borderWidth: 1, borderColor: '#F5DC8B' },
   noticeText: { color: '#654A00', fontWeight: '700' },
+  supportCaseRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#EEF3EF',
+  },
+  supportCaseTitle: { fontSize: 14, fontWeight: '900', color: '#10231A' },
+  supportConversation: {
+    gap: 10,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: '#E2ECE6',
+  },
+  supportMessage: {
+    backgroundColor: '#F5F8F6',
+    borderRadius: 14,
+    padding: 12,
+    gap: 4,
+  },
+  supportMessageMeta: { fontSize: 10, fontWeight: '900', color: '#66786E' },
+  supportResolution: {
+    backgroundColor: '#E8FFF2',
+    borderColor: '#B7F0CF',
+    borderWidth: 1,
+    borderRadius: 16,
+    padding: 12,
+    gap: 8,
+  },
   incident: { marginTop: 10, paddingTop: 14, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: '#DCE7E0', gap: 8 },
   input: { backgroundColor: '#F8FBF9', borderColor: '#D7E4DB', borderWidth: 1, borderRadius: 15, paddingHorizontal: 14, paddingVertical: 13, fontSize: 16, color: '#10231A' },
   textArea: { minHeight: 92, textAlignVertical: 'top' },
