@@ -121,6 +121,12 @@ export function RiderNativeApp() {
   const [pickupCode, setPickupCode] = useState('');
   const [deliveryOtp, setDeliveryOtp] = useState('');
   const [incidentNote, setIncidentNote] = useState('');
+  const [supportOpen, setSupportOpen] = useState(false);
+  const [supportCases, setSupportCases] = useState<any[]>([]);
+  const [supportDetail, setSupportDetail] = useState<any>(null);
+  const [supportSubject, setSupportSubject] = useState('');
+  const [supportDescription, setSupportDescription] = useState('');
+  const [supportReply, setSupportReply] = useState('');
   const [cameraOpen, setCameraOpen] = useState(false);
   const [cameraPermission, requestCameraPermission] = useCameraPermissions();
   const cameraRef = useRef<any>(null);
@@ -233,6 +239,9 @@ export function RiderNativeApp() {
       setActive(null);
       setDetail(null);
       setEarnings(null);
+      setSupportCases([]);
+      setSupportDetail(null);
+      setSupportOpen(false);
       setPushReady(false);
     } finally {
       setBusy(false);
@@ -265,6 +274,77 @@ export function RiderNativeApp() {
   async function goOffline() {
     await client.request('/rider/availability/offline', { method: 'POST' });
     await stopRiderLocationService();
+  }
+
+  async function loadSupportCases() {
+    const response = await client.request<any>('/support/cases');
+    setSupportCases(response.data?.cases || []);
+  }
+
+  async function openSupportCase(caseId: string) {
+    const response = await client.request<any>(
+      `/support/cases/${encodeURIComponent(caseId)}`,
+    );
+    setSupportDetail(response.data);
+    setSupportOpen(true);
+  }
+
+  async function createSupportCase() {
+    await perform(async () => {
+      const created = await client.request<any>('/support/cases', {
+        method: 'POST',
+        body: JSON.stringify({
+          subject: supportSubject.trim(),
+          description: supportDescription.trim(),
+          category: 'RIDER_SUPPORT',
+          order_id: active?.delivery?.order_id || undefined,
+          delivery_id: active?.delivery?.id || undefined,
+        }),
+      });
+      setSupportSubject('');
+      setSupportDescription('');
+      await loadSupportCases();
+      if (created.data?.id) await openSupportCase(created.data.id);
+    }, 'Support case opened.');
+  }
+
+  async function sendSupportReply() {
+    const caseId = supportDetail?.case?.id;
+    if (!caseId || !supportReply.trim()) return;
+    await perform(async () => {
+      await client.request(
+        `/support/cases/${encodeURIComponent(caseId)}/messages`,
+        {
+          method: 'POST',
+          body: JSON.stringify({ body: supportReply.trim() }),
+        },
+      );
+      setSupportReply('');
+      await openSupportCase(caseId);
+    }, 'Support reply sent.');
+  }
+
+  async function respondToSupportResolution(decision: 'ACCEPTED' | 'DISPUTED') {
+    const caseId = supportDetail?.case?.id;
+    if (!caseId) return;
+    await perform(async () => {
+      await client.request(
+        `/support/cases/${encodeURIComponent(caseId)}/resolution-response`,
+        {
+          method: 'POST',
+          body: JSON.stringify({
+            decision,
+            comment:
+              decision === 'DISPUTED'
+                ? supportReply.trim() || 'I still need help with this case.'
+                : undefined,
+          }),
+        },
+      );
+      setSupportReply('');
+      await openSupportCase(caseId);
+      await loadSupportCases();
+    }, decision === 'ACCEPTED' ? 'Resolution accepted.' : 'Case returned to Support.');
   }
 
   async function withFreshLocation(endpoint: string) {
@@ -610,6 +690,122 @@ export function RiderNativeApp() {
           </View>
         )}
 
+        <View style={styles.card}>
+          <Text style={styles.sectionTitle}>Support</Text>
+          <Text style={styles.muted}>
+            Talk to DeeToo Support about an order, delivery, payment or Rider-account issue.
+          </Text>
+          <ActionButton
+            label={supportOpen ? 'Hide support' : 'Open support'}
+            disabled={busy}
+            onPress={() => {
+              const next = !supportOpen;
+              setSupportOpen(next);
+              if (next) void loadSupportCases().catch((error) => setMessage(errorMessage(error)));
+            }}
+          />
+
+          {supportOpen && (
+            <View style={styles.supportStack}>
+              <Text style={styles.supportLabel}>Open a new case</Text>
+              <TextInput
+                value={supportSubject}
+                onChangeText={setSupportSubject}
+                placeholder="What do you need help with?"
+                style={styles.input}
+              />
+              <TextInput
+                value={supportDescription}
+                onChangeText={setSupportDescription}
+                placeholder="Describe what happened"
+                multiline
+                style={[styles.input, styles.textArea]}
+              />
+              <ActionButton
+                label="Create support case"
+                disabled={busy || supportSubject.trim().length < 3 || supportDescription.trim().length < 3}
+                onPress={() => void createSupportCase()}
+              />
+
+              {supportCases.length > 0 && (
+                <>
+                  <Text style={styles.supportLabel}>Your conversations</Text>
+                  {supportCases.slice(0, 8).map((supportCase: any) => (
+                    <Pressable
+                      key={supportCase.id}
+                      style={styles.supportCaseButton}
+                      onPress={() => void openSupportCase(supportCase.id)}
+                    >
+                      <Text style={styles.supportCaseTitle}>{supportCase.subject}</Text>
+                      <Text style={styles.muted}>
+                        {supportCase.case_number} · {supportCase.status}
+                      </Text>
+                    </Pressable>
+                  ))}
+                </>
+              )}
+
+              {supportDetail?.case && (
+                <View style={styles.supportConversation}>
+                  <Text style={styles.supportLabel}>
+                    {supportDetail.case.subject}
+                  </Text>
+                  {(supportDetail.notes || []).map((note: any) => (
+                    <View
+                      key={note.id}
+                      style={[
+                        styles.supportMessage,
+                        note.message_type === 'RESOLUTION' && styles.supportResolution,
+                      ]}
+                    >
+                      <Text style={styles.supportMessageAuthor}>
+                        {note.author_name || note.author_role || 'Support'}
+                      </Text>
+                      <Text style={styles.supportMessageBody}>{note.body}</Text>
+                    </View>
+                  ))}
+
+                  {['RESOLUTION_PROPOSED', 'PARTY_CONFIRMATION'].includes(
+                    supportDetail.case.status,
+                  ) && (
+                    <View style={styles.supportResolution}>
+                      <Text style={styles.supportCaseTitle}>Proposed resolution</Text>
+                      <Text style={styles.supportMessageBody}>
+                        {supportDetail.case.resolution_notes ||
+                          'Review the conversation and tell us whether this resolves your issue.'}
+                      </Text>
+                      <ActionButton
+                        label="I am satisfied"
+                        disabled={busy}
+                        onPress={() => void respondToSupportResolution('ACCEPTED')}
+                      />
+                      <ActionButton
+                        label="I still need help"
+                        danger
+                        disabled={busy}
+                        onPress={() => void respondToSupportResolution('DISPUTED')}
+                      />
+                    </View>
+                  )}
+
+                  <TextInput
+                    value={supportReply}
+                    onChangeText={setSupportReply}
+                    placeholder="Reply to Support"
+                    multiline
+                    style={[styles.input, styles.textArea]}
+                  />
+                  <ActionButton
+                    label="Send reply"
+                    disabled={busy || supportReply.trim().length < 1}
+                    onPress={() => void sendSupportReply()}
+                  />
+                </View>
+              )}
+            </View>
+          )}
+        </View>
+
         <ActionButton label="Refresh" disabled={busy} onPress={() => void refresh()} />
       </ScrollView>
     </SafeAreaView>
@@ -644,6 +840,15 @@ const styles = StyleSheet.create({
   notice: { padding: 13, backgroundColor: '#FFF6DA', borderRadius: 16, borderWidth: 1, borderColor: '#F5DC8B' },
   noticeText: { color: '#654A00', fontWeight: '700' },
   incident: { marginTop: 10, paddingTop: 14, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: '#DCE7E0', gap: 8 },
+  supportStack: { gap: 10, marginTop: 8 },
+  supportLabel: { fontSize: 13, fontWeight: '900', color: '#30483B', marginTop: 6 },
+  supportCaseButton: { borderWidth: 1, borderColor: '#DCE7E0', borderRadius: 15, padding: 12, backgroundColor: '#F8FBF9' },
+  supportCaseTitle: { fontSize: 14, fontWeight: '900', color: '#10231A' },
+  supportConversation: { gap: 9, paddingTop: 8 },
+  supportMessage: { borderWidth: 1, borderColor: '#E2ECE6', borderRadius: 15, padding: 12, backgroundColor: '#F8FBF9' },
+  supportResolution: { borderWidth: 1, borderColor: '#A8E8C5', borderRadius: 15, padding: 12, backgroundColor: '#EDFFF4', gap: 8 },
+  supportMessageAuthor: { fontSize: 10, fontWeight: '900', color: '#66786E', marginBottom: 4 },
+  supportMessageBody: { fontSize: 13, lineHeight: 19, color: '#30483B' },
   input: { backgroundColor: '#F8FBF9', borderColor: '#D7E4DB', borderWidth: 1, borderRadius: 15, paddingHorizontal: 14, paddingVertical: 13, fontSize: 16, color: '#10231A' },
   textArea: { minHeight: 92, textAlignVertical: 'top' },
   button: { backgroundColor: '#00BF62', borderRadius: 15, paddingVertical: 15, alignItems: 'center', marginTop: 4 },
