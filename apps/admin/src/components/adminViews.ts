@@ -352,32 +352,55 @@ export const adminViews: Record<string, TableConfig> = {
       },
     ],
   },
-  support: {
-    title: "Support cases",
-    endpoint: "/admin/operations/support/cases",
-    listKey: "cases",
+  // Support has a dedicated conversational workspace (SupportCaseConsole).
+  governance: {
+    title: "Identity governance",
+    endpoint: "/admin/governance/events",
+    listKey: "events",
     columns: [
-      { key: "id", label: "Case" },
-      { key: "subject", label: "Subject" },
-      { key: "priority", label: "Priority" },
-      status,
+      { key: "subject_type", label: "Subject" },
+      { key: "action", label: "Action" },
+      { key: "reason", label: "Reason" },
+      { key: "actor_role", label: "Actor" },
+      { key: "created_at", label: "Time" },
     ],
-    detail: (r) => `/admin/operations/support/cases/${id(r)}`,
-    actions: [
+    toolbar: [
       {
-        label: "Add internal note",
-        endpoint: (r) => `/admin/operations/support/cases/${id(r)}/notes`,
-        body: { visibility: "INTERNAL" },
-        fields: [{ key: "body", label: "Note" }],
-      },
-      {
-        label: "Resolve case",
-        endpoint: (r) => `/admin/operations/support/cases/${id(r)}/resolve`,
+        label: "Provision account",
+        endpoint: () => "/admin/governance/provision",
         fields: [
-          { key: "resolutionCode", label: "Resolution code" },
-          { key: "resolutionNotes", label: "Resolution notes" },
+          {
+            key: "subject_type",
+            label: "Account type",
+            options: ["CUSTOMER", "MERCHANT", "RIDER", "STAFF"],
+          },
+          { key: "name", label: "Name" },
+          { key: "email", label: "Email", required: false },
+          { key: "phone_e164", label: "Phone (+254…)", required: false },
+          {
+            key: "staff_role",
+            label: "Staff role (staff only)",
+            options: ["support", "ops", "finance", "admin", "super_admin"],
+            required: false,
+          },
+          {
+            key: "vehicle_type",
+            label: "Vehicle type (Rider only)",
+            options: ["BICYCLE", "MOTORBIKE", "CAR"],
+            required: false,
+          },
+          {
+            key: "merchant_legal_name",
+            label: "Merchant legal name (merchant only)",
+            required: false,
+          },
+          {
+            key: "merchant_display_name",
+            label: "Merchant trading name (merchant only)",
+            required: false,
+          },
+          { key: "reason", label: "Governance reason" },
         ],
-        when: (r) => !["RESOLVED", "CLOSED"].includes(r.status),
       },
     ],
   },
