@@ -25,6 +25,7 @@ import { paymentService } from "../payment/payment.service";
 import { orderRepository } from "../order/order.repository";
 import { orderEventBroker } from "../realtime/event-broker";
 import { mediaService } from "../media/media.service";
+import { merchantRepository } from "../merchant/merchant.repository";
 
 export interface SupportViewer {
   id: string;
@@ -58,9 +59,13 @@ export class SupportService {
       const order = await orderRepository.findById(params.order_id);
       if (order) {
         if (!params.customer_id) params.customer_id = order.customer_id;
-        if (!params.merchant_id)
-          params.merchant_id =
-            (order as any).merchant_id || (order as any).branch_id;
+        if (!params.merchant_id) {
+          params.merchant_id = (order as any).merchant_id || null;
+          if (!params.merchant_id && (order as any).branch_id) {
+            const branch = await merchantRepository.findBranchById((order as any).branch_id);
+            params.merchant_id = branch?.merchant_id || null;
+          }
+        }
       }
     }
 
@@ -86,8 +91,10 @@ export class SupportService {
       author_user_id: params.creator.id,
       author_role: params.creator.role,
       author_name: params.creator.name,
-      visibility: "CUSTOMER_VISIBLE",
+      visibility: "ALL_PARTICIPANTS",
       body: params.description,
+      message_type: "MESSAGE",
+      target_party: null,
       created_at: new Date().toISOString(),
     });
 
