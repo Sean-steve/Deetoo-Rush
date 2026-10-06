@@ -3,11 +3,14 @@ import { useAuth } from "../../../../packages/auth/src/react";
 import {
   Button,
   Card,
+  DataTable,
+  Drawer,
   EmptyState,
   ErrorState,
   FormField,
   Input,
   Modal,
+  SearchInput,
   Price,
   Select,
 } from "../../../../packages/ui/src/index";
@@ -214,6 +217,7 @@ export function ResourceTable({ config }: { config: TableConfig }) {
     <>
       <PageHeading
         title={config.title}
+        density="dense"
         action={
           <Button
             variant="outline"
@@ -251,80 +255,90 @@ export function ResourceTable({ config }: { config: TableConfig }) {
           }}
           className="flex gap-3 mb-4"
         >
-          <Input
+          <SearchInput
             aria-label={`Search ${config.title}`}
             placeholder={`Search ${config.title.toLowerCase()}`}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
+            onClear={() => {
+              setSearch("");
+              setQuery("");
+              setPage(1);
+            }}
           />
           <Button type="submit">Search</Button>
         </form>
       )}
       <ResourceState resource={resource}>
-        <div className="data-table-wrap">
-          <table className="data-table">
-            <thead>
-              <tr>
-                {config.columns.map((c) => (
-                  <th key={c.key}>{c.label}</th>
-                ))}
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {list.map((row, i) => (
-                <tr key={row.id || i}>
-                  {config.columns.map((c) => (
-                    <td key={c.key}>
-                      {c.money && typeof row[c.key] === "number" ? (
-                        <Price minor={row[c.key]} />
-                      ) : c.key.includes("status") ? (
-                        <StatusBadge status={row[c.key]} />
-                      ) : (
-                        String(row[c.key] ?? "—")
-                      )}
-                    </td>
-                  ))}
-                  <td>
-                    <div className="flex flex-wrap gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setDetailRow(row)}
-                      >
-                        Details
-                      </Button>
-                      {config.actions
-                        ?.filter((a) => !a.roles || a.roles.some((role) => hasRole(role)))
-                        .filter((a) => !a.when || a.when(row))
-                        .map((action) => (
-                          <Button
-                            key={action.label}
-                            variant="outline"
-                            size="sm"
-                            disabled={busy || Boolean(resource.error)}
-                            onClick={() => {
-                              setTarget({ row, action });
-                              setValues({});
-                              setError(null);
-                            }}
-                          >
-                            {action.label}
-                          </Button>
-                        ))}
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          {!resource.loading && !resource.error && !list.length && (
+        <DataTable<any>
+          density="dense"
+          rows={list}
+          rowKey={(row) =>
+            String(
+              row.id ||
+                row.order_number ||
+                row.reference_id ||
+                list.indexOf(row),
+            )
+          }
+          empty={
             <EmptyState
               title="No records"
               description="No records match this view."
             />
-          )}
-        </div>
+          }
+          columns={[
+            ...config.columns.map((column) => ({
+              key: column.key,
+              label: column.label,
+              render: (row: any) =>
+                column.money && typeof row[column.key] === "number" ? (
+                  <Price minor={row[column.key]} />
+                ) : column.key.includes("status") ? (
+                  <StatusBadge status={row[column.key]} />
+                ) : (
+                  String(row[column.key] ?? "—")
+                ),
+            })),
+            {
+              key: "__actions",
+              label: "Actions",
+              render: (row: any) => (
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setDetailRow(row)}
+                  >
+                    Details
+                  </Button>
+                  {config.actions
+                    ?.filter(
+                      (action) =>
+                        !action.roles ||
+                        action.roles.some((role) => hasRole(role)),
+                    )
+                    .filter((action) => !action.when || action.when(row))
+                    .map((action) => (
+                      <Button
+                        key={action.label}
+                        variant="outline"
+                        size="sm"
+                        disabled={busy || Boolean(resource.error)}
+                        onClick={() => {
+                          setTarget({ row, action });
+                          setValues({});
+                          setError(null);
+                        }}
+                      >
+                        {action.label}
+                      </Button>
+                    ))}
+                </div>
+              ),
+            },
+          ]}
+        />
         {config.pageable && (
           <div className="flex justify-between items-center mt-4">
             <Button
@@ -413,23 +427,35 @@ export function ResourceTable({ config }: { config: TableConfig }) {
           </form>
         )}
       </Modal>
-      <Modal
+      <Drawer
         isOpen={Boolean(detailRow)}
         onClose={() => setDetailRow(null)}
         title="Record details"
-        size="xl"
+        description={
+          detailRow
+            ? String(
+                detailRow.order_number ||
+                  detailRow.name ||
+                  detailRow.reference_id ||
+                  detailRow.id ||
+                  "Selected record",
+              )
+            : undefined
+        }
+        side="right"
+        size="lg"
       >
         {config.detail ? (
           <>
             <RecordDetails value={detailRow} />
-            <ResourceState resource={details}>
+            <ResourceState resource={details} compact>
               {details.data && <RecordDetails value={details.data} />}
             </ResourceState>
           </>
         ) : (
           <RecordDetails value={detailRow} />
         )}
-      </Modal>
+      </Drawer>
     </>
   );
 }
