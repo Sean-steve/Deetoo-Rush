@@ -1,6 +1,13 @@
 import React, { useState } from "react";
 import { useAuth } from "../../../../packages/auth/src/react";
-import { Button, Card, ErrorState, FormField, Input } from "../../../../packages/ui/src/index";
+import {
+  Button,
+  Card,
+  ErrorState,
+  FormField,
+  Input,
+  InlineBanner,
+} from "../../../../packages/ui/src/index";
 import {
   MetricCard,
   PageHeading,
@@ -66,11 +73,7 @@ export function RiderWalletPanel() {
         }
       />
       {error && <ErrorState message={error} />}
-      {message && (
-        <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-900">
-          {message}
-        </div>
-      )}
+      {message && <InlineBanner kind="success">{message}</InlineBanner>}
       <ResourceState resource={wallet}>
         {wallet.data && (
           <>
@@ -104,14 +107,17 @@ export function RiderWalletPanel() {
                 </div>
                 <StatusBadge status={wallet.data.cash_restricted ? "RESTRICTED" : "CLEAR"} />
               </div>
-              <div className="mt-4 rounded-xl border border-slate-100 p-3 text-sm">
-                <strong>
-                  {wallet.data.ledger_reconciled ? "Wallet reconciles to the ledger" : "Wallet reconciliation requires review"}
-                </strong>
-                <p className="mt-1 text-slate-500">
-                  Difference: {money(wallet.data.reconciliation_difference_minor)}.
-                </p>
-              </div>
+              <InlineBanner
+                className="mt-4"
+                kind={wallet.data.ledger_reconciled ? "success" : "warning"}
+                title={
+                  wallet.data.ledger_reconciled
+                    ? "Wallet reconciles to the ledger"
+                    : "Wallet reconciliation requires review"
+                }
+              >
+                Difference: {money(wallet.data.reconciliation_difference_minor)}.
+              </InlineBanner>
 
               {wallet.data.cash_owed_minor > 0 && (
                 <form onSubmit={settle} className="mt-5 max-w-md space-y-3">
