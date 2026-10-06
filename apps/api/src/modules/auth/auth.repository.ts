@@ -373,6 +373,97 @@ export class AuthRepository {
     return record;
   }
 
+  public async updateUserIdentity(
+    userId: string,
+    updates: { email?: string | null; phone_e164?: string | null },
+  ): Promise<UserRecord | null> {
+    const existing = await this.findUserById(userId);
+    if (!existing) return null;
+    const now = new Date().toISOString();
+    const email =
+      updates.email !== undefined
+        ? updates.email
+          ? updates.email.toLowerCase().trim()
+          : null
+        : existing.email;
+    const phone =
+      updates.phone_e164 !== undefined ? updates.phone_e164 : existing.phone_e164;
+
+    const client = await this.getClient();
+    if (client) {
+      try {
+        await client.query(
+          `UPDATE users
+           SET email=$1, phone_e164=$2, updated_at=$3
+           WHERE id=$4`,
+          [email, phone, now, userId],
+        );
+      } finally {
+        client.release();
+      }
+    }
+
+    const updated: UserRecord = {
+      ...existing,
+      email,
+      phone_e164: phone,
+      updated_at: now,
+    };
+    ephemeralStore.users.set(userId, updated);
+    return updated;
+  }
+
+  public async deactivateUser(
+    userId: string,
+    reason: string,
+    anonymize = false,
+  ): Promise<UserRecord | null> {
+    const existing = await this.findUserById(userId);
+    if (!existing) return null;
+    const now = new Date().toISOString();
+    const anonymousEmail = anonymize ? `deleted+${userId}@deetoo.invalid` : existing.email;
+    const anonymousPhone = anonymize ? null : existing.phone_e164;
+
+    const client = await this.getClient();
+    if (client) {
+      try {
+        await client.query(
+          `UPDATE users
+           SET status=$1,
+               email=$2,
+               phone_e164=$3,
+               deactivated_at=$4,
+               deactivation_reason=$5,
+               anonymized_at=$6,
+               updated_at=$4
+           WHERE id=$7`,
+          [
+            UserStatus.DISABLED,
+            anonymousEmail,
+            anonymousPhone,
+            now,
+            reason,
+            anonymize ? now : null,
+            userId,
+          ],
+        );
+      } finally {
+        client.release();
+      }
+    }
+
+    const updated: UserRecord = {
+      ...existing,
+      status: UserStatus.DISABLED,
+      email: anonymousEmail,
+      phone_e164: anonymousPhone,
+      updated_at: now,
+    };
+    ephemeralStore.users.set(userId, updated);
+    await this.revokeAllUserSessions(userId);
+    return updated;
+  }
+
   public async updateUserStatus(userId: string, status: UserStatus): Promise<void> {
     const now = new Date().toISOString();
     const client = await this.getClient();
