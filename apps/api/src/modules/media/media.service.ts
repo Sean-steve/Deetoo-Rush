@@ -15,7 +15,14 @@ const CONTENT_TYPES: Record<string, string[]> = {
   DELIVERY_INCIDENT: ['image/jpeg', 'image/png', 'image/webp'],
   RIDER_DOCUMENT: ['image/jpeg', 'image/png', 'application/pdf'],
   MERCHANT_IMAGE: ['image/jpeg', 'image/png', 'image/webp'],
-  SUPPORT_ATTACHMENT: ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'],
+  SUPPORT_ATTACHMENT: [
+    'image/jpeg',
+    'image/png',
+    'image/webp',
+    'application/pdf',
+    'video/mp4',
+    'video/quicktime',
+  ],
 };
 const DEFAULT_MAX_BYTES = 10 * 1024 * 1024;
 
