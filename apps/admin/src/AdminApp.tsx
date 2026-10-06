@@ -526,7 +526,9 @@ function AdminAppInner() {
         }
       >
         <AuthenticatorPanel />
-        {selectedView === "command" && <CommandCenter />}
+        {selectedView === "command" && (
+          <CommandCenter onNavigate={(view) => setActiveTab(view)} />
+        )}
         {selectedView === "support" && <SupportCaseConsole />}
         {selectedView === "governance" && <IdentityGovernance />}
         {selectedView === "geography" && <GeographyControl />}
