@@ -9,6 +9,7 @@ import { CustomerJourney } from "./components/CustomerJourney";
 import {
   errorMessage,
   Navigation,
+  NotificationInbox,
   useResource,
 } from "../../../packages/ui/src/workflows";
 import React, { useState, useEffect, useCallback, useRef } from "react";
@@ -49,6 +50,7 @@ import {
   SlidersHorizontal,
   Compass,
   X,
+  Bell,
 } from "lucide-react";
 
 import {
@@ -65,13 +67,14 @@ import { CustomerProfileManager } from "./components/CustomerProfileManager";
 import { RestaurantCard } from "./components/RestaurantCard";
 import { getBrowserCurrentLocation } from "../../../packages/ui-web/src/geolocation";
 
-type CustomerTab = "discovery" | "cart" | "orders" | "profile" | "security" | "support";
+type CustomerTab = "discovery" | "cart" | "orders" | "profile" | "security" | "notifications" | "support";
 const customerTabPath:Record<CustomerTab,string>={
   discovery:"/customer",
   cart:"/customer/cart",
   orders:"/customer/orders",
   profile:"/customer/profile",
   security:"/customer/security",
+  notifications:"/customer/notifications",
   support:"/customer/support",
 };
 function customerTabFromPath():CustomerTab{
@@ -80,6 +83,7 @@ function customerTabFromPath():CustomerTab{
   if(path.endsWith("/orders"))return "orders";
   if(path.endsWith("/profile"))return "profile";
   if(path.endsWith("/security"))return "security";
+  if(path.endsWith("/notifications"))return "notifications";
   if(path.endsWith("/support"))return "support";
   return "discovery";
 }
@@ -627,6 +631,7 @@ function CustomerAppInner() {
                 ? [
                     { id: "profile", label: "Profile & addresses", icon: <User size={15}/> },
                     { id: "security", label: "Security", icon: <ShieldCheck size={15}/> },
+                    { id: "notifications", label: "Updates", icon: <Bell size={15}/> },
                     { id: "support", label: "Support", icon: <Mail size={15}/> },
                   ]
                 : []),
@@ -886,6 +891,7 @@ function CustomerAppInner() {
               />
             ))}
 
+          {activeTab === "notifications" && isAuthenticated && <NotificationInbox />}
           {activeTab === "support" && isAuthenticated && <AccountSupport />}
           {/* TAB 3: Customer Profile & Addresses (Sprint 5) */}
           {activeTab === "profile" && isAuthenticated && (
@@ -1012,6 +1018,7 @@ function CustomerAppInner() {
               ...(isAuthenticated
                 ? [
                     { id: "profile", label: "Account", icon: <User size={18}/> },
+                    { id: "notifications", label: "Updates", icon: <Bell size={18}/> },
                     { id: "support", label: "Help", icon: <Mail size={18}/> },
                   ]
                 : []),
