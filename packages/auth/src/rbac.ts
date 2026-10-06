@@ -34,6 +34,15 @@ export const PERMISSIONS = {
   SETTLEMENT_MANAGE: 'settlement.manage',
   USER_MANAGE: 'user.manage',
   ROLE_MANAGE: 'role.manage',
+  IDENTITY_PROVISION: 'identity.provision',
+  IDENTITY_EDIT: 'identity.edit',
+  IDENTITY_DEACTIVATE: 'identity.deactivate',
+  CUSTOMER_PROFILE_MANAGE: 'customer.profile.manage',
+  MERCHANT_PROFILE_MANAGE: 'merchant.profile.manage',
+  RIDER_PROFILE_MANAGE: 'rider.profile.manage',
+  SUPPORT_CASE_MANAGE: 'support.case.manage',
+  SUPPORT_RESOLUTION_PROPOSE: 'support.resolution.propose',
+  SUPPORT_RESOLUTION_CONFIRM: 'support.resolution.confirm',
 
   // Customer Scopes
   CUSTOMER_READ_OWN: 'customer:read:own',
@@ -182,7 +191,23 @@ export const ROLE_PERMISSIONS_MAP: Record<string, string[]> = {
     PERMISSIONS.OPS_LIVE_MONITOR,
     PERMISSIONS.OPS_DISPATCH_REASSIGN,
   ],
-  [UserRole.ADMIN]: Object.values(PERMISSIONS),
+  [UserRole.ADMIN]: [
+    ...Object.values(PERMISSIONS).filter(
+      (permission) =>
+        ![
+          PERMISSIONS.IDENTITY_PROVISION,
+          PERMISSIONS.IDENTITY_EDIT,
+          PERMISSIONS.IDENTITY_DEACTIVATE,
+          PERMISSIONS.ROLE_MANAGE,
+        ].includes(permission as any),
+    ),
+    PERMISSIONS.CUSTOMER_PROFILE_MANAGE,
+    PERMISSIONS.MERCHANT_PROFILE_MANAGE,
+    PERMISSIONS.RIDER_PROFILE_MANAGE,
+    PERMISSIONS.SUPPORT_CASE_MANAGE,
+    PERMISSIONS.SUPPORT_RESOLUTION_PROPOSE,
+  ],
+  [UserRole.SUPER_ADMIN]: Object.values(PERMISSIONS),
 };
 
 /**
@@ -226,7 +251,10 @@ export function hasRole(
   const canonicalRequired = typeof requiredRole === 'string' ? normalizeRole(requiredRole) : requiredRole;
   return session.roles.some((r) => {
     const canonical = typeof r === 'string' ? normalizeRole(r) : r;
-    return canonical === UserRole.ADMIN || (canonicalRequired && canonical === canonicalRequired);
+    return (
+      canonical === UserRole.SUPER_ADMIN ||
+      (canonicalRequired && canonical === canonicalRequired)
+    );
   });
 }
 
@@ -238,7 +266,7 @@ export function hasPermission(
   permission: string
 ): boolean {
   if (!session || !session.roles) return false;
-  if (hasRole(session, UserRole.ADMIN)) return true;
+  if (hasRole(session, UserRole.SUPER_ADMIN)) return true;
 
   if (session.permissions && session.permissions.includes(permission)) {
     return true;
@@ -253,6 +281,7 @@ export function hasPermission(
  */
 export function isResourceOwner(session: UserSession | undefined, ownerId: string): boolean {
   if (!session) return false;
+  if (hasRole(session, UserRole.SUPER_ADMIN)) return true;
   if (hasRole(session, UserRole.ADMIN)) return true;
   return session.user_id === ownerId || session.customer_id === ownerId;
 }
@@ -262,7 +291,7 @@ export function isResourceOwner(session: UserSession | undefined, ownerId: strin
  */
 export function isMerchantScoped(session: UserSession | undefined, merchantId: string): boolean {
   if (!session) return false;
-  if (hasRole(session, UserRole.ADMIN)) return true;
+  if (hasRole(session, UserRole.SUPER_ADMIN) || hasRole(session, UserRole.ADMIN)) return true;
   return !!session.merchant_ids && session.merchant_ids.includes(merchantId);
 }
 
@@ -271,7 +300,7 @@ export function isMerchantScoped(session: UserSession | undefined, merchantId: s
  */
 export function isBranchScoped(session: UserSession | undefined, branchId: string): boolean {
   if (!session) return false;
-  if (hasRole(session, UserRole.ADMIN)) return true;
+  if (hasRole(session, UserRole.SUPER_ADMIN) || hasRole(session, UserRole.ADMIN)) return true;
   return !!session.branch_ids && session.branch_ids.includes(branchId);
 }
 
@@ -280,7 +309,11 @@ export function isBranchScoped(session: UserSession | undefined, branchId: strin
  */
 export function isAssignedRider(session: UserSession | undefined, riderId: string): boolean {
   if (!session) return false;
-  if (hasRole(session, UserRole.ADMIN) || hasRole(session, UserRole.OPS)) return true;
+  if (
+    hasRole(session, UserRole.SUPER_ADMIN) ||
+    hasRole(session, UserRole.ADMIN) ||
+    hasRole(session, UserRole.OPS)
+  ) return true;
   return session.rider_id === riderId;
 }
 
@@ -300,7 +333,7 @@ export function evaluateAccess(
 ): boolean {
   if (!session) return false;
   if (session.status && session.status !== UserStatus.ACTIVE) return false;
-  if (hasRole(session, UserRole.ADMIN)) return true;
+  if (hasRole(session, UserRole.SUPER_ADMIN)) return true;
 
   // Check permission if specified
   if (options.permission && !hasPermission(session, options.permission)) {
