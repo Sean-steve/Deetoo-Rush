@@ -94,6 +94,26 @@ export const adminViews: Record<string, TableConfig> = {
     detail: (r) => `/admin/merchants/${id(r)}`,
     actions: [
       {
+        label: "Edit merchant",
+        endpoint: (r) => `/admin/merchants/${id(r)}`,
+        method: "PATCH",
+        roles: ["super_admin"],
+        fields: [
+          { key: "legal_name", label: "Legal name", required: false },
+          { key: "display_name", label: "Trading name", required: false },
+          { key: "email", label: "Email", required: false },
+          { key: "phone", label: "Phone", required: false },
+          { key: "description", label: "Description", required: false },
+        ],
+      },
+      {
+        label: "Deactivate merchant",
+        endpoint: (r) => `/admin/governance/merchants/${id(r)}/deactivate`,
+        roles: ["super_admin"],
+        fields: [{ key: "reason", label: "Governance reason" }],
+        when: (r) => r.status !== "DISABLED",
+      },
+      {
         label: "Approve merchant",
         endpoint: (r) => `/admin/merchants/${id(r)}/approve`,
         fields: [note],
@@ -368,6 +388,7 @@ export const adminViews: Record<string, TableConfig> = {
       {
         label: "Provision account",
         endpoint: () => "/admin/governance/provision",
+        roles: ["super_admin"],
         fields: [
           {
             key: "subject_type",
