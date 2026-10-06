@@ -384,6 +384,7 @@ function MerchantAppInner() {
   return (
     <ErrorBoundary fallbackTitle="Merchant operations">
       <OperationsLayout
+        density="compact"
         title="Kitchen operations"
         userName={user?.name || user?.email}
         onLogout={logout}
