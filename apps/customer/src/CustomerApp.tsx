@@ -168,6 +168,24 @@ function CustomerAppInner() {
   const [authSuccessMsg, setAuthSuccessMsg] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Public-site handoff: /customer?auth=login should open the customer login modal.
+  // Consume the one-shot query parameter so refresh/back navigation does not keep
+  // forcing the modal open after the customer has dismissed or completed it.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const authIntent = params.get("auth");
+    if (authIntent === "login" || authIntent === "register") {
+      setAuthModalMode(authIntent);
+      params.delete("auth");
+      const search = params.toString();
+      window.history.replaceState(
+        {},
+        "",
+        `${window.location.pathname}${search ? `?${search}` : ""}${window.location.hash}`,
+      );
+    }
+  }, []);
+
   // Register Form
   const [regName, setRegName] = useState("");
   const [regEmail, setRegEmail] = useState("");
