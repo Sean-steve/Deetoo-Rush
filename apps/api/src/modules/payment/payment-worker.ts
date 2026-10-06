@@ -12,10 +12,20 @@ import { paymentService } from './payment.service';
 import { paymentTransaction, leasePaymentCommand, finishPaymentCommand, enqueuePaymentCommand } from './payment-commands';
 import { lockCommand } from '../cart/quote-binding';
 import { notificationService } from '../operations/notification.service';
+import { logger } from '@deetoo/utils';
 
 /** Network calls occur after the durable lease commits and before result application. */
 export async function processPaymentCommand(paymentId?:string):Promise<boolean> {
   const command=await leasePaymentCommand(paymentId); if(!command)return false;
+  logger.debug('Payment command leased', {
+    service: 'payment-worker',
+    metadata: {
+      commandId: command.id,
+      paymentId: command.payment_id,
+      kind: command.kind,
+      attempts: command.attempts,
+    },
+  });
   try{
     const payment=await paymentRepository.findPaymentById(command.payment_id);
     if(!payment)throw new Error('Payment command references a missing payment');
@@ -37,7 +47,17 @@ export async function processPaymentCommand(paymentId?:string):Promise<boolean> 
           current.checkout_url=result.checkoutUrl||null;current.provider_payment_id=result.providerPaymentId||null;current.provider_reference=result.providerReference||null;
           current.checkout_request_id=result.checkoutRequestId||null;current.merchant_request_id=result.merchantRequestId||null;
           await paymentRepository.updatePayment(current);
-          if(config.localWorkflow && result.success && current.provider_payment_id?.startsWith('local-test:'))await enqueuePaymentCommand('VERIFY',current.id,`local-test-verify:${current.id}`,{});
+          if(config.localWorkflow && result.success && current.provider_payment_id?.startsWith('local-test:')) {
+            await enqueuePaymentCommand('VERIFY',current.id,`local-test-verify:${current.id}`,{});
+            logger.info('Local payment initiation simulated', {
+              service: 'payment-worker',
+              metadata: {
+                commandId: command.id,
+                paymentId: current.id,
+                provider: current.provider,
+              },
+            });
+          }
           await paymentRepository.appendPaymentTimeline({payment_id:current.id,event_type:result.success?'PAYMENT_PENDING':'PAYMENT_INITIATION_FAILED',from_status:PaymentStatus.INITIATED,to_status:current.status,metadata:{command_id:command.id}});
         }
         await finishPaymentCommand(command,'SUCCEEDED');
@@ -48,6 +68,16 @@ export async function processPaymentCommand(paymentId?:string):Promise<boolean> 
       await paymentTransaction(async()=>{
         await paymentService.applyVerifiedOutcome(payment.id,result,command.payload.eventId);
         await finishPaymentCommand(command,result.status==='PENDING'?'PENDING':'SUCCEEDED');
+      });
+      logger.info('Payment verification applied', {
+        service: 'payment-worker',
+        metadata: {
+          commandId: command.id,
+          paymentId: payment.id,
+          provider: payment.provider,
+          verified: result.verified,
+          status: result.status,
+        },
       });
     }else if(command.kind==='VOID'){
       if(payment.captured_minor>0){await paymentTransaction(async()=>{await paymentService.coordinateCancellation(payment.order_id);await finishPaymentCommand(command,'SUCCEEDED');});}
@@ -99,6 +129,19 @@ export async function processPaymentCommand(paymentId?:string):Promise<boolean> 
     // Uncertain operations retain their reservation and stable provider identity.
     const code=error instanceof AppError?error.code:'PROVIDER_OR_STORAGE_UNAVAILABLE';
     const review=['BLOCKED_BY_CONFIGURATION','PROVIDER_OUTCOME_UNKNOWN','PROVIDER_IDEMPOTENCY_WINDOW_EXPIRED','VOID_REQUIRES_RECONCILIATION','PAYMENT_EVIDENCE_MISMATCH','REFUND_APPROVAL_REQUIRED','REAL_PAYMENT_REQUIRES_PROVIDER'].includes(code);
+    logger.error('Payment command failed', {
+      service: 'payment-worker',
+      errorCode: code,
+      error,
+      metadata: {
+        commandId: command.id,
+        paymentId: command.payment_id,
+        kind: command.kind,
+        attempts: command.attempts,
+        nextStatus: review ? 'REVIEW' : 'PENDING',
+        message: error instanceof Error ? error.message : String(error),
+      },
+    });
     await paymentTransaction(()=>finishPaymentCommand(command,review?'REVIEW':'PENDING',code));
   }
   return true;
