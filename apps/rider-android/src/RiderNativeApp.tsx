@@ -43,6 +43,29 @@ function errorMessage(error: unknown): string {
   return value?.error?.message || value?.message || 'Something went wrong';
 }
 
+async function assertRiderApiReachable(apiOrigin: string): Promise<void> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 5_000);
+  try {
+    const response = await fetch(`${apiOrigin}/health`, {
+      headers: { Accept: 'application/json' },
+      signal: controller.signal,
+    });
+    if (!response.ok) {
+      throw new Error(`DeeToo API health check returned HTTP ${response.status}`);
+    }
+  } catch (error: any) {
+    const detail = String(error?.message || '');
+    throw new Error(
+      `Cannot reach DeeToo API at ${apiOrigin}. Open ${apiOrigin}/health in your phone browser. ` +
+      `Make sure the API is listening on 0.0.0.0:3000 and the phone/laptop are on the same Wi-Fi. ` +
+      (detail ? `Network detail: ${detail}` : ''),
+    );
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 function ActionButton({
   label,
   onPress,
@@ -71,14 +94,15 @@ function ActionButton({
 }
 
 export function RiderNativeApp() {
+  const apiOrigin = useMemo(() => riderApiOrigin(), []);
   const session = useMemo(
     () =>
       createRiderAndroidSession({
-        apiBaseUrl: riderApiOrigin(),
+        apiBaseUrl: apiOrigin,
         secureStore: riderSecureStore,
         requestIdFactory: createRiderRequestId,
       }),
-    [],
+    [apiOrigin],
   );
   const client = session.client;
 
@@ -188,6 +212,7 @@ export function RiderNativeApp() {
 
   async function login() {
     await perform(async () => {
+      await assertRiderApiReachable(apiOrigin);
       const authenticated = await session.login(identifier.trim(), password);
       if (!authenticated.roles?.map(String).some((role) => role.toLowerCase() === 'rider')) {
         await session.logout();
@@ -298,6 +323,7 @@ export function RiderNativeApp() {
         <View style={styles.loginCard}>
           <Text style={styles.loginBrand}>DeeToo Rider</Text>
           <Text style={styles.muted}>Sign in with your approved Rider account.</Text>
+          <Text style={styles.muted}>API: {apiOrigin}</Text>
           <TextInput
             autoCapitalize="none"
             value={identifier}
