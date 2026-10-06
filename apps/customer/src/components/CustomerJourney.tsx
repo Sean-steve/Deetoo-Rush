@@ -38,7 +38,6 @@ import { PaymentInitiateSchema } from "@deetoo/validation";
 import {
   Bike,
   CheckCircle2,
-  Clock3,
   MapPin,
   ShieldCheck,
   Store,
