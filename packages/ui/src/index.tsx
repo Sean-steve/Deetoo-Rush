@@ -289,7 +289,7 @@ export const Card: React.FC<React.HTMLAttributes<HTMLDivElement>> = ({
   children,
   ...props
 }) => (
-  <div className={`deetoo-card p-5 ${className}`} {...props}>
+  <div className={`deetoo-card p-5 sm:p-6 ${className}`} {...props}>
     {children}
   </div>
 );
@@ -315,7 +315,7 @@ export const Badge: React.FC<BadgeProps> = ({
 
   return (
     <span
-      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold border ${variantClasses[variant]} ${className}`}
+      className={`deetoo-badge inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold border ${variantClasses[variant]} ${className}`}
     >
       {children}
     </span>
@@ -349,14 +349,14 @@ export const Avatar: React.FC<{
       <img
         src={src}
         alt={name}
-        className={`${sizeClasses[size]} rounded-full object-cover border border-slate-200`}
+        className={`deetoo-avatar ${sizeClasses[size]} rounded-full object-cover border border-slate-200`}
       />
     );
   }
 
   return (
     <div
-      className={`${sizeClasses[size]} rounded-full bg-slate-200 text-slate-700 font-bold flex items-center justify-center select-none border border-slate-300`}
+      className={`deetoo-avatar ${sizeClasses[size]} rounded-full bg-emerald-50 text-emerald-800 font-bold flex items-center justify-center select-none border border-emerald-100`}
     >
       {initials}
     </div>
@@ -408,14 +408,14 @@ export const EmptyState: React.FC<{
   icon?: LucideIcon;
   action?: React.ReactNode;
 }> = ({ title, description, icon: Icon, action }) => (
-  <div className="flex flex-col items-center justify-center p-8 text-center rounded-xl border border-dashed border-slate-300 bg-slate-50/50">
+  <div className="deetoo-empty-state flex flex-col items-center justify-center p-8 sm:p-10 text-center rounded-2xl border border-dashed border-slate-300 bg-slate-50/50">
     {Icon && (
-      <div className="mb-3 rounded-full bg-slate-100 p-3 text-slate-500">
+      <div className="deetoo-empty-state-icon mb-4 rounded-2xl bg-emerald-50 p-3 text-emerald-700">
         <Icon size={24} />
       </div>
     )}
-    <h3 className="text-sm font-semibold text-slate-800">{title}</h3>
-    <p className="mt-1 text-xs text-slate-500 max-w-sm">{description}</p>
+    <h3 className="text-base font-bold tracking-tight text-slate-900">{title}</h3>
+    <p className="mt-1.5 text-sm leading-6 text-slate-500 max-w-sm">{description}</p>
     {action && <div className="mt-4">{action}</div>}
   </div>
 );
@@ -427,7 +427,7 @@ export const ErrorState: React.FC<{
 }> = ({ title = "Something went wrong", message, onRetry }) => (
   <div
     role="alert"
-    className="flex flex-col items-center justify-center p-6 text-center rounded-xl border border-rose-200 bg-rose-50 text-rose-900"
+    className="deetoo-error-state flex flex-col items-center justify-center p-6 sm:p-8 text-center rounded-2xl border border-rose-200 bg-rose-50 text-rose-900"
   >
     <AlertCircle className="text-rose-500 mb-2" size={28} />
     <h3 className="text-sm font-semibold">{title}</h3>
@@ -495,17 +495,17 @@ export const Modal: React.FC<ModalProps> = ({
         event.preventDefault();
         onClose();
       }}
-      className={`m-auto w-[calc(100%-2rem)] max-h-[calc(100dvh-2rem)] overflow-y-auto rounded-3xl bg-white p-6 shadow-xl backdrop:bg-slate-900/50 ${sizeClasses[size]} ${className}`}
+      className={`deetoo-modal m-auto w-[calc(100%-2rem)] max-h-[calc(100dvh-2rem)] overflow-y-auto rounded-3xl bg-white p-6 shadow-xl ${sizeClasses[size]} ${className}`}
     >
-      <div className="flex items-center justify-between gap-4 pb-4 border-b border-slate-100">
-        <h3 id={titleId} className="text-base font-bold text-slate-900">
+      <div className="deetoo-modal-header flex items-center justify-between gap-4">
+        <h3 id={titleId} className="text-lg font-extrabold tracking-tight text-slate-900">
           {title}
         </h3>
         <button
           type="button"
           aria-label={`Close ${title}`}
           onClick={onClose}
-          className="min-h-11 min-w-11 rounded-full flex items-center justify-center text-slate-600 hover:bg-slate-100"
+          className="min-h-11 min-w-11 rounded-2xl flex items-center justify-center text-slate-500 hover:bg-slate-100 hover:text-slate-900 transition-colors"
         >
           <X size={18} aria-hidden="true" />
         </button>
