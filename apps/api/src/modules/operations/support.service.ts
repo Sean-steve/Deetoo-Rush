@@ -156,7 +156,14 @@ export class SupportService {
       viewer.isStaff,
       participantScope,
     );
-    const attachments = await operationsRepository.getSupportCaseAttachments(caseId);
+    const allAttachments = await operationsRepository.getSupportCaseAttachments(caseId);
+    const visibleNoteIds = new Set(notes.map((note) => note.id));
+    const attachments = viewer.isStaff
+      ? allAttachments
+      : allAttachments.filter(
+          (attachment: any) =>
+            !attachment.note_id || visibleNoteIds.has(String(attachment.note_id)),
+        );
     const confirmations = await operationsRepository.getSupportConfirmations(caseId);
 
     return {
@@ -328,6 +335,26 @@ export class SupportService {
     status: SupportCaseStatus,
     actor: SupportViewer,
   ): Promise<SupportCase> {
+    if (!actor.isStaff) {
+      throw new AppError(403, "STAFF_REQUIRED", "Only support staff can change operational case state");
+    }
+    const operationalStatuses: SupportCaseStatus[] = [
+      "OPEN",
+      "ASSIGNED",
+      "IN_PROGRESS",
+      "IN_CONVERSATION",
+      "WAITING_CUSTOMER",
+      "WAITING_MERCHANT",
+      "WAITING_RIDER",
+      "WAITING_INTERNAL",
+    ];
+    if (!operationalStatuses.includes(status)) {
+      throw new AppError(
+        409,
+        "SUPPORT_STATUS_REQUIRES_WORKFLOW",
+        "Resolution, dispute and closure states must use the resolution-confirmation workflow",
+      );
+    }
     const updated = await operationsRepository.updateSupportCase(caseId, {
       status,
     });
@@ -449,6 +476,21 @@ export class SupportService {
     return (await operationsRepository.updateSupportCase(caseId, {
       status: "PARTY_CONFIRMATION",
     }))!;
+  }
+
+  public async getAttachmentReadUrl(
+    caseId: string,
+    mediaId: string,
+    viewer: SupportViewer,
+  ): Promise<string> {
+    const detail = await this.getCaseById(caseId, viewer);
+    const linked = detail.attachments.some(
+      (attachment: any) => String(attachment.media_object_id) === mediaId,
+    );
+    if (!linked) {
+      throw new AppError(404, "CASE_ATTACHMENT_NOT_FOUND", "Evidence is not visible in this support case");
+    }
+    return mediaService.getReadUrl(mediaId, viewer.id, ["SUPPORT_ATTACHMENT"]);
   }
 
   public async forceCloseCase(
