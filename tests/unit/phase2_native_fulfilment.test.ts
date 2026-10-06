@@ -118,6 +118,8 @@ test('Rider earnings are decomposed into base, distance, waiting and bonuses', (
     distanceMinor: 9000,
     waitingMinor: 2500,
     bonusMinor: 1000,
+    zonePeakBonusMinor: 0,
+    stackedOrderMinor: 0,
     totalMinor: 27500,
   });
 });
