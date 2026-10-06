@@ -531,6 +531,7 @@ export enum UserRole {
   FINANCE = 'finance',
   OPS = 'ops',
   ADMIN = 'admin',
+  SUPER_ADMIN = 'super_admin',
 }
 
 export enum ResourceScope {
@@ -2494,11 +2495,16 @@ export interface SlaEvaluationResult {
 
 export type SupportCaseStatus =
   | 'OPEN'
+  | 'ASSIGNED'
   | 'IN_PROGRESS'
+  | 'IN_CONVERSATION'
   | 'WAITING_CUSTOMER'
   | 'WAITING_MERCHANT'
   | 'WAITING_RIDER'
   | 'WAITING_INTERNAL'
+  | 'RESOLUTION_PROPOSED'
+  | 'PARTY_CONFIRMATION'
+  | 'DISPUTED'
   | 'RESOLVED'
   | 'CLOSED';
 
@@ -2517,7 +2523,13 @@ export type SupportCaseCategory =
   | 'ACCOUNT_ISSUE'
   | 'OTHER';
 
-export type SupportNoteVisibility = 'INTERNAL' | 'CUSTOMER_VISIBLE';
+export type SupportNoteVisibility =
+  | 'INTERNAL'
+  | 'CUSTOMER_VISIBLE'
+  | 'ALL_PARTICIPANTS'
+  | 'CUSTOMER_ONLY'
+  | 'MERCHANT_ONLY'
+  | 'RIDER_ONLY';
 
 export type SupportResolutionCode =
   | 'REFUND_ISSUED'
@@ -2552,7 +2564,11 @@ export interface SupportCase {
   created_at: string;
   updated_at: string;
   resolved_at?: string | null;
+  resolution_proposed_at?: string | null;
+  disputed_at?: string | null;
+  closed_at?: string | null;
   notes?: SupportCaseNote[];
+  confirmations?: SupportCaseConfirmation[];
 }
 
 export interface SupportCaseNote {
@@ -2563,7 +2579,32 @@ export interface SupportCaseNote {
   author_name?: string;
   visibility: SupportNoteVisibility;
   body: string;
+  message_type?: 'MESSAGE' | 'SYSTEM' | 'RESOLUTION';
+  target_party?: 'CUSTOMER' | 'MERCHANT' | 'RIDER' | null;
+  attachments?: SupportCaseAttachment[];
   created_at: string;
+}
+
+export interface SupportCaseAttachment {
+  id: string;
+  case_id: string;
+  note_id?: string | null;
+  media_object_id: string;
+  uploaded_by: string;
+  created_at: string;
+}
+
+export interface SupportCaseConfirmation {
+  id: string;
+  case_id: string;
+  party_type: 'CUSTOMER' | 'MERCHANT' | 'RIDER';
+  party_id: string;
+  decision: 'PENDING' | 'ACCEPTED' | 'DISPUTED';
+  comment?: string | null;
+  decided_by?: string | null;
+  decided_at?: string | null;
+  created_at: string;
+  updated_at: string;
 }
 
 export type NotificationChannel = 'IN_APP' | 'PUSH' | 'SMS' | 'EMAIL';

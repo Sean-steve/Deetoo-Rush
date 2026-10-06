@@ -48,6 +48,7 @@ export class OperationsRepository {
   public incidentTimeline: Map<string, IncidentTimelineEntry[]> = new Map(); // incident_id -> entries
   public supportCases: Map<string, SupportCase> = new Map();
   public supportCaseNotes: Map<string, SupportCaseNote[]> = new Map(); // case_id -> notes
+  public supportCaseConfirmations: Map<string, any[]> = new Map(); // case_id -> participant decisions
   public notifications: Map<string, NotificationRecord> = new Map();
   public deadLetterJobs: Map<string, DeadLetterJob> = new Map();
   public riskSignals: Map<string, RiskSignal> = new Map();
@@ -86,6 +87,7 @@ export class OperationsRepository {
     this.incidentTimeline.clear();
     this.supportCases.clear();
     this.supportCaseNotes.clear();
+    this.supportCaseConfirmations.clear();
     this.notifications.clear();
     this.deadLetterJobs.clear();
     this.riskSignals.clear();
@@ -632,8 +634,9 @@ export class OperationsRepository {
         `UPDATE support_cases SET
           status = $1, priority = $2, resolution_code = $3, resolution_notes = $4,
           assigned_agent_id = $5, assigned_agent_name = $6, refund_id = $7,
-          resolved_at = $8, updated_at = $9
-        WHERE id = $10`,
+          resolved_at = $8, resolution_proposed_at = $9, disputed_at = $10,
+          closed_at = $11, updated_at = $12
+        WHERE id = $13`,
         [
           updated.status,
           updated.priority,
@@ -660,8 +663,9 @@ export class OperationsRepository {
     try {
       await pool.query(
         `INSERT INTO support_case_notes (
-          id, case_id, author_user_id, author_role, author_name, visibility, body, created_at
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+          id, case_id, author_user_id, author_role, author_name, visibility, body,
+          message_type, target_party, created_at
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
         [
           note.id,
           note.case_id,
@@ -670,6 +674,8 @@ export class OperationsRepository {
           note.author_name || null,
           note.visibility,
           note.body,
+          note.message_type || 'MESSAGE',
+          note.target_party || null,
           note.created_at,
         ]
       );
@@ -684,14 +690,24 @@ export class OperationsRepository {
     return note;
   }
 
-  public async getSupportCaseNotes(caseId: string, isInternalViewer: boolean): Promise<SupportCaseNote[]> {
+  public async getSupportCaseNotes(
+    caseId: string,
+    isInternalViewer: boolean,
+    participantScope?: 'CUSTOMER' | 'MERCHANT' | 'RIDER' | null,
+  ): Promise<SupportCaseNote[]> {
     try {
       let query = `SELECT * FROM support_case_notes WHERE case_id = $1`;
+      const params: any[] = [caseId];
       if (!isInternalViewer) {
-        query += ` AND visibility = 'CUSTOMER_VISIBLE'`;
+        const allowed = ['ALL_PARTICIPANTS'];
+        if (participantScope === 'CUSTOMER') allowed.push('CUSTOMER_VISIBLE','CUSTOMER_ONLY');
+        if (participantScope === 'MERCHANT') allowed.push('MERCHANT_ONLY');
+        if (participantScope === 'RIDER') allowed.push('RIDER_ONLY');
+        query += ` AND visibility = ANY($2::varchar[])`;
+        params.push(allowed);
       }
       query += ` ORDER BY created_at ASC`;
-      const res = await pool.query(query, [caseId]);
+      const res = await pool.query(query, params);
       if (res.rows && res.rows.length > 0) {
         return res.rows.map((r: any) => ({
           id: r.id,
@@ -701,6 +717,8 @@ export class OperationsRepository {
           author_name: r.author_name,
           visibility: r.visibility,
           body: r.body,
+          message_type: r.message_type || 'MESSAGE',
+          target_party: r.target_party || null,
           created_at: new Date(r.created_at).toISOString(),
         }));
       }
@@ -710,10 +728,16 @@ export class OperationsRepository {
     }
 
     const notes = config.storage.mode === "memory" ? this.supportCaseNotes.get(caseId) || [] : [];
-    if (isInternalViewer) {
-      return notes;
-    }
-    return notes.filter((n) => n.visibility === 'CUSTOMER_VISIBLE');
+    if (isInternalViewer) return notes;
+    return notes.filter((n) => {
+      if (n.visibility === 'ALL_PARTICIPANTS') return true;
+      if (participantScope === 'CUSTOMER') {
+        return ['CUSTOMER_VISIBLE','CUSTOMER_ONLY'].includes(n.visibility);
+      }
+      if (participantScope === 'MERCHANT') return n.visibility === 'MERCHANT_ONLY';
+      if (participantScope === 'RIDER') return n.visibility === 'RIDER_ONLY';
+      return false;
+    });
   }
 
   private mapSupportCase(row: any): SupportCase {
@@ -739,7 +763,143 @@ export class OperationsRepository {
       created_at: new Date(row.created_at).toISOString(),
       updated_at: new Date(row.updated_at).toISOString(),
       resolved_at: row.resolved_at ? new Date(row.resolved_at).toISOString() : null,
+      resolution_proposed_at: row.resolution_proposed_at ? new Date(row.resolution_proposed_at).toISOString() : null,
+      disputed_at: row.disputed_at ? new Date(row.disputed_at).toISOString() : null,
+      closed_at: row.closed_at ? new Date(row.closed_at).toISOString() : null,
     };
+  }
+
+
+  public async addSupportCaseAttachment(input: {
+    id: string;
+    case_id: string;
+    note_id?: string | null;
+    media_object_id: string;
+    uploaded_by: string;
+    created_at: string;
+  }): Promise<any> {
+    if (config.storage.mode !== 'postgres') return input;
+    const res = await pool.query(
+      `INSERT INTO support_case_attachments
+        (id,case_id,note_id,media_object_id,uploaded_by,created_at)
+       VALUES($1,$2,$3,$4,$5,$6)
+       ON CONFLICT(case_id,media_object_id) DO UPDATE SET note_id=EXCLUDED.note_id
+       RETURNING *`,
+      [input.id,input.case_id,input.note_id || null,input.media_object_id,input.uploaded_by,input.created_at],
+    );
+    return res.rows[0];
+  }
+
+  public async getSupportCaseAttachments(caseId: string): Promise<any[]> {
+    if (config.storage.mode !== 'postgres') return [];
+    const res = await pool.query(
+      `SELECT a.*, m.content_type, m.byte_size, m.status AS media_status
+       FROM support_case_attachments a
+       JOIN media_objects m ON m.id=a.media_object_id
+       WHERE a.case_id=$1
+       ORDER BY a.created_at ASC`,
+      [caseId],
+    );
+    return res.rows;
+  }
+
+  public async resetSupportConfirmations(
+    caseId: string,
+    participants: Array<{party_type:'CUSTOMER'|'MERCHANT'|'RIDER'; party_id:string}>,
+  ): Promise<any[]> {
+    if (config.storage.mode !== 'postgres') {
+      allowMemoryAdapter();
+      const now = new Date().toISOString();
+      const confirmations = participants.map((participant) => ({
+        id: durableEntityId(),
+        case_id: caseId,
+        party_type: participant.party_type,
+        party_id: participant.party_id,
+        decision: 'PENDING',
+        comment: null,
+        decided_by: null,
+        decided_at: null,
+        created_at: now,
+        updated_at: now,
+      }));
+      this.supportCaseConfirmations.set(caseId, confirmations);
+      return confirmations.map((item) => ({ ...item }));
+    }
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+      await client.query('DELETE FROM support_case_confirmations WHERE case_id=$1',[caseId]);
+      for (const participant of participants) {
+        await client.query(
+          `INSERT INTO support_case_confirmations
+            (id,case_id,party_type,party_id,decision,created_at,updated_at)
+           VALUES($1,$2,$3,$4,'PENDING',NOW(),NOW())`,
+          [durableEntityId(),caseId,participant.party_type,participant.party_id],
+        );
+      }
+      await client.query('COMMIT');
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      client.release();
+    }
+    return this.getSupportConfirmations(caseId);
+  }
+
+  public async getSupportConfirmations(caseId: string): Promise<any[]> {
+    if (config.storage.mode !== 'postgres') {
+      allowMemoryAdapter();
+      return (this.supportCaseConfirmations.get(caseId) || []).map((item) => ({ ...item }));
+    }
+    const res = await pool.query(
+      'SELECT * FROM support_case_confirmations WHERE case_id=$1 ORDER BY party_type',
+      [caseId],
+    );
+    return res.rows.map((row:any)=>({
+      ...row,
+      decided_at: row.decided_at ? new Date(row.decided_at).toISOString() : null,
+      created_at: new Date(row.created_at).toISOString(),
+      updated_at: new Date(row.updated_at).toISOString(),
+    }));
+  }
+
+  public async setSupportConfirmation(input: {
+    caseId:string;
+    partyType:'CUSTOMER'|'MERCHANT'|'RIDER';
+    partyId:string;
+    decision:'ACCEPTED'|'DISPUTED';
+    comment?:string;
+    decidedBy:string;
+  }): Promise<any> {
+    if (config.storage.mode !== 'postgres') {
+      allowMemoryAdapter();
+      const confirmations = this.supportCaseConfirmations.get(input.caseId) || [];
+      const index = confirmations.findIndex(
+        (item) => item.party_type === input.partyType && item.party_id === input.partyId,
+      );
+      if (index < 0) return null;
+      const now = new Date().toISOString();
+      const updated = {
+        ...confirmations[index],
+        decision: input.decision,
+        comment: input.comment || null,
+        decided_by: input.decidedBy,
+        decided_at: now,
+        updated_at: now,
+      };
+      confirmations[index] = updated;
+      this.supportCaseConfirmations.set(input.caseId, confirmations);
+      return { ...updated };
+    }
+    const res = await pool.query(
+      `UPDATE support_case_confirmations
+       SET decision=$1,comment=$2,decided_by=$3,decided_at=NOW(),updated_at=NOW()
+       WHERE case_id=$4 AND party_type=$5 AND party_id=$6
+       RETURNING *`,
+      [input.decision,input.comment || null,input.decidedBy,input.caseId,input.partyType,input.partyId],
+    );
+    return res.rows[0] || null;
   }
 
   // ============================================================================

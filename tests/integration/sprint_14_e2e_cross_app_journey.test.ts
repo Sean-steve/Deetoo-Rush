@@ -322,13 +322,41 @@ test("--- SPRINT 14: COMPLETE 4-APP CROSS-JOURNEY (CUSTOMER, MERCHANT, RIDER, AD
   assert.ok(supportCase.id);
   assert.equal(supportCase.order_id, order.id);
 
-  const resolvedCase = await supportService.resolveCase(
+  const proposedCase = await supportService.resolveCase(
     supportCase.id,
     "RESOLVED_BY_AGENT",
     "Sent electronic invoice with KRA PIN to customer email",
     { id: "usr_admin", name: "Ops Chief", roles: ["admin"], isStaff: true },
   );
-  assert.equal(resolvedCase.status, "RESOLVED");
+  assert.equal(proposedCase.status, "PARTY_CONFIRMATION");
+
+  const customerConfirmed = await supportService.respondToResolution(
+    supportCase.id,
+    {
+      id: customerId,
+      name: "Amina Wangari",
+      roles: ["customer"],
+      isStaff: false,
+      merchant_ids: [],
+    },
+    "ACCEPTED",
+    "The electronic invoice resolves my request.",
+  );
+  assert.equal(customerConfirmed.status, "PARTY_CONFIRMATION");
+
+  const resolvedCase = await supportService.respondToResolution(
+    supportCase.id,
+    {
+      id: "merchant_owner_phase14",
+      name: "Merchant Owner",
+      roles: ["merchant_owner"],
+      isStaff: false,
+      merchant_ids: [merchantId],
+    },
+    "ACCEPTED",
+    "We confirm the invoice was supplied.",
+  );
+  assert.equal(resolvedCase.status, "CLOSED");
 });
 
 after(closeTestResources);

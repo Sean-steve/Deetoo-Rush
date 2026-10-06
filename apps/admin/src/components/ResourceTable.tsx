@@ -34,6 +34,7 @@ export interface RowAction {
   body?: Record<string, unknown>;
   when?: (row: any) => boolean;
   schema?: { safeParse: (value: unknown) => any };
+  roles?: string[];
 }
 export interface TableConfig {
   title: string;
@@ -88,7 +89,7 @@ export function RecordDetails({ value }: { value: any }) {
   return <span>{String(value)}</span>;
 }
 export function ResourceTable({ config }: { config: TableConfig }) {
-  const { apiClient } = useAuth();
+  const { apiClient, hasRole } = useAuth();
   const [search, setSearch] = useState("");
   const [query, setQuery] = useState("");
   const [page, setPage] = useState(1);
@@ -225,7 +226,9 @@ export function ResourceTable({ config }: { config: TableConfig }) {
       />
       {config.toolbar && (
         <div className="flex gap-3 mb-4">
-          {config.toolbar.map((action) => (
+          {config.toolbar
+            .filter((action) => !action.roles || action.roles.some((role) => hasRole(role)))
+            .map((action) => (
             <Button
               key={action.label}
               onClick={() => {
@@ -292,7 +295,8 @@ export function ResourceTable({ config }: { config: TableConfig }) {
                         Details
                       </Button>
                       {config.actions
-                        ?.filter((a) => !a.when || a.when(row))
+                        ?.filter((a) => !a.roles || a.roles.some((role) => hasRole(role)))
+                        .filter((a) => !a.when || a.when(row))
                         .map((action) => (
                           <Button
                             key={action.label}

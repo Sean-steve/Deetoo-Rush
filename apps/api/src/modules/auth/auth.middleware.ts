@@ -122,7 +122,7 @@ export async function requireAuth(
     }
     if (config.storage.mode === 'postgres' && !config.localWorkflow && !['GET','HEAD','OPTIONS'].includes(req.method)
       && !req.originalUrl.split('?')[0].startsWith('/api/v1/auth/')
-      && authUser.roles.some(role => ['admin','finance','ops'].includes(role))) {
+      && authUser.roles.some(role => ['super_admin','admin','finance','ops'].includes(role))) {
       await requireRecentMfa(user.id, sessionRecord.id);
     }
     next();
@@ -192,9 +192,13 @@ export function requireRole(...allowedRoles: (UserRole | string)[]) {
       return next(new AppError(401, "UNAUTHORIZED", "Authentication required"));
     }
 
-    const hasAllowed = allowedRoles.some((role) =>
-      req.session!.roles.includes(role as UserRole),
+    const requiresSuperAdmin = allowedRoles.some(
+      (role) => String(role).toLowerCase() === UserRole.SUPER_ADMIN,
     );
+    const isSuperAdmin = req.session.roles.includes(UserRole.SUPER_ADMIN);
+    const hasAllowed =
+      (isSuperAdmin && !requiresSuperAdmin) ||
+      allowedRoles.some((role) => req.session!.roles.includes(role as UserRole));
     if (!hasAllowed) {
       return next(
         new AppError(

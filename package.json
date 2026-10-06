@@ -31,6 +31,7 @@
     "db:migrate:dev": "tsx --import dotenv/config scripts/db-migrate.ts --dev",
     "db:rollback": "tsx --import dotenv/config scripts/db-rollback.ts",
     "db:seed": "tsx --import dotenv/config scripts/db-seed.ts",
+    "governance:bootstrap-super-admin": "tsx --import dotenv/config scripts/bootstrap-super-admin.ts",
     "dev:demo": "DEETOO_STORAGE_MODE=memory DEETOO_FIXTURES=true tsx --import dotenv/config dev-harness.ts",
     "worker:outbox": "tsx --import dotenv/config scripts/outbox-worker.ts",
     "test:foundation": "NODE_ENV=test DEETOO_STORAGE_MODE=postgres DEETOO_FIXTURES=false tsx --test tests/foundation/*.test.ts",

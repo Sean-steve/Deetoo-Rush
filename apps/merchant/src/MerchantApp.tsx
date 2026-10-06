@@ -589,7 +589,7 @@ function MerchantAppInner() {
             canManage={canManageStoreStatus}
           />
         )}
-        {activeMainTab === "support" && <AccountSupport />}
+        {activeMainTab === "support" && <AccountSupport mode="participant" />}
         {branch && activeMainTab === "finance" && (
           <MerchantFinance merchantId={branch.merchant_id} />
         )}

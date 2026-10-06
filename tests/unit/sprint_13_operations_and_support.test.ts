@@ -281,43 +281,67 @@ describe('Sprint 13: Operations, Support, Failure Recovery & Fraud Controls', ()
       const staffView = await supportService.getCaseById(supportCase.id, staffAgent);
       assert.equal(staffView.notes.length, 3, 'Staff sees initial + internal + public note');
 
-      // 6. Non-staff user attempting to create INTERNAL note is forced to CUSTOMER_VISIBLE
+      // 6. Participant messages cannot become internal staff notes; they join the case conversation.
       const customerAttemptedInternalNote = await supportService.addNote(
         supportCase.id,
         customer,
         'INTERNAL',
         'Sneaky customer note'
       );
-      assert.equal(customerAttemptedInternalNote.visibility, 'CUSTOMER_VISIBLE');
+      assert.equal(customerAttemptedInternalNote.visibility, 'ALL_PARTICIPANTS');
     });
 
-    test('support case resolution lifecycle', async () => {
+    test('support case resolution requires participant confirmation before closure', async () => {
       const staffAgent = { id: 'ops_bob', name: 'Bob Support', roles: ['support'], isStaff: true };
+      const customer = {
+        id: 'cust_sam',
+        name: 'Sam',
+        roles: ['customer'],
+        isStaff: false,
+        merchant_ids: [],
+      };
 
       const supportCase = await supportService.createCase({
-        customer_id: 'cust_sam',
+        customer_id: customer.id,
         category: 'MISSING_ITEM',
         subject: 'Missing fries',
         description: 'My meal was delivered without fries',
-        creator: { id: 'cust_sam', name: 'Sam', role: 'customer' },
+        creator: { id: customer.id, name: customer.name, role: 'customer' },
       });
 
       // Assign case
       await supportService.assignCase(supportCase.id, 'agent_emma', 'Emma Support', staffAgent);
       const assigned = await operationsRepository.getSupportCaseById(supportCase.id);
       assert.equal(assigned?.assigned_agent_id, 'agent_emma');
-      assert.equal(assigned?.status, 'IN_PROGRESS');
+      assert.equal(assigned?.status, 'ASSIGNED');
 
-      // Resolve case
-      const resolved = await supportService.resolveCase(
+      // Support proposes a resolution; it is not closed yet.
+      const proposed = await supportService.resolveCase(
         supportCase.id,
         'REFUND_ISSUED',
         'Partial refund of KES 250 issued for missing item.',
         staffAgent
       );
-      assert.equal(resolved.status, 'RESOLVED');
-      assert.equal(resolved.resolution_code, 'REFUND_ISSUED');
-      assert.ok(resolved.resolved_at);
+      assert.equal(proposed.status, 'PARTY_CONFIRMATION');
+      assert.equal(proposed.resolution_code, 'REFUND_ISSUED');
+      assert.equal(proposed.resolved_at, null);
+
+      // Operational status endpoint cannot bypass the confirmation workflow.
+      await assert.rejects(
+        () => supportService.updateStatus(supportCase.id, 'CLOSED' as any, staffAgent),
+        /resolution-confirmation workflow/i,
+      );
+
+      // The linked customer accepts; only then is the case closed.
+      const closed = await supportService.respondToResolution(
+        supportCase.id,
+        customer,
+        'ACCEPTED',
+        'The refund resolves my issue.',
+      );
+      assert.equal(closed.status, 'CLOSED');
+      assert.ok(closed.resolved_at);
+      assert.ok((closed as any).closed_at);
     });
   });
 

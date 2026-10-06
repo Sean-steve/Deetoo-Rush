@@ -183,6 +183,7 @@ export const ROLE_PERMISSIONS_MAP: Record<string, string[]> = {
     PERMISSIONS.OPS_DISPATCH_REASSIGN,
   ],
   [UserRole.ADMIN]: Object.values(PERMISSIONS),
+  [UserRole.SUPER_ADMIN]: Object.values(PERMISSIONS),
 };
 
 /**
@@ -226,7 +227,14 @@ export function hasRole(
   const canonicalRequired = typeof requiredRole === 'string' ? normalizeRole(requiredRole) : requiredRole;
   return session.roles.some((r) => {
     const canonical = typeof r === 'string' ? normalizeRole(r) : r;
-    return canonical === UserRole.ADMIN || (canonicalRequired && canonical === canonicalRequired);
+    if (canonicalRequired === UserRole.SUPER_ADMIN) {
+      return canonical === UserRole.SUPER_ADMIN;
+    }
+    return (
+      canonical === UserRole.SUPER_ADMIN ||
+      canonical === UserRole.ADMIN ||
+      (canonicalRequired && canonical === canonicalRequired)
+    );
   });
 }
 
@@ -238,7 +246,7 @@ export function hasPermission(
   permission: string
 ): boolean {
   if (!session || !session.roles) return false;
-  if (hasRole(session, UserRole.ADMIN)) return true;
+  if (hasRole(session, UserRole.SUPER_ADMIN) || hasRole(session, UserRole.ADMIN)) return true;
 
   if (session.permissions && session.permissions.includes(permission)) {
     return true;

@@ -44,7 +44,7 @@ operationsRouter.use(async (req: AuthenticatedRequest, res, next) => {
 function buildViewer(req: AuthenticatedRequest): SupportViewer {
   const roles = req.user?.roles || req.session?.roles || ["customer"];
   const isStaff = roles.some((r: any) =>
-    ["admin", "ops", "support", "finance"].includes(r),
+    ["super_admin", "admin", "ops", "support", "finance"].includes(r),
   );
   return {
     id: req.user?.id || req.session?.user_id || "anonymous",
@@ -61,11 +61,11 @@ function buildViewer(req: AuthenticatedRequest): SupportViewer {
 // ADMIN / OPS / SUPPORT PROTECTED ENDPOINTS
 // ============================================================================
 
-const opsAuth = [requireAuth, requireRole("admin", "ops")];
-const financeAuth = [requireAuth, requireRole("admin", "finance")];
+const opsAuth = [requireAuth, requireRole("super_admin", "admin", "ops")];
+const financeAuth = [requireAuth, requireRole("super_admin", "admin", "finance")];
 const staffAuth = [
   requireAuth,
-  requireRole("admin", "ops", "support", "finance"),
+  requireRole("super_admin", "admin", "ops", "support", "finance"),
 ];
 
 operationsRouter.get(
@@ -444,6 +444,22 @@ operationsRouter.get(
 );
 
 operationsRouter.get(
+  "/support/cases/:id/attachments/:mediaId/read-url",
+  staffAuth,
+  async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      const viewer = buildViewer(req);
+      const url = await supportService.getAttachmentReadUrl(
+        req.params.id,
+        req.params.mediaId,
+        viewer,
+      );
+      res.json({ success: true, data: { url } });
+    } catch (err) { next(err); }
+  },
+);
+
+operationsRouter.get(
   "/support/cases/:id",
   staffAuth,
   async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
@@ -489,6 +505,7 @@ operationsRouter.post(
         viewer,
         req.body.visibility || "INTERNAL",
         req.body.body,
+        Array.isArray(req.body.media_ids) ? req.body.media_ids : [],
       );
       res.status(201).json({ success: true, data: note });
     } catch (err) {
@@ -545,6 +562,25 @@ operationsRouter.post(
         req.body.resolutionCode,
         req.body.resolutionNotes,
         viewer,
+      );
+      res.json({ success: true, data: updated });
+    } catch (err) {
+      next(err);
+    }
+  },
+);
+
+operationsRouter.post(
+  "/support/cases/:id/force-close",
+  requireAuth,
+  requireRole("super_admin"),
+  async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      const viewer = buildViewer(req);
+      const updated = await supportService.forceCloseCase(
+        req.params.id,
+        viewer,
+        String(req.body.reason || ""),
       );
       res.json({ success: true, data: updated });
     } catch (err) {
@@ -910,6 +946,111 @@ operationsRouter.post(
 // CUSTOMER SUPPORT WORKFLOW ENDPOINTS (User Authenticated)
 // ============================================================================
 
+export const participantSupportRouter = Router();
+
+participantSupportRouter.use(requireAuth);
+
+participantSupportRouter.post(
+  "/cases",
+  async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      const viewer = { ...buildViewer(req), isStaff: false };
+      const isRider = viewer.roles.includes("rider");
+      const isMerchant = viewer.roles.some((role: any) =>
+        ["merchant","merchant_owner","merchant_manager","merchant_staff"].includes(role),
+      );
+      const created = await supportService.createCase({
+        customer_id: !isRider && !isMerchant ? viewer.id : undefined,
+        merchant_id: isMerchant ? viewer.merchant_ids?.[0] : undefined,
+        rider_id: isRider ? viewer.rider_id : undefined,
+        order_id: req.body.order_id || undefined,
+        delivery_id: req.body.delivery_id || undefined,
+        payment_id: req.body.payment_id || undefined,
+        category: req.body.category || "OTHER",
+        priority: req.body.priority || "MEDIUM",
+        subject: String(req.body.subject || "Support request"),
+        description: String(req.body.description || ""),
+        creator: {
+          id: viewer.id,
+          name: viewer.name,
+          role: viewer.roles[0] || "customer",
+        },
+      });
+      res.status(201).json({ success: true, data: created });
+    } catch (err) { next(err); }
+  },
+);
+
+participantSupportRouter.get(
+  "/cases",
+  async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      const viewer = { ...buildViewer(req), isStaff: false };
+      const result = await supportService.listCases({}, viewer);
+      res.json({ success: true, data: result });
+    } catch (err) { next(err); }
+  },
+);
+
+participantSupportRouter.get(
+  "/cases/:id/attachments/:mediaId/read-url",
+  async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      const viewer = { ...buildViewer(req), isStaff: false };
+      const url = await supportService.getAttachmentReadUrl(
+        req.params.id,
+        req.params.mediaId,
+        viewer,
+      );
+      res.json({ success: true, data: { url } });
+    } catch (err) { next(err); }
+  },
+);
+
+participantSupportRouter.get(
+  "/cases/:id",
+  async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      const viewer = { ...buildViewer(req), isStaff: false };
+      res.json({ success: true, data: await supportService.getCaseById(req.params.id, viewer) });
+    } catch (err) { next(err); }
+  },
+);
+
+participantSupportRouter.post(
+  "/cases/:id/messages",
+  async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      const viewer = { ...buildViewer(req), isStaff: false };
+      const note = await supportService.addNote(
+        req.params.id,
+        viewer,
+        "ALL_PARTICIPANTS",
+        String(req.body.body || ""),
+        Array.isArray(req.body.media_ids) ? req.body.media_ids : [],
+      );
+      res.status(201).json({ success: true, data: note });
+    } catch (err) { next(err); }
+  },
+);
+
+participantSupportRouter.post(
+  "/cases/:id/resolution-response",
+  async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      const viewer = { ...buildViewer(req), isStaff: false };
+      const decision = req.body.decision === "DISPUTED" ? "DISPUTED" : "ACCEPTED";
+      const updated = await supportService.respondToResolution(
+        req.params.id,
+        viewer,
+        decision,
+        req.body.comment ? String(req.body.comment) : undefined,
+      );
+      res.json({ success: true, data: updated });
+    } catch (err) { next(err); }
+  },
+);
+
 export const customerSupportRouter = Router();
 
 customerSupportRouter.post(
@@ -984,6 +1125,28 @@ customerSupportRouter.get(
 );
 
 customerSupportRouter.get(
+  "/cases/:id/attachments/:mediaId/read-url",
+  requireAuth,
+  async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      const viewer = {
+        ...buildViewer(req),
+        isStaff: false,
+        roles: ["customer"],
+        merchant_ids: [],
+        rider_id: undefined,
+      };
+      const url = await supportService.getAttachmentReadUrl(
+        req.params.id,
+        req.params.mediaId,
+        viewer,
+      );
+      res.json({ success: true, data: { url } });
+    } catch (err) { next(err); }
+  },
+);
+
+customerSupportRouter.get(
   "/cases/:id",
   requireAuth,
   async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
@@ -1018,10 +1181,36 @@ customerSupportRouter.post(
       const note = await supportService.addNote(
         req.params.id,
         viewer,
-        "CUSTOMER_VISIBLE",
+        "ALL_PARTICIPANTS",
         req.body.body,
+        Array.isArray(req.body.media_ids) ? req.body.media_ids : [],
       );
       res.status(201).json({ success: true, data: note });
+    } catch (err) {
+      next(err);
+    }
+  },
+);
+
+customerSupportRouter.post(
+  "/cases/:id/resolution-response",
+  requireAuth,
+  async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      const viewer = {
+        ...buildViewer(req),
+        isStaff: false,
+        roles: ["customer"],
+        merchant_ids: [],
+        rider_id: undefined,
+      };
+      const updated = await supportService.respondToResolution(
+        req.params.id,
+        viewer,
+        req.body.decision === "DISPUTED" ? "DISPUTED" : "ACCEPTED",
+        req.body.comment ? String(req.body.comment) : undefined,
+      );
+      res.json({ success: true, data: updated });
     } catch (err) {
       next(err);
     }

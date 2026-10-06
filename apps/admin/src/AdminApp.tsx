@@ -8,6 +8,8 @@ import { ResourceTable } from "./components/ResourceTable";
 import { adminViews } from "./components/adminViews";
 import { OperationsConfig } from "./components/OperationsConfig";
 import { LaunchReadiness } from "./components/LaunchReadiness";
+import { SupportCaseConsole } from "./components/SupportCaseConsole";
+import { IdentityGovernance } from "./components/IdentityGovernance";
 
 function adminTabFromPath(){
   const path=window.location.pathname.replace(/^\/ops/,"").replace(/\/+$/,"");
@@ -146,6 +148,7 @@ function AdminAppInner() {
   const [isLoadingAudit, setIsLoadingAudit] = useState(false);
 
   const isAdminAuthorized =
+    hasRole(UserRole.SUPER_ADMIN) ||
     hasRole(UserRole.ADMIN) ||
     hasRole(UserRole.OPS) ||
     hasRole(UserRole.SUPPORT) ||
@@ -407,7 +410,7 @@ function AdminAppInner() {
           <p className="text-xs text-slate-600 mt-2 mb-4 leading-relaxed">
             Your current account (
             <span className="font-mono text-ink">{user?.email}</span>) does not
-            hold an administrative role (ADMIN, OPS, SUPPORT, or FINANCE).
+            hold an administrative role (SUPER_ADMIN, ADMIN, OPS, SUPPORT, or FINANCE).
           </p>
           <Button
             variant="danger"
@@ -423,16 +426,17 @@ function AdminAppInner() {
   }
 
   // 3. AUTHENTICATED PLATFORM CONSOLE
+  const superAdminAccess = hasRole(UserRole.SUPER_ADMIN);
   const financeAccess = hasRole(UserRole.ADMIN) || hasRole(UserRole.FINANCE);
   const operationsAccess = hasRole(UserRole.ADMIN) || hasRole(UserRole.OPS);
   const operationalRead = operationsAccess || hasRole(UserRole.SUPPORT);
   const navigation = [
     ...(operationalRead
       ? [
-          { id: "command", label: "Overview / pulse", icon:<Activity size={16}/>, group:"Live operations" },
-          { id: "dispatch", label: "Live dispatch & fleet", icon:<Radio size={16}/>, group:"Live operations" },
-          { id: "orders", label: "Orders & deliveries", icon:<FileText size={16}/>, group:"Live operations" },
-          { id: "riders", label: "Riders", icon:<Bike size={16}/>, group:"Live operations" },
+          { id: "command", label: "Live overview", icon:<Activity size={16}/>, group:"Operations" },
+          { id: "dispatch", label: "Dispatch", icon:<Radio size={16}/>, group:"Operations" },
+          { id: "orders", label: "Orders & deliveries", icon:<FileText size={16}/>, group:"Operations" },
+          { id: "incidents", label: "Fleet & incidents", icon:<AlertTriangle size={16}/>, group:"Operations" },
         ]
       : []),
     ...(operationsAccess
@@ -441,36 +445,43 @@ function AdminAppInner() {
           { id: "onboarding", label: "Merchant onboarding", icon:<CheckCircle2 size={16}/>, group:"Marketplace" },
           { id: "branches", label: "Branches", icon:<MapPin size={16}/>, group:"Marketplace" },
           { id: "zones", label: "Service zones", icon:<MapPin size={16}/>, group:"Marketplace" },
-          { id: "users", label: "Users & access", icon:<Users size={16}/>, group:"Marketplace" },
         ]
       : []),
-    { id: "incidents", label: "Fleet & incidents", icon:<AlertTriangle size={16}/>, group:"Care & risk" },
-    { id: "support", label: "Support cases", icon:<User size={16}/>, group:"Care & risk" },
     ...(operationalRead
-      ? [{ id: "payments", label: "M-PESA, cards & refunds", icon:<DollarSign size={16}/>, group:"Money" }]
+      ? [{ id: "riders", label: "Riders", icon:<Bike size={16}/>, group:"People" }]
+      : []),
+    ...(canManageUsers
+      ? [{ id: "users", label: "Users & access", icon:<Users size={16}/>, group:"People" }]
+      : []),
+    ...(superAdminAccess
+      ? [{ id: "governance", label: "Identity governance", icon:<Lock size={16}/>, group:"People" }]
+      : []),
+    { id: "support", label: "Case inbox", icon:<User size={16}/>, group:"Support" },
+    ...(operationalRead
+      ? [{ id: "payments", label: "Payments & refunds", icon:<DollarSign size={16}/>, group:"Finance" }]
       : []),
     ...(financeAccess
       ? [
-          { id: "ledger", label: "Financial ledger", icon:<Database size={16}/>, group:"Money" },
-          { id: "accounts", label: "Ledger accounts", icon:<FileText size={16}/>, group:"Money" },
-          { id: "adjustments", label: "Financial adjustments", icon:<DollarSign size={16}/>, group:"Money" },
-          { id: "destinations", label: "Payout destinations", icon:<MapPin size={16}/>, group:"Money" },
-          { id: "disbursements", label: "Disbursement attempts", icon:<DollarSign size={16}/>, group:"Money" },
-          { id: "settlements", label: "Merchant settlements", icon:<Store size={16}/>, group:"Money" },
-          { id: "payouts", label: "Rider payouts", icon:<Bike size={16}/>, group:"Money" },
+          { id: "ledger", label: "Financial ledger", icon:<Database size={16}/>, group:"Finance" },
+          { id: "accounts", label: "Ledger accounts", icon:<FileText size={16}/>, group:"Finance" },
+          { id: "adjustments", label: "Financial adjustments", icon:<DollarSign size={16}/>, group:"Finance" },
+          { id: "destinations", label: "Payout destinations", icon:<MapPin size={16}/>, group:"Finance" },
+          { id: "disbursements", label: "Disbursement attempts", icon:<DollarSign size={16}/>, group:"Finance" },
+          { id: "settlements", label: "Merchant settlements", icon:<Store size={16}/>, group:"Finance" },
+          { id: "payouts", label: "Rider payouts", icon:<Bike size={16}/>, group:"Finance" },
         ]
       : []),
-    { id: "notifications", label: "Notifications", icon:<Radio size={16}/>, group:"System" },
-    { id: "jobs", label: "Background jobs", icon:<Server size={16}/>, group:"System" },
-    { id: "risk", label: "Risk signals", icon:<ShieldAlert size={16}/>, group:"Care & risk" },
+    { id: "risk", label: "Risk signals", icon:<ShieldAlert size={16}/>, group:"Risk & Trust" },
+    { id: "notifications", label: "Notifications", icon:<Radio size={16}/>, group:"Platform" },
+    { id: "jobs", label: "Background jobs", icon:<Server size={16}/>, group:"Platform" },
     ...(operationsAccess
       ? [
-          { id: "configuration", label: "Dispatch & controls", icon:<Filter size={16}/>, group:"System" },
-          { id: "launch", label: "Launch readiness", icon:<CheckCircle2 size={16}/>, group:"System" },
-          { id: "audit", label: "Audit trail", icon:<FileText size={16}/>, group:"System" },
+          { id: "configuration", label: "Dispatch & controls", icon:<Filter size={16}/>, group:"Platform" },
+          { id: "launch", label: "Launch readiness", icon:<CheckCircle2 size={16}/>, group:"Platform" },
+          { id: "audit", label: "Audit trail", icon:<FileText size={16}/>, group:"Platform" },
         ]
       : []),
-    { id: "overview", label: "System health", icon:<Activity size={16}/>, group:"System" },
+    { id: "overview", label: "System health", icon:<Activity size={16}/>, group:"Platform" },
   ];
   const selectedView = navigation.some((n) => n.id === activeTab)
     ? activeTab
@@ -491,7 +502,9 @@ function AdminAppInner() {
       >
         <AuthenticatorPanel />
         {selectedView === "command" && <CommandCenter />}
-        {adminViews[selectedView] && (
+        {selectedView === "support" && <SupportCaseConsole />}
+        {selectedView === "governance" && <IdentityGovernance />}
+        {adminViews[selectedView] && !["support", "governance"].includes(selectedView) && (
           <ResourceTable
             key={selectedView}
             config={{

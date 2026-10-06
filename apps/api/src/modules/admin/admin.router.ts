@@ -44,6 +44,7 @@ import { PERMISSIONS } from '@deetoo/auth';
 import { AppError } from '../../middleware/error-handler';
 import { authRepository } from '../auth/auth.repository';
 import { authService } from '../auth/auth.service';
+import { governanceService } from './governance.service';
 import { merchantRepository } from '../merchant/merchant.repository';
 import { merchantService } from '../merchant/merchant.service';
 import { merchantOnboardingService, MerchantOnboardingStage } from '../merchant/merchant-onboarding.service';
@@ -232,7 +233,7 @@ adminRouter.post(
  */
 adminRouter.post(
   '/users/:id/roles',
-  requireRole(UserRole.ADMIN),
+  requireRole(UserRole.SUPER_ADMIN),
   async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
       const targetUserId = req.params.id;
@@ -249,7 +250,16 @@ adminRouter.post(
 
       if (config.storage.mode === 'postgres' && (typeof req.body.reason !== 'string' || !req.body.reason.trim())) throw new AppError(400,'REASON_REQUIRED','An explicit administrative reason is required');
       await identityCommand(async () => {
-      await authRepository.setUserRoles(targetUserId, roles);
+      await governanceService.setRoles(
+        targetUserId,
+        roles,
+        req.body.reason,
+        {
+          id: req.user!.id,
+          role: UserRole.SUPER_ADMIN,
+          requestId: (req as any).requestId,
+        },
+      );
 
       await authRepository.createAuditLog({
         actor_user_id: req.session!.user_id,
@@ -306,6 +316,171 @@ adminRouter.get(
 );
 
 // ==========================================
+// Phase 1: Super Admin Governance
+// ==========================================
+
+adminRouter.get(
+  '/governance/events',
+  requireRole(UserRole.SUPER_ADMIN),
+  async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      const data = await governanceService.listEvents(
+        req.query.limit ? Number(req.query.limit) : 100,
+      );
+      res.json({ data: { events: data }, requestId: (req as any).requestId });
+    } catch (err) { next(err); }
+  },
+);
+
+adminRouter.post(
+  '/governance/provision',
+  requireRole(UserRole.SUPER_ADMIN),
+  async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      const data = await governanceService.provision(
+        req.body,
+        {
+          id: req.user!.id,
+          role: UserRole.SUPER_ADMIN,
+          requestId: (req as any).requestId,
+        },
+      );
+      res.status(201).json({ data, requestId: (req as any).requestId });
+    } catch (err) { next(err); }
+  },
+);
+
+adminRouter.patch(
+  '/governance/users/:id',
+  requireRole(UserRole.SUPER_ADMIN),
+  async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      const data = await governanceService.updateIdentity(
+        req.params.id,
+        req.body,
+        {
+          id: req.user!.id,
+          role: UserRole.SUPER_ADMIN,
+          requestId: (req as any).requestId,
+        },
+      );
+      res.json({ data, requestId: (req as any).requestId });
+    } catch (err) { next(err); }
+  },
+);
+
+adminRouter.post(
+  '/governance/users/:id/deactivate',
+  requireRole(UserRole.SUPER_ADMIN),
+  async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      const data = await governanceService.deactivate(
+        req.params.id,
+        req.body.reason,
+        {
+          id: req.user!.id,
+          role: UserRole.SUPER_ADMIN,
+          requestId: (req as any).requestId,
+        },
+      );
+      res.json({ data, requestId: (req as any).requestId });
+    } catch (err) { next(err); }
+  },
+);
+
+adminRouter.post(
+  '/governance/users/:id/reactivate',
+  requireRole(UserRole.SUPER_ADMIN),
+  async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      const data = await governanceService.reactivate(
+        req.params.id,
+        req.body.reason,
+        {
+          id: req.user!.id,
+          role: UserRole.SUPER_ADMIN,
+          requestId: (req as any).requestId,
+        },
+      );
+      res.json({ data, requestId: (req as any).requestId });
+    } catch (err) { next(err); }
+  },
+);
+
+adminRouter.patch(
+  '/governance/riders/:id',
+  requireRole(UserRole.SUPER_ADMIN),
+  async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      const data = await governanceService.updateRiderProfile(
+        req.params.id,
+        req.body,
+        {
+          id: req.user!.id,
+          role: UserRole.SUPER_ADMIN,
+          requestId: (req as any).requestId,
+        },
+      );
+      res.json({ data, requestId: (req as any).requestId });
+    } catch (err) { next(err); }
+  },
+);
+
+adminRouter.post(
+  '/governance/merchants/:id/deactivate',
+  requireRole(UserRole.SUPER_ADMIN),
+  async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      const reason = String(req.body.reason || '').trim();
+      if (reason.length < 3) throw new AppError(400, 'REASON_REQUIRED', 'A meaningful reason is required');
+      const merchant = await merchantRepository.findMerchantById(req.params.id);
+      if (!merchant) throw new AppError(404, 'MERCHANT_NOT_FOUND', 'Merchant not found');
+      const updated = await merchantRepository.updateMerchant(req.params.id, {
+        status: MerchantStatus.DISABLED,
+      });
+      await authRepository.createAuditLog({
+        actor_user_id: req.user!.id,
+        actor_role: UserRole.SUPER_ADMIN,
+        action: AuditAction.MERCHANT_SUSPENDED,
+        resource_type: 'MERCHANT',
+        resource_id: req.params.id,
+        reason,
+        request_id: (req as any).requestId,
+        metadata: { governance_action: 'DEACTIVATED', previous_status: merchant.status },
+      });
+      res.json({ data: updated, requestId: (req as any).requestId });
+    } catch (err) { next(err); }
+  },
+);
+
+adminRouter.post(
+  '/governance/merchants/:id/reactivate',
+  requireRole(UserRole.SUPER_ADMIN),
+  async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      const reason = String(req.body.reason || '').trim();
+      if (reason.length < 3) throw new AppError(400, 'REASON_REQUIRED', 'A meaningful reason is required');
+      const merchant = await merchantRepository.findMerchantById(req.params.id);
+      if (!merchant) throw new AppError(404, 'MERCHANT_NOT_FOUND', 'Merchant not found');
+      const updated = await merchantRepository.updateMerchant(req.params.id, {
+        status: MerchantStatus.ACTIVE,
+      });
+      await authRepository.createAuditLog({
+        actor_user_id: req.user!.id,
+        actor_role: UserRole.SUPER_ADMIN,
+        action: AuditAction.MERCHANT_REACTIVATED,
+        resource_type: 'MERCHANT',
+        resource_id: req.params.id,
+        reason,
+        request_id: (req as any).requestId,
+        metadata: { governance_action: 'REACTIVATED', previous_status: merchant.status },
+      });
+      res.json({ data: updated, requestId: (req as any).requestId });
+    } catch (err) { next(err); }
+  },
+);
+
+// ==========================================
 // 7. Admin Merchant Management (Sprint 3)
 // ==========================================
 
@@ -356,7 +531,7 @@ adminRouter.get(
  */
 adminRouter.post(
   '/merchants',
-  requireRole(UserRole.ADMIN, UserRole.OPS),
+  requireRole(UserRole.SUPER_ADMIN),
   async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
       const validated = CreateMerchantSchema.parse(req.body);
@@ -412,6 +587,17 @@ adminRouter.post(
  * GET /api/v1/admin/merchants/:id
  */
 adminRouter.get(
+  '/merchants/onboarding',
+  requireRole(UserRole.ADMIN, UserRole.OPS),
+  async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      const data = await merchantOnboardingService.list(req.query.stage as string | undefined);
+      res.json({ data, requestId: (req as any).requestId });
+    } catch (error) { next(error); }
+  },
+);
+
+adminRouter.get(
   '/merchants/:id',
   requireRole(UserRole.ADMIN, UserRole.OPS, UserRole.SUPPORT, UserRole.FINANCE),
   async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
@@ -444,11 +630,20 @@ adminRouter.get(
  */
 adminRouter.patch(
   '/merchants/:id',
-  requireRole(UserRole.ADMIN, UserRole.OPS),
+  requireRole(UserRole.SUPER_ADMIN),
   async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
       const merchantId = req.params.id;
-      const validated = UpdateMerchantSchema.parse(req.body);
+      const reason = String(req.body?.reason || '').trim();
+      if (reason.length < 3) {
+        throw new AppError(400, 'REASON_REQUIRED', 'A meaningful governance reason is required');
+      }
+      const before = await merchantRepository.findMerchantById(merchantId);
+      if (!before) {
+        throw new AppError(404, 'MERCHANT_NOT_FOUND', 'Merchant not found');
+      }
+      const { reason: _reason, ...candidate } = req.body || {};
+      const validated = UpdateMerchantSchema.parse(candidate);
 
       const updated = await merchantRepository.updateMerchant(merchantId, validated);
       if (!updated) {
@@ -457,11 +652,13 @@ adminRouter.patch(
 
       await authRepository.createAuditLog({
         actor_user_id: req.user!.id,
-        actor_role: UserRole.ADMIN,
+        actor_role: UserRole.SUPER_ADMIN,
         action: AuditAction.MERCHANT_UPDATED,
         resource_type: 'MERCHANT',
         resource_id: merchantId,
-        metadata: validated,
+        reason,
+        request_id: (req as any).requestId,
+        metadata: { before, after: updated, changed_fields: Object.keys(validated) },
       });
 
       res.json({
@@ -549,6 +746,15 @@ adminRouter.post(
   async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
       const merchantId = req.params.id;
+      const merchant = await merchantRepository.findMerchantById(merchantId);
+      if (!merchant) throw new AppError(404, 'MERCHANT_NOT_FOUND', 'Merchant not found');
+      if (merchant.status === MerchantStatus.DISABLED) {
+        throw new AppError(
+          403,
+          'SUPER_ADMIN_REQUIRED',
+          'Governance-deactivated merchants can only be reactivated from Identity Governance by a Super Admin',
+        );
+      }
       const reactivated = await merchantService.reactivateMerchant(merchantId, req.user!.id);
       res.json({
         data: reactivated,
@@ -1750,17 +1956,6 @@ adminRouter.get(
 
 
 
-
-adminRouter.get(
-  '/merchants/onboarding',
-  requireRole(UserRole.ADMIN, UserRole.OPS),
-  async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
-    try {
-      const data = await merchantOnboardingService.list(req.query.stage as string | undefined);
-      res.json({ data, requestId: (req as any).requestId });
-    } catch (error) { next(error); }
-  },
-);
 
 adminRouter.patch(
   '/merchants/:id/onboarding',
