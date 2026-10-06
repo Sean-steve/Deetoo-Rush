@@ -20,7 +20,7 @@ import {
 
 type Coordinate = [number, number];
 
-function geometryPolygons(geometry: any): Coordinate[][][] {
+export function geometryPolygons(geometry: any): Coordinate[][][] {
   if (!geometry?.coordinates) return [];
   if (geometry.type === "Polygon") return [geometry.coordinates];
   if (geometry.type === "MultiPolygon") return geometry.coordinates;
