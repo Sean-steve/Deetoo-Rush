@@ -2055,6 +2055,8 @@ export enum LedgerTransactionType {
   RIDER_EARNING = 'RIDER_EARNING',
   MERCHANT_SETTLEMENT = 'MERCHANT_SETTLEMENT',
   RIDER_PAYOUT = 'RIDER_PAYOUT',
+  RIDER_CASH_COLLECTED = 'RIDER_CASH_COLLECTED',
+  RIDER_CASH_SETTLED = 'RIDER_CASH_SETTLED',
   FINANCIAL_ADJUSTMENT = 'FINANCIAL_ADJUSTMENT'
 }
 
@@ -2227,6 +2229,62 @@ export interface RiderPayout {
   created_at: string;
   lines?: RiderPayoutLine[];
 }
+
+export interface RiderWalletSummary {
+  rider_id: string;
+  currency: string;
+  gross_payable_balance_minor: number;
+  available_earnings_minor: number;
+  pending_earnings_minor: number;
+  cash_collected_minor: number;
+  cash_settled_minor: number;
+  cash_owed_minor: number;
+  cash_threshold_minor: number;
+  cash_restricted: boolean;
+  next_payout?: RiderPayout | null;
+  settlement_status?: string | null;
+  ledger_reconciled: boolean;
+  reconciliation_difference_minor: number;
+}
+
+export interface RiderPerformanceMetrics {
+  rider_id: string;
+  window_start: string;
+  window_end: string;
+  completion_rate: number | null;
+  offer_acceptance_rate: number | null;
+  pickup_punctuality_rate: number | null;
+  delivery_punctuality_rate: number | null;
+  customer_rating: number | null;
+  customer_rating_count: number;
+  confirmed_conduct_incidents: number;
+  cancellation_rate: number | null;
+  gps_reliability_rate: number | null;
+  sample_sizes: Record<string, number>;
+  enforcement: {
+    automatic_suspension: false;
+    requires_human_review: true;
+  };
+}
+
+export interface TrustCaseSummary {
+  id: string;
+  support_case_id: string;
+  kind: 'DISPUTE' | 'CONDUCT';
+  review_status: string;
+  enforcement_status: string;
+  order_id?: string | null;
+  delivery_id?: string | null;
+  payment_id?: string | null;
+  refund_id?: string | null;
+  merchant_id?: string | null;
+  rider_id?: string | null;
+  customer_id?: string | null;
+  allegation_code?: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 
 export enum FinancialAdjustmentReason {
   MERCHANT_CORRECTION = 'MERCHANT_CORRECTION',
