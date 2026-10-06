@@ -21,6 +21,8 @@ import {
   ChevronDown,
 } from "lucide-react";
 export * from "./tokens";
+export * from "./errors";
+export * from "./foundation";
 
 // ==========================================
 // 1. Deetoo Brand Logo
@@ -73,6 +75,8 @@ export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElemen
   variant?: "primary" | "secondary" | "outline" | "danger" | "ghost";
   size?: "sm" | "md" | "lg";
   isLoading?: boolean;
+  fullWidth?: boolean;
+  loadingLabel?: string;
 }
 
 export const Button: React.FC<ButtonProps> = ({
@@ -80,6 +84,8 @@ export const Button: React.FC<ButtonProps> = ({
   variant = "primary",
   size = "md",
   isLoading = false,
+  fullWidth = false,
+  loadingLabel = "Working",
   className = "",
   disabled,
   type = "button",
@@ -106,7 +112,8 @@ export const Button: React.FC<ButtonProps> = ({
     <button
       type={type}
       aria-busy={isLoading || undefined}
-      className={`deetoo-button ${baseClasses} ${variantClasses[variant]} ${sizeClasses[size]} ${className}`}
+      aria-label={isLoading && typeof children !== "string" ? loadingLabel : props["aria-label"]}
+      className={`deetoo-button ${baseClasses} ${variantClasses[variant]} ${sizeClasses[size]} ${fullWidth ? "w-full" : ""} ${className}`}
       disabled={disabled || isLoading}
       {...props}
     >
@@ -424,14 +431,27 @@ export const ErrorState: React.FC<{
   title?: string;
   message: string;
   onRetry?: () => void;
-}> = ({ title = "Something went wrong", message, onRetry }) => (
+  retryLabel?: string;
+  referenceId?: string;
+  compact?: boolean;
+}> = ({
+  title = "Something went wrong",
+  message,
+  onRetry,
+  retryLabel = "Retry",
+  referenceId,
+  compact = false,
+}) => (
   <div
     role="alert"
-    className="deetoo-error-state flex flex-col items-center justify-center p-6 sm:p-8 text-center rounded-2xl border border-rose-200 bg-rose-50 text-rose-900"
+    className={`deetoo-error-state flex flex-col items-center justify-center text-center rounded-2xl border border-rose-200 bg-rose-50 text-rose-900 ${compact ? "p-4" : "p-6 sm:p-8"}`}
   >
     <AlertCircle className="text-rose-500 mb-2" size={28} />
     <h3 className="text-sm font-semibold">{title}</h3>
     <p className="mt-1 text-xs text-rose-700 max-w-md">{message}</p>
+    {referenceId && (
+      <p className="mt-2 text-[11px] font-mono text-rose-700">Reference: {referenceId}</p>
+    )}
     {onRetry && (
       <Button
         variant="outline"
@@ -439,7 +459,7 @@ export const ErrorState: React.FC<{
         onClick={onRetry}
         className="mt-4 bg-white border-rose-300 text-rose-800"
       >
-        Retry
+        {retryLabel}
       </Button>
     )}
   </div>
@@ -516,7 +536,6 @@ export const Modal: React.FC<ModalProps> = ({
 };
 
 export const Dialog = Modal;
-export const Drawer = Modal;
 
 export interface ToastProps {
   message: string | null;
