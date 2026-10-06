@@ -20,6 +20,9 @@ import {
   SupportCaseNote,
   SupportCaseStatus,
   SupportCasePriority,
+  SupportCaseParticipant,
+  SupportCaseAttachment,
+  SupportNoteVisibility,
   NotificationRecord,
   NotificationStatus,
   DeadLetterJob,
@@ -48,6 +51,8 @@ export class OperationsRepository {
   public incidentTimeline: Map<string, IncidentTimelineEntry[]> = new Map(); // incident_id -> entries
   public supportCases: Map<string, SupportCase> = new Map();
   public supportCaseNotes: Map<string, SupportCaseNote[]> = new Map(); // case_id -> notes
+  public supportCaseParticipants: Map<string, SupportCaseParticipant[]> = new Map();
+  public supportCaseAttachments: Map<string, SupportCaseAttachment[]> = new Map();
   public notifications: Map<string, NotificationRecord> = new Map();
   public deadLetterJobs: Map<string, DeadLetterJob> = new Map();
   public riskSignals: Map<string, RiskSignal> = new Map();
@@ -632,8 +637,9 @@ export class OperationsRepository {
         `UPDATE support_cases SET
           status = $1, priority = $2, resolution_code = $3, resolution_notes = $4,
           assigned_agent_id = $5, assigned_agent_name = $6, refund_id = $7,
-          resolved_at = $8, updated_at = $9
-        WHERE id = $10`,
+          resolved_at = $8, resolution_proposed_at = $9, closed_at = $10,
+          closure_reason = $11, updated_at = $12
+        WHERE id = $13`,
         [
           updated.status,
           updated.priority,
@@ -643,6 +649,9 @@ export class OperationsRepository {
           updated.assigned_agent_name || null,
           updated.refund_id || null,
           updated.resolved_at || null,
+          updated.resolution_proposed_at || null,
+          updated.closed_at || null,
+          updated.closure_reason || null,
           updated.updated_at,
           id,
         ]
@@ -660,8 +669,9 @@ export class OperationsRepository {
     try {
       await pool.query(
         `INSERT INTO support_case_notes (
-          id, case_id, author_user_id, author_role, author_name, visibility, body, created_at
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+          id, case_id, author_user_id, author_role, author_name, visibility,
+          message_type, body, created_at
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
         [
           note.id,
           note.case_id,
@@ -669,6 +679,7 @@ export class OperationsRepository {
           note.author_role || null,
           note.author_name || null,
           note.visibility,
+          note.message_type || 'MESSAGE',
           note.body,
           note.created_at,
         ]
@@ -716,6 +727,270 @@ export class OperationsRepository {
     return notes.filter((n) => n.visibility === 'CUSTOMER_VISIBLE');
   }
 
+  public async getSupportCaseMessages(
+    caseId: string,
+    allowedVisibilities: SupportNoteVisibility[],
+  ): Promise<SupportCaseNote[]> {
+    if (!allowedVisibilities.length) return [];
+    try {
+      const res = await pool.query(
+        `SELECT n.*,
+           COALESCE(
+             json_agg(
+               json_build_object(
+                 'id',a.id,
+                 'case_id',a.case_id,
+                 'note_id',a.note_id,
+                 'media_object_id',a.media_object_id,
+                 'uploaded_by',a.uploaded_by,
+                 'created_at',a.created_at
+               )
+             ) FILTER (WHERE a.id IS NOT NULL),
+             '[]'::json
+           ) AS attachments
+         FROM support_case_notes n
+         LEFT JOIN support_case_attachments a ON a.note_id=n.id
+         WHERE n.case_id=$1 AND n.visibility = ANY($2::varchar[])
+         GROUP BY n.id
+         ORDER BY n.created_at ASC`,
+        [caseId, allowedVisibilities],
+      );
+      return res.rows.map((r: any) => ({
+        id: r.id,
+        case_id: r.case_id,
+        author_user_id: r.author_user_id,
+        author_role: r.author_role,
+        author_name: r.author_name,
+        visibility: r.visibility,
+        message_type: r.message_type || 'MESSAGE',
+        body: r.body,
+        edited_at: r.edited_at ? new Date(r.edited_at).toISOString() : null,
+        attachments: (r.attachments || []).map((a: any) => ({
+          ...a,
+          created_at: new Date(a.created_at).toISOString(),
+        })),
+        created_at: new Date(r.created_at).toISOString(),
+      }));
+    } catch {
+      allowMemoryAdapter();
+    }
+
+    const notes = config.storage.mode === 'memory'
+      ? this.supportCaseNotes.get(caseId) || []
+      : [];
+    const allowed = new Set(allowedVisibilities);
+    return notes
+      .filter((note) => allowed.has(note.visibility))
+      .map((note) => ({
+        ...note,
+        attachments: (this.supportCaseAttachments.get(caseId) || []).filter(
+          (attachment) => attachment.note_id === note.id,
+        ),
+      }));
+  }
+
+  public async addSupportCaseParticipant(
+    participant: SupportCaseParticipant,
+  ): Promise<SupportCaseParticipant> {
+    if (config.storage.mode === 'postgres') {
+      await pool.query(
+        `INSERT INTO support_case_participants(
+           id,case_id,participant_type,user_id,entity_id,display_name,
+           required_confirmation,confirmation_status,confirmation_note,
+           confirmed_at,last_read_at,created_at,updated_at
+         ) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)`,
+        [
+          participant.id,
+          participant.case_id,
+          participant.participant_type,
+          participant.user_id || null,
+          participant.entity_id || null,
+          participant.display_name || null,
+          participant.required_confirmation,
+          participant.confirmation_status,
+          participant.confirmation_note || null,
+          participant.confirmed_at || null,
+          participant.last_read_at || null,
+          participant.created_at,
+          participant.updated_at,
+        ],
+      );
+      return participant;
+    }
+
+    allowMemoryAdapter();
+    const participants = this.supportCaseParticipants.get(participant.case_id) || [];
+    participants.push(participant);
+    this.supportCaseParticipants.set(participant.case_id, participants);
+    return participant;
+  }
+
+  public async getSupportCaseParticipants(
+    caseId: string,
+  ): Promise<SupportCaseParticipant[]> {
+    if (config.storage.mode === 'postgres') {
+      const res = await pool.query(
+        `SELECT * FROM support_case_participants
+         WHERE case_id=$1
+         ORDER BY created_at ASC`,
+        [caseId],
+      );
+      return res.rows.map((row: any) => ({
+        id: row.id,
+        case_id: row.case_id,
+        participant_type: row.participant_type,
+        user_id: row.user_id,
+        entity_id: row.entity_id,
+        display_name: row.display_name,
+        required_confirmation: row.required_confirmation,
+        confirmation_status: row.confirmation_status,
+        confirmation_note: row.confirmation_note,
+        confirmed_at: row.confirmed_at ? new Date(row.confirmed_at).toISOString() : null,
+        last_read_at: row.last_read_at ? new Date(row.last_read_at).toISOString() : null,
+        created_at: new Date(row.created_at).toISOString(),
+        updated_at: new Date(row.updated_at).toISOString(),
+      }));
+    }
+
+    allowMemoryAdapter();
+    return this.supportCaseParticipants.get(caseId) || [];
+  }
+
+  public async resetSupportCaseConfirmations(caseId: string): Promise<void> {
+    if (config.storage.mode === 'postgres') {
+      await pool.query(
+        `UPDATE support_case_participants
+         SET confirmation_status='PENDING',confirmation_note=NULL,
+             confirmed_at=NULL,updated_at=NOW()
+         WHERE case_id=$1 AND required_confirmation=true`,
+        [caseId],
+      );
+      return;
+    }
+    allowMemoryAdapter();
+    const participants = this.supportCaseParticipants.get(caseId) || [];
+    const now = new Date().toISOString();
+    this.supportCaseParticipants.set(
+      caseId,
+      participants.map((participant) =>
+        participant.required_confirmation
+          ? {
+              ...participant,
+              confirmation_status: 'PENDING',
+              confirmation_note: null,
+              confirmed_at: null,
+              updated_at: now,
+            }
+          : participant,
+      ),
+    );
+  }
+
+  public async confirmSupportCaseParticipant(
+    participantId: string,
+    status: 'ACCEPTED' | 'ACKNOWLEDGED' | 'DISPUTED',
+    note?: string,
+  ): Promise<SupportCaseParticipant | null> {
+    const now = new Date().toISOString();
+    if (config.storage.mode === 'postgres') {
+      const res = await pool.query(
+        `UPDATE support_case_participants
+         SET confirmation_status=$1,confirmation_note=$2,confirmed_at=$3,updated_at=$3
+         WHERE id=$4
+         RETURNING *`,
+        [status, note || null, now, participantId],
+      );
+      if (!res.rows[0]) return null;
+      const row = res.rows[0];
+      return {
+        id: row.id,
+        case_id: row.case_id,
+        participant_type: row.participant_type,
+        user_id: row.user_id,
+        entity_id: row.entity_id,
+        display_name: row.display_name,
+        required_confirmation: row.required_confirmation,
+        confirmation_status: row.confirmation_status,
+        confirmation_note: row.confirmation_note,
+        confirmed_at: row.confirmed_at ? new Date(row.confirmed_at).toISOString() : null,
+        last_read_at: row.last_read_at ? new Date(row.last_read_at).toISOString() : null,
+        created_at: new Date(row.created_at).toISOString(),
+        updated_at: new Date(row.updated_at).toISOString(),
+      };
+    }
+
+    allowMemoryAdapter();
+    for (const [caseId, participants] of this.supportCaseParticipants.entries()) {
+      const index = participants.findIndex((participant) => participant.id === participantId);
+      if (index >= 0) {
+        const updated = {
+          ...participants[index],
+          confirmation_status: status,
+          confirmation_note: note || null,
+          confirmed_at: now,
+          updated_at: now,
+        } as SupportCaseParticipant;
+        participants[index] = updated;
+        this.supportCaseParticipants.set(caseId, participants);
+        return updated;
+      }
+    }
+    return null;
+  }
+
+  public async addSupportCaseAttachment(
+    attachment: SupportCaseAttachment,
+  ): Promise<SupportCaseAttachment> {
+    if (config.storage.mode === 'postgres') {
+      await pool.query(
+        `INSERT INTO support_case_attachments(
+           id,case_id,note_id,media_object_id,uploaded_by,created_at
+         ) VALUES($1,$2,$3,$4,$5,$6)
+         ON CONFLICT(case_id,media_object_id) DO NOTHING`,
+        [
+          attachment.id,
+          attachment.case_id,
+          attachment.note_id || null,
+          attachment.media_object_id,
+          attachment.uploaded_by || null,
+          attachment.created_at,
+        ],
+      );
+      return attachment;
+    }
+
+    allowMemoryAdapter();
+    const list = this.supportCaseAttachments.get(attachment.case_id) || [];
+    if (!list.some((item) => item.media_object_id === attachment.media_object_id)) {
+      list.push(attachment);
+      this.supportCaseAttachments.set(attachment.case_id, list);
+    }
+    return attachment;
+  }
+
+  public async getSupportCaseAttachments(
+    caseId: string,
+  ): Promise<SupportCaseAttachment[]> {
+    if (config.storage.mode === 'postgres') {
+      const res = await pool.query(
+        `SELECT * FROM support_case_attachments
+         WHERE case_id=$1 ORDER BY created_at ASC`,
+        [caseId],
+      );
+      return res.rows.map((row: any) => ({
+        id: row.id,
+        case_id: row.case_id,
+        note_id: row.note_id,
+        media_object_id: row.media_object_id,
+        uploaded_by: row.uploaded_by,
+        created_at: new Date(row.created_at).toISOString(),
+      }));
+    }
+
+    allowMemoryAdapter();
+    return this.supportCaseAttachments.get(caseId) || [];
+  }
+
   private mapSupportCase(row: any): SupportCase {
     return {
       id: row.id,
@@ -739,6 +1014,11 @@ export class OperationsRepository {
       created_at: new Date(row.created_at).toISOString(),
       updated_at: new Date(row.updated_at).toISOString(),
       resolved_at: row.resolved_at ? new Date(row.resolved_at).toISOString() : null,
+      resolution_proposed_at: row.resolution_proposed_at
+        ? new Date(row.resolution_proposed_at).toISOString()
+        : null,
+      closed_at: row.closed_at ? new Date(row.closed_at).toISOString() : null,
+      closure_reason: row.closure_reason,
     };
   }
 
