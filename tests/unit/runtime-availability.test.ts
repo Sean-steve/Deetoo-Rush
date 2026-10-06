@@ -7,7 +7,7 @@ import { CustomerLocationSelector } from '../../apps/customer/src/components/Cus
 test('location availability requires a backend result', () => {
   const props = {
     currentAddressText: 'Selected address', currentCoords: { latitude: 0, longitude: 0 },
-    savedAddresses: [], onSelectAddress() {}, onSelectPresetCoords() {},
+    savedAddresses: [], onSelectAddress() {}, onUseCurrentLocation() {},
     onAddNewAddress() {}, isAuthenticated: false,
   };
   const render = (serviceability: any) => renderToStaticMarkup(React.createElement(CustomerLocationSelector, { ...props, serviceability }));
