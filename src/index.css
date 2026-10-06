@@ -1,5 +1,16 @@
 @import "tailwindcss";
 
+@source "../apps/customer/src";
+@source "../apps/customer-web/src";
+@source "../apps/merchant/src";
+@source "../apps/merchant-web/src";
+@source "../apps/admin/src";
+@source "../apps/admin-web/src";
+@source "../packages/ui/src";
+@source "../packages/ui-web/src";
+@source "../packages/auth/src";
+@source "../packages/api-client/src";
+
 @theme inline {
   --font-sans: var(--deetoo-font-body);
   --font-heading: var(--deetoo-font-heading);
@@ -818,3 +829,478 @@ body { background: var(--deetoo-brand-cloud); }
   font-weight:900; letter-spacing:.14em; text-transform:uppercase;
 }
 .operations-sidebar .app-nav-group:first-child { padding-top:2px; }
+
+
+/* =========================================================
+   DEETOO DASHBOARD POLISH LAYER
+   Shared visual language for Customer, Merchant and Admin.
+   Keep this layer semantic so every dashboard component
+   remains consistent even as feature modules evolve.
+   ========================================================= */
+
+:root {
+  --deetoo-dashboard-bg: #f4f8f5;
+  --deetoo-dashboard-panel: rgba(255,255,255,.92);
+  --deetoo-dashboard-border: rgba(16,35,26,.08);
+  --deetoo-dashboard-border-strong: rgba(16,35,26,.13);
+  --deetoo-dashboard-shadow: 0 16px 44px rgba(16,35,26,.07), 0 2px 8px rgba(16,35,26,.04);
+  --deetoo-dashboard-shadow-hover: 0 24px 58px rgba(16,35,26,.11), 0 4px 12px rgba(16,35,26,.05);
+  --deetoo-dashboard-glow: 0 0 0 4px rgba(0,191,98,.10);
+}
+
+html {
+  background: var(--deetoo-dashboard-bg);
+}
+
+body {
+  min-height: 100dvh;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+body,
+button,
+input,
+select,
+textarea {
+  font-feature-settings: "kern" 1, "liga" 1;
+}
+
+.deetoo-card {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--deetoo-dashboard-border);
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.98), rgba(252,254,253,.96));
+  box-shadow: var(--deetoo-dashboard-shadow);
+  transition:
+    transform 180ms ease,
+    box-shadow 180ms ease,
+    border-color 180ms ease;
+}
+
+.deetoo-card::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto auto 0;
+  width: 100%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(0,191,98,.20), transparent);
+  pointer-events: none;
+}
+
+.deetoo-card:hover {
+  border-color: rgba(0,191,98,.14);
+}
+
+.deetoo-button {
+  border: 1px solid transparent;
+  box-shadow: 0 1px 2px rgba(16,35,26,.05);
+  transform: translateZ(0);
+  transition:
+    transform 160ms ease,
+    box-shadow 160ms ease,
+    background-color 160ms ease,
+    border-color 160ms ease,
+    color 160ms ease;
+}
+
+.deetoo-button:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+.deetoo-button:active:not(:disabled) {
+  transform: translateY(0) scale(.985);
+}
+
+.deetoo-button-primary {
+  border-color: rgba(0,130,68,.18);
+  box-shadow: 0 10px 22px rgba(0,191,98,.20);
+}
+
+.deetoo-button-secondary {
+  background: linear-gradient(145deg,#10231A,#18382A);
+  box-shadow: 0 10px 22px rgba(16,35,26,.16);
+}
+
+.deetoo-button-outline,
+.deetoo-button-ghost {
+  backdrop-filter: blur(12px);
+}
+
+.deetoo-field {
+  min-height: 46px;
+  border-color: #d6e2da !important;
+  background: rgba(255,255,255,.94) !important;
+  box-shadow: inset 0 1px 1px rgba(16,35,26,.025);
+  transition:
+    border-color 160ms ease,
+    box-shadow 160ms ease,
+    background-color 160ms ease;
+}
+
+.deetoo-field:hover:not(:disabled) {
+  border-color: #b9cdc0 !important;
+}
+
+.deetoo-field:focus,
+.deetoo-field:focus-visible {
+  border-color: #00bf62 !important;
+  box-shadow: var(--deetoo-dashboard-glow) !important;
+}
+
+.deetoo-field:disabled {
+  opacity: .7;
+  background: #f2f6f3 !important;
+}
+
+.deetoo-price,
+.metric-value,
+.data-table td,
+.data-table th {
+  font-variant-numeric: tabular-nums;
+}
+
+.page-heading {
+  padding: .25rem 0;
+  margin-bottom: 1.4rem;
+}
+
+.page-heading h1 {
+  color: #10231a;
+  letter-spacing: -.045em;
+}
+
+.page-heading .eyebrow,
+.eyebrow {
+  color: #6b7d73;
+  font-weight: 900;
+  letter-spacing: .11em;
+}
+
+.metric-value {
+  margin-top: .15rem;
+  font-size: clamp(1.65rem, 2vw, 2.15rem);
+  line-height: 1.05;
+}
+
+.operations-layout {
+  background:
+    radial-gradient(circle at 74% 0%, rgba(221,251,234,.55), transparent 30%),
+    linear-gradient(180deg,#f7faf8 0%,#f3f7f4 100%);
+}
+
+.operations-sidebar {
+  box-shadow: 18px 0 50px rgba(3,21,13,.09);
+}
+
+.operations-sidebar .app-navigation {
+  gap: 3px;
+}
+
+.operations-sidebar .app-navigation button {
+  min-height: 44px;
+  border: 1px solid transparent;
+}
+
+.operations-sidebar .app-navigation button:hover {
+  transform: translateX(2px);
+}
+
+.operations-sidebar .app-navigation button[aria-current] {
+  border-color: rgba(124,244,178,.16);
+  box-shadow:
+    inset 0 0 0 1px rgba(124,244,178,.08),
+    0 8px 22px rgba(0,0,0,.10);
+}
+
+.operations-header {
+  min-height: 72px;
+  box-shadow: 0 1px 0 rgba(16,35,26,.04);
+}
+
+.operations-header-actions .deetoo-button {
+  min-height: 40px;
+}
+
+.operations-main {
+  width: 100%;
+  animation: deetoo-dashboard-enter 260ms ease-out both;
+}
+
+.operations-main > * + * {
+  margin-top: 1.25rem;
+}
+
+.operations-main .deetoo-card {
+  border-radius: 24px;
+}
+
+.operations-main .deetoo-card:hover {
+  box-shadow: var(--deetoo-dashboard-shadow-hover);
+}
+
+.command-grid {
+  align-items: start;
+}
+
+.data-table-wrap {
+  overflow: hidden;
+  border-radius: 22px;
+  background: rgba(255,255,255,.96);
+}
+
+.data-table {
+  min-width: 720px;
+}
+
+.data-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding-top: 14px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid #e6eee8;
+  font-weight: 900;
+}
+
+.data-table tbody tr {
+  transition: background-color 140ms ease;
+}
+
+.data-table tbody tr:hover {
+  background: #f8fcf9;
+}
+
+.data-table td {
+  color: #30483b;
+}
+
+.kitchen-board {
+  gap: 18px;
+  padding-bottom: 4px;
+}
+
+.kitchen-column {
+  min-height: 420px;
+  border: 1px solid rgba(16,35,26,.07);
+  background:
+    linear-gradient(180deg,rgba(241,248,243,.95),rgba(236,245,239,.88));
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.9);
+}
+
+.order-card {
+  border: 1px solid rgba(16,35,26,.07);
+  box-shadow: 0 10px 28px rgba(16,35,26,.055);
+  transition: transform 170ms ease, box-shadow 170ms ease;
+}
+
+.order-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 16px 34px rgba(16,35,26,.09);
+}
+
+.delivery-stops {
+  border: 1px solid rgba(16,35,26,.06);
+  background: linear-gradient(180deg,#f6fbf7,#eef6f1);
+}
+
+.record-details > div {
+  padding: .8rem .9rem;
+  border: 1px solid rgba(16,35,26,.06);
+  border-radius: 14px;
+  background: #fbfdfb;
+}
+
+.customer-shell {
+  min-height: 100dvh;
+  background:
+    radial-gradient(circle at 80% -10%,rgba(221,251,112,.20),transparent 24%),
+    radial-gradient(circle at 15% 10%,rgba(0,191,98,.07),transparent 24%),
+    linear-gradient(180deg,#fbfefc 0%,#f4f9f6 100%);
+}
+
+.customer-topbar {
+  box-shadow: 0 8px 28px rgba(16,35,26,.045);
+}
+
+.customer-shell main > section,
+.customer-shell main > div {
+  animation: deetoo-dashboard-enter 240ms ease-out both;
+}
+
+.customer-shell .deetoo-card {
+  border-radius: 24px;
+}
+
+.customer-shell .app-navigation {
+  width: fit-content;
+  padding: 5px;
+  border: 1px solid rgba(16,35,26,.07);
+  border-radius: 16px;
+  background: rgba(255,255,255,.72);
+  box-shadow: 0 8px 24px rgba(16,35,26,.04);
+  backdrop-filter: blur(14px);
+}
+
+.customer-shell .app-navigation button {
+  min-height: 40px;
+  padding: .55rem .9rem;
+}
+
+.customer-shell .bottom-navigation {
+  border-top-color: rgba(16,35,26,.08);
+}
+
+.restaurant-card {
+  background: rgba(255,255,255,.96);
+}
+
+.restaurant-card:hover {
+  box-shadow: var(--deetoo-dashboard-shadow-hover);
+}
+
+.restaurant-cover::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg,transparent 55%,rgba(5,26,16,.05));
+  pointer-events: none;
+}
+
+.portal-login-card {
+  backdrop-filter: blur(18px);
+}
+
+.deetoo-modal {
+  border: 1px solid rgba(16,35,26,.08);
+  background:
+    linear-gradient(180deg,rgba(255,255,255,.99),rgba(249,252,250,.98));
+  box-shadow: 0 32px 100px rgba(4,23,14,.22);
+}
+
+.deetoo-modal::backdrop {
+  background: rgba(5,20,13,.50);
+  backdrop-filter: blur(8px);
+}
+
+.deetoo-modal-header {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  margin: -1.5rem -1.5rem 1rem;
+  padding: 1.15rem 1.5rem;
+  border-bottom: 1px solid rgba(16,35,26,.07);
+  background: rgba(255,255,255,.92);
+  backdrop-filter: blur(16px);
+}
+
+.deetoo-empty-state {
+  border-color: rgba(16,35,26,.11);
+  background:
+    radial-gradient(circle at 50% 0,rgba(0,191,98,.08),transparent 42%),
+    rgba(248,252,249,.88);
+}
+
+.deetoo-empty-state-icon {
+  box-shadow: inset 0 0 0 1px rgba(0,191,98,.08);
+}
+
+.deetoo-error-state {
+  box-shadow: 0 8px 24px rgba(186,26,26,.06);
+}
+
+.deetoo-badge {
+  min-height: 24px;
+  letter-spacing: .01em;
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.35);
+}
+
+.deetoo-avatar {
+  box-shadow: 0 0 0 3px rgba(255,255,255,.8), 0 6px 18px rgba(16,35,26,.10);
+}
+
+.price-breakdown {
+  border-radius: 18px;
+  background: #f9fcfa;
+  padding: .45rem .9rem;
+  border: 1px solid rgba(16,35,26,.06);
+}
+
+.deetoo-timeline li {
+  position: relative;
+  padding-bottom: .3rem;
+}
+
+.deetoo-timeline li::before {
+  content: "";
+  position: absolute;
+  left: -1.9rem;
+  top: .35rem;
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background: #00bf62;
+  box-shadow: 0 0 0 5px #e1f8ec;
+}
+
+@keyframes deetoo-dashboard-enter {
+  from {
+    opacity: 0;
+    transform: translateY(7px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .operations-main .deetoo-card[data-interactive="true"],
+  .customer-shell .deetoo-card[data-interactive="true"] {
+    cursor: pointer;
+  }
+}
+
+@media (max-width: 1023px) {
+  .operations-layout {
+    background: #f5f9f6;
+  }
+  .operations-sidebar {
+    box-shadow: 0 10px 34px rgba(3,21,13,.12);
+  }
+  .operations-header {
+    min-height: 64px;
+  }
+  .operations-main {
+    padding: 18px;
+  }
+}
+
+@media (max-width: 639px) {
+  .deetoo-card {
+    border-radius: 20px;
+  }
+  .operations-main {
+    padding: 12px;
+  }
+  .operations-main > * + * {
+    margin-top: 1rem;
+  }
+  .operations-header-actions .deetoo-button {
+    min-height: 38px;
+    padding-inline: .75rem;
+  }
+  .customer-shell .app-navigation {
+    max-width: 100%;
+    overflow-x: auto;
+  }
+  .customer-shell .app-navigation button {
+    white-space: nowrap;
+  }
+  .deetoo-modal {
+    width: calc(100% - 1rem) !important;
+    max-height: calc(100dvh - 1rem) !important;
+    border-radius: 24px !important;
+  }
+}
