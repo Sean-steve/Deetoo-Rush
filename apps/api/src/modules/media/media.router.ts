@@ -53,7 +53,12 @@ async function assertPurposeScope(
   }
   if (normalized === 'MERCHANT_IMAGE') {
     const r = roles(req);
-    if (!r.has('merchant_owner') && !r.has('merchant_manager') && !r.has('admin')) {
+    if (
+      !r.has('merchant_owner') &&
+      !r.has('merchant_manager') &&
+      !r.has('admin') &&
+      !r.has('super_admin')
+    ) {
       throw new AppError(403, 'MEDIA_PURPOSE_FORBIDDEN', 'Merchant image upload requires merchant management access');
     }
   }
@@ -125,7 +130,8 @@ mediaRouter.get(
   async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
       const r = roles(req);
-      const privilegedPurposes: '*' | string[] = r.has('admin')
+      const privilegedPurposes: '*' | string[] =
+        r.has('super_admin') || r.has('admin')
         ? '*'
         : r.has('ops')
           ? ['DELIVERY_PROOF', 'DELIVERY_INCIDENT', 'RIDER_DOCUMENT', 'MERCHANT_IMAGE', 'SUPPORT_ATTACHMENT']
