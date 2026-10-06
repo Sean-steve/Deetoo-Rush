@@ -35,6 +35,10 @@ export interface RowAction {
   when?: (row: any) => boolean;
   schema?: { safeParse: (value: unknown) => any };
   requiredPermission?: string;
+  transformBody?: (
+    body: Record<string, unknown>,
+    row: any,
+  ) => Record<string, unknown>;
 }
 export interface TableConfig {
   title: string;
@@ -193,14 +197,17 @@ export function ResourceTable({ config }: { config: TableConfig }) {
               ? Number(values[field.key])
               : values[field.key];
       }
-      const parsed = target.action.schema?.safeParse(body);
+      const transformed = target.action.transformBody
+        ? target.action.transformBody(body, target.row)
+        : body;
+      const parsed = target.action.schema?.safeParse(transformed);
       if (parsed && !parsed.success)
         throw new Error(
           parsed.error.issues.map((i: any) => i.message).join(" "),
         );
       await apiClient.request(target.action.endpoint(target.row), {
         method: target.action.method || "POST",
-        body: JSON.stringify(parsed?.data || body),
+        body: JSON.stringify(parsed?.data || transformed),
       });
       setTarget(null);
       await resource.refresh();
