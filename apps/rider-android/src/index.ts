@@ -1,5 +1,7 @@
 import { NativeAuthSession, SecureCredentialStore } from '@deetoo/auth-native';
 
+declare const __DEV__: boolean;
+
 export interface RiderAndroidBootstrap {
   apiBaseUrl: string;
   secureStore: SecureCredentialStore;
@@ -41,7 +43,8 @@ export function isLocalDevelopmentApiOrigin(value: string): boolean {
 export function createRiderAndroidSession(config: RiderAndroidBootstrap): NativeAuthSession {
   const baseUrl = config.apiBaseUrl.replace(/\/$/, '');
   const isHttps = /^https:\/\//i.test(baseUrl);
-  const isDevelopment = process.env.NODE_ENV !== 'production';
+  const isDevelopment =
+    typeof __DEV__ !== 'undefined' && __DEV__;
 
   if (!isHttps && !(isDevelopment && isLocalDevelopmentApiOrigin(baseUrl))) {
     throw new Error(
