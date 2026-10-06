@@ -24,6 +24,7 @@ import { paymentRepository } from "../payment/payment.repository";
 import { paymentService } from "../payment/payment.service";
 import { orderRepository } from "../order/order.repository";
 import { orderEventBroker } from "../realtime/event-broker";
+import { mediaService } from "../media/media.service";
 
 export interface SupportViewer {
   id: string;
@@ -110,7 +111,7 @@ export class SupportService {
   public async getCaseById(
     caseId: string,
     viewer: SupportViewer,
-  ): Promise<{ case: SupportCase; notes: SupportCaseNote[] }> {
+  ): Promise<{ case: SupportCase; notes: SupportCaseNote[]; attachments: any[]; confirmations: any[] }> {
     const supportCase = await operationsRepository.getSupportCaseById(caseId);
     if (!supportCase) {
       throw new AppError(404, "CASE_NOT_FOUND", "Support case not found");
@@ -140,14 +141,22 @@ export class SupportService {
     if (viewer.roles.includes('support')) {
       await authRepository.createAuditLog({actor_user_id:viewer.id,actor_role:'support',action:'SUPPORT_CASE_READ' as any,resource_type:'SUPPORT_CASE',resource_id:caseId,reason:'Case investigation',metadata:{order_id:supportCase.order_id}});
     }
+    const participantScope = viewer.isStaff
+      ? undefined
+      : this.resolveParticipantType(supportCase, viewer);
     const notes = await operationsRepository.getSupportCaseNotes(
       caseId,
       viewer.isStaff,
+      participantScope,
     );
+    const attachments = await operationsRepository.getSupportCaseAttachments(caseId);
+    const confirmations = await operationsRepository.getSupportConfirmations(caseId);
 
     return {
       case: supportCase,
       notes,
+      attachments,
+      confirmations,
     };
   }
 
@@ -204,6 +213,7 @@ export class SupportService {
     author: SupportViewer,
     visibility: SupportNoteVisibility,
     body: string,
+    mediaIds: string[] = [],
   ): Promise<SupportCaseNote> {
     const supportCase = await operationsRepository.getSupportCaseById(caseId);
     if (!supportCase) {
@@ -212,10 +222,14 @@ export class SupportService {
 
     await this.getCaseById(caseId, author);
 
-    // Non-staff users can NEVER add INTERNAL notes
+    // Non-staff users can NEVER add internal or another party's private message.
     let noteVisibility = visibility;
+    const participantType = this.resolveParticipantType(supportCase, author);
     if (!author.isStaff) {
-      noteVisibility = "CUSTOMER_VISIBLE";
+      noteVisibility = "ALL_PARTICIPANTS";
+      if (!participantType) {
+        throw new AppError(403, "FORBIDDEN_CASE", "You are not a participant in this support case");
+      }
     }
 
     const note: SupportCaseNote = {
@@ -226,15 +240,40 @@ export class SupportService {
       author_name: author.name,
       visibility: noteVisibility,
       body,
+      message_type: "MESSAGE",
+      target_party:
+        noteVisibility === "CUSTOMER_ONLY" ? "CUSTOMER" :
+        noteVisibility === "MERCHANT_ONLY" ? "MERCHANT" :
+        noteVisibility === "RIDER_ONLY" ? "RIDER" : null,
       created_at: new Date().toISOString(),
     };
 
     const savedNote = await operationsRepository.addSupportCaseNote(note);
 
-    // If customer replied while case was waiting on customer, switch to IN_PROGRESS
-    if (!author.isStaff && supportCase.status === "WAITING_CUSTOMER") {
+    for (const mediaId of mediaIds) {
+      await mediaService.assertVerifiedOwnedMedia(
+        mediaId,
+        author.id,
+        "SUPPORT_ATTACHMENT",
+        caseId,
+      );
+      await operationsRepository.addSupportCaseAttachment({
+        id: randomUUID(),
+        case_id: caseId,
+        note_id: savedNote.id,
+        media_object_id: mediaId,
+        uploaded_by: author.id,
+        created_at: new Date().toISOString(),
+      });
+    }
+
+    // Any participant reply resumes the conversation while awaiting that party.
+    if (!author.isStaff && [
+      "WAITING_CUSTOMER","WAITING_MERCHANT","WAITING_RIDER",
+      "RESOLUTION_PROPOSED","PARTY_CONFIRMATION","DISPUTED"
+    ].includes(supportCase.status)) {
       await operationsRepository.updateSupportCase(caseId, {
-        status: "IN_PROGRESS",
+        status: "IN_CONVERSATION",
       });
     }
 
@@ -253,7 +292,7 @@ export class SupportService {
     const updated = await operationsRepository.updateSupportCase(caseId, {
       assigned_agent_id: agentId,
       assigned_agent_name: agentName,
-      status: "IN_PROGRESS",
+      status: "ASSIGNED",
     });
 
     if (!updated) {
@@ -300,17 +339,27 @@ export class SupportService {
     resolutionNotes: string,
     actor: SupportViewer,
   ): Promise<SupportCase> {
+    if (!actor.isStaff) {
+      throw new AppError(403, "STAFF_REQUIRED", "Only support staff can propose a resolution");
+    }
+    const supportCase = await operationsRepository.getSupportCaseById(caseId);
+    if (!supportCase) throw new AppError(404, "CASE_NOT_FOUND", "Support case not found");
+
     const now = new Date().toISOString();
+    const participants = this.requiredParticipants(supportCase);
+    await operationsRepository.resetSupportConfirmations(caseId, participants);
+
     const updated = await operationsRepository.updateSupportCase(caseId, {
-      status: "RESOLVED",
+      status: participants.length ? "PARTY_CONFIRMATION" : "RESOLUTION_PROPOSED",
       resolution_code: resolutionCode as any,
       resolution_notes: resolutionNotes,
-      resolved_at: now,
+      resolution_proposed_at: now,
+      resolved_at: null,
+      disputed_at: null,
+      closed_at: null,
     });
 
-    if (!updated) {
-      throw new AppError(404, "CASE_NOT_FOUND", "Support case not found");
-    }
+    if (!updated) throw new AppError(404, "CASE_NOT_FOUND", "Support case not found");
 
     await operationsRepository.addSupportCaseNote({
       id: randomUUID(),
@@ -318,12 +367,132 @@ export class SupportService {
       author_user_id: actor.id,
       author_role: actor.roles[0] || "support",
       author_name: actor.name,
-      visibility: "CUSTOMER_VISIBLE",
-      body: `Case marked as resolved: ${resolutionNotes}`,
+      visibility: "ALL_PARTICIPANTS",
+      body: resolutionNotes,
+      message_type: "RESOLUTION",
+      target_party: null,
       created_at: now,
     });
 
     return updated;
+  }
+
+  public async respondToResolution(
+    caseId: string,
+    actor: SupportViewer,
+    decision: "ACCEPTED" | "DISPUTED",
+    comment?: string,
+  ): Promise<SupportCase> {
+    const supportCase = await operationsRepository.getSupportCaseById(caseId);
+    if (!supportCase) throw new AppError(404, "CASE_NOT_FOUND", "Support case not found");
+    if (actor.isStaff) {
+      throw new AppError(403, "PARTICIPANT_REQUIRED", "Staff cannot confirm a participant's satisfaction");
+    }
+    const partyType = this.resolveParticipantType(supportCase, actor);
+    if (!partyType) throw new AppError(403, "FORBIDDEN_CASE", "You are not a participant in this support case");
+    const partyId =
+      partyType === "CUSTOMER" ? supportCase.customer_id :
+      partyType === "MERCHANT" ? supportCase.merchant_id :
+      supportCase.rider_id;
+    if (!partyId) throw new AppError(409, "PARTICIPANT_NOT_LINKED", "Participant is not linked to this case");
+
+    const confirmation = await operationsRepository.setSupportConfirmation({
+      caseId,
+      partyType,
+      partyId,
+      decision,
+      comment,
+      decidedBy: actor.id,
+    });
+    if (!confirmation) {
+      throw new AppError(409, "RESOLUTION_NOT_PROPOSED", "No pending resolution confirmation exists for this participant");
+    }
+
+    const now = new Date().toISOString();
+    await operationsRepository.addSupportCaseNote({
+      id: randomUUID(),
+      case_id: caseId,
+      author_user_id: actor.id,
+      author_role: actor.roles[0] || partyType.toLowerCase(),
+      author_name: actor.name,
+      visibility: "ALL_PARTICIPANTS",
+      body: comment || (decision === "ACCEPTED" ? "I accept this resolution." : "I do not accept this resolution."),
+      message_type: "SYSTEM",
+      target_party: null,
+      created_at: now,
+    });
+
+    if (decision === "DISPUTED") {
+      return (await operationsRepository.updateSupportCase(caseId, {
+        status: "DISPUTED",
+        disputed_at: now,
+        resolved_at: null,
+      }))!;
+    }
+
+    const confirmations = await operationsRepository.getSupportConfirmations(caseId);
+    const allAccepted = confirmations.length > 0 && confirmations.every((item:any)=>item.decision === "ACCEPTED");
+    if (allAccepted) {
+      return (await operationsRepository.updateSupportCase(caseId, {
+        status: "CLOSED",
+        resolved_at: now,
+        closed_at: now,
+      }))!;
+    }
+    return (await operationsRepository.updateSupportCase(caseId, {
+      status: "PARTY_CONFIRMATION",
+    }))!;
+  }
+
+  public async forceCloseCase(
+    caseId: string,
+    actor: SupportViewer,
+    reason: string,
+  ): Promise<SupportCase> {
+    if (!actor.roles.includes("super_admin")) {
+      throw new AppError(403, "SUPER_ADMIN_REQUIRED", "Only Super Admin can override participant confirmation");
+    }
+    if (!reason?.trim()) throw new AppError(400, "REASON_REQUIRED", "Override close requires an audit reason");
+    const now = new Date().toISOString();
+    const updated = await operationsRepository.updateSupportCase(caseId, {
+      status: "CLOSED",
+      resolved_at: now,
+      closed_at: now,
+    });
+    if (!updated) throw new AppError(404, "CASE_NOT_FOUND", "Support case not found");
+    await operationsRepository.addSupportCaseNote({
+      id: randomUUID(),
+      case_id: caseId,
+      author_user_id: actor.id,
+      author_role: "super_admin",
+      author_name: actor.name,
+      visibility: "INTERNAL",
+      body: `Super Admin closure override: ${reason}`,
+      message_type: "SYSTEM",
+      target_party: null,
+      created_at: now,
+    });
+    return updated;
+  }
+
+  private resolveParticipantType(
+    supportCase: SupportCase,
+    viewer: SupportViewer,
+  ): "CUSTOMER" | "MERCHANT" | "RIDER" | null {
+    if (supportCase.customer_id && supportCase.customer_id === viewer.id) return "CUSTOMER";
+    if (supportCase.merchant_id && viewer.merchant_ids?.includes(supportCase.merchant_id)) return "MERCHANT";
+    if (supportCase.rider_id && (viewer.rider_id === supportCase.rider_id || viewer.id === supportCase.rider_id)) return "RIDER";
+    return null;
+  }
+
+  private requiredParticipants(
+    supportCase: SupportCase,
+  ): Array<{party_type:"CUSTOMER"|"MERCHANT"|"RIDER";party_id:string}> {
+    const result: Array<{party_type:"CUSTOMER"|"MERCHANT"|"RIDER";party_id:string}> = [];
+    if (supportCase.customer_id) result.push({party_type:"CUSTOMER",party_id:supportCase.customer_id});
+    if (supportCase.merchant_id) result.push({party_type:"MERCHANT",party_id:supportCase.merchant_id});
+    if (supportCase.rider_id) result.push({party_type:"RIDER",party_id:supportCase.rider_id});
+    return result;
   }
 
   /**
