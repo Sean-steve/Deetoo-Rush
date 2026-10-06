@@ -6681,13 +6681,13 @@ paths:
       summary: Phase 2 task-oriented Finance overview
       tags: [Finance]
       responses:
-        '200': { description: Finance balances, queues and automation health }
+        '200': { description: "Finance balances, queues and automation health" }
   /finance/ops/payments:
     get:
       summary: Phase 2 payment and refund operational view
       tags: [Finance]
       responses:
-        '200': { description: Payments with provider, internal and reconciliation state }
+        '200': { description: "Payments with provider, internal and reconciliation state" }
   /finance/ops/journal:
     get:
       summary: Phase 2 human-readable accounting journal
@@ -6699,7 +6699,7 @@ paths:
       summary: Phase 2 reconciliation dashboard
       tags: [Finance]
       responses:
-        '200': { description: Reconciliation counts, exceptions and automation history }
+        '200': { description: "Reconciliation counts, exceptions and automation history" }
   /finance/ops/reconciliation/run:
     post:
       summary: Phase 2 authorized reconciliation run-now control
