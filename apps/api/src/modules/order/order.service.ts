@@ -33,6 +33,7 @@ import { customerRepository } from '../customer/customer.repository';
 import { merchantService } from '../merchant/merchant.service';
 import { orderEventBroker } from '../realtime/event-broker';
 import { dispatchService } from './dispatch.service';
+import { cancellationPolicyService } from '../trust/cancellation-policy.service';
 
 export class OrderService {
   /**
@@ -342,6 +343,35 @@ export class OrderService {
 
     if (order.customer_id !== customerId) {
       throw new AppError(403, 'FORBIDDEN_OPERATION', 'You can only cancel your own orders');
+    }
+
+    const assessment = await cancellationPolicyService.assessCustomerCancellation(
+      {
+        id: customerId,
+        name: order.customer_name || 'Customer',
+        roles: ['customer'] as any,
+        isStaff: false,
+        merchant_ids: [],
+      },
+      orderId,
+      reasonCode,
+      note,
+    );
+    if (assessment.outcome === 'SUPPORT_REVIEW') {
+      throw new AppError(
+        409,
+        'CANCELLATION_REVIEW_REQUIRED',
+        'Fulfilment has started, so Support must review the operational and financial consequences before cancellation.',
+        { cancellation_assessment: assessment },
+      );
+    }
+    if (assessment.outcome === 'NOT_CANCELLABLE') {
+      throw new AppError(
+        409,
+        'ORDER_NOT_CANCELLABLE',
+        'This order is already terminal and cannot be cancelled.',
+        { cancellation_assessment: assessment },
+      );
     }
 
     const transitionResult = orderStateMachine.transition(order, {
