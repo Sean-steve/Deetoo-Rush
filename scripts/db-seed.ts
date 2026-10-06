@@ -26,6 +26,7 @@ export const SYSTEM_ROLES = [
   { id: '11111111-1111-1111-1111-111111111105', code: 'finance', name: 'Finance Controller' },
   { id: '11111111-1111-1111-1111-111111111106', code: 'ops', name: 'Marketplace Operations' },
   { id: '11111111-1111-1111-1111-111111111107', code: 'admin', name: 'Platform Administrator' },
+  { id: '11111111-1111-1111-1111-111111111111', code: 'super_admin', name: 'Super Administrator' },
 ];
 
 // Matches the real LedgerAccountType enum (packages/types/src/index.ts) -- the previous list here
