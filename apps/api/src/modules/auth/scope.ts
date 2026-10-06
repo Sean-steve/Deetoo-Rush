@@ -23,7 +23,7 @@ export async function merchantScope(
   managerAllowed = false,
   operationalRead = true,
 ) {
-  if (hasAnyRole(user, operationalRead ? ["admin", "ops"] : ["admin"])) return;
+  if (hasAnyRole(user, operationalRead ? ["super_admin", "admin", "ops"] : ["super_admin", "admin"])) return;
   if (!hasAnyRole(user, merchantRoles)) deny();
   const memberships = await merchantRepository.getMembershipsForUser(user.id);
   if (
@@ -64,8 +64,8 @@ export async function orderScope(
     hasAnyRole(
       user,
       payments
-        ? ["admin", "ops", "support", "finance"]
-        : ["admin", "ops", "support"],
+        ? ["super_admin", "admin", "ops", "support", "finance"]
+        : ["super_admin", "admin", "ops", "support"],
     )
   )
     return order;
