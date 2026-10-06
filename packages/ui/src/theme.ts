@@ -21,4 +21,6 @@ export function installTheme(root: HTMLElement) {
   }
   for (const [name, value] of Object.entries(tokens.layout))
     root.style.setProperty(`--deetoo-layout-${name}`, value);
+  for (const [name, value] of Object.entries(tokens.zIndex))
+    root.style.setProperty(`--deetoo-z-${name}`, String(value));
 }
