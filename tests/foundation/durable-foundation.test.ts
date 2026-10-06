@@ -423,7 +423,7 @@ test('MFA uses RFC vectors and encrypts credentials; replay, expiry and privileg
   const http=await import('node:http');
   const password='Foundation-Mfa-Only-294!';
   const admin=await authService.registerCustomer({name:'MFA administrator',email:randomUUID()+'@foundation.test',password});
-  await authRepository.setUserRoles(admin.user.id,[UserRole.ADMIN]);
+  await authRepository.setUserRoles(admin.user.id,[UserRole.SUPER_ADMIN]);
   const other=await authService.registerCustomer({name:'Target',email:randomUUID()+'@foundation.test',password});
   const server=http.createServer(createApp());await new Promise<void>(r=>server.listen(0,'127.0.0.1',r));
   const base=`http://127.0.0.1:${(server.address() as any).port}/api/v1`;
