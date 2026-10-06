@@ -96,6 +96,9 @@ export class AutomationService {
           JOIN service_zones sz
             ON sz.status='ACTIVE'
            AND sz.boundary IS NOT NULL
+          JOIN operating_counties county
+            ON county.code=sz.county_code
+           AND county.enabled=TRUE
            AND ST_Covers(
              sz.boundary,
              ST_SetSRID(ST_Point(b.longitude,b.latitude),4326)
@@ -124,6 +127,9 @@ export class AutomationService {
           JOIN service_zones sz
             ON sz.status='ACTIVE'
            AND sz.boundary IS NOT NULL
+          JOIN operating_counties county
+            ON county.code=sz.county_code
+           AND county.enabled=TRUE
            AND ST_Covers(
              sz.boundary,
              ST_SetSRID(ST_Point(rp.last_known_longitude,rp.last_known_latitude),4326)
