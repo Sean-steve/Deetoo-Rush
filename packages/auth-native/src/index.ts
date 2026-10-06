@@ -20,11 +20,13 @@ export class NativeAuthSession {
     baseUrl: string,
     clientApp: 'rider' | 'customer',
     private readonly secureStore: SecureCredentialStore,
+    requestIdFactory?: () => string,
   ) {
     this.client = new DeetooApiClient({
       baseUrl,
       clientApp,
       authTransport: 'bearer',
+      requestIdFactory,
       getRefreshToken: () => this.secureStore.getRefreshToken(),
       onRefreshCredentials: async ({ refreshToken }) => {
         if (refreshToken) await this.secureStore.setRefreshToken(refreshToken);

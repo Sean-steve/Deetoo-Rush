@@ -84,14 +84,22 @@ export function calculateDistanceMeters(
 // ==========================================
 
 export function generateId(_prefix = 'id'): string {
-  const runtimeCrypto = (globalThis as any)?.crypto;
-  if (runtimeCrypto?.randomUUID) {
-    return runtimeCrypto.randomUUID();
+  try {
+    const root = globalThis as Record<string, unknown>;
+    if (Object.prototype.hasOwnProperty.call(root, 'crypto')) {
+      const runtimeCrypto = Reflect.get(root, 'crypto') as
+        | { randomUUID?: () => string }
+        | undefined;
+      if (typeof runtimeCrypto?.randomUUID === 'function') {
+        return runtimeCrypto.randomUUID();
+      }
+    }
+  } catch {
+    // React Native / Hermes may not expose Web Crypto at all.
   }
 
-  // React Native / Hermes (including Expo Go) may not expose Web Crypto.
-  // These IDs are correlation/entity identifiers, not authentication secrets.
-  // Server runtimes still take the cryptographically secure branch above.
+  // Correlation/entity UUID fallback for runtimes without Web Crypto.
+  // Authentication secrets continue to use server-side cryptographic utilities.
   const bytes = Array.from({ length: 16 }, () => Math.floor(Math.random() * 256));
   bytes[6] = (bytes[6] & 0x0f) | 0x40;
   bytes[8] = (bytes[8] & 0x3f) | 0x80;

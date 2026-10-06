@@ -52,6 +52,7 @@ export interface ApiClientConfig {
   getRefreshToken?: () => Promise<string | null>;
   onRefreshCredentials?: (credentials: { accessToken: string; refreshToken?: string }) => Promise<void> | void;
   authTransport?: "cookie" | "bearer";
+  requestIdFactory?: () => string;
 }
 
 export class DeetooApiClient {
@@ -65,6 +66,7 @@ export class DeetooApiClient {
   private onTokenRefreshed?: (newToken: string) => void;
   private getRefreshTokenProvider?: () => Promise<string | null>;
   private onRefreshCredentials?: (credentials: { accessToken: string; refreshToken?: string }) => Promise<void> | void;
+  private requestIdFactory: () => string;
 
   // Refresh queue locking to avoid stampede on 401
   private isRefreshing = false;
@@ -81,6 +83,7 @@ export class DeetooApiClient {
     this.onTokenRefreshed = config.onTokenRefreshed;
     this.getRefreshTokenProvider = config.getRefreshToken;
     this.onRefreshCredentials = config.onRefreshCredentials;
+    this.requestIdFactory = config.requestIdFactory || generateRequestId;
   }
 
   public setAccessToken(token: string | null) {
@@ -118,7 +121,7 @@ export class DeetooApiClient {
       ? endpoint
       : `${this.baseUrl}${endpoint.startsWith("/") ? "" : "/"}${endpoint}`;
 
-    const requestId = generateRequestId();
+    const requestId = this.requestIdFactory();
     const headers = new Headers(options.headers || {});
     headers.set("Accept", "application/json");
     headers.set("X-Request-Id", requestId);
