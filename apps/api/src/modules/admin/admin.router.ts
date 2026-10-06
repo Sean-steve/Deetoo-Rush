@@ -1413,6 +1413,49 @@ adminRouter.get(
 );
 
 /**
+ * GET /api/v1/admin/dispatch/deliveries/:id/eligible-riders
+ * Ranked Riders that currently pass the same dispatch eligibility gates.
+ */
+adminRouter.get(
+  '/dispatch/deliveries/:id/eligible-riders',
+  requireRole(UserRole.ADMIN, UserRole.OPS, UserRole.SUPPORT),
+  async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      const delivery = await deliveryRepository.findById(req.params.id);
+      if (!delivery) {
+        throw new AppError(404, 'DELIVERY_NOT_FOUND', 'Delivery not found');
+      }
+
+      const candidates = await dispatchService.findAndRankCandidates(
+        delivery.pickup_location,
+        Math.max(
+          delivery.current_search_radius_meters || config.dispatch.initialSearchRadius,
+          config.dispatch.maxSearchRadius,
+        ),
+      );
+
+      res.json({
+        data: candidates.map((candidate) => ({
+          value: candidate.riderId,
+          label:
+            `${candidate.riderName || candidate.riderId} · ` +
+            `${Math.max(0.1, candidate.distanceToPickupMeters / 1000).toFixed(1)} km · ` +
+            `${Math.max(1, Math.round(candidate.estimatedPickupEtaSeconds / 60))} min ETA`,
+          rider_id: candidate.riderId,
+          rider_name: candidate.riderName,
+          distance_meters: candidate.distanceToPickupMeters,
+          eta_seconds: candidate.estimatedPickupEtaSeconds,
+          score: candidate.score,
+        })),
+        requestId: (req as any).requestId,
+      });
+    } catch (err) {
+      next(err);
+    }
+  },
+);
+
+/**
  * POST /api/v1/admin/dispatch/deliveries/:id/assign
  * Operations manual courier assignment
  */
