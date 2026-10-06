@@ -73,6 +73,7 @@ export function RiderNativeApp() {
   const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const [pushReady, setPushReady] = useState(false);
   const [status, setStatus] = useState<any>(null);
   const [offer, setOffer] = useState<any>(null);
   const [active, setActive] = useState<any>(null);
@@ -132,14 +133,11 @@ export function RiderNativeApp() {
   }, [user, refresh]);
 
   useEffect(() => {
-    if (!user) return;
-    void registerRiderPushDevice(client).catch((error) => {
-      setMessage(`Push setup: ${errorMessage(error)}`);
-    });
+    if (!user || !pushReady) return;
     return subscribeToOfferNotifications(() => {
       void refresh();
     });
-  }, [client, refresh, user]);
+  }, [pushReady, refresh, user]);
 
   useEffect(() => {
     if (status?.profile?.workStatus && status.profile.workStatus !== 'OFFLINE') {
@@ -148,6 +146,16 @@ export function RiderNativeApp() {
       );
     }
   }, [status?.profile?.workStatus]);
+
+  async function enablePushNotifications() {
+    if (pushReady) return;
+    try {
+      await registerRiderPushDevice(client);
+      setPushReady(true);
+    } catch (error) {
+      setMessage(`Push setup: ${errorMessage(error)}`);
+    }
+  }
 
   async function perform(action: () => Promise<unknown>, success?: string) {
     setBusy(true);
@@ -171,7 +179,6 @@ export function RiderNativeApp() {
         throw new Error('This account is not a Rider account.');
       }
       setUser(authenticated);
-      await registerRiderPushDevice(client).catch(() => undefined);
     });
   }
 
@@ -186,6 +193,7 @@ export function RiderNativeApp() {
       setActive(null);
       setDetail(null);
       setEarnings(null);
+      setPushReady(false);
     } finally {
       setBusy(false);
     }
@@ -211,6 +219,7 @@ export function RiderNativeApp() {
       }),
     });
     await startRiderLocationService();
+    void enablePushNotifications();
   }
 
   async function goOffline() {
@@ -336,10 +345,20 @@ export function RiderNativeApp() {
           <Text style={styles.muted}>
             GPS: {status?.locationFreshness?.isStale ? 'stale / unavailable' : 'fresh'}
           </Text>
+          <Text style={styles.muted}>
+            Push notifications: {pushReady ? 'ready' : 'not enabled'}
+          </Text>
           {workStatus === 'OFFLINE' ? (
             <ActionButton label={busy ? 'Starting…' : 'Go online'} disabled={busy} onPress={() => void perform(goOnline, 'You are online.')} />
           ) : (
             <ActionButton label={busy ? 'Stopping…' : 'Go offline'} disabled={busy || workStatus === 'BUSY'} danger onPress={() => void perform(goOffline, 'You are offline.')} />
+          )}
+          {!pushReady && (
+            <ActionButton
+              label="Enable delivery notifications"
+              disabled={busy}
+              onPress={() => void enablePushNotifications()}
+            />
           )}
         </View>
 
