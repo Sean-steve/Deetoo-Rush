@@ -691,14 +691,24 @@ export class OperationsRepository {
     return note;
   }
 
-  public async getSupportCaseNotes(caseId: string, isInternalViewer: boolean): Promise<SupportCaseNote[]> {
+  public async getSupportCaseNotes(
+    caseId: string,
+    isInternalViewer: boolean,
+    participantScope?: 'CUSTOMER' | 'MERCHANT' | 'RIDER' | null,
+  ): Promise<SupportCaseNote[]> {
     try {
       let query = `SELECT * FROM support_case_notes WHERE case_id = $1`;
+      const params: any[] = [caseId];
       if (!isInternalViewer) {
-        query += ` AND visibility = 'CUSTOMER_VISIBLE'`;
+        const allowed = ['ALL_PARTICIPANTS'];
+        if (participantScope === 'CUSTOMER') allowed.push('CUSTOMER_VISIBLE','CUSTOMER_ONLY');
+        if (participantScope === 'MERCHANT') allowed.push('MERCHANT_ONLY');
+        if (participantScope === 'RIDER') allowed.push('RIDER_ONLY');
+        query += ` AND visibility = ANY($2::varchar[])`;
+        params.push(allowed);
       }
       query += ` ORDER BY created_at ASC`;
-      const res = await pool.query(query, [caseId]);
+      const res = await pool.query(query, params);
       if (res.rows && res.rows.length > 0) {
         return res.rows.map((r: any) => ({
           id: r.id,
@@ -719,10 +729,16 @@ export class OperationsRepository {
     }
 
     const notes = config.storage.mode === "memory" ? this.supportCaseNotes.get(caseId) || [] : [];
-    if (isInternalViewer) {
-      return notes;
-    }
-    return notes.filter((n) => n.visibility === 'CUSTOMER_VISIBLE');
+    if (isInternalViewer) return notes;
+    return notes.filter((n) => {
+      if (n.visibility === 'ALL_PARTICIPANTS') return true;
+      if (participantScope === 'CUSTOMER') {
+        return ['CUSTOMER_VISIBLE','CUSTOMER_ONLY'].includes(n.visibility);
+      }
+      if (participantScope === 'MERCHANT') return n.visibility === 'MERCHANT_ONLY';
+      if (participantScope === 'RIDER') return n.visibility === 'RIDER_ONLY';
+      return false;
+    });
   }
 
   private mapSupportCase(row: any): SupportCase {
