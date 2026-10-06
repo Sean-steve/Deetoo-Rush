@@ -646,6 +646,9 @@ export class OperationsRepository {
           updated.assigned_agent_name || null,
           updated.refund_id || null,
           updated.resolved_at || null,
+          (updated as any).resolution_proposed_at || null,
+          (updated as any).disputed_at || null,
+          (updated as any).closed_at || null,
           updated.updated_at,
           id,
         ]

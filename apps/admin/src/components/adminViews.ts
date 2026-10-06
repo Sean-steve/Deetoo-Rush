@@ -620,7 +620,7 @@ export const adminViews: Record<string, TableConfig> = {
   },
   onboarding: {
     title: "Merchant onboarding pipeline",
-    endpoint: "/admin/merchants/onboarding",
+    endpoint: "/admin/merchant-onboarding",
     columns: [
       { key: "display_name", label: "Merchant" },
       { key: "stage", label: "Stage" },
