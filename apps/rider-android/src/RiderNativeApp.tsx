@@ -123,6 +123,7 @@ export function RiderNativeApp() {
   const [incidentNote, setIncidentNote] = useState('');
   const [supportOpen, setSupportOpen] = useState(false);
   const [supportCases, setSupportCases] = useState<any[]>([]);
+  const [notifications, setNotifications] = useState<any[]>([]);
   const [supportDetail, setSupportDetail] = useState<any>(null);
   const [supportSubject, setSupportSubject] = useState('');
   const [supportDescription, setSupportDescription] = useState('');
@@ -144,6 +145,7 @@ export function RiderNativeApp() {
       setOffer(activeOffer.data);
       setActive(activeDelivery.data);
       setEarnings(riderEarnings.data);
+      void loadNotifications().catch(() => undefined);
       const deliveryId = activeDelivery.data?.delivery?.id;
       if (deliveryId) {
         const deliveryDetail = await client.request<any>(
@@ -240,6 +242,7 @@ export function RiderNativeApp() {
       setDetail(null);
       setEarnings(null);
       setSupportCases([]);
+      setNotifications([]);
       setSupportDetail(null);
       setSupportOpen(false);
       setPushReady(false);
@@ -274,6 +277,19 @@ export function RiderNativeApp() {
   async function goOffline() {
     await client.request('/rider/availability/offline', { method: 'POST' });
     await stopRiderLocationService();
+  }
+
+  async function loadNotifications() {
+    const response = await client.request<any>('/support/notifications');
+    setNotifications(response.data?.notifications || []);
+  }
+
+  async function markNotificationRead(notificationId: string) {
+    await client.request(
+      `/support/notifications/${encodeURIComponent(notificationId)}/read`,
+      { method: 'POST' },
+    );
+    await loadNotifications();
   }
 
   async function loadSupportCases() {
@@ -689,6 +705,47 @@ export function RiderNativeApp() {
             </Text>
           </View>
         )}
+
+        <View style={styles.card}>
+          <Text style={styles.sectionTitle}>Notifications</Text>
+          <Text style={styles.muted}>
+            Persistent DeeToo updates stay here; push is reserved for urgent background events.
+          </Text>
+          {notifications.length === 0 ? (
+            <Text style={styles.muted}>No notifications.</Text>
+          ) : (
+            notifications.slice(0, 5).map((notification: any) => (
+              <Pressable
+                key={notification.id}
+                style={styles.supportCaseButton}
+                onPress={() => {
+                  if (!notification.read_at) {
+                    void markNotificationRead(notification.id).catch((error) =>
+                      setMessage(errorMessage(error)),
+                    );
+                  }
+                }}
+              >
+                <Text style={styles.supportCaseTitle}>
+                  {notification.subject || 'DeeToo update'}
+                  {!notification.read_at ? ' · New' : ''}
+                </Text>
+                <Text style={styles.muted}>
+                  {notification.payload?.message ||
+                    notification.payload?.description ||
+                    notification.template_code}
+                </Text>
+              </Pressable>
+            ))
+          )}
+          <ActionButton
+            label="Refresh notifications"
+            disabled={busy}
+            onPress={() =>
+              void loadNotifications().catch((error) => setMessage(errorMessage(error)))
+            }
+          />
+        </View>
 
         <View style={styles.card}>
           <Text style={styles.sectionTitle}>Support</Text>
