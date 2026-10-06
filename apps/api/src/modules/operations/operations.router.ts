@@ -934,6 +934,37 @@ export const participantSupportRouter = Router();
 
 participantSupportRouter.use(requireAuth);
 
+participantSupportRouter.post(
+  "/cases",
+  async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      const viewer = { ...buildViewer(req), isStaff: false };
+      const isRider = viewer.roles.includes("rider");
+      const isMerchant = viewer.roles.some((role: any) =>
+        ["merchant","merchant_owner","merchant_manager","merchant_staff"].includes(role),
+      );
+      const created = await supportService.createCase({
+        customer_id: !isRider && !isMerchant ? viewer.id : undefined,
+        merchant_id: isMerchant ? viewer.merchant_ids?.[0] : undefined,
+        rider_id: isRider ? viewer.rider_id : undefined,
+        order_id: req.body.order_id || undefined,
+        delivery_id: req.body.delivery_id || undefined,
+        payment_id: req.body.payment_id || undefined,
+        category: req.body.category || "OTHER",
+        priority: req.body.priority || "MEDIUM",
+        subject: String(req.body.subject || "Support request"),
+        description: String(req.body.description || ""),
+        creator: {
+          id: viewer.id,
+          name: viewer.name,
+          role: viewer.roles[0] || "customer",
+        },
+      });
+      res.status(201).json({ success: true, data: created });
+    } catch (err) { next(err); }
+  },
+);
+
 participantSupportRouter.get(
   "/cases",
   async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
