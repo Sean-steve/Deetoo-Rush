@@ -50,6 +50,7 @@ const ROUTERS: RouterConfig[] = [
   { file: 'apps/api/src/modules/public/public.router.ts', varName: 'publicRouter', prefix: '/public' },
   { file: 'apps/api/src/modules/realtime/realtime.router.ts', varName: 'realtimeRouter', prefix: '/realtime' },
   { file: 'apps/api/src/modules/rider/rider.router.ts', varName: 'riderRouter', prefix: '/rider' },
+  { file: 'apps/api/src/modules/trust/trust.router.ts', varName: 'trustRouter', prefix: '/trust' },
 ];
 
 interface Route {
