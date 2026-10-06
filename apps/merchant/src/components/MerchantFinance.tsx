@@ -1,4 +1,5 @@
 import React from "react";
+import { useAuth } from "../../../../packages/auth/src/react";
 import {
   Card,
   Price,
@@ -10,6 +11,7 @@ import {
   PageHeading,
   ResourceState,
   StatusBadge,
+  errorMessage,
   useResource,
 } from "../../../../packages/ui/src/workflows";
 
@@ -136,12 +138,33 @@ function SettlementBreakdown({ settlement }: { settlement: Settlement }) {
 }
 
 export function MerchantFinance({ merchantId }: { merchantId: string }) {
+  const { apiClient } = useAuth();
   const statement = useResource<any>(
     `/finance/merchant/statement?merchant_id=${encodeURIComponent(merchantId)}`,
   );
   const [statusFilter, setStatusFilter] = React.useState<string>("ALL");
   const [fromDate, setFromDate] = React.useState<string>("");
   const [toDate, setToDate] = React.useState<string>("");
+  const [reviewReason, setReviewReason] = React.useState("");
+  const [reviewBusy, setReviewBusy] = React.useState(false);
+  const [reviewMessage, setReviewMessage] = React.useState<string | null>(null);
+
+  async function requestCommercialReview() {
+    setReviewBusy(true);
+    setReviewMessage(null);
+    try {
+      await apiClient.request("/finance/ops/commercial/review-requests", {
+        method: "POST",
+        body: JSON.stringify({ reason: reviewReason }),
+      });
+      setReviewReason("");
+      setReviewMessage("Commercial review requested. Finance will review your current terms.");
+    } catch (cause) {
+      setReviewMessage(errorMessage(cause));
+    } finally {
+      setReviewBusy(false);
+    }
+  }
 
   const settlements: Settlement[] = statement.data?.settlements ?? [];
   const filtered = settlements.filter((s) => {
@@ -176,6 +199,37 @@ export function MerchantFinance({ merchantId }: { merchantId: string }) {
                 />
               )}
             </div>
+
+            <Card className="mt-4">
+              <h3 className="font-bold text-slate-900">Commercial terms</h3>
+              <p className="mt-1 text-sm text-slate-600">
+                Your current commission rate is visible above. Merchant users cannot change this
+                rate directly; negotiated changes are effective-dated and controlled by Finance.
+              </p>
+              <label className="mt-3 block text-sm font-medium text-slate-700">
+                Request a commercial review
+                <textarea
+                  className="mt-1 min-h-24 w-full rounded-lg border border-slate-300 p-2 text-sm"
+                  value={reviewReason}
+                  onChange={(event) => setReviewReason(event.target.value)}
+                  placeholder="Explain why you would like Finance to review the commercial terms."
+                />
+              </label>
+              <div className="mt-3 flex flex-wrap items-center gap-3">
+                <Button
+                  onClick={() => void requestCommercialReview()}
+                  isLoading={reviewBusy}
+                  disabled={reviewReason.trim().length < 10}
+                >
+                  Request review
+                </Button>
+                {reviewMessage && (
+                  <span role="status" className="text-sm text-slate-600">
+                    {reviewMessage}
+                  </span>
+                )}
+              </div>
+            </Card>
 
             <div className="flex flex-wrap gap-3 items-end mt-5">
               <label className="text-sm">
