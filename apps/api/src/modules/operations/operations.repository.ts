@@ -48,6 +48,7 @@ export class OperationsRepository {
   public incidentTimeline: Map<string, IncidentTimelineEntry[]> = new Map(); // incident_id -> entries
   public supportCases: Map<string, SupportCase> = new Map();
   public supportCaseNotes: Map<string, SupportCaseNote[]> = new Map(); // case_id -> notes
+  public supportCaseConfirmations: Map<string, any[]> = new Map(); // case_id -> participant decisions
   public notifications: Map<string, NotificationRecord> = new Map();
   public deadLetterJobs: Map<string, DeadLetterJob> = new Map();
   public riskSignals: Map<string, RiskSignal> = new Map();
@@ -86,6 +87,7 @@ export class OperationsRepository {
     this.incidentTimeline.clear();
     this.supportCases.clear();
     this.supportCaseNotes.clear();
+    this.supportCaseConfirmations.clear();
     this.notifications.clear();
     this.deadLetterJobs.clear();
     this.riskSignals.clear();
@@ -805,7 +807,24 @@ export class OperationsRepository {
     caseId: string,
     participants: Array<{party_type:'CUSTOMER'|'MERCHANT'|'RIDER'; party_id:string}>,
   ): Promise<any[]> {
-    if (config.storage.mode !== 'postgres') return [];
+    if (config.storage.mode !== 'postgres') {
+      allowMemoryAdapter();
+      const now = new Date().toISOString();
+      const confirmations = participants.map((participant) => ({
+        id: durableEntityId(),
+        case_id: caseId,
+        party_type: participant.party_type,
+        party_id: participant.party_id,
+        decision: 'PENDING',
+        comment: null,
+        decided_by: null,
+        decided_at: null,
+        created_at: now,
+        updated_at: now,
+      }));
+      this.supportCaseConfirmations.set(caseId, confirmations);
+      return confirmations.map((item) => ({ ...item }));
+    }
     const client = await pool.connect();
     try {
       await client.query('BEGIN');
@@ -829,7 +848,10 @@ export class OperationsRepository {
   }
 
   public async getSupportConfirmations(caseId: string): Promise<any[]> {
-    if (config.storage.mode !== 'postgres') return [];
+    if (config.storage.mode !== 'postgres') {
+      allowMemoryAdapter();
+      return (this.supportCaseConfirmations.get(caseId) || []).map((item) => ({ ...item }));
+    }
     const res = await pool.query(
       'SELECT * FROM support_case_confirmations WHERE case_id=$1 ORDER BY party_type',
       [caseId],
@@ -850,7 +872,26 @@ export class OperationsRepository {
     comment?:string;
     decidedBy:string;
   }): Promise<any> {
-    if (config.storage.mode !== 'postgres') return input;
+    if (config.storage.mode !== 'postgres') {
+      allowMemoryAdapter();
+      const confirmations = this.supportCaseConfirmations.get(input.caseId) || [];
+      const index = confirmations.findIndex(
+        (item) => item.party_type === input.partyType && item.party_id === input.partyId,
+      );
+      if (index < 0) return null;
+      const now = new Date().toISOString();
+      const updated = {
+        ...confirmations[index],
+        decision: input.decision,
+        comment: input.comment || null,
+        decided_by: input.decidedBy,
+        decided_at: now,
+        updated_at: now,
+      };
+      confirmations[index] = updated;
+      this.supportCaseConfirmations.set(input.caseId, confirmations);
+      return { ...updated };
+    }
     const res = await pool.query(
       `UPDATE support_case_confirmations
        SET decision=$1,comment=$2,decided_by=$3,decided_at=NOW(),updated_at=NOW()
