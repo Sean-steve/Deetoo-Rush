@@ -200,6 +200,7 @@ export const adminViews: Record<string, TableConfig> = {
     columns: [
       { key: "order_number", label: "Order" },
       { key: "provider", label: "Provider" },
+      { key: "provider_status", label: "Provider status" },
       { key: "provider_reference", label: "Provider reference" },
       { key: "internal_status", label: "Internal status" },
       { key: "reconciliation_status", label: "Reconciliation" },
