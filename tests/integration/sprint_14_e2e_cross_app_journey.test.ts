@@ -330,7 +330,7 @@ test("--- SPRINT 14: COMPLETE 4-APP CROSS-JOURNEY (CUSTOMER, MERCHANT, RIDER, AD
   );
   assert.equal(proposedCase.status, "PARTY_CONFIRMATION");
 
-  const resolvedCase = await supportService.respondToResolution(
+  const customerConfirmed = await supportService.respondToResolution(
     supportCase.id,
     {
       id: customerId,
@@ -341,6 +341,20 @@ test("--- SPRINT 14: COMPLETE 4-APP CROSS-JOURNEY (CUSTOMER, MERCHANT, RIDER, AD
     },
     "ACCEPTED",
     "The electronic invoice resolves my request.",
+  );
+  assert.equal(customerConfirmed.status, "PARTY_CONFIRMATION");
+
+  const resolvedCase = await supportService.respondToResolution(
+    supportCase.id,
+    {
+      id: "merchant_owner_phase14",
+      name: "Merchant Owner",
+      roles: ["merchant_owner"],
+      isStaff: false,
+      merchant_ids: [merchantId],
+    },
+    "ACCEPTED",
+    "We confirm the invoice was supplied.",
   );
   assert.equal(resolvedCase.status, "CLOSED");
 });
