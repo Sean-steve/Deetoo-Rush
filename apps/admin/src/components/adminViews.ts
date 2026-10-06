@@ -50,7 +50,15 @@ export const adminViews: Record<string, TableConfig> = {
       {
         label: "Assign rider",
         endpoint: (r) => `/admin/dispatch/deliveries/${id(r)}/assign`,
-        fields: [{ key: "rider_id", label: "Eligible rider ID" }, note],
+        fields: [
+          {
+            key: "rider_id",
+            label: "Available rider",
+            optionsEndpoint: (row) =>
+              `/admin/dispatch/deliveries/${id(row)}/eligible-riders`,
+          },
+          note,
+        ],
         when: (r) =>
           ["UNASSIGNED", "OFFERED"].includes(r.status) &&
           (r.dispatch_attention_required === true ||

@@ -2,6 +2,9 @@ import { config } from '@deetoo/config';
 import { getDbPool, closeDbPool } from '../apps/api/src/db/client';
 import { riderLocationStore } from '../apps/api/src/db/redis';
 import { operationsRepository } from '../apps/api/src/modules/operations/operations.repository';
+import { riderEligibilityService } from '../apps/api/src/modules/rider/rider-eligibility.service';
+import { deliveryRepository } from '../apps/api/src/modules/order/delivery.repository';
+import { dispatchService } from '../apps/api/src/modules/order/dispatch.service';
 
 if (config.storage.mode !== 'postgres') {
   throw new Error('dispatch:doctor requires PostgreSQL storage');
@@ -42,6 +45,8 @@ try {
   const riderRows = [];
   for (const row of riders.rows) {
     const live = await riderLocationStore.getLiveLocation(row.id);
+    const eligibility = await riderEligibilityService.isRiderEligibleForDispatch(row.id);
+    const activeDelivery = await deliveryRepository.findActiveByRiderId(row.id);
     riderRows.push({
       rider_id: row.id,
       user_id: row.user_id,
@@ -50,6 +55,14 @@ try {
       operational: row.operational_status,
       work_status: row.work_status,
       in_redis_available_geo: availableRiderIds.includes(row.id),
+      dispatch_eligible: eligibility.eligible,
+      eligibility_reasons: eligibility.reasons.join(',') || 'NONE',
+      vehicle_valid: eligibility.details.vehicleValid,
+      user_active: eligibility.details.userActive,
+      zone_valid: eligibility.details.zoneValid,
+      location_fresh: eligibility.details.locationFresh,
+      active_delivery_id: activeDelivery?.id || null,
+      active_delivery_status: activeDelivery?.status || null,
       zones: row.zone_ids,
       db_last_location_at: row.last_location_at,
       live_location: live
@@ -128,6 +141,40 @@ try {
   console.log('\nOpen deliveries:');
   if (deliveries.rows.length) console.table(deliveries.rows);
   else console.log('No UNASSIGNED/OFFERED/ASSIGNED deliveries found.');
+
+  const eligibleNow = deliveries.rows.filter((delivery) =>
+    ['UNASSIGNED', 'OFFERED'].includes(delivery.status) &&
+    (!delivery.dispatch_not_before ||
+      new Date(delivery.dispatch_not_before).getTime() <= Date.now())
+  );
+
+  if (eligibleNow.length) {
+    console.log('\nRead-only candidate checks for dispatchable deliveries:');
+    for (const delivery of eligibleNow.slice(0, 10)) {
+      const candidates = await dispatchService.findAndRankCandidates(
+        {
+          lat: Number(delivery.pickup_latitude),
+          lng: Number(delivery.pickup_longitude),
+        },
+        Number(delivery.current_search_radius_meters || config.dispatch.maxSearchRadius),
+      );
+      console.log(JSON.stringify({
+        delivery_id: delivery.delivery_id,
+        status: delivery.status,
+        radius_m: Number(delivery.current_search_radius_meters || config.dispatch.maxSearchRadius),
+        candidate_count: candidates.length,
+        candidates: candidates.map((candidate) => ({
+          rider_id: candidate.riderId,
+          rider_name: candidate.riderName,
+          distance_m: candidate.distanceToPickupMeters,
+          eta_seconds: candidate.estimatedPickupEtaSeconds,
+          score: candidate.score,
+        })),
+      }, null, 2));
+    }
+  } else {
+    console.log('\nNo delivery is currently past dispatch_not_before.');
+  }
 
   if (!availableRiderIds.length) {
     console.warn(

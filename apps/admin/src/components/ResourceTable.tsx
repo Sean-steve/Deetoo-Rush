@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useAuth } from "../../../../packages/auth/src/react";
 import {
   Button,
@@ -23,6 +23,7 @@ export interface Field {
   label: string;
   type?: "number" | "text" | "date";
   options?: string[];
+  optionsEndpoint?: (row: any) => string;
   required?: boolean;
 }
 export interface RowAction {
@@ -114,12 +115,69 @@ export function ResourceTable({ config }: { config: TableConfig }) {
     null,
   );
   const [values, setValues] = useState<Record<string, string>>({});
+  const [remoteOptions, setRemoteOptions] = useState<
+    Record<string, Array<{ value: string; label: string }>>
+  >({});
+  const [optionsLoading, setOptionsLoading] = useState<Record<string, boolean>>({});
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [detailRow, setDetailRow] = useState<any>(null);
   const details = useResource<any>(
     detailRow && config.detail ? config.detail(detailRow) : null,
   );
+
+  useEffect(() => {
+    let cancelled = false;
+    async function loadRemoteOptions() {
+      if (!target) {
+        setRemoteOptions({});
+        setOptionsLoading({});
+        return;
+      }
+
+      const fields = (target.action.fields || []).filter(
+        (field) => field.optionsEndpoint,
+      );
+      if (!fields.length) {
+        setRemoteOptions({});
+        setOptionsLoading({});
+        return;
+      }
+
+      await Promise.all(
+        fields.map(async (field) => {
+          const endpoint = field.optionsEndpoint!(target.row);
+          setOptionsLoading((current) => ({ ...current, [field.key]: true }));
+          try {
+            const response = await apiClient.request<any>(endpoint);
+            const options = Array.isArray(response?.data) ? response.data : [];
+            if (!cancelled) {
+              setRemoteOptions((current) => ({
+                ...current,
+                [field.key]: options.map((option: any) => ({
+                  value: String(option.value),
+                  label: String(option.label || option.value),
+                })),
+              }));
+            }
+          } catch (e) {
+            if (!cancelled) setError(errorMessage(e));
+          } finally {
+            if (!cancelled) {
+              setOptionsLoading((current) => ({
+                ...current,
+                [field.key]: false,
+              }));
+            }
+          }
+        }),
+      );
+    }
+    void loadRemoteOptions();
+    return () => {
+      cancelled = true;
+    };
+  }, [apiClient, target]);
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     if (!target) return;
@@ -307,18 +365,28 @@ export function ResourceTable({ config }: { config: TableConfig }) {
                 label={field.label}
                 required={field.required !== false}
               >
-                {field.options ? (
+                {field.options || field.optionsEndpoint ? (
                   <Select
                     required={field.required !== false}
+                    disabled={Boolean(optionsLoading[field.key])}
                     value={values[field.key] || ""}
                     onChange={(e) =>
                       setValues({ ...values, [field.key]: e.target.value })
                     }
                   >
-                    <option value="">Choose…</option>
-                    {field.options.map((value) => (
+                    <option value="">
+                      {optionsLoading[field.key]
+                        ? "Loading available options…"
+                        : "Choose…"}
+                    </option>
+                    {field.options?.map((value) => (
                       <option key={value} value={value}>
                         {value.toLowerCase().replaceAll("_", " ")}
+                      </option>
+                    ))}
+                    {remoteOptions[field.key]?.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
                       </option>
                     ))}
                   </Select>
