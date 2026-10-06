@@ -33,9 +33,14 @@ process.on('SIGINT', () => { stopping = true; });
 const SCAN_INTERVAL_MS = 15000;
 
 async function findStuckDeliveries() {
-  const { deliveries: unassigned } = await deliveryRepository.listDeliveries({
+  const { deliveries: unassignedRaw } = await deliveryRepository.listDeliveries({
     status: DeliveryStatus.UNASSIGNED,
     limit: 100,
+  });
+  const now = Date.now();
+  const unassigned = unassignedRaw.filter((delivery) => {
+    if (!delivery.dispatch_not_before) return true;
+    return new Date(delivery.dispatch_not_before).getTime() <= now;
   });
   const { deliveries: offered } = await deliveryRepository.listDeliveries({
     status: DeliveryStatus.OFFERED,
