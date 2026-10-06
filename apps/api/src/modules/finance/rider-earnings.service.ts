@@ -1,8 +1,10 @@
 import { randomUUID as durableEntityId } from 'node:crypto';
 import { transactionalService } from '../../db/transaction';
+import { getDbPool } from '../../db/client';
+import { config } from '@deetoo/config';
 /**
  * DEETOO - Rider Earnings Service
- * Sprint 12: Courier compensation calculation, delivery earnings generation, and breakdown tracking
+ * Effective-dated rider compensation calculation and immutable earning snapshots.
  */
 
 import { ledgerRepository, LedgerRepository } from './ledger.repository';
@@ -16,19 +18,126 @@ export interface RiderEarningInput {
   distanceMeters?: number;
   waitingMinutes?: number;
   bonusMinor?: number;
+  zonePeakEligible?: boolean;
+  stackedOrderCount?: number;
   currency?: string;
 }
 
+interface RiderEarningRule {
+  id: string;
+  baseAmountMinor: number;
+  perKilometreAmountMinor: number;
+  includedDistanceMeters: number;
+  waitingAmountMinorPerMinute: number;
+  includedWaitingMinutes: number;
+  zonePeakBonusMinor: number;
+  stackedOrderComponentMinor: number;
+  effectiveFrom: string;
+}
+
 export class RiderEarningsService {
-  // Authoritative constants (in minor units, KES cents: 1 KES = 100 minor units)
-  private readonly BASE_PAY_MINOR = 15000; // KES 150.00
-  private readonly INCLUDED_DISTANCE_METERS = 2000; // 2.0 km
-  private readonly RATE_PER_KM_MINOR = 3000; // KES 30.00 per km
-  private readonly INCLUDED_WAIT_MINUTES = 10; // 10 minutes
-  private readonly RATE_PER_WAIT_MINUTE_MINOR = 500; // KES 5.00 per minute
+  private readonly FALLBACK_RULE: RiderEarningRule = {
+    id: 'default',
+    baseAmountMinor: 15000,
+    perKilometreAmountMinor: 3000,
+    includedDistanceMeters: 2000,
+    waitingAmountMinorPerMinute: 500,
+    includedWaitingMinutes: 10,
+    zonePeakBonusMinor: 0,
+    stackedOrderComponentMinor: 0,
+    effectiveFrom: '2020-01-01T00:00:00.000Z',
+  };
 
   constructor(private repo: LedgerRepository = ledgerRepository) {}
 
+  private async resolveRule(): Promise<RiderEarningRule> {
+    if (config.storage.mode !== 'postgres') return this.FALLBACK_RULE;
+
+    const result = await getDbPool().query(
+      `SELECT *
+       FROM rider_earning_rules
+       WHERE status='ACTIVE'
+         AND effective_from <= NOW()
+         AND (effective_until IS NULL OR effective_until > NOW())
+       ORDER BY effective_from DESC
+       LIMIT 1`,
+    );
+    const row = result.rows[0];
+    if (!row) {
+      throw new Error('No active rider earning rule is configured');
+    }
+    return {
+      id: row.id,
+      baseAmountMinor: Number(row.base_amount_minor),
+      perKilometreAmountMinor: Number(row.per_kilometre_amount_minor),
+      includedDistanceMeters: Number(row.included_distance_meters),
+      waitingAmountMinorPerMinute: Number(row.waiting_amount_minor_per_minute),
+      includedWaitingMinutes: Number(row.included_waiting_minutes),
+      zonePeakBonusMinor: Number(row.zone_peak_bonus_minor),
+      stackedOrderComponentMinor: Number(row.stacked_order_component_minor),
+      effectiveFrom: row.effective_from?.toISOString?.() || String(row.effective_from),
+    };
+  }
+
+  private estimateWithRule(
+    input: {
+      distanceMeters?: number;
+      waitingMinutes?: number;
+      bonusMinor?: number;
+      zonePeakEligible?: boolean;
+      stackedOrderCount?: number;
+    },
+    rule: RiderEarningRule,
+  ): {
+    baseMinor: number;
+    distanceMinor: number;
+    waitingMinor: number;
+    bonusMinor: number;
+    zonePeakBonusMinor: number;
+    stackedOrderMinor: number;
+    totalMinor: number;
+  } {
+    const distanceMeters = Math.max(0, input.distanceMeters || 0);
+    const waitingMinutes = Math.max(0, input.waitingMinutes || 0);
+    const discretionaryBonusMinor = Math.max(0, input.bonusMinor || 0);
+    const zonePeakBonusMinor = input.zonePeakEligible ? rule.zonePeakBonusMinor : 0;
+    const stackedOrderCount = Math.max(1, input.stackedOrderCount || 1);
+    const stackedOrderMinor =
+      Math.max(0, stackedOrderCount - 1) * rule.stackedOrderComponentMinor;
+
+    const distanceMinor =
+      distanceMeters > rule.includedDistanceMeters
+        ? Math.round(
+            ((distanceMeters - rule.includedDistanceMeters) / 1000) *
+              rule.perKilometreAmountMinor,
+          )
+        : 0;
+    const waitingMinor =
+      waitingMinutes > rule.includedWaitingMinutes
+        ? Math.round(
+            (waitingMinutes - rule.includedWaitingMinutes) *
+              rule.waitingAmountMinorPerMinute,
+          )
+        : 0;
+    const bonusMinor =
+      discretionaryBonusMinor + zonePeakBonusMinor + stackedOrderMinor;
+    const baseMinor = rule.baseAmountMinor;
+
+    return {
+      baseMinor,
+      distanceMinor,
+      waitingMinor,
+      bonusMinor,
+      zonePeakBonusMinor,
+      stackedOrderMinor,
+      totalMinor: baseMinor + distanceMinor + waitingMinor + bonusMinor,
+    };
+  }
+
+  /**
+   * Backwards-compatible estimate used by current offer and test flows.
+   * Production settlement uses the effective-dated rule resolved at completion.
+   */
   public estimateEarning(input: {
     distanceMeters?: number;
     waitingMinutes?: number;
@@ -40,60 +149,40 @@ export class RiderEarningsService {
     bonusMinor: number;
     totalMinor: number;
   } {
-    const distanceMeters = Math.max(0, input.distanceMeters || 0);
-    const waitingMinutes = Math.max(0, input.waitingMinutes || 0);
-    const bonusMinor = Math.max(0, input.bonusMinor || 0);
-
-    const distanceMinor =
-      distanceMeters > this.INCLUDED_DISTANCE_METERS
-        ? Math.round(((distanceMeters - this.INCLUDED_DISTANCE_METERS) / 1000) * this.RATE_PER_KM_MINOR)
-        : 0;
-    const waitingMinor =
-      waitingMinutes > this.INCLUDED_WAIT_MINUTES
-        ? Math.round((waitingMinutes - this.INCLUDED_WAIT_MINUTES) * this.RATE_PER_WAIT_MINUTE_MINOR)
-        : 0;
-    const baseMinor = this.BASE_PAY_MINOR;
-
-    return {
-      baseMinor,
-      distanceMinor,
-      waitingMinor,
-      bonusMinor,
-      totalMinor: baseMinor + distanceMinor + waitingMinor + bonusMinor,
-    };
+    return this.estimateWithRule(input, this.FALLBACK_RULE);
   }
 
   /**
-   * Calculates rider compensation for a completed delivery
+   * Calculates rider compensation for a completed delivery.
+   * The exact commercial rule and applied components are frozen into rules_snapshot.
    */
   public async calculateAndRecordEarning(input: RiderEarningInput): Promise<RiderEarning> {
-    // 1. Idempotency check: if earning already exists for delivery, return it
     const existing = await this.repo.findRiderEarningByDeliveryId(input.deliveryId);
-    if (existing) {
-      return existing;
-    }
+    if (existing) return existing;
 
+    const rule = await this.resolveRule();
     const distanceMeters = input.distanceMeters || 0;
     const waitingMinutes = input.waitingMinutes || 0;
-    const bonusMinor = input.bonusMinor || 0;
     const currency = input.currency || 'KES';
-
-    const {
-      baseMinor,
-      distanceMinor,
-      waitingMinor,
-      totalMinor,
-    } = this.estimateEarning({ distanceMeters, waitingMinutes, bonusMinor });
+    const estimate = this.estimateWithRule(input, rule);
 
     const rulesSnapshot = {
-      basePayMinor: this.BASE_PAY_MINOR,
-      includedDistanceMeters: this.INCLUDED_DISTANCE_METERS,
-      ratePerKmMinor: this.RATE_PER_KM_MINOR,
-      includedWaitMinutes: this.INCLUDED_WAIT_MINUTES,
-      ratePerWaitMinuteMinor: this.RATE_PER_WAIT_MINUTE_MINOR,
+      ruleId: rule.id,
+      effectiveFrom: rule.effectiveFrom,
+      baseAmountMinor: rule.baseAmountMinor,
+      perKilometreAmountMinor: rule.perKilometreAmountMinor,
+      includedDistanceMeters: rule.includedDistanceMeters,
+      waitingAmountMinorPerMinute: rule.waitingAmountMinorPerMinute,
+      includedWaitingMinutes: rule.includedWaitingMinutes,
+      configuredZonePeakBonusMinor: rule.zonePeakBonusMinor,
+      configuredStackedOrderComponentMinor: rule.stackedOrderComponentMinor,
       distanceMeters,
       waitingMinutes,
-      bonusMinor,
+      discretionaryBonusMinor: Math.max(0, input.bonusMinor || 0),
+      zonePeakEligible: Boolean(input.zonePeakEligible),
+      appliedZonePeakBonusMinor: estimate.zonePeakBonusMinor,
+      stackedOrderCount: Math.max(1, input.stackedOrderCount || 1),
+      appliedStackedOrderMinor: estimate.stackedOrderMinor,
     };
 
     const earning: RiderEarning = {
@@ -101,12 +190,12 @@ export class RiderEarningsService {
       rider_id: input.riderId,
       delivery_id: input.deliveryId,
       order_id: input.orderId,
-      base_amount_minor: baseMinor,
-      distance_amount_minor: distanceMinor,
-      waiting_amount_minor: waitingMinor,
-      bonus_amount_minor: bonusMinor,
+      base_amount_minor: estimate.baseMinor,
+      distance_amount_minor: estimate.distanceMinor,
+      waiting_amount_minor: estimate.waitingMinor,
+      bonus_amount_minor: estimate.bonusMinor,
       adjustment_amount_minor: 0,
-      total_amount_minor: totalMinor,
+      total_amount_minor: estimate.totalMinor,
       currency,
       status: RiderEarningStatus.ELIGIBLE,
       rules_snapshot: rulesSnapshot,
@@ -115,16 +204,15 @@ export class RiderEarningsService {
     };
 
     const saved = await this.repo.saveRiderEarning(earning);
-
     logger.info('Calculated rider delivery earnings', {
       metadata: {
         earningId: saved.id,
         riderId: input.riderId,
         deliveryId: input.deliveryId,
-        totalMinor,
+        ruleId: rule.id,
+        totalMinor: estimate.totalMinor,
       },
     });
-
     return saved;
   }
 }
