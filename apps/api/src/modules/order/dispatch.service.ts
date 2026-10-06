@@ -283,6 +283,26 @@ export class DispatchService {
 
     await requirePaidOrder(delivery.order_id, true);
 
+    // Unanswered offers are terminal for that offer, not for the delivery. Expire them
+    // before selecting candidates so the same non-responsive rider is not offered the
+    // same delivery repeatedly on every scheduled sweep.
+    const expiredOffers = await deliveryRepository.expireStaleOffersForDelivery(deliveryId);
+    for (const expired of expiredOffers) {
+      await deliveryRepository.recordTimelineEntry({
+        id: randomUUID(),
+        delivery_id: deliveryId,
+        from_status: DeliveryStatus.OFFERED,
+        to_status: DeliveryStatus.UNASSIGNED,
+        actor_type: 'SYSTEM',
+        actor_id: expired.rider_id,
+        actor_name: expired.rider_name,
+        action: 'OFFER_EXPIRED',
+        reason_code: 'OFFER_TIMEOUT',
+        note: `Rider offer ${expired.id} expired without a response; cascading to the next eligible rider.`,
+        created_at: new Date().toISOString(),
+      });
+    }
+
     if (
       delivery.status === DeliveryStatus.ASSIGNED ||
       delivery.status === DeliveryStatus.ARRIVED_PICKUP ||
