@@ -117,3 +117,32 @@ test('Phase 1 UI foundation exposes dense Admin layout and honors reduced motion
 
   await context.close();
 });
+
+
+test('Phase 2 Customer discovery is visual and item customization uses a bottom sheet', async ({ browser }) => {
+  const context = await browser.newContext({
+    viewport: { width: 390, height: 844 },
+    geolocation: { latitude: -1.2683, longitude: 36.8044 },
+    permissions: ['geolocation'],
+  });
+  const page = await context.newPage();
+  await page.goto('http://127.0.0.1:5173/customer');
+
+  await expect(page.getByPlaceholder('Search DeeToo')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Open now' })).toBeVisible();
+
+  const restaurants = page.locator('.customer-restaurant-card');
+  await expect(restaurants.first()).toBeVisible({ timeout: 15_000 });
+  await expect(restaurants.first().locator('.customer-restaurant-media')).toBeVisible();
+
+  await restaurants.first().click();
+  const customizableItem = page.locator('[aria-label^="Customize "]').first();
+  await expect(customizableItem).toBeVisible({ timeout: 15_000 });
+  await customizableItem.click();
+
+  const sheet = page.locator('dialog.deetoo-bottom-sheet');
+  await expect(sheet).toBeVisible();
+  await expect(sheet.getByRole('button', { name: /Add · KES|Sign in to add/ })).toBeVisible();
+
+  await context.close();
+});
