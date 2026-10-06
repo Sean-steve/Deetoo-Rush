@@ -6466,6 +6466,26 @@ paths:
       operationId: admin_post_governance_user_reactivate
       security: [{ bearerAuth: [] }]
 
+  /admin/governance/merchants/{id}/reactivate:
+    post:
+      summary: Reactivate a governance-deactivated merchant
+      tags: [Admin]
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema: { type: string }
+      responses:
+        '200':
+          description: Reactivated merchant
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseGeneric'
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+      operationId: admin_post_governance_merchant_reactivate
+      security: [{ bearerAuth: [] }]
   /admin/governance/riders/{id}:
     patch:
       summary: Edit privileged Rider profile fields
