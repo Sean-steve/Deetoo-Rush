@@ -715,6 +715,16 @@ export class DeliveryRepository {
     return Array.from(this.offers.values()).filter((o) => o.delivery_id === deliveryId);
   }
 
+  public async getOffersByRiderId(riderId: string): Promise<DeliveryOffer[]> {
+    if (config.storage.mode === "postgres") {
+      return rows(
+        'SELECT * FROM delivery_offers WHERE rider_id=$1 ORDER BY offered_at',
+        [riderId],
+      );
+    }
+    return Array.from(this.offers.values()).filter((offer) => offer.rider_id === riderId);
+  }
+
   // ==========================================
   // Timeline & Attempts
   // ==========================================
