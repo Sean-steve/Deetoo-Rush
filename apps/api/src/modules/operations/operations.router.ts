@@ -444,6 +444,22 @@ operationsRouter.get(
 );
 
 operationsRouter.get(
+  "/support/cases/:id/attachments/:mediaId/read-url",
+  staffAuth,
+  async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      const viewer = buildViewer(req);
+      const url = await supportService.getAttachmentReadUrl(
+        req.params.id,
+        req.params.mediaId,
+        viewer,
+      );
+      res.json({ success: true, data: { url } });
+    } catch (err) { next(err); }
+  },
+);
+
+operationsRouter.get(
   "/support/cases/:id",
   staffAuth,
   async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
@@ -977,6 +993,21 @@ participantSupportRouter.get(
 );
 
 participantSupportRouter.get(
+  "/cases/:id/attachments/:mediaId/read-url",
+  async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      const viewer = { ...buildViewer(req), isStaff: false };
+      const url = await supportService.getAttachmentReadUrl(
+        req.params.id,
+        req.params.mediaId,
+        viewer,
+      );
+      res.json({ success: true, data: { url } });
+    } catch (err) { next(err); }
+  },
+);
+
+participantSupportRouter.get(
   "/cases/:id",
   async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
@@ -1090,6 +1121,28 @@ customerSupportRouter.get(
     } catch (err) {
       next(err);
     }
+  },
+);
+
+customerSupportRouter.get(
+  "/cases/:id/attachments/:mediaId/read-url",
+  requireAuth,
+  async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      const viewer = {
+        ...buildViewer(req),
+        isStaff: false,
+        roles: ["customer"],
+        merchant_ids: [],
+        rider_id: undefined,
+      };
+      const url = await supportService.getAttachmentReadUrl(
+        req.params.id,
+        req.params.mediaId,
+        viewer,
+      );
+      res.json({ success: true, data: { url } });
+    } catch (err) { next(err); }
   },
 );
 
