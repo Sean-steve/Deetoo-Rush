@@ -777,6 +777,9 @@ export function RiderNativeApp() {
             Pending earnings: {wallet?.currency || 'KES'} {((wallet?.pending_earnings_minor || 0) / 100).toFixed(2)}
           </Text>
           <Text style={styles.muted}>
+            Adjustments: {wallet?.currency || 'KES'} {((wallet?.adjustments_minor || 0) / 100).toFixed(2)}
+          </Text>
+          <Text style={styles.muted}>
             Cash collected: {wallet?.currency || 'KES'} {((wallet?.cash_collected_minor || 0) / 100).toFixed(2)}
           </Text>
           <Text style={styles.muted}>
