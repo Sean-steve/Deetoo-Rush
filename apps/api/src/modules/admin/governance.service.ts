@@ -345,6 +345,67 @@ class GovernanceService {
     return authService.toAuthUser(user);
   }
 
+  async updateRiderProfile(
+    riderId: string,
+    input: {
+      first_name?: string;
+      last_name?: string;
+      phone?: string;
+      vehicle_type?: VehicleType;
+      vehicle_registration?: string;
+      reason: string;
+    },
+    actor: GovernanceActor,
+  ): Promise<any> {
+    const reason = this.requireReason(input.reason);
+    const existing = await riderRepository.findProfileById(riderId);
+    if (!existing) throw new AppError(404, 'RIDER_NOT_FOUND', 'Rider profile not found');
+
+    const before = {
+      first_name: existing.firstName,
+      last_name: existing.lastName,
+      phone: existing.phone,
+      vehicle_type: existing.vehicleType,
+      vehicle_registration: existing.vehicleRegistration,
+    };
+
+    const updates: any = {};
+    if (input.first_name !== undefined) updates.firstName = input.first_name.trim();
+    if (input.last_name !== undefined) updates.lastName = input.last_name.trim();
+    if (input.phone !== undefined) updates.phone = input.phone.trim();
+    if (input.vehicle_type !== undefined) updates.vehicleType = input.vehicle_type;
+    if (input.vehicle_registration !== undefined) {
+      updates.vehicleRegistration = input.vehicle_registration.trim();
+    }
+    const updated = await riderRepository.updateProfile(riderId, updates);
+    if (input.vehicle_type !== undefined || input.vehicle_registration !== undefined) {
+      await riderRepository.upsertVehicle(riderId, {
+        type: input.vehicle_type || existing.vehicleType || VehicleType.MOTORBIKE,
+        registrationNumber:
+          input.vehicle_registration !== undefined
+            ? input.vehicle_registration
+            : existing.vehicleRegistration,
+      });
+    }
+
+    await this.event({
+      subjectUserId: existing.userId,
+      subjectType: 'RIDER',
+      action: 'PROFILE_EDITED',
+      reason,
+      before,
+      after: {
+        first_name: updated.firstName,
+        last_name: updated.lastName,
+        phone: updated.phone,
+        vehicle_type: updated.vehicleType,
+        vehicle_registration: updated.vehicleRegistration,
+      },
+      actor,
+    });
+    return updated;
+  }
+
   async listEvents(limit = 100): Promise<any[]> {
     const result = await getDbPool().query(
       `SELECT * FROM account_governance_events ORDER BY created_at DESC LIMIT $1`,
