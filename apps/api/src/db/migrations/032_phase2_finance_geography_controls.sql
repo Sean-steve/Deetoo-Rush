@@ -51,6 +51,10 @@ ALTER TABLE service_zones
   ADD COLUMN IF NOT EXISTS county_code CHAR(3) REFERENCES operating_counties(code) ON DELETE RESTRICT,
   ADD COLUMN IF NOT EXISTS market_id UUID REFERENCES service_markets(id) ON DELETE SET NULL;
 
+-- service_zones historically defaults city_id to NAIROBI. Preserve that contract for
+-- legacy inserts while Phase 2 callers can explicitly assign any Kenyan county.
+ALTER TABLE service_zones ALTER COLUMN county_code SET DEFAULT '047';
+
 UPDATE service_zones
 SET county_code='047'
 WHERE county_code IS NULL AND UPPER(COALESCE(city_id,''))='NAIROBI';
