@@ -165,7 +165,12 @@ export class SupportService {
   public async getCaseById(
     caseId: string,
     viewer: SupportViewer,
-  ): Promise<{ case: SupportCase; notes: SupportCaseNote[] }> {
+  ): Promise<{
+    case: SupportCase;
+    notes: SupportCaseNote[];
+    participants: SupportCaseParticipant[];
+    attachments: any[];
+  }> {
     const supportCase = await operationsRepository.getSupportCaseById(caseId);
     if (!supportCase) {
       throw new AppError(404, "CASE_NOT_FOUND", "Support case not found");
