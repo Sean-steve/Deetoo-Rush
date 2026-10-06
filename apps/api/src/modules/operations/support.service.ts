@@ -169,7 +169,9 @@ export class SupportService {
         participant_type: "RIDER",
         user_id: rider?.userId || null,
         entity_id: params.rider_id,
-        display_name: rider?.name || "Rider",
+        display_name: rider
+          ? [rider.firstName, rider.lastName].filter(Boolean).join(" ") || "Rider"
+          : "Rider",
         required_confirmation: true,
         confirmation_status: "PENDING",
         created_at: participantNow,
