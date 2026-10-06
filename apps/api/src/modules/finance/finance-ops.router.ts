@@ -159,13 +159,32 @@ financeOpsRouter.get(
         reconciliation_status: req.query.reconciliation_status as string | undefined,
         search: req.query.search as string | undefined,
       });
+      const latestProviderEvents = new Map<string, any>();
+      if (config.storage.mode === "postgres" && result.payments.length) {
+        const providerEvents = await getDbPool().query(
+          `SELECT DISTINCT ON (payment_id)
+             payment_id,event_type,processing_status,received_at
+           FROM payment_provider_events
+           WHERE payment_id = ANY($1::uuid[])
+           ORDER BY payment_id,received_at DESC`,
+          [result.payments.map((payment) => payment.id)],
+        );
+        for (const event of providerEvents.rows) {
+          latestProviderEvents.set(event.payment_id, event);
+        }
+      }
+
       const payments = await Promise.all(
         result.payments.map(async (payment) => {
           const order = await orderRepository.findById(payment.order_id);
+          const providerEvent = latestProviderEvents.get(payment.id);
           return {
             id: payment.id,
             order_id: payment.order_id,
-            order_number: (order as any)?.public_code || payment.order_id,
+            order_number:
+              (order as any)?.order_number ||
+              (order as any)?.public_code ||
+              payment.order_id,
             amount_minor: payment.amount_minor,
             captured_minor: payment.captured_minor,
             refunded_minor: payment.refunded_minor,
@@ -177,6 +196,12 @@ financeOpsRouter.get(
               payment.provider_reference ||
               payment.provider_payment_id ||
               null,
+            provider_status:
+              providerEvent?.processing_status ||
+              (payment.provider_reference || payment.mpesa_receipt_number
+                ? "REFERENCE_RECEIVED"
+                : "AWAITING_PROVIDER"),
+            provider_event: providerEvent?.event_type || null,
             internal_status: payment.status,
             reconciliation_status: payment.reconciliation_status || PaymentReconciliationStatus.UNRECONCILED,
             failure_reason: payment.failure_message || payment.failure_code || null,
@@ -211,7 +236,7 @@ financeOpsRouter.get(
               : null;
           const label = journalLabel(transaction.transaction_type);
           const subject = order
-            ? `Order ${(order as any).public_code || transaction.reference_id}`
+            ? `Order ${(order as any).order_number || (order as any).public_code || transaction.reference_id}`
             : transaction.description;
           return {
             id: transaction.id,
