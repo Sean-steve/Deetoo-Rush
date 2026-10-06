@@ -89,8 +89,10 @@ function main(): void {
   const spec = loadYaml(specText) as { paths?: Record<string, Record<string, unknown>> };
   const specPaths = spec.paths || {};
   const specSet = new Set<string>();
+  const HTTP_METHODS = new Set(['get', 'post', 'put', 'patch', 'delete', 'options', 'head', 'trace']);
   for (const [path, methods] of Object.entries(specPaths)) {
     for (const method of Object.keys(methods)) {
+      if (!HTTP_METHODS.has(method.toLowerCase())) continue;
       specSet.add(`${method.toUpperCase()} ${path}`);
     }
   }
