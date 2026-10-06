@@ -152,10 +152,12 @@ export function StatusBadge({ status }: { status?: string | null }) {
 export function PageHeading({
   eyebrow,
   title,
+  subtitle,
   action,
 }: {
   eyebrow?: string;
   title: string;
+  subtitle?: string;
   action?: React.ReactNode;
 }) {
   return (
@@ -163,6 +165,7 @@ export function PageHeading({
       <div>
         {eyebrow && <p className="eyebrow">{eyebrow}</p>}
         <h1>{title}</h1>
+        {subtitle && <p className="mt-1 text-sm text-slate-500 max-w-3xl">{subtitle}</p>}
       </div>
       {action}
     </div>
