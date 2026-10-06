@@ -47,6 +47,18 @@ export function normalizeUXError(error: any): UXError {
     stringValue(error?.message) ||
     stringValue(error?.body?.error?.message);
 
+  if (INTERNAL_CODES.has(code || "")) {
+    return {
+      kind: "internal",
+      title: "We could not complete that action",
+      message:
+        "Something went wrong inside DeeToo. Try again, and use the reference below if you contact support.",
+      retryable: true,
+      referenceId: requestId,
+      code,
+    };
+  }
+
   if (
     status === 400 ||
     status === 422 ||
@@ -122,7 +134,7 @@ export function normalizeUXError(error: any): UXError {
     };
   }
 
-  if (status >= 500 || INTERNAL_CODES.has(code || "")) {
+  if (status >= 500) {
     return {
       kind: "internal",
       title: "We could not complete that action",
