@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { MapPin, ShieldCheck } from "lucide-react";
 import { useAuth } from "../../../../packages/auth/src/react";
-import { Badge, Card } from "../../../../packages/ui/src/index";
+import { Badge, Button, Card } from "../../../../packages/ui/src/index";
 import {
   PageHeading,
   ResourceState,
@@ -12,7 +12,11 @@ import {
 export function GeographyControl() {
   const { apiClient } = useAuth();
   const counties = useResource<any[]>("/admin/geography/counties");
+  const markets = useResource<any[]>("/admin/geography/markets");
   const zones = useResource<any[]>("/admin/geography/zones");
+  const [marketCounty, setMarketCounty] = useState("047");
+  const [marketName, setMarketName] = useState("");
+  const [marketBusy, setMarketBusy] = useState(false);
   const [busyCode, setBusyCode] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -24,11 +28,33 @@ export function GeographyControl() {
         method: "PATCH",
         body: JSON.stringify({ enabled }),
       });
-      await Promise.all([counties.refresh(), zones.refresh()]);
+      await Promise.all([counties.refresh(), markets.refresh(), zones.refresh()]);
     } catch (cause) {
       setError(errorMessage(cause));
     } finally {
       setBusyCode(null);
+    }
+  }
+
+  async function createMarket() {
+    if (!marketName.trim()) return;
+    setMarketBusy(true);
+    setError(null);
+    try {
+      await apiClient.request("/admin/geography/markets", {
+        method: "POST",
+        body: JSON.stringify({
+          county_code: marketCounty,
+          name: marketName.trim(),
+          enabled: true,
+        }),
+      });
+      setMarketName("");
+      await markets.refresh();
+    } catch (cause) {
+      setError(errorMessage(cause));
+    } finally {
+      setMarketBusy(false);
     }
   }
 
@@ -94,6 +120,61 @@ export function GeographyControl() {
                   onChange={(event) => void toggleCounty(county.code, event.target.checked)}
                 />
               </label>
+            ))}
+          </div>
+        </section>
+      </ResourceState>
+
+      <ResourceState resource={markets}>
+        <section>
+          <div className="mb-3">
+            <h3 className="font-bold text-slate-900">Markets / towns</h3>
+            <p className="text-sm text-slate-500">
+              Markets organize service zones inside a county. They do not create delivery reach by themselves.
+            </p>
+          </div>
+          <Card>
+            <div className="grid gap-3 md:grid-cols-[220px_1fr_auto] md:items-end">
+              <label className="text-sm font-medium text-slate-700">
+                County
+                <select
+                  className="mt-1 block w-full rounded-lg border border-slate-300 bg-white px-3 py-2"
+                  value={marketCounty}
+                  onChange={(event) => setMarketCounty(event.target.value)}
+                >
+                  {(counties.data || []).map((county: any) => (
+                    <option key={county.code} value={county.code}>
+                      {county.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="text-sm font-medium text-slate-700">
+                Market / town name
+                <input
+                  className="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2"
+                  value={marketName}
+                  onChange={(event) => setMarketName(event.target.value)}
+                  placeholder="e.g. Thika"
+                />
+              </label>
+              <Button
+                onClick={() => void createMarket()}
+                isLoading={marketBusy}
+                disabled={marketName.trim().length < 2}
+              >
+                Add market
+              </Button>
+            </div>
+          </Card>
+          <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {(markets.data || []).map((market: any) => (
+              <div key={market.id} className="rounded-xl border border-slate-200 bg-white p-3">
+                <div className="font-semibold text-slate-900">{market.name}</div>
+                <div className="mt-1 text-xs text-slate-500">
+                  {market.county_name} · {market.zone_count || 0} service zones
+                </div>
+              </div>
             ))}
           </div>
         </section>
