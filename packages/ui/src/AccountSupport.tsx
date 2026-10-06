@@ -183,7 +183,7 @@ export function AccountSupport({
                           onClick={async () => {
                             try {
                               const result = await apiClient.request<any>(
-                                `/media/${encodeURIComponent(attachment.media_object_id)}/read-url`,
+                                `${supportBase}/cases/${encodeURIComponent(caseId!)}/attachments/${encodeURIComponent(attachment.media_object_id)}/read-url`,
                               );
                               if (result.data?.url) window.open(result.data.url, "_blank", "noopener,noreferrer");
                             } catch (e) {
