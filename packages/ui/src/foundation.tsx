@@ -183,7 +183,7 @@ export const SearchInput = React.forwardRef<
 >(({ className = "", onClear, value, ...props }, ref) => (
   <div className={`deetoo-search-input ${className}`}>
     <Search size={16} aria-hidden="true" />
-    <input ref={ref} value={value} {...props} />
+    <input ref={ref} value={value} className="deetoo-search-native" {...props} />
     {onClear && String(value || "").length > 0 && (
       <button type="button" onClick={onClear} aria-label="Clear search">
         <X size={16} aria-hidden="true" />
