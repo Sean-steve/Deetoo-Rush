@@ -134,8 +134,14 @@ export class RiderWalletService {
     const eventCashOwed = Math.max(0, cashCollected - cashSettled);
 
     const payouts = await ledgerRepository.findRiderPayouts({ riderId });
-    const nextPayout =
-      payouts.find((payout) => ["PROCESSING", "APPROVED", "DRAFT"].includes(payout.status)) || null;
+    const activePayouts = payouts.filter((payout) =>
+      ["PROCESSING", "APPROVED", "DRAFT"].includes(payout.status),
+    );
+    const nextPayout = activePayouts[0] || null;
+    const reservedForPayoutMinor = activePayouts.reduce(
+      (sum, payout) => sum + Number(payout.amount_minor || 0),
+      0,
+    );
     const cashSettlements = await this.listSettlements(riderId);
     const threshold = this.cashThresholdMinor();
     const reconciliationDifference = ledgerCashOwed - eventCashOwed;
@@ -144,7 +150,10 @@ export class RiderWalletService {
       rider_id: riderId,
       currency,
       gross_payable_balance_minor: grossPayable,
-      available_earnings_minor: Math.max(0, grossPayable - ledgerCashOwed),
+      // Cash owed is intentionally NOT netted against Rider earnings here. An offset must be
+      // an explicit ledger-posted business action; until that exists, it remains a separate
+      // receivable and cannot silently alter a Rider payout.
+      available_earnings_minor: Math.max(0, grossPayable - reservedForPayoutMinor),
       pending_earnings_minor: pendingEarnings,
       cash_collected_minor: cashCollected,
       cash_settled_minor: cashSettled,
