@@ -7,6 +7,8 @@ import {
   VehicleType,
 } from '@deetoo/types';
 import { AppError } from '../../middleware/error-handler';
+import { config } from '@deetoo/config';
+import { getDbPool } from '../../db/client';
 import { authRepository } from '../auth/auth.repository';
 import { customerRepository } from '../customer/customer.repository';
 import { riderRepository } from '../rider/rider.repository';
@@ -24,6 +26,37 @@ function normalizeRoles(value: unknown): UserRole[] {
 }
 
 export class AdminGovernanceService {
+  public async assertSuperAdminAuthority(
+    actorUserId: string,
+    options: { allowInitialBootstrap?: boolean } = {},
+  ): Promise<void> {
+    const actorRoles = await authRepository.getUserRoles(actorUserId);
+    if (actorRoles.includes(UserRole.SUPER_ADMIN)) return;
+
+    if (
+      options.allowInitialBootstrap &&
+      actorRoles.includes(UserRole.ADMIN)
+    ) {
+      if (config.storage.mode === 'memory') return;
+      const result = await getDbPool().query(
+        `SELECT EXISTS(
+           SELECT 1
+           FROM user_roles ur
+           JOIN roles r ON r.id=ur.role_id
+           JOIN users u ON u.id=ur.user_id
+           WHERE r.code='super_admin' AND u.status='ACTIVE'
+         ) AS exists`,
+      );
+      if (!result.rows[0]?.exists) return;
+    }
+
+    throw new AppError(
+      403,
+      'SUPER_ADMIN_REQUIRED',
+      'This action requires Super Administrator authority',
+    );
+  }
+
   public async provisionIdentity(
     input: {
       email?: string;
