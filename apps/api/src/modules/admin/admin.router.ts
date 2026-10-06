@@ -39,11 +39,16 @@ import {
   DispatchConfigUpdateSchema,
   AdminForceCompleteDeliverySchema,
   AdminResolveIncidentSchema,
+  UpdateCustomerProfileSchema,
+  RiderProfileUpdateSchema,
 } from '@deetoo/validation';
 import { PERMISSIONS } from '@deetoo/auth';
 import { AppError } from '../../middleware/error-handler';
 import { authRepository } from '../auth/auth.repository';
 import { authService } from '../auth/auth.service';
+import { adminGovernanceService } from './admin-governance.service';
+import { customerRepository } from '../customer/customer.repository';
+import { riderRepository } from '../rider/rider.repository';
 import { merchantRepository } from '../merchant/merchant.repository';
 import { merchantService } from '../merchant/merchant.service';
 import { merchantOnboardingService, MerchantOnboardingStage } from '../merchant/merchant-onboarding.service';
@@ -95,6 +100,110 @@ adminRouter.get(
       next(err);
     }
   }
+);
+
+/**
+ * POST /api/v1/admin/users
+ * Super Admin identity provisioning. Provisioned identities remain PENDING until
+ * the normal invitation/password-reset activation flow is completed.
+ */
+adminRouter.post(
+  '/users',
+  requireRole(UserRole.SUPER_ADMIN),
+  async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      const reason = String(req.body?.reason || '').trim();
+      if (!reason) throw new AppError(400, 'REASON_REQUIRED', 'Provisioning requires an explicit reason');
+      const data = await adminGovernanceService.provisionIdentity(
+        {
+          email: req.body?.email ? String(req.body.email).trim().toLowerCase() : undefined,
+          phone_e164: req.body?.phone_e164 ? String(req.body.phone_e164).trim() : undefined,
+          roles: req.body?.roles,
+          name: req.body?.name ? String(req.body.name).slice(0, 120) : undefined,
+          first_name: req.body?.first_name ? String(req.body.first_name).slice(0, 100) : undefined,
+          last_name: req.body?.last_name ? String(req.body.last_name).slice(0, 100) : undefined,
+          vehicle_type: req.body?.vehicle_type,
+          vehicle_registration: req.body?.vehicle_registration
+            ? String(req.body.vehicle_registration).slice(0, 50)
+            : undefined,
+          reason,
+        },
+        req.user!.id,
+        (req as any).requestId,
+      );
+      res.status(201).json({
+        data: {
+          user: data ? await authService.toAuthUser(data) : null,
+          activation_required: true,
+        },
+        requestId: (req as any).requestId,
+      });
+    } catch (error) {
+      next(error);
+    }
+  },
+);
+
+adminRouter.patch(
+  '/users/:id/identity',
+  requireRole(UserRole.SUPER_ADMIN),
+  async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      const reason = String(req.body?.reason || '').trim();
+      if (!reason) throw new AppError(400, 'REASON_REQUIRED', 'Identity changes require an explicit reason');
+      const data = await adminGovernanceService.updateIdentity(
+        req.params.id,
+        {
+          email: req.body?.email === null
+            ? null
+            : req.body?.email
+              ? String(req.body.email).trim().toLowerCase()
+              : undefined,
+          phone_e164: req.body?.phone_e164 === null
+            ? null
+            : req.body?.phone_e164
+              ? String(req.body.phone_e164).trim()
+              : undefined,
+          reason,
+        },
+        req.user!.id,
+        (req as any).requestId,
+      );
+      res.json({
+        data: data ? await authService.toAuthUser(data) : null,
+        requestId: (req as any).requestId,
+      });
+    } catch (error) {
+      next(error);
+    }
+  },
+);
+
+adminRouter.delete(
+  '/users/:id',
+  requireRole(UserRole.SUPER_ADMIN),
+  async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      const reason = String(req.body?.reason || '').trim();
+      if (!reason) throw new AppError(400, 'REASON_REQUIRED', 'Deactivation requires an explicit reason');
+      const data = await adminGovernanceService.deactivateIdentity(
+        req.params.id,
+        { reason, anonymize: Boolean(req.body?.anonymize) },
+        req.user!.id,
+        (req as any).requestId,
+      );
+      res.json({
+        data: {
+          id: data?.id,
+          status: data?.status,
+          anonymized: Boolean(req.body?.anonymize),
+        },
+        requestId: (req as any).requestId,
+      });
+    } catch (error) {
+      next(error);
+    }
+  },
 );
 
 /**
@@ -232,7 +341,7 @@ adminRouter.post(
  */
 adminRouter.post(
   '/users/:id/roles',
-  requireRole(UserRole.ADMIN),
+  requireRole(UserRole.SUPER_ADMIN),
   async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
       const targetUserId = req.params.id;
@@ -356,7 +465,7 @@ adminRouter.get(
  */
 adminRouter.post(
   '/merchants',
-  requireRole(UserRole.ADMIN, UserRole.OPS),
+  requireRole(UserRole.ADMIN),
   async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
       const validated = CreateMerchantSchema.parse(req.body);
@@ -408,6 +517,17 @@ adminRouter.post(
   }
 );
 
+adminRouter.get(
+  '/merchants/onboarding',
+  requireRole(UserRole.ADMIN, UserRole.OPS),
+  async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      const data = await merchantOnboardingService.list(req.query.stage as string | undefined);
+      res.json({ data, requestId: (req as any).requestId });
+    } catch (error) { next(error); }
+  },
+);
+
 /**
  * GET /api/v1/admin/merchants/:id
  */
@@ -444,11 +564,16 @@ adminRouter.get(
  */
 adminRouter.patch(
   '/merchants/:id',
-  requireRole(UserRole.ADMIN, UserRole.OPS),
+  requireRole(UserRole.ADMIN),
   async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
       const merchantId = req.params.id;
-      const validated = UpdateMerchantSchema.parse(req.body);
+      const reason = String(req.body?.reason || '').trim();
+      if (!reason) throw new AppError(400, 'REASON_REQUIRED', 'Merchant profile changes require an explicit reason');
+      const before = await merchantRepository.findMerchantById(merchantId);
+      if (!before) throw new AppError(404, 'MERCHANT_NOT_FOUND', 'Merchant not found');
+      const { reason: _reason, commission_bps: _commission, settlement_schedule: _schedule, ...profileBody } = req.body || {};
+      const validated = UpdateMerchantSchema.parse(profileBody);
 
       const updated = await merchantRepository.updateMerchant(merchantId, validated);
       if (!updated) {
@@ -461,7 +586,9 @@ adminRouter.patch(
         action: AuditAction.MERCHANT_UPDATED,
         resource_type: 'MERCHANT',
         resource_id: merchantId,
-        metadata: validated,
+        reason,
+        request_id: (req as any).requestId,
+        metadata: { before, after: updated },
       });
 
       res.json({
@@ -995,6 +1122,60 @@ adminRouter.get(
   }
 );
 
+adminRouter.patch(
+  '/customers/:id',
+  requireRole(UserRole.ADMIN),
+  async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      const reason = String(req.body?.reason || '').trim();
+      if (!reason) throw new AppError(400, 'REASON_REQUIRED', 'Customer profile changes require an explicit reason');
+      const before = await customerRepository.getProfileByUserId(req.params.id);
+      if (!before) throw new AppError(404, 'CUSTOMER_NOT_FOUND', 'Customer profile not found');
+      const { reason: _reason, ...payload } = req.body || {};
+      const validated = UpdateCustomerProfileSchema.parse(payload);
+      const after = await customerRepository.upsertProfile({
+        user_id: req.params.id,
+        ...validated,
+      });
+      await authRepository.createAuditLog({
+        actor_user_id: req.user!.id,
+        actor_role: req.user!.roles.includes(UserRole.SUPER_ADMIN)
+          ? UserRole.SUPER_ADMIN
+          : UserRole.ADMIN,
+        action: AuditAction.CUSTOMER_PROFILE_UPDATED,
+        resource_type: 'CUSTOMER',
+        resource_id: req.params.id,
+        request_id: (req as any).requestId,
+        reason,
+        metadata: { before, after },
+      });
+      res.json({ data: after, requestId: (req as any).requestId });
+    } catch (error) {
+      next(error);
+    }
+  },
+);
+
+adminRouter.delete(
+  '/customers/:id',
+  requireRole(UserRole.SUPER_ADMIN),
+  async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      const reason = String(req.body?.reason || '').trim();
+      if (!reason) throw new AppError(400, 'REASON_REQUIRED', 'Customer deactivation requires an explicit reason');
+      const data = await adminGovernanceService.deactivateIdentity(
+        req.params.id,
+        { reason, anonymize: Boolean(req.body?.anonymize) },
+        req.user!.id,
+        (req as any).requestId,
+      );
+      res.json({ data: { id: data?.id, status: data?.status }, requestId: (req as any).requestId });
+    } catch (error) {
+      next(error);
+    }
+  },
+);
+
 // ==========================================
 // Admin Orders Monitoring & Operations (Sprint 7)
 // ==========================================
@@ -1202,6 +1383,66 @@ adminRouter.get(
       next(err);
     }
   }
+);
+
+adminRouter.patch(
+  '/riders/:id',
+  requireRole(UserRole.ADMIN),
+  async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      const reason = String(req.body?.reason || '').trim();
+      if (!reason) throw new AppError(400, 'REASON_REQUIRED', 'Rider profile changes require an explicit reason');
+      const before = await riderRepository.findProfileById(req.params.id);
+      if (!before) throw new AppError(404, 'RIDER_NOT_FOUND', 'Rider profile not found');
+      const { reason: _reason, ...profileBody } = req.body || {};
+      const validated = RiderProfileUpdateSchema.parse(profileBody);
+      const after = await riderRepository.updateProfile(req.params.id, {
+        firstName: validated.first_name,
+        lastName: validated.last_name,
+        phone: validated.phone,
+        vehicleType: validated.vehicle_type as any,
+        vehicleRegistration: validated.vehicle_registration,
+      });
+      await authRepository.createAuditLog({
+        actor_user_id: req.user!.id,
+        actor_role: req.user!.roles.includes(UserRole.SUPER_ADMIN)
+          ? UserRole.SUPER_ADMIN
+          : UserRole.ADMIN,
+        action: AuditAction.RIDER_PROFILE_UPDATED,
+        resource_type: 'RIDER',
+        resource_id: req.params.id,
+        request_id: (req as any).requestId,
+        reason,
+        metadata: { before, after },
+      });
+      res.json({ data: after, requestId: (req as any).requestId });
+    } catch (error) {
+      next(error);
+    }
+  },
+);
+
+adminRouter.delete(
+  '/riders/:id',
+  requireRole(UserRole.SUPER_ADMIN),
+  async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      const reason = String(req.body?.reason || '').trim();
+      if (!reason) throw new AppError(400, 'REASON_REQUIRED', 'Rider deactivation requires an explicit reason');
+      const rider = await riderRepository.findProfileById(req.params.id);
+      if (!rider) throw new AppError(404, 'RIDER_NOT_FOUND', 'Rider profile not found');
+      await riderService.suspendRider(req.user!.id, req.params.id, reason);
+      const data = await adminGovernanceService.deactivateIdentity(
+        rider.userId,
+        { reason, anonymize: Boolean(req.body?.anonymize) },
+        req.user!.id,
+        (req as any).requestId,
+      );
+      res.json({ data: { rider_id: rider.id, user_id: data?.id, status: data?.status }, requestId: (req as any).requestId });
+    } catch (error) {
+      next(error);
+    }
+  },
 );
 
 /**
@@ -1750,17 +1991,6 @@ adminRouter.get(
 
 
 
-
-adminRouter.get(
-  '/merchants/onboarding',
-  requireRole(UserRole.ADMIN, UserRole.OPS),
-  async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
-    try {
-      const data = await merchantOnboardingService.list(req.query.stage as string | undefined);
-      res.json({ data, requestId: (req as any).requestId });
-    } catch (error) { next(error); }
-  },
-);
 
 adminRouter.patch(
   '/merchants/:id/onboarding',
