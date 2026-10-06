@@ -524,6 +524,46 @@ export class TrustService {
     });
   }
 
+  public async getAuthoritativeAmount(
+    actor: TrustActor,
+    orderId: string,
+  ): Promise<{
+    order_id: string;
+    order_number?: string;
+    currency: string;
+    order_total_minor: number;
+    captured_minor: number;
+    refunded_minor: number;
+    amount_due_at_handover_minor: number;
+    payment_rule: "DEE_TOO_AUTHORITATIVE";
+  }> {
+    const links = await this.resolveLinks(actor, { order_id: orderId });
+    const order = await orderRepository.findById(orderId);
+    if (!order || links.order_id !== order.id) {
+      throw new AppError(404, "ORDER_NOT_FOUND", "Order not found");
+    }
+    const payments = await paymentRepository.findPaymentsByOrderId(orderId);
+    const capturedMinor = payments.reduce(
+      (sum: number, payment: any) => sum + Math.max(0, payment.captured_minor || 0),
+      0,
+    );
+    const refundedMinor = payments.reduce(
+      (sum: number, payment: any) => sum + Math.max(0, payment.refunded_minor || 0),
+      0,
+    );
+    const netCaptured = Math.max(0, capturedMinor - refundedMinor);
+    return {
+      order_id: order.id,
+      order_number: order.order_number,
+      currency: order.currency || "KES",
+      order_total_minor: order.total_minor || 0,
+      captured_minor: capturedMinor,
+      refunded_minor: refundedMinor,
+      amount_due_at_handover_minor: Math.max(0, (order.total_minor || 0) - netCaptured),
+      payment_rule: "DEE_TOO_AUTHORITATIVE",
+    };
+  }
+
   public async reportExtraPaymentRequest(
     actor: TrustActor,
     input: {
