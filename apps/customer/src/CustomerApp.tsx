@@ -63,25 +63,7 @@ import { CustomerLocationSelector } from "./components/CustomerLocationSelector"
 import { CustomerAddressModal } from "./components/CustomerAddressModal";
 import { CustomerProfileManager } from "./components/CustomerProfileManager";
 import { RestaurantCard } from "./components/RestaurantCard";
-
-type CustomerTab = "discovery" | "cart" | "orders" | "profile" | "security" | "support";
-const customerTabPath:Record<CustomerTab,string>={
-  discovery:"/customer",
-  cart:"/customer/cart",
-  orders:"/customer/orders",
-  profile:"/customer/profile",
-  security:"/customer/security",
-  support:"/customer/support",
-};
-function customerTabFromPath():CustomerTab{
-  const path=window.location.pathname.replace(/\/+$/,"");
-  if(path.endsWith("/cart"))return "cart";
-  if(path.endsWith("/orders"))return "orders";
-  if(path.endsWith("/profile"))return "profile";
-  if(path.endsWith("/security"))return "security";
-  if(path.endsWith("/support"))return "support";
-  return "discovery";
-}
+import { getBrowserCurrentLocation } from "../../../packages/ui-web/src/geolocation";
 
 export function CustomerApp() {
   return (
@@ -107,17 +89,9 @@ function CustomerAppInner() {
   } = useAuth();
 
   // Navigation tab state
-  const [activeTab, setActiveTabState] = useState<CustomerTab>(()=>customerTabFromPath());
-  const setActiveTab = useCallback((tab:CustomerTab)=>{
-    setActiveTabState(tab);
-    const next=customerTabPath[tab];
-    if(window.location.pathname!==next)window.history.pushState({}, "", next);
-  },[]);
-  useEffect(()=>{
-    const sync=()=>setActiveTabState(customerTabFromPath());
-    window.addEventListener("popstate",sync);
-    return()=>window.removeEventListener("popstate",sync);
-  },[]);
+  const [activeTab, setActiveTab] = useState<
+    "discovery" | "cart" | "orders" | "profile" | "security" | "support"
+  >("discovery");
 
   const cartSummary = useResource<any>(isAuthenticated ? "/cart" : null);
   const [discoveryError, setDiscoveryError] = useState<string | null>(null);
@@ -133,6 +107,8 @@ function CustomerAppInner() {
     longitude: 0,
   });
   const [hasDeliveryLocation, setHasDeliveryLocation] = useState(false);
+  const [isLocatingCustomer, setIsLocatingCustomer] = useState(false);
+  const [locationError, setLocationError] = useState<string | null>(null);
 
   const [savedAddresses, setSavedAddresses] = useState<CustomerAddress[]>([]);
   const [serviceability, setServiceability] =
@@ -180,10 +156,41 @@ function CustomerAppInner() {
   const [sessions, setSessions] = useState<any[]>([]);
   const [isLoadingSessions, setIsLoadingSessions] = useState(false);
 
-  // 1. Initial load of categories and saved addresses
+  const handleUseCurrentLocation = useCallback(async () => {
+    setIsLocatingCustomer(true);
+    setLocationError(null);
+    try {
+      const coords = await getBrowserCurrentLocation();
+      let address = "Current location";
+      try {
+        const reverse = await apiClient.reverseGeocode(
+          coords.latitude,
+          coords.longitude,
+        );
+        if (reverse.data?.formatted_address) {
+          address = reverse.data.formatted_address;
+        }
+      } catch {
+        // Coordinates remain authoritative even when reverse geocoding is unavailable.
+      }
+      setCustomerLocation({
+        address,
+        latitude: coords.latitude,
+        longitude: coords.longitude,
+      });
+      setHasDeliveryLocation(true);
+    } catch (error) {
+      setLocationError(errorMessage(error));
+    } finally {
+      setIsLocatingCustomer(false);
+    }
+  }, [apiClient]);
+
+  // 1. Initial load of categories and current device location
   useEffect(() => {
     loadCategories();
-  }, []);
+    void handleUseCurrentLocation();
+  }, [handleUseCurrentLocation]);
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -192,12 +199,6 @@ function CustomerAppInner() {
       setSavedAddresses([]);
     }
   }, [isAuthenticated]);
-
-  useEffect(() => {
-    if (!isAuthenticated && ["profile", "security", "support"].includes(activeTab)) {
-      setActiveTab("discovery");
-    }
-  }, [isAuthenticated, activeTab, setActiveTab]);
 
   // 2. Load serviceability whenever location coordinates change
   useEffect(() => {
@@ -250,16 +251,9 @@ function CustomerAppInner() {
       const addrs = res.data || [];
       setSavedAddresses(addrs);
 
-      // If user has a default address, apply it as initial location
-      const defaultAddr = addrs.find((a) => a.is_default);
-      if (defaultAddr) {
-        setCustomerLocation({
-          address: defaultAddr.address_line1,
-          latitude: defaultAddr.latitude,
-          longitude: defaultAddr.longitude,
-        });
-        setHasDeliveryLocation(true);
-      }
+      // Saved addresses remain explicit overrides. Current device GPS is the
+      // default discovery location so stale saved addresses do not impersonate
+      // the customer's present position.
     } catch {
       // ignore
     }
@@ -315,15 +309,6 @@ function CustomerAppInner() {
       address: `${addr.label}: ${addr.address_line1}`,
       latitude: addr.latitude,
       longitude: addr.longitude,
-    });
-  };
-
-  const handleSelectPresetCoords = (name: string, lat: number, lng: number) => {
-    setHasDeliveryLocation(true);
-    setCustomerLocation({
-      address: name,
-      latitude: lat,
-      longitude: lng,
     });
   };
 
@@ -488,9 +473,9 @@ function CustomerAppInner() {
 
   return (
     <ErrorBoundary fallbackTitle="Customer Application Error Boundary">
-      <div className="customer-shell min-h-screen bg-canvas text-ink flex flex-col font-sans">
+      <div className="min-h-screen bg-canvas text-ink flex flex-col font-sans">
         {/* Top Navbar */}
-        <header className="customer-topbar sticky top-0 z-30 border-b border-slate-200 bg-white/95 backdrop-blur-xs px-4 py-3 sm:px-6">
+        <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/95 backdrop-blur-xs px-4 py-3 sm:px-6">
           <div className="max-w-6xl mx-auto flex flex-wrap items-center justify-between gap-4">
             <div className="flex items-center gap-3">
               <DeetooLogo className="h-7" />
@@ -510,9 +495,11 @@ function CustomerAppInner() {
               savedAddresses={savedAddresses}
               serviceability={serviceability}
               onSelectAddress={handleSelectAddress}
-              onSelectPresetCoords={handleSelectPresetCoords}
+              onUseCurrentLocation={() => void handleUseCurrentLocation()}
               onAddNewAddress={() => setIsAddressModalOpen(true)}
               isAuthenticated={isAuthenticated}
+              isLocating={isLocatingCustomer}
+              locationError={locationError}
             />
 
             {/* Authentication Bar & Navigation */}
@@ -596,19 +583,19 @@ function CustomerAppInner() {
           </div>
         )}
 
-        <div className="hidden sm:block max-w-6xl mx-auto w-full px-4 py-3">
+        <div className="max-w-6xl mx-auto w-full px-4 py-3">
           <Navigation
             active={activeTab}
             onChange={(id) => setActiveTab(id as typeof activeTab)}
             items={[
-              { id: "discovery", label: "Discover", icon: <Search size={15}/> },
-              { id: "cart", label: "Your bag", icon: <ShoppingBag size={15}/> },
-              { id: "orders", label: "Orders & tracking", icon: <History size={15}/> },
+              { id: "discovery", label: "Discover" },
+              { id: "cart", label: "Your bag" },
+              { id: "orders", label: "Orders & tracking" },
               ...(isAuthenticated
                 ? [
-                    { id: "profile", label: "Profile & addresses", icon: <User size={15}/> },
-                    { id: "security", label: "Security", icon: <ShieldCheck size={15}/> },
-                    { id: "support", label: "Support", icon: <Mail size={15}/> },
+                    { id: "profile", label: "Profile & addresses" },
+                    { id: "security", label: "Security" },
+                    { id: "support", label: "Support" },
                   ]
                 : []),
             ]}
@@ -980,25 +967,6 @@ function CustomerAppInner() {
             </Card>
           )}
         </main>
-
-        <div className="sm:hidden customer-mobile-nav">
-          <Navigation
-            mobile
-            active={activeTab}
-            onChange={(id) => setActiveTab(id as typeof activeTab)}
-            items={[
-              { id: "discovery", label: "Explore", icon: <Search size={18}/> },
-              { id: "cart", label: "Bag", icon: <ShoppingBag size={18}/> },
-              { id: "orders", label: "Orders", icon: <History size={18}/> },
-              ...(isAuthenticated
-                ? [
-                    { id: "profile", label: "Account", icon: <User size={18}/> },
-                    { id: "support", label: "Help", icon: <Mail size={18}/> },
-                  ]
-                : []),
-            ]}
-          />
-        </div>
 
         {/* Global Address Create Modal (Accessible from header Location Selector) */}
         {isAddressModalOpen && (
