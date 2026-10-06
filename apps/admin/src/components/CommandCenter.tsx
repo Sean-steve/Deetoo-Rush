@@ -278,7 +278,6 @@ export function CommandCenter({ onNavigate }: CommandCenterProps) {
             title="Zone supply vs demand"
             description="Available Riders are compared with unassigned delivery demand using the authoritative service-zone snapshot."
             empty={!supply.loading && !(supply.data || []).length}
-            emptyMessage="No active zone supply data is available."
           >
             <ResourceState resource={supply} compact>
               <div className="admin-zone-health">
