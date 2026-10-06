@@ -6,8 +6,9 @@
 import React, { useState } from 'react';
 import { CustomerAddress, GeocodeResult } from '@deetoo/types';
 import { Button, Input, Modal, FormField, Badge } from '../../../../packages/ui/src/index';
-import { MapPin, Navigation, Compass, AlertCircle, CheckCircle } from 'lucide-react';
+import { MapPin, LocateFixed, Compass, AlertCircle, CheckCircle } from 'lucide-react';
 import { DeetooApiClient } from '../../../../packages/api-client/src/index';
+import { getBrowserCurrentLocation } from '../../../../packages/ui-web/src/geolocation';
 
 interface CustomerAddressModalProps {
   isOpen: boolean;
@@ -17,14 +18,6 @@ interface CustomerAddressModalProps {
   initialAddress?: CustomerAddress | null;
 }
 
-const NAIROBI_PRESETS = [
-  { name: 'Westlands (Mpaka Rd)', lat: -1.2683, lng: 36.8044, area: 'Westlands' },
-  { name: 'Kilimani (Argwings Kodhek)', lat: -1.2921, lng: 36.7876, area: 'Kilimani' },
-  { name: 'Nairobi CBD (Kenyatta Ave)', lat: -1.2864, lng: 36.8172, area: 'CBD' },
-  { name: 'Upper Hill (Elgon Rd)', lat: -1.2989, lng: 36.8145, area: 'Upper Hill' },
-  { name: 'Karen (Karen Rd)', lat: -1.3197, lng: 36.7065, area: 'Karen' },
-  { name: 'Lavington (James Gichuru)', lat: -1.2785, lng: 36.7725, area: 'Lavington' },
-];
 
 export const CustomerAddressModal: React.FC<CustomerAddressModalProps> = ({
   isOpen,
@@ -39,8 +32,10 @@ export const CustomerAddressModal: React.FC<CustomerAddressModalProps> = ({
   const [addressLine1, setAddressLine1] = useState(initialAddress?.address_line1 || '');
   const [addressLine2, setAddressLine2] = useState(initialAddress?.address_line2 || '');
   const [landmark, setLandmark] = useState(initialAddress?.landmark || '');
-  const [latitude, setLatitude] = useState<number>(initialAddress?.latitude || -1.2683);
-  const [longitude, setLongitude] = useState<number>(initialAddress?.longitude || 36.8044);
+  const [city, setCity] = useState(initialAddress?.city || '');
+  const [region, setRegion] = useState(initialAddress?.region || '');
+  const [latitude, setLatitude] = useState<number | null>(initialAddress?.latitude ?? null);
+  const [longitude, setLongitude] = useState<number | null>(initialAddress?.longitude ?? null);
   const [instructions, setInstructions] = useState(initialAddress?.delivery_instructions || '');
   const [isDefault, setIsDefault] = useState(initialAddress?.is_default || false);
 
@@ -48,6 +43,7 @@ export const CustomerAddressModal: React.FC<CustomerAddressModalProps> = ({
   const [isSearching, setIsSearching] = useState(false);
   const [searchResults, setSearchResults] = useState<GeocodeResult[]>([]);
   const [isSaving, setIsSaving] = useState(false);
+  const [isLocating, setIsLocating] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const handleSearchAddress = async () => {
@@ -58,7 +54,7 @@ export const CustomerAddressModal: React.FC<CustomerAddressModalProps> = ({
       const res = await apiClient.geocodeAddress(searchQuery);
       setSearchResults(res.data || []);
       if ((res.data || []).length === 0) {
-        setError('No locations found for this query in Nairobi.');
+        setError('No locations found for this query.');
       }
     } catch (err: any) {
       setError(err.message || 'Geocoding failed');
@@ -71,24 +67,58 @@ export const CustomerAddressModal: React.FC<CustomerAddressModalProps> = ({
     setAddressLine1(geo.formatted_address);
     setLatitude(geo.latitude);
     setLongitude(geo.longitude);
-    if (geo.city && !landmark) {
-      setLandmark(geo.city);
+    if (geo.city) {
+      setCity(geo.city);
     }
     setSearchResults([]);
     setSearchQuery('');
   };
 
-  const handleApplyPreset = (preset: typeof NAIROBI_PRESETS[0]) => {
-    setAddressLine1(preset.name);
-    setLatitude(preset.lat);
-    setLongitude(preset.lng);
-    setLandmark(preset.area);
+  const handleUseCurrentLocation = async () => {
+    setIsLocating(true);
+    setError(null);
+    try {
+      const coords = await getBrowserCurrentLocation();
+      setLatitude(coords.latitude);
+      setLongitude(coords.longitude);
+
+      try {
+        const reverse = await apiClient.reverseGeocode(
+          coords.latitude,
+          coords.longitude,
+        );
+        if (reverse.data?.formatted_address) {
+          setAddressLine1(reverse.data.formatted_address);
+        }
+        if (reverse.data?.city) {
+          setCity(reverse.data.city);
+        }
+      } catch {
+        if (!addressLine1.trim()) {
+          setAddressLine1(
+            `Current location (${coords.latitude.toFixed(6)}, ${coords.longitude.toFixed(6)})`,
+          );
+        }
+      }
+    } catch (err: any) {
+      setError(err.message || 'Unable to get current location');
+    } finally {
+      setIsLocating(false);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!addressLine1) {
       setError('Please provide an address.');
+      return;
+    }
+    if (!city.trim()) {
+      setError('Please provide the city for this delivery address.');
+      return;
+    }
+    if (latitude === null || longitude === null) {
+      setError('Use current location or search for an address to set GPS coordinates.');
       return;
     }
 
@@ -102,7 +132,8 @@ export const CustomerAddressModal: React.FC<CustomerAddressModalProps> = ({
         address_line1: addressLine1,
         address_line2: addressLine2 || undefined,
         landmark: landmark || undefined,
-        city: 'Nairobi',
+        city: city.trim(),
+        region: region.trim() || city.trim(),
         country_code: 'KE',
         latitude,
         longitude,
@@ -142,20 +173,25 @@ export const CustomerAddressModal: React.FC<CustomerAddressModalProps> = ({
           </div>
         )}
 
-        {/* Quick Location Preset Buttons */}
-        <div>
-          <label className="block font-semibold text-slate-700 mb-1">Quick Select Nairobi Area:</label>
-          <div className="flex flex-wrap gap-1.5">
-            {NAIROBI_PRESETS.map((p) => (
-              <button
-                type="button"
-                key={p.name}
-                onClick={() => handleApplyPreset(p)}
-                className="px-2.5 py-1 bg-slate-100 hover:bg-emerald-50 hover:text-emerald-700 border border-slate-200 rounded-md text-[11px] font-medium transition-colors cursor-pointer"
-              >
-                {p.name.split(' ')[0]}
-              </button>
-            ))}
+        <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="font-semibold text-emerald-900">GPS coordinates</p>
+              <p className="text-[11px] text-emerald-800 mt-0.5">
+                Use the device's current position instead of a preset location.
+              </p>
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => void handleUseCurrentLocation()}
+              disabled={isLocating}
+              className="gap-1.5"
+            >
+              <LocateFixed size={13} />
+              {isLocating ? 'Locating…' : 'Use current location'}
+            </Button>
           </div>
         </div>
 
@@ -265,14 +301,44 @@ export const CustomerAddressModal: React.FC<CustomerAddressModalProps> = ({
           />
         </FormField>
 
+        <div className="grid grid-cols-2 gap-3">
+          <FormField label="City" required>
+            <Input
+              value={city}
+              onChange={(e) => setCity(e.target.value)}
+              placeholder="e.g. Nairobi"
+              required
+            />
+          </FormField>
+          <FormField label="Region / County">
+            <Input
+              value={region}
+              onChange={(e) => setRegion(e.target.value)}
+              placeholder="e.g. Nairobi County"
+            />
+          </FormField>
+        </div>
+
         {/* Coordinates Preview */}
         <div className="flex items-center justify-between p-2.5 bg-slate-100 rounded-lg text-[11px] text-slate-600 font-mono">
           <div className="flex items-center gap-1.5">
             <Compass size={13} className="text-slate-500" />
-            <span>GPS: {latitude.toFixed(5)}, {longitude.toFixed(5)}</span>
+            <span>
+              GPS:{' '}
+              {latitude !== null && longitude !== null
+                ? `${latitude.toFixed(5)}, ${longitude.toFixed(5)}`
+                : 'Not set'}
+            </span>
           </div>
-          <span className="text-emerald-700 font-semibold flex items-center gap-1">
-            <CheckCircle size={12} /> PostGIS Ready
+          <span
+            className={`font-semibold flex items-center gap-1 ${
+              latitude !== null && longitude !== null
+                ? 'text-emerald-700'
+                : 'text-amber-700'
+            }`}
+          >
+            <CheckCircle size={12} />
+            {latitude !== null && longitude !== null ? 'Coordinates ready' : 'GPS required'}
           </span>
         </div>
 
