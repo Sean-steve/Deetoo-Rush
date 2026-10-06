@@ -58,6 +58,11 @@ import {
   MapPin,
   Send,
   AlertCircle,
+  Bell,
+  BarChart3,
+  CircleEllipsis,
+  LifeBuoy,
+  WalletCards,
 } from "lucide-react";
 
 export function RiderApp() {
@@ -815,26 +820,48 @@ function RiderAppInner() {
         {!gpsAcquiredAt && gpsStatusMessage && (
           <p role="status" className="px-4 py-2 text-xs text-amber-800 bg-amber-50">{gpsStatusMessage}</p>
         )}
-        <div className="p-3">
+        <div className="rider-nav-shell">
           <AppNavigation
             active={activeTab}
-            onChange={(id) => {
-              setActiveTab(id as typeof activeTab);
-              if (id === "sessions") void fetchSessions();
-            }}
+            onChange={(id) => setActiveTab(id as typeof activeTab)}
             items={[
-              { id: "run", label: "Delivery run" },
-              { id: "earnings", label: "Earnings" },
-              { id: "wallet", label: "Wallet" },
-              { id: "performance", label: "Performance" },
-              { id: "availability", label: "Availability" },
-              { id: "vehicle", label: "Vehicle" },
-              { id: "profile", label: "Profile" },
-              { id: "sessions", label: "Sessions" },
-              { id: "notifications", label: "Notifications" },
-              { id: "support", label: "Support" },
+              { id: "run", label: "Run", icon: <Bike size={16} /> },
+              { id: "earnings", label: "Earnings", icon: <History size={16} /> },
+              { id: "wallet", label: "Wallet", icon: <WalletCards size={16} /> },
+              { id: "performance", label: "Performance", icon: <BarChart3 size={16} /> },
             ]}
           />
+          <details className="rider-more-menu">
+            <summary>
+              <CircleEllipsis size={16} aria-hidden="true" />
+              <span>More</span>
+            </summary>
+            <div className="rider-more-menu-panel">
+              {[
+                { id: "availability", label: "Availability", icon: <Radio size={15} /> },
+                { id: "vehicle", label: "Vehicle", icon: <Car size={15} /> },
+                { id: "profile", label: "Profile", icon: <User size={15} /> },
+                { id: "sessions", label: "Sessions", icon: <ShieldCheck size={15} /> },
+                { id: "notifications", label: "Notifications", icon: <Bell size={15} /> },
+                { id: "support", label: "Support", icon: <LifeBuoy size={15} /> },
+              ].map((item) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  aria-current={activeTab === item.id ? "page" : undefined}
+                  onClick={(event) => {
+                    setActiveTab(item.id as typeof activeTab);
+                    if (item.id === "sessions") void fetchSessions();
+                    const details = event.currentTarget.closest("details");
+                    if (details) details.open = false;
+                  }}
+                >
+                  {item.icon}
+                  <span>{item.label}</span>
+                </button>
+              ))}
+            </div>
+          </details>
         </div>
         <main className="flex-1 p-4 flex flex-col gap-4 overflow-y-auto">
           {/* TAB 1: READINESS & AVAILABILITY */}
