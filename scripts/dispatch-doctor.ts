@@ -25,11 +25,16 @@ try {
       rp.last_known_latitude,
       rp.last_known_longitude,
       rp.last_location_at,
-      array_remove(array_agg(rsz.zone_id),NULL) AS zone_ids
+      COALESCE(
+        (
+          SELECT array_agg(rsz.zone_id ORDER BY rsz.zone_id)
+          FROM rider_service_zones rsz
+          WHERE rsz.rider_id=rp.id
+        ),
+        ARRAY[]::uuid[]
+      ) AS zone_ids
     FROM rider_profiles rp
-    LEFT JOIN rider_service_zones rsz ON rsz.rider_id=rp.id
     WHERE rp.work_status IN ('ONLINE_AVAILABLE','ONLINE_UNAVAILABLE','BUSY')
-    GROUP BY rp.id
     ORDER BY rp.updated_at DESC
     LIMIT 50
   `);
