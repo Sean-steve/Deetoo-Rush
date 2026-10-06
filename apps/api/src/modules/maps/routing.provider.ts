@@ -40,8 +40,10 @@ class RoutingProvider {
   ): Promise<RoutingResult[]> {
     if (!origins.length) return [];
 
-    if (config.storage.mode === 'memory') {
-      requireSimulationMode();
+    if (config.storage.mode === 'memory' || config.localWorkflow) {
+      if (config.storage.mode === 'memory') {
+        requireSimulationMode();
+      }
       return origins.map((origin) => {
         const distance = Math.round(
           calculateDistanceMeters(
