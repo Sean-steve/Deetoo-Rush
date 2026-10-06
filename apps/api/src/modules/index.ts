@@ -26,6 +26,7 @@ import { mediaRouter } from './media/media.router';
 import { discoveryService } from './discovery/discovery.service';
 import { serviceabilityService } from './serviceability/serviceability.service';
 import { geographyRouter } from './geography/geography.router';
+import { trustRouter } from './trust/trust.router';
 import { mapsProvider } from './maps/maps.provider';
 
 export const v1Router = Router();
@@ -48,6 +49,7 @@ v1Router.use('/payments', paymentRouter);
 v1Router.use('/finance/disbursements', disbursementRouter);
 v1Router.use('/finance/ops', financeOpsRouter);
 v1Router.use('/finance', financeRouter);
+v1Router.use('/trust', trustRouter);
 v1Router.use('/rider', riderRouter);
 v1Router.use('/realtime', realtimeRouter);
 v1Router.use('/devices', deviceRouter);
