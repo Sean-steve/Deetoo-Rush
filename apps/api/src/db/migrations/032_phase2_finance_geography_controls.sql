@@ -55,6 +55,18 @@ UPDATE service_zones
 SET county_code='047'
 WHERE county_code IS NULL AND UPPER(COALESCE(city_id,''))='NAIROBI';
 
+INSERT INTO service_markets(county_code,name,enabled)
+VALUES('047','Nairobi',TRUE)
+ON CONFLICT(county_code,name) DO UPDATE SET enabled=TRUE,updated_at=NOW();
+
+UPDATE service_zones
+SET market_id=(
+  SELECT id FROM service_markets
+  WHERE county_code='047' AND name='Nairobi'
+  LIMIT 1
+)
+WHERE county_code='047' AND market_id IS NULL;
+
 CREATE INDEX IF NOT EXISTS idx_service_zones_county ON service_zones(county_code,status);
 CREATE INDEX IF NOT EXISTS idx_service_zones_market ON service_zones(market_id,status);
 CREATE INDEX IF NOT EXISTS idx_service_markets_county ON service_markets(county_code,enabled);
