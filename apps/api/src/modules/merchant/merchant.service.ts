@@ -311,11 +311,17 @@ export class MerchantService {
       const client = await pool.connect();
       try {
         const query = `
-          SELECT id, name, city_id, status, config
-          FROM service_zones
-          WHERE status = 'ACTIVE'
-            AND boundary IS NOT NULL
-            AND ST_Contains(boundary::geometry, ST_SetSRID(ST_MakePoint($1, $2), 4326)::geometry)
+          SELECT sz.id, sz.name, sz.city_id, sz.status, sz.config
+          FROM service_zones sz
+          JOIN operating_counties county
+            ON county.code = sz.county_code
+           AND county.enabled = TRUE
+          WHERE sz.status = 'ACTIVE'
+            AND sz.boundary IS NOT NULL
+            AND ST_Covers(
+              sz.boundary::geometry,
+              ST_SetSRID(ST_MakePoint($1, $2), 4326)::geometry
+            )
         `;
         const res = await client.query(query, [lng, lat]);
         if (res.rows.length > 0) {
@@ -410,8 +416,9 @@ export class MerchantService {
         branch.longitude,
       );
 
-      // If branch shares zone or is within reasonable radius
-      if (sharesZone || dist <= 12.0) {
+      // Delivery eligibility is polygon-authoritative. Distance can rank an
+      // already-serviceable branch, but must never widen the service boundary.
+      if (sharesZone) {
         const availability = await this.evaluateBranchAvailability(branch.id);
         results.push({
           branch,
