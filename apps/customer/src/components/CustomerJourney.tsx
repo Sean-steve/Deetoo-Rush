@@ -416,12 +416,20 @@ export function CustomerOrder({
     `/orders/${encodeURIComponent(orderId)}/payments`,
     5000,
   );
+  const authoritativeAmount = useResource<any>(
+    `/trust/orders/${encodeURIComponent(orderId)}/authoritative-amount`,
+    5000,
+  );
   const [localWorkflow, setLocalWorkflow] = useState(false);
   useEffect(() => { fetch("/health").then(r => r.json()).then(r => setLocalWorkflow(r.localWorkflow === true)).catch(() => {}); }, []);
   const [phone, setPhone] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [reason, setReason] = useState("");
+  const [cancellationMessage, setCancellationMessage] = useState<string | null>(null);
+  const [rating, setRating] = useState("5");
+  const [ratingComment, setRatingComment] = useState("");
+  const [ratingMessage, setRatingMessage] = useState<string | null>(null);
   const paymentKey = useRef(crypto.randomUUID());
   const method = order.data?.pricing_snapshot?.financial_snapshot?.payment_method === "CARD" ? "CARD" : "MPESA";
   const attemptedPayment = useRef<string | null>(null);
@@ -508,10 +516,15 @@ export function CustomerOrder({
                           )}
                           {tracking.updatedAt && <p className="text-xs">Last checked: {tracking.updatedAt.toLocaleTimeString()}</p>}
                           {tracking.data.deliveryOtp && (
-                            <p>
-                              Delivery code:{" "}
-                              <strong>{tracking.data.deliveryOtp}</strong>
-                            </p>
+                            <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                              <p>
+                                Delivery code:{" "}
+                                <strong className="text-lg">{tracking.data.deliveryOtp}</strong>
+                              </p>
+                              <p className="mt-1 text-xs text-slate-500">
+                                Share this only with the assigned Rider at handover. The Rider cannot normally complete delivery without it.
+                              </p>
+                            </div>
                           )}
                         </div>
                       )}
@@ -523,6 +536,21 @@ export function CustomerOrder({
                 <Card>
                   <h2 className="text-xl font-bold mb-4">Payment</h2>
                   <Price minor={order.data.total_minor} />
+                  <ResourceState resource={authoritativeAmount}>
+                    {authoritativeAmount.data && (
+                      <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 p-3">
+                        <p className="text-xs font-bold uppercase tracking-wide text-emerald-800">
+                          Authoritative amount payable at handover
+                        </p>
+                        <p className="mt-1 text-xl font-bold text-emerald-950">
+                          KES {(Number(authoritativeAmount.data.amount_due_at_handover_minor || 0) / 100).toFixed(2)}
+                        </p>
+                        <p className="mt-1 text-xs text-emerald-800">
+                          This is the DeeToo amount. Do not pay a Rider a different amount outside the app; report any extra-payment request from Support.
+                        </p>
+                      </div>
+                    )}
+                  </ResourceState>
                   <ResourceState resource={payments}>
                     {payments.data?.map((payment) => (
                       <div className="py-3 border-b" key={payment.id}>
@@ -590,10 +618,25 @@ export function CustomerOrder({
                       </div>
                     )}
                 </Card>
-                {["PLACED", "PAYMENT_PENDING", "PENDING_PAYMENT"].includes(
+                {!["CANCELLED", "REJECTED", "COMPLETED"].includes(
                   order.data.status,
                 ) && (
                   <Card>
+                    <h2 className="text-lg font-bold mb-2">
+                      {["PLACED", "PAYMENT_PENDING", "PENDING_PAYMENT"].includes(order.data.status)
+                        ? "Cancel order"
+                        : "Request cancellation"}
+                    </h2>
+                    <p className="mb-3 text-sm text-slate-500">
+                      {["PLACED", "PAYMENT_PENDING", "PENDING_PAYMENT"].includes(order.data.status)
+                        ? "Before merchant acceptance, cancellation can be handled automatically."
+                        : "Because fulfilment has started, DeeToo will calculate the stage and route any disputed financial consequences to Support for review."}
+                    </p>
+                    {cancellationMessage && (
+                      <div className="mb-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+                        {cancellationMessage}
+                      </div>
+                    )}
                     <FormField label="Cancellation reason (optional)">
                       <Input
                         value={reason}
@@ -606,13 +649,83 @@ export function CustomerOrder({
                       disabled={busy}
                       onClick={async () => {
                         setBusy(true);
+                        setCancellationMessage(null);
                         try {
                           await apiClient.cancelCustomerOrder(
                             orderId,
                             "CUSTOMER_CANCELLED",
                             reason.trim() || undefined,
                           );
-                          await order.refresh();
+                          await Promise.all([order.refresh(), payments.refresh(), authoritativeAmount.refresh()]);
+                        } catch (e: any) {
+                          const code = e?.error?.code || e?.code;
+                          const assessment =
+                            e?.error?.details?.cancellation_assessment ||
+                            e?.details?.cancellation_assessment;
+                          if (code === "CANCELLATION_REVIEW_REQUIRED" || assessment?.support_case_id) {
+                            setCancellationMessage(
+                              `Cancellation review opened with Support${assessment?.support_case_id ? ` (case ${assessment.support_case_id})` : ""}. No refund, merchant compensation or Rider compensation will be guessed before review.`,
+                            );
+                          } else {
+                            setError(errorMessage(e));
+                          }
+                        } finally {
+                          setBusy(false);
+                        }
+                      }}
+                    >
+                      {["PLACED", "PAYMENT_PENDING", "PENDING_PAYMENT"].includes(order.data.status)
+                        ? "Cancel order"
+                        : "Request cancellation review"}
+                    </Button>
+                  </Card>
+                )}
+                {order.data.status === "COMPLETED" && (
+                  <Card>
+                    <h2 className="text-lg font-bold mb-2">Rate your delivery</h2>
+                    <p className="mb-3 text-sm text-slate-500">
+                      Your rating is one operational signal. It will never suspend a Rider automatically.
+                    </p>
+                    {ratingMessage && (
+                      <div className="mb-3 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-900">
+                        {ratingMessage}
+                      </div>
+                    )}
+                    <FormField label="Rating" required>
+                      <select
+                        className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm"
+                        value={rating}
+                        onChange={(e) => setRating(e.target.value)}
+                      >
+                        <option value="5">5 — Excellent</option>
+                        <option value="4">4 — Good</option>
+                        <option value="3">3 — Okay</option>
+                        <option value="2">2 — Poor</option>
+                        <option value="1">1 — Very poor</option>
+                      </select>
+                    </FormField>
+                    <FormField label="Comment (optional)">
+                      <Input
+                        value={ratingComment}
+                        onChange={(e) => setRatingComment(e.target.value)}
+                      />
+                    </FormField>
+                    <Button
+                      className="mt-3"
+                      disabled={busy}
+                      onClick={async () => {
+                        setBusy(true);
+                        setError(null);
+                        try {
+                          await apiClient.request("/trust/ratings", {
+                            method: "POST",
+                            body: JSON.stringify({
+                              order_id: orderId,
+                              rating: Number(rating),
+                              comment: ratingComment.trim() || undefined,
+                            }),
+                          });
+                          setRatingMessage("Delivery rating recorded.");
                         } catch (e) {
                           setError(errorMessage(e));
                         } finally {
@@ -620,7 +733,7 @@ export function CustomerOrder({
                         }
                       }}
                     >
-                      Cancel order
+                      Submit rating
                     </Button>
                   </Card>
                 )}

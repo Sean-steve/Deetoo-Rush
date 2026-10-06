@@ -34,6 +34,8 @@ import { deliveryRepository } from "../order/delivery.repository";
 import { orderRepository } from "../order/order.repository";
 import { riderEarningsService } from "../finance/rider-earnings.service";
 import { ledgerRepository } from "../finance/ledger.repository";
+import { riderWalletService } from "../finance/rider-wallet.service";
+import { riderPerformanceService } from "../trust/rider-performance.service";
 import { calculateDistanceMeters } from "@deetoo/utils";
 
 export const riderRouter = Router();
@@ -408,6 +410,62 @@ riderRouter.get(
       if (!profile) throw new AppError(404, "RIDER_NOT_FOUND", "Rider profile not found");
       const payouts = await ledgerRepository.findRiderPayouts({ riderId: profile.id });
       res.json({ data: payouts, requestId: (req as any).requestId });
+    } catch (err) {
+      next(err);
+    }
+  },
+);
+
+riderRouter.get(
+  "/wallet",
+  async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      const profile = await riderRepository.findProfileByUserId(req.user!.id);
+      if (!profile) throw new AppError(404, "RIDER_NOT_FOUND", "Rider profile not found");
+      res.json({
+        data: await riderWalletService.getWallet(profile.id),
+        requestId: (req as any).requestId,
+      });
+    } catch (err) {
+      next(err);
+    }
+  },
+);
+
+riderRouter.post(
+  "/wallet/cash/settlements",
+  async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      const profile = await riderRepository.findProfileByUserId(req.user!.id);
+      if (!profile) throw new AppError(404, "RIDER_NOT_FOUND", "Rider profile not found");
+      const settlement = await riderWalletService.requestCashSettlement(
+        profile.id,
+        req.user!.id,
+        Number(req.body?.amount_minor),
+      );
+      res.status(201).json({
+        data: settlement,
+        requestId: (req as any).requestId,
+      });
+    } catch (err) {
+      next(err);
+    }
+  },
+);
+
+riderRouter.get(
+  "/performance",
+  async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      const profile = await riderRepository.findProfileByUserId(req.user!.id);
+      if (!profile) throw new AppError(404, "RIDER_NOT_FOUND", "Rider profile not found");
+      const days = req.query.days ? Number(req.query.days) : 30;
+      res.json({
+        data: await riderPerformanceService.getMetrics(profile.id, {
+          windowDays: Number.isFinite(days) ? days : 30,
+        }),
+        requestId: (req as any).requestId,
+      });
     } catch (err) {
       next(err);
     }

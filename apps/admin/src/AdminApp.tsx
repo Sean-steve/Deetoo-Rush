@@ -483,7 +483,19 @@ function AdminAppInner() {
           { id: "riderEarningRules", label: "Rider earnings rules", icon:<Bike size={16}/>, group:"Commercial" },
         ]
       : []),
+    ...(operationalRead
+      ? [
+          { id: "disputes", label: "Trust & disputes", icon:<User size={16}/>, group:"Risk & Trust" },
+          { id: "conduct", label: "Rider conduct", icon:<ShieldAlert size={16}/>, group:"Risk & Trust" },
+        ]
+      : []),
     { id: "risk", label: "Risk signals", icon:<ShieldAlert size={16}/>, group:"Risk & Trust" },
+    ...(financeAccess
+      ? [{ id: "riderCashSettlements", label: "Rider cash settlements", icon:<DollarSign size={16}/>, group:"Money-out" }]
+      : []),
+    ...(operationsAccess
+      ? [{ id: "marketplaceAdvisories", label: "Marketplace advisories", icon:<Activity size={16}/>, group:"Operations" }]
+      : []),
     { id: "notifications", label: "Notifications", icon:<Radio size={16}/>, group:"Platform" },
     { id: "jobs", label: "Background jobs", icon:<Server size={16}/>, group:"Platform" },
     ...(operationsAccess
@@ -532,9 +544,10 @@ function AdminAppInner() {
                   "notifications",
                   "jobs",
                   "risk",
+                  "conduct",
                 ].includes(selectedView) ||
                 (financeAccess &&
-                  ["accounts", "ledger", "adjustments", "destinations", "disbursements", "moneyOutFailures", "settlements", "payouts", "approvalQueue", "profitability", "commissionRules", "commercialReviews", "riderEarningRules"].includes(
+                  ["accounts", "ledger", "adjustments", "destinations", "disbursements", "moneyOutFailures", "settlements", "payouts", "approvalQueue", "profitability", "commissionRules", "commercialReviews", "riderEarningRules", "riderCashSettlements"].includes(
                     selectedView,
                   ))
                   ? adminViews[selectedView].actions

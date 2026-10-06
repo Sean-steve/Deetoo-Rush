@@ -50,6 +50,7 @@ const ROUTERS: RouterConfig[] = [
   { file: 'apps/api/src/modules/public/public.router.ts', varName: 'publicRouter', prefix: '/public' },
   { file: 'apps/api/src/modules/realtime/realtime.router.ts', varName: 'realtimeRouter', prefix: '/realtime' },
   { file: 'apps/api/src/modules/rider/rider.router.ts', varName: 'riderRouter', prefix: '/rider' },
+  { file: 'apps/api/src/modules/trust/trust.router.ts', varName: 'trustRouter', prefix: '/trust' },
 ];
 
 interface Route {
@@ -88,8 +89,10 @@ function main(): void {
   const spec = loadYaml(specText) as { paths?: Record<string, Record<string, unknown>> };
   const specPaths = spec.paths || {};
   const specSet = new Set<string>();
+  const HTTP_METHODS = new Set(['get', 'post', 'put', 'patch', 'delete', 'options', 'head', 'trace']);
   for (const [path, methods] of Object.entries(specPaths)) {
     for (const method of Object.keys(methods)) {
+      if (!HTTP_METHODS.has(method.toLowerCase())) continue;
       specSet.add(`${method.toUpperCase()} ${path}`);
     }
   }

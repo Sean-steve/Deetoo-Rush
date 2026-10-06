@@ -1,5 +1,6 @@
 import { AccountSupport } from "../../../packages/ui/src/AccountSupport";
 import { RiderRun, RiderEarnings } from "./components/RiderRun";
+import { RiderWalletPanel, RiderPerformancePanel } from "./components/RiderWallet";
 import {
   Navigation as AppNavigation,
   NotificationInbox,
@@ -116,6 +117,8 @@ function RiderAppInner() {
   const [activeTab, setActiveTab] = useState<
     | "run"
     | "earnings"
+    | "wallet"
+    | "performance"
     | "availability"
     | "vehicle"
     | "profile"
@@ -822,6 +825,8 @@ function RiderAppInner() {
             items={[
               { id: "run", label: "Delivery run" },
               { id: "earnings", label: "Earnings" },
+              { id: "wallet", label: "Wallet" },
+              { id: "performance", label: "Performance" },
               { id: "availability", label: "Availability" },
               { id: "vehicle", label: "Vehicle" },
               { id: "profile", label: "Profile" },
@@ -848,8 +853,10 @@ function RiderAppInner() {
             />
           )}
           {activeTab === "notifications" && <NotificationInbox />}
-          {activeTab === "support" && <AccountSupport />}
+          {activeTab === "support" && <AccountSupport mode="participant" />}
           {activeTab === "earnings" && <RiderEarnings />}
+          {activeTab === "wallet" && <RiderWalletPanel />}
+          {activeTab === "performance" && <RiderPerformancePanel />}
           {activeTab === "availability" && (
             <div className="flex flex-col gap-4">
               {/* Active Session Card */}

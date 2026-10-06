@@ -49,6 +49,12 @@ export function RiderRun({
       : null,
     3000,
   );
+  const authoritativeAmount = useResource<any>(
+    active.data?.order?.id
+      ? `/trust/orders/${encodeURIComponent(active.data.order.id)}/authoritative-amount`
+      : null,
+    3000,
+  );
   const [now, setNow] = useState(Date.now());
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -69,7 +75,12 @@ export function RiderRun({
         method: "POST",
         body: JSON.stringify(body),
       });
-      await Promise.all([offer.refresh(), active.refresh(), detail.refresh()]);
+      await Promise.all([
+        offer.refresh(),
+        active.refresh(),
+        detail.refresh(),
+        authoritativeAmount.refresh(),
+      ]);
       onChanged();
       setCode("");
       setProblem(null);
@@ -156,6 +167,21 @@ export function RiderRun({
                 <p>{delivery.dropoff_address_text}</p>
               </div>
             </div>
+            <ResourceState resource={authoritativeAmount}>
+              {authoritativeAmount.data && (
+                <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4">
+                  <p className="text-xs font-bold uppercase tracking-wide text-emerald-800">
+                    Authoritative amount payable at handover
+                  </p>
+                  <p className="mt-1 text-2xl font-bold text-emerald-950">
+                    KES {(Number(authoritativeAmount.data.amount_due_at_handover_minor || 0) / 100).toFixed(2)}
+                  </p>
+                  <p className="mt-1 text-xs text-emerald-800">
+                    Never request a different amount outside DeeToo. Digital-paid orders normally show KES 0.00 here.
+                  </p>
+                </div>
+              )}
+            </ResourceState>
             {delivery.delivery_instructions && (
               <p>{delivery.delivery_instructions}</p>
             )}

@@ -6763,6 +6763,159 @@ paths:
       responses:
         '201': { description: Rider earning rule created }
 
+
+  /rider/wallet:
+    get:
+      summary: Rider wallet balances and cash accountability
+      responses:
+        '200':
+          description: Rider wallet sourced from the ledger and cash subledger
+  /rider/wallet/cash/settlements:
+    post:
+      summary: Request a Rider cash settlement
+      responses:
+        '201':
+          description: Cash settlement request created
+  /rider/performance:
+    get:
+      summary: Explainable Rider performance metrics
+      responses:
+        '200':
+          description: Performance metrics with sample sizes and definitions
+  /trust/disputes:
+    get:
+      summary: List Trust disputes visible to the authenticated participant
+      responses:
+        '200':
+          description: Visible disputes
+    post:
+      summary: Open an evidence-backed Trust dispute
+      responses:
+        '201':
+          description: Dispute and linked support conversation created
+  /trust/disputes/{id}:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+    get:
+      summary: Get a dispute, conversation and safe evidence
+      responses:
+        '200':
+          description: Dispute detail
+  /trust/disputes/{id}/evidence:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+    post:
+      summary: Add evidence to a Trust case
+      responses:
+        '201':
+          description: Evidence recorded
+  /trust/orders/{orderId}/authoritative-amount:
+    parameters:
+      - in: path
+        name: orderId
+        required: true
+        schema:
+          type: string
+    get:
+      summary: Get the DeeToo-authoritative amount due at handover
+      responses:
+        '200':
+          description: Amount due at handover
+  /trust/conduct/extra-payment:
+    post:
+      summary: Report a Rider extra-payment request
+      responses:
+        '201':
+          description: Conduct report and linked support conversation created
+  /trust/conduct:
+    get:
+      summary: List Rider conduct reports for authorized staff
+      responses:
+        '200':
+          description: Conduct reports
+  /trust/conduct/{id}/review:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+    post:
+      summary: Human-review a Rider conduct report
+      responses:
+        '200':
+          description: Review decision and non-automatic enforcement recommendation
+  /trust/ratings:
+    post:
+      summary: Record a verified post-delivery customer rating
+      responses:
+        '201':
+          description: Delivery rating recorded
+  /trust/riders/{riderId}/performance:
+    parameters:
+      - in: path
+        name: riderId
+        required: true
+        schema:
+          type: string
+    get:
+      summary: Staff Rider performance drill-down
+      responses:
+        '200':
+          description: Explainable Rider performance metrics
+  /trust/cash-settlements:
+    get:
+      summary: List pending Rider cash settlements for Finance
+      responses:
+        '200':
+          description: Pending cash settlements
+  /trust/cash-settlements/{id}/confirm:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+    post:
+      summary: Confirm a verified Rider cash settlement
+      responses:
+        '200':
+          description: Cash settlement confirmed and ledger-posted
+  /trust/cash-collections:
+    post:
+      summary: Record a COD cash collection when COD is explicitly enabled
+      responses:
+        '201':
+          description: Cash collection recorded and ledger-posted
+        '409':
+          description: Cash on delivery is disabled
+  /trust/advisories:
+    get:
+      summary: List advisory-only marketplace automation outputs
+      responses:
+        '200':
+          description: Marketplace advisories
+  /trust/advisories/{id}:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+    patch:
+      summary: Human-review a marketplace advisory
+      responses:
+        '200':
+          description: Advisory review state updated
+
 components:
   securitySchemes:
     bearerAuth:

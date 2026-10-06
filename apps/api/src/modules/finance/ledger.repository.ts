@@ -489,6 +489,7 @@ export class LedgerRepository {
       LedgerAccountType.PLATFORM_SERVICE_FEE_REVENUE,
       LedgerAccountType.SETTLEMENT_CLEARING,
       LedgerAccountType.RIDER_PAYOUT_CLEARING,
+      LedgerAccountType.CASH_COLLECTION_LIABILITY,
     ].includes(account.account_type);
 
     for (const e of entries) {

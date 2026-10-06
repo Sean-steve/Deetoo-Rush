@@ -118,6 +118,10 @@ export function RiderNativeApp() {
   const [active, setActive] = useState<any>(null);
   const [detail, setDetail] = useState<any>(null);
   const [earnings, setEarnings] = useState<any>(null);
+  const [wallet, setWallet] = useState<any>(null);
+  const [performance, setPerformance] = useState<any>(null);
+  const [authoritativeAmount, setAuthoritativeAmount] = useState<any>(null);
+  const [cashSettlementAmount, setCashSettlementAmount] = useState('');
   const [pickupCode, setPickupCode] = useState('');
   const [deliveryOtp, setDeliveryOtp] = useState('');
   const [incidentNote, setIncidentNote] = useState('');
@@ -135,18 +139,30 @@ export function RiderNativeApp() {
   const refresh = useCallback(async () => {
     if (!user) return;
     try {
-      const [riderStatus, activeOffer, activeDelivery, riderEarnings] = await Promise.all([
+      const [
+        riderStatus,
+        activeOffer,
+        activeDelivery,
+        riderEarnings,
+        riderWallet,
+        riderPerformance,
+      ] = await Promise.all([
         client.request<any>('/rider/status'),
         client.request<any>('/rider/offers/active'),
         client.request<any>('/rider/deliveries/active'),
         client.request<any>('/rider/earnings'),
+        client.request<any>('/rider/wallet'),
+        client.request<any>('/rider/performance'),
       ]);
       setStatus(riderStatus.data);
       setOffer(activeOffer.data);
       setActive(activeDelivery.data);
       setEarnings(riderEarnings.data);
+      setWallet(riderWallet.data);
+      setPerformance(riderPerformance.data);
       void loadNotifications().catch(() => undefined);
       const deliveryId = activeDelivery.data?.delivery?.id;
+      const orderId = activeDelivery.data?.order?.id || activeDelivery.data?.delivery?.order_id;
       if (deliveryId) {
         const deliveryDetail = await client.request<any>(
           `/rider/deliveries/${encodeURIComponent(deliveryId)}`,
@@ -154,6 +170,14 @@ export function RiderNativeApp() {
         setDetail(deliveryDetail.data);
       } else {
         setDetail(null);
+      }
+      if (orderId) {
+        const amount = await client.request<any>(
+          `/trust/orders/${encodeURIComponent(orderId)}/authoritative-amount`,
+        );
+        setAuthoritativeAmount(amount.data);
+      } else {
+        setAuthoritativeAmount(null);
       }
       setMessage(null);
     } catch (error) {
@@ -241,6 +265,9 @@ export function RiderNativeApp() {
       setActive(null);
       setDetail(null);
       setEarnings(null);
+      setWallet(null);
+      setPerformance(null);
+      setAuthoritativeAmount(null);
       setSupportCases([]);
       setNotifications([]);
       setSupportDetail(null);
@@ -322,6 +349,42 @@ export function RiderNativeApp() {
       await loadSupportCases();
       if (created.data?.id) await openSupportCase(created.data.id);
     }, 'Support case opened.');
+  }
+
+  async function createFormalDispute() {
+    await perform(async () => {
+      const created = await client.request<any>('/trust/disputes', {
+        method: 'POST',
+        body: JSON.stringify({
+          subject: supportSubject.trim(),
+          description: supportDescription.trim(),
+          category: 'DISPUTE',
+          allegation_code: 'RIDER_DISPUTE',
+          order_id: active?.delivery?.order_id || undefined,
+          delivery_id: active?.delivery?.id || undefined,
+        }),
+      });
+      setSupportSubject('');
+      setSupportDescription('');
+      await loadSupportCases();
+      const supportCaseId = created.data?.support_case?.id;
+      if (supportCaseId) await openSupportCase(supportCaseId);
+    }, 'Formal dispute opened with DeeToo Support.');
+  }
+
+  async function requestCashSettlement() {
+    const amountMinor = Math.round(Number(cashSettlementAmount) * 100);
+    if (!Number.isSafeInteger(amountMinor) || amountMinor <= 0) {
+      setMessage('Enter a valid positive cash settlement amount.');
+      return;
+    }
+    await perform(async () => {
+      await client.request('/rider/wallet/cash/settlements', {
+        method: 'POST',
+        body: JSON.stringify({ amount_minor: amountMinor }),
+      });
+      setCashSettlementAmount('');
+    }, 'Cash settlement request created.');
   }
 
   async function sendSupportReply() {
@@ -545,6 +608,16 @@ export function RiderNativeApp() {
           <View style={styles.card}>
             <Text style={styles.sectionTitle}>Active delivery</Text>
             <Text style={styles.status}>{deliveryStatus}</Text>
+            {authoritativeAmount && (
+              <View style={styles.notice}>
+                <Text style={styles.noticeText}>
+                  DeeToo amount due at handover: {authoritativeAmount.currency || 'KES'} {((authoritativeAmount.amount_due_at_handover_minor || 0) / 100).toFixed(2)}
+                </Text>
+                <Text style={styles.muted}>
+                  Never request a different amount outside DeeToo.
+                </Text>
+              </View>
+            )}
             <Text style={styles.bigText}>{detail.pickup?.name}</Text>
             <Text>{detail.pickup?.address}</Text>
             {detail.navigation?.pickupMapsUrl && ['ASSIGNED', 'ARRIVED_PICKUP'].includes(deliveryStatus) && (
@@ -695,6 +768,68 @@ export function RiderNativeApp() {
           </Text>
         </View>
 
+        <View style={styles.card}>
+          <Text style={styles.sectionTitle}>Rider wallet</Text>
+          <Text style={styles.money}>
+            Available: {wallet?.currency || 'KES'} {((wallet?.available_earnings_minor || 0) / 100).toFixed(2)}
+          </Text>
+          <Text style={styles.muted}>
+            Pending earnings: {wallet?.currency || 'KES'} {((wallet?.pending_earnings_minor || 0) / 100).toFixed(2)}
+          </Text>
+          <Text style={styles.muted}>
+            Adjustments: {wallet?.currency || 'KES'} {((wallet?.adjustments_minor || 0) / 100).toFixed(2)}
+          </Text>
+          <Text style={styles.muted}>
+            Cash collected: {wallet?.currency || 'KES'} {((wallet?.cash_collected_minor || 0) / 100).toFixed(2)}
+          </Text>
+          <Text style={styles.muted}>
+            Cash owed to DeeToo: {wallet?.currency || 'KES'} {((wallet?.cash_owed_minor || 0) / 100).toFixed(2)}
+          </Text>
+          <Text style={wallet?.ledger_reconciled ? styles.muted : styles.error}>
+            {wallet?.ledger_reconciled
+              ? 'Wallet reconciles to the ledger.'
+              : `Wallet reconciliation difference: ${wallet?.currency || 'KES'} ${((wallet?.reconciliation_difference_minor || 0) / 100).toFixed(2)}`}
+          </Text>
+          {(wallet?.cash_owed_minor || 0) > 0 && (
+            <>
+              <TextInput
+                value={cashSettlementAmount}
+                onChangeText={setCashSettlementAmount}
+                keyboardType="decimal-pad"
+                placeholder="Cash amount to settle (KES)"
+                style={styles.input}
+              />
+              <ActionButton
+                label="Settle cash"
+                disabled={busy || !cashSettlementAmount.trim()}
+                onPress={() => void requestCashSettlement()}
+              />
+            </>
+          )}
+        </View>
+
+        <View style={styles.card}>
+          <Text style={styles.sectionTitle}>Performance</Text>
+          <Text style={styles.muted}>
+            Completion: {performance?.completion_rate == null ? 'Not enough data' : `${(performance.completion_rate * 100).toFixed(1)}%`}
+          </Text>
+          <Text style={styles.muted}>
+            Offer acceptance: {performance?.offer_acceptance_rate == null ? 'Not enough data' : `${(performance.offer_acceptance_rate * 100).toFixed(1)}%`}
+          </Text>
+          <Text style={styles.muted}>
+            Pickup punctuality: {performance?.pickup_punctuality_rate == null ? 'Not enough data' : `${(performance.pickup_punctuality_rate * 100).toFixed(1)}%`}
+          </Text>
+          <Text style={styles.muted}>
+            Customer rating: {performance?.customer_rating == null ? 'No verified ratings' : `${performance.customer_rating.toFixed(2)} / 5 (${performance.customer_rating_count})`}
+          </Text>
+          <Text style={styles.muted}>
+            Confirmed conduct incidents: {performance?.confirmed_conduct_incidents || 0}
+          </Text>
+          <Text style={styles.muted}>
+            No single rating or metric automatically suspends a Rider. Human review is required.
+          </Text>
+        </View>
+
         {!delivery && !offer && (
           <View style={styles.card}>
             <Text style={styles.sectionTitle}>Ready</Text>
@@ -782,6 +917,11 @@ export function RiderNativeApp() {
                 label="Create support case"
                 disabled={busy || supportSubject.trim().length < 3 || supportDescription.trim().length < 3}
                 onPress={() => void createSupportCase()}
+              />
+              <ActionButton
+                label="Open formal dispute"
+                disabled={busy || supportSubject.trim().length < 3 || supportDescription.trim().length < 3}
+                onPress={() => void createFormalDispute()}
               />
 
               {supportCases.length > 0 && (

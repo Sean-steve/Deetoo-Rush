@@ -490,6 +490,99 @@ export const adminViews: Record<string, TableConfig> = {
       },
     ],
   },
+  disputes: {
+    title: "Trust & disputes",
+    endpoint: "/trust/disputes",
+    listKey: "cases",
+    columns: [
+      { key: "case_number", label: "Case" },
+      { key: "subject", label: "Issue" },
+      { key: "review_status", label: "Trust status" },
+      { key: "status", label: "Conversation" },
+      { key: "order_id", label: "Order" },
+      { key: "rider_id", label: "Rider" },
+      { key: "created_at", label: "Opened" },
+    ],
+    detail: (r) => `/trust/disputes/${id(r)}`,
+  },
+  conduct: {
+    title: "Rider conduct",
+    endpoint: "/trust/conduct",
+    listKey: "reports",
+    columns: [
+      { key: "conduct_type", label: "Report" },
+      { key: "rider_id", label: "Rider" },
+      { key: "order_id", label: "Order" },
+      { key: "authoritative_amount_minor", label: "DeeToo amount", money: true },
+      { key: "requested_amount_minor", label: "Requested", money: true },
+      status,
+    ],
+    actions: [
+      {
+        label: "Review conduct",
+        endpoint: (r) => `/trust/conduct/${id(r)}/review`,
+        fields: [
+          {
+            key: "decision",
+            label: "Decision",
+            options: ["SUBSTANTIATED", "UNSUBSTANTIATED"],
+          },
+          { key: "note", label: "Review note" },
+        ],
+        when: (r) => ["OPEN", "INVESTIGATING"].includes(r.status),
+      },
+    ],
+  },
+  riderCashSettlements: {
+    title: "Rider cash settlements",
+    endpoint: "/trust/cash-settlements",
+    listKey: "settlements",
+    columns: [
+      { key: "rider_id", label: "Rider" },
+      { key: "amount_minor", label: "Amount", money: true },
+      status,
+      { key: "provider", label: "Provider" },
+      { key: "requested_at", label: "Requested" },
+    ],
+    actions: [
+      {
+        label: "Confirm verified settlement",
+        endpoint: (r) => `/trust/cash-settlements/${id(r)}/confirm`,
+        fields: [
+          { key: "provider_reference", label: "Verified provider reference" },
+        ],
+        when: (r) => ["REQUESTED", "PENDING_PROVIDER"].includes(r.status),
+      },
+    ],
+  },
+  marketplaceAdvisories: {
+    title: "Marketplace advisories",
+    endpoint: "/trust/advisories",
+    listKey: "advisories",
+    columns: [
+      { key: "advisory_type", label: "Advisory" },
+      { key: "scope_type", label: "Scope" },
+      { key: "scope_id", label: "Target" },
+      { key: "confidence", label: "Confidence" },
+      status,
+      { key: "generated_at", label: "Generated" },
+    ],
+    actions: [
+      {
+        label: "Review advisory",
+        endpoint: (r) => `/trust/advisories/${id(r)}`,
+        method: "PATCH",
+        fields: [
+          {
+            key: "status",
+            label: "Decision",
+            options: ["ACKNOWLEDGED", "DISMISSED", "APPLIED"],
+          },
+        ],
+        when: (r) => r.status === "ADVISORY",
+      },
+    ],
+  },
   notifications: {
     title: "Notifications",
     endpoint: "/admin/operations/notifications",
