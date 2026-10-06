@@ -19,6 +19,7 @@ import {
   AdminRejectRiderSchema,
   AdminSuspendRiderSchema,
 } from '@deetoo/validation';
+import { isLocalDevelopmentApiOrigin } from '../../apps/rider-android/src/index';
 
 describe('Sprint 8: Rider Operational Eligibility & Foundation', () => {
   describe('Authoritative Eligibility Evaluation', () => {
@@ -139,6 +140,22 @@ describe('Sprint 8: Rider Operational Eligibility & Foundation', () => {
     test('rejects unsupported vehicle types', () => {
       const invalid = RiderVehicleSchema.safeParse({ type: 'HELICOPTER' });
       assert.strictEqual(invalid.success, false);
+    });
+  });
+
+  describe('Rider local API transport boundary', () => {
+    test('accepts Android emulator and RFC1918 development origins', () => {
+      assert.strictEqual(isLocalDevelopmentApiOrigin('http://10.0.2.2:3000'), true);
+      assert.strictEqual(isLocalDevelopmentApiOrigin('http://10.0.3.2:3000'), true);
+      assert.strictEqual(isLocalDevelopmentApiOrigin('http://192.168.1.20:3000'), true);
+      assert.strictEqual(isLocalDevelopmentApiOrigin('http://172.20.0.10:3000'), true);
+      assert.strictEqual(isLocalDevelopmentApiOrigin('http://localhost:3000'), true);
+    });
+
+    test('rejects public or malformed insecure origins', () => {
+      assert.strictEqual(isLocalDevelopmentApiOrigin('http://example.com'), false);
+      assert.strictEqual(isLocalDevelopmentApiOrigin('http://8.8.8.8:3000'), false);
+      assert.strictEqual(isLocalDevelopmentApiOrigin('not-a-url'), false);
     });
   });
 

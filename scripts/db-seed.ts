@@ -108,7 +108,10 @@ async function seed() {
       await client.query(
         `INSERT INTO service_zones (id, name, status, city_id, config, boundary)
          VALUES ($1, $2, $3, $4, $5, ST_SetSRID(ST_GeomFromGeoJSON($6), 4326))
-         ON CONFLICT (id) DO NOTHING`,
+         ON CONFLICT (id) DO UPDATE SET
+           status = EXCLUDED.status,
+           config = EXCLUDED.config,
+           boundary = EXCLUDED.boundary`,
         [
           DEMO_SERVICE_ZONE.id,
           DEMO_SERVICE_ZONE.name,
@@ -122,7 +125,157 @@ async function seed() {
         ]
       );
 
+      // Local Postgres runs require real commercial rules because the durable
+      // repositories deliberately fail closed when pricing/commission is absent.
+      // Preserve any operator-created active rule; only install the development
+      // baseline when no currently-effective rule exists.
+      await client.query(
+        `INSERT INTO delivery_pricing_rules
+           (id, zone_id, base_fee_minor, included_distance_meters, per_km_fee_minor,
+            minimum_fee_minor, maximum_fee_minor, max_delivery_distance_meters,
+            status, effective_from, effective_until)
+         SELECT
+           '55555555-5555-5555-5555-555555555501', NULL, 10000, 3000, 3000,
+           10000, 100000, 2000000, 'ACTIVE', TIMESTAMPTZ '2020-01-01 00:00:00+00', NULL
+         WHERE NOT EXISTS (
+           SELECT 1 FROM delivery_pricing_rules
+           WHERE status='ACTIVE'
+             AND effective_from <= now()
+             AND (effective_until IS NULL OR effective_until > now())
+         )
+         ON CONFLICT (id) DO UPDATE SET
+           zone_id = EXCLUDED.zone_id,
+           base_fee_minor = EXCLUDED.base_fee_minor,
+           included_distance_meters = EXCLUDED.included_distance_meters,
+           per_km_fee_minor = EXCLUDED.per_km_fee_minor,
+           minimum_fee_minor = EXCLUDED.minimum_fee_minor,
+           maximum_fee_minor = EXCLUDED.maximum_fee_minor,
+           max_delivery_distance_meters = EXCLUDED.max_delivery_distance_meters,
+           status = 'ACTIVE',
+           effective_from = EXCLUDED.effective_from,
+           effective_until = NULL`
+      );
+
+      await client.query(
+        `INSERT INTO service_fee_rules
+           (id, fee_type, percentage_basis_points, fixed_fee_minor,
+            minimum_fee_minor, maximum_fee_minor, status, effective_from, effective_until)
+         SELECT
+           '55555555-5555-5555-5555-555555555502', 'PERCENTAGE', 250, 0,
+           2000, 10000, 'ACTIVE', TIMESTAMPTZ '2020-01-01 00:00:00+00', NULL
+         WHERE NOT EXISTS (
+           SELECT 1 FROM service_fee_rules
+           WHERE status='ACTIVE'
+             AND effective_from <= now()
+             AND (effective_until IS NULL OR effective_until > now())
+         )
+         ON CONFLICT (id) DO UPDATE SET
+           fee_type = EXCLUDED.fee_type,
+           percentage_basis_points = EXCLUDED.percentage_basis_points,
+           fixed_fee_minor = EXCLUDED.fixed_fee_minor,
+           minimum_fee_minor = EXCLUDED.minimum_fee_minor,
+           maximum_fee_minor = EXCLUDED.maximum_fee_minor,
+           status = 'ACTIVE',
+           effective_from = EXCLUDED.effective_from,
+           effective_until = NULL`
+      );
+
+      await client.query(
+        `INSERT INTO merchant_commission_rules
+           (id, merchant_id, percentage_rate, fixed_fee_minor,
+            effective_from, effective_until, status)
+         SELECT
+           '55555555-5555-5555-5555-555555555503', NULL, 0.10, 0,
+           TIMESTAMPTZ '2020-01-01 00:00:00+00', NULL, 'ACTIVE'
+         WHERE NOT EXISTS (
+           SELECT 1 FROM merchant_commission_rules
+           WHERE status='ACTIVE'
+             AND effective_from <= now()
+             AND (effective_until IS NULL OR effective_until > now())
+         )
+         ON CONFLICT (id) DO UPDATE SET
+           merchant_id = NULL,
+           percentage_rate = EXCLUDED.percentage_rate,
+           fixed_fee_minor = EXCLUDED.fixed_fee_minor,
+           status = 'ACTIVE',
+           effective_from = EXCLUDED.effective_from,
+           effective_until = NULL`
+      );
+
+      // Re-running the explicit development seed after creating merchants should
+      // make every already-approved active branch serviceable in the seeded Kenya
+      // zone. Pending merchants are intentionally not auto-approved.
+      await client.query(
+        `INSERT INTO branch_service_zones (branch_id, service_zone_id, status)
+         SELECT b.id, $1, 'ACTIVE'
+         FROM merchant_branches b
+         JOIN merchants m ON m.id = b.merchant_id
+         WHERE b.status = 'ACTIVE'
+           AND m.status = 'ACTIVE'
+           AND m.approval_status = 'APPROVED'
+         ON CONFLICT (branch_id, service_zone_id)
+         DO UPDATE SET status = 'ACTIVE'`,
+        [DEMO_SERVICE_ZONE.id]
+      );
+
+      const visibility = await client.query(
+        `SELECT
+           COUNT(DISTINCT m.id)::int AS approved_merchants,
+           COUNT(DISTINCT b.id)::int AS active_branches,
+           COUNT(DISTINCT mn.id) FILTER (WHERE mn.is_active)::int AS active_menus
+         FROM merchants m
+         LEFT JOIN merchant_branches b
+           ON b.merchant_id=m.id AND b.status='ACTIVE'
+         LEFT JOIN menus mn
+           ON mn.merchant_id=m.id AND mn.branch_id=b.id
+         WHERE m.status='ACTIVE' AND m.approval_status='APPROVED'`
+      );
+
+      const hiddenMenus = await client.query(
+        `SELECT
+           mn.id AS menu_id,
+           mn.name AS menu_name,
+           m.display_name AS merchant_name,
+           m.status AS merchant_status,
+           m.approval_status,
+           b.name AS branch_name,
+           b.status AS branch_status,
+           EXISTS (
+             SELECT 1
+             FROM branch_service_zones bsz
+             JOIN service_zones sz ON sz.id=bsz.service_zone_id
+             WHERE bsz.branch_id=b.id
+               AND bsz.status='ACTIVE'
+               AND sz.status='ACTIVE'
+           ) AS has_active_zone
+         FROM menus mn
+         JOIN merchants m ON m.id=mn.merchant_id
+         JOIN merchant_branches b ON b.id=mn.branch_id
+         WHERE mn.is_active
+           AND (
+             m.status <> 'ACTIVE'
+             OR m.approval_status <> 'APPROVED'
+             OR b.status <> 'ACTIVE'
+             OR NOT EXISTS (
+               SELECT 1
+               FROM branch_service_zones bsz
+               JOIN service_zones sz ON sz.id=bsz.service_zone_id
+               WHERE bsz.branch_id=b.id
+                 AND bsz.status='ACTIVE'
+                 AND sz.status='ACTIVE'
+             )
+           )`
+      );
+
       await client.query('COMMIT');
+      for (const menu of hiddenMenus.rows) {
+        logger.warn('Active menu is not customer-discoverable', {
+          metadata: menu,
+        });
+      }
+      logger.info('Development commercial baseline configured', {
+        metadata: visibility.rows[0],
+      });
       logger.info('Database baseline seed completed successfully.');
     } catch (txErr) {
       await client.query('ROLLBACK');
