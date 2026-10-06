@@ -283,7 +283,7 @@ export function AccountSupport({
                         </Button>
                       ))}
                     </div>
-                  </InlineBanner>
+                  </div>
                 )}
                 {["RESOLUTION_PROPOSED", "PARTY_CONFIRMATION"].includes(detail.data?.case?.status) && (
                   <InlineBanner
@@ -338,7 +338,7 @@ export function AccountSupport({
                         I still need help
                       </Button>
                     </div>
-                  </div>
+                  </InlineBanner>
                 )}
                 <FormField label="Reply">
                   <Textarea
