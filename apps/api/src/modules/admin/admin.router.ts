@@ -453,6 +453,33 @@ adminRouter.post(
   },
 );
 
+adminRouter.post(
+  '/governance/merchants/:id/reactivate',
+  requireRole(UserRole.SUPER_ADMIN),
+  async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      const reason = String(req.body.reason || '').trim();
+      if (reason.length < 3) throw new AppError(400, 'REASON_REQUIRED', 'A meaningful reason is required');
+      const merchant = await merchantRepository.findMerchantById(req.params.id);
+      if (!merchant) throw new AppError(404, 'MERCHANT_NOT_FOUND', 'Merchant not found');
+      const updated = await merchantRepository.updateMerchant(req.params.id, {
+        status: MerchantStatus.ACTIVE,
+      });
+      await authRepository.createAuditLog({
+        actor_user_id: req.user!.id,
+        actor_role: UserRole.SUPER_ADMIN,
+        action: AuditAction.MERCHANT_REACTIVATED,
+        resource_type: 'MERCHANT',
+        resource_id: req.params.id,
+        reason,
+        request_id: (req as any).requestId,
+        metadata: { governance_action: 'REACTIVATED', previous_status: merchant.status },
+      });
+      res.json({ data: updated, requestId: (req as any).requestId });
+    } catch (err) { next(err); }
+  },
+);
+
 // ==========================================
 // 7. Admin Merchant Management (Sprint 3)
 // ==========================================
@@ -607,7 +634,16 @@ adminRouter.patch(
   async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
       const merchantId = req.params.id;
-      const validated = UpdateMerchantSchema.parse(req.body);
+      const reason = String(req.body?.reason || '').trim();
+      if (reason.length < 3) {
+        throw new AppError(400, 'REASON_REQUIRED', 'A meaningful governance reason is required');
+      }
+      const before = await merchantRepository.findMerchantById(merchantId);
+      if (!before) {
+        throw new AppError(404, 'MERCHANT_NOT_FOUND', 'Merchant not found');
+      }
+      const { reason: _reason, ...candidate } = req.body || {};
+      const validated = UpdateMerchantSchema.parse(candidate);
 
       const updated = await merchantRepository.updateMerchant(merchantId, validated);
       if (!updated) {
@@ -616,11 +652,13 @@ adminRouter.patch(
 
       await authRepository.createAuditLog({
         actor_user_id: req.user!.id,
-        actor_role: UserRole.ADMIN,
+        actor_role: UserRole.SUPER_ADMIN,
         action: AuditAction.MERCHANT_UPDATED,
         resource_type: 'MERCHANT',
         resource_id: merchantId,
-        metadata: validated,
+        reason,
+        request_id: (req as any).requestId,
+        metadata: { before, after: updated, changed_fields: Object.keys(validated) },
       });
 
       res.json({
@@ -708,6 +746,15 @@ adminRouter.post(
   async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
       const merchantId = req.params.id;
+      const merchant = await merchantRepository.findMerchantById(merchantId);
+      if (!merchant) throw new AppError(404, 'MERCHANT_NOT_FOUND', 'Merchant not found');
+      if (merchant.status === MerchantStatus.DISABLED) {
+        throw new AppError(
+          403,
+          'SUPER_ADMIN_REQUIRED',
+          'Governance-deactivated merchants can only be reactivated from Identity Governance by a Super Admin',
+        );
+      }
       const reactivated = await merchantService.reactivateMerchant(merchantId, req.user!.id);
       res.json({
         data: reactivated,
