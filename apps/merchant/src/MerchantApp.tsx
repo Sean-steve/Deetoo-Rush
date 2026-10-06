@@ -7,6 +7,7 @@ import {
   Navigation,
   ResourceState,
   StatusBadge,
+  NotificationInbox,
   useResource,
   errorMessage,
 } from "../../../packages/ui/src/workflows";
@@ -55,13 +56,14 @@ import {
 import { CatalogueManager } from "./components/CatalogueManager";
 import { getBrowserCurrentLocation } from "../../../packages/ui-web/src/geolocation";
 
-type MerchantTab = "orders" | "catalogue" | "finance" | "account" | "branch" | "support" | "sessions";
+type MerchantTab = "orders" | "catalogue" | "finance" | "account" | "branch" | "notifications" | "support" | "sessions";
 const merchantTabPath:Record<MerchantTab,string>={
   orders:"/orders",
   catalogue:"/menu",
   finance:"/finance",
   account:"/business",
   branch:"/branch",
+  notifications:"/notifications",
   support:"/support",
   sessions:"/security",
 };
@@ -71,6 +73,7 @@ function merchantTabFromPath():MerchantTab{
   if(path==="/finance")return "finance";
   if(path==="/business"||path==="/account")return "account";
   if(path==="/branch")return "branch";
+  if(path==="/notifications")return "notifications";
   if(path==="/support")return "support";
   if(path==="/security"||path==="/sessions")return "sessions";
   return "orders";
@@ -398,6 +401,7 @@ function MerchantAppInner() {
               { id: "account", label: "Business & team", icon:<User size={16}/>, group:"Business" },
               { id: "branch", label: "Branch settings", icon:<Store size={16}/>, group:"Business" },
               { id: "sessions", label: "Security & sessions", icon:<ShieldCheck size={16}/>, group:"Account" },
+              { id: "notifications", label: "Notifications", icon:<Bell size={16}/>, group:"Account" },
               { id: "support", label: "Support", icon:<LifeBuoy size={16}/>, group:"Account" },
             ]}
           />
@@ -589,6 +593,7 @@ function MerchantAppInner() {
             canManage={canManageStoreStatus}
           />
         )}
+        {activeMainTab === "notifications" && <NotificationInbox />}
         {activeMainTab === "support" && <AccountSupport mode="participant" />}
         {branch && activeMainTab === "finance" && (
           <MerchantFinance merchantId={branch.merchant_id} />
