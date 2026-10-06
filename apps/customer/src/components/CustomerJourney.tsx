@@ -51,7 +51,7 @@ const deliveryProgressSteps = [
   { id: "delivered", label: "Delivered", description: "Handover complete" },
 ];
 
-function customerProgressStage(orderStatus?: string, deliveryStatus?: string): string {
+export function customerProgressStage(orderStatus?: string, deliveryStatus?: string): string {
   if (orderStatus === "COMPLETED" || deliveryStatus === "DELIVERED") return "delivered";
   if (["PICKED_UP", "EN_ROUTE", "ARRIVED_DROPOFF"].includes(deliveryStatus || "")) return "on_way";
   if (["ASSIGNED", "OFFERED", "ARRIVED_PICKUP"].includes(deliveryStatus || "")) return "collecting";
