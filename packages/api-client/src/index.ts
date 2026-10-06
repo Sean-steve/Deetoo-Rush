@@ -262,11 +262,17 @@ export class DeetooApiClient {
         requestId: response.headers.get("x-request-id") || requestId,
       };
     } catch (err: any) {
-      if (err?.name === "AbortError") {
+      const message = String(err?.message || "");
+      const wasAborted =
+        controller.signal.aborted ||
+        err?.name === "AbortError" ||
+        /fetch request has been cancel(?:led|ed)|aborted/i.test(message);
+      if (wasAborted) {
         throw {
           error: {
             code: "TIMEOUT",
-            message: `Request timed out after ${this.timeoutMs}ms`,
+            message: `Could not reach the DeeToo API within ${this.timeoutMs}ms`,
+            details: { url },
             request_id: requestId,
           },
         };
