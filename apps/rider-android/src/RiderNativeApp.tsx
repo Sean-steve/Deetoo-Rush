@@ -73,7 +73,6 @@ export function RiderNativeApp() {
   const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
-  const [pushReady, setPushReady] = useState(false);
   const [status, setStatus] = useState<any>(null);
   const [offer, setOffer] = useState<any>(null);
   const [active, setActive] = useState<any>(null);
@@ -133,11 +132,14 @@ export function RiderNativeApp() {
   }, [user, refresh]);
 
   useEffect(() => {
-    if (!user || !pushReady) return;
+    if (!user) return;
+    void registerRiderPushDevice(client).catch((error) => {
+      setMessage(`Push setup: ${errorMessage(error)}`);
+    });
     return subscribeToOfferNotifications(() => {
       void refresh();
     });
-  }, [pushReady, refresh, user]);
+  }, [client, refresh, user]);
 
   useEffect(() => {
     if (status?.profile?.workStatus && status.profile.workStatus !== 'OFFLINE') {
@@ -146,16 +148,6 @@ export function RiderNativeApp() {
       );
     }
   }, [status?.profile?.workStatus]);
-
-  async function enablePushNotifications() {
-    if (pushReady) return;
-    try {
-      await registerRiderPushDevice(client);
-      setPushReady(true);
-    } catch (error) {
-      setMessage(`Push setup: ${errorMessage(error)}`);
-    }
-  }
 
   async function perform(action: () => Promise<unknown>, success?: string) {
     setBusy(true);
@@ -179,6 +171,7 @@ export function RiderNativeApp() {
         throw new Error('This account is not a Rider account.');
       }
       setUser(authenticated);
+      await registerRiderPushDevice(client).catch(() => undefined);
     });
   }
 
@@ -193,7 +186,6 @@ export function RiderNativeApp() {
       setActive(null);
       setDetail(null);
       setEarnings(null);
-      setPushReady(false);
     } finally {
       setBusy(false);
     }
@@ -219,7 +211,6 @@ export function RiderNativeApp() {
       }),
     });
     await startRiderLocationService();
-    void enablePushNotifications();
   }
 
   async function goOffline() {
@@ -281,7 +272,7 @@ export function RiderNativeApp() {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.loginCard}>
-          <Text style={styles.brand}>Deetoo Rider</Text>
+          <Text style={styles.loginBrand}>DeeToo Rider</Text>
           <Text style={styles.muted}>Sign in with your approved Rider account.</Text>
           <TextInput
             autoCapitalize="none"
@@ -323,44 +314,39 @@ export function RiderNativeApp() {
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.content}>
-        <View style={styles.header}>
-          <View>
-            <Text style={styles.brand}>Deetoo Rider</Text>
-            <Text style={styles.muted}>{user.email || user.phone_e164 || user.id}</Text>
+        <View style={styles.riderHero}>
+          <View style={styles.header}>
+            <View>
+              <Text style={styles.heroEyebrow}>DEETOO RIDER</Text>
+              <Text style={styles.brand}>Ready for the road.</Text>
+              <Text style={styles.heroMuted}>{user.email || user.phone_e164 || user.id}</Text>
+            </View>
+            <Pressable onPress={() => void logout()} disabled={busy} style={styles.signOutPill}>
+              <Text style={styles.signOutText}>Sign out</Text>
+            </Pressable>
           </View>
-          <Pressable onPress={() => void logout()} disabled={busy}>
-            <Text style={styles.link}>Sign out</Text>
-          </Pressable>
+          <View style={styles.heroStatusRow}>
+            <View style={styles.heroStatus}>
+              <Text style={styles.heroStatusLabel}>WORK STATUS</Text>
+              <Text style={styles.heroStatusValue}>{workStatus.replaceAll('_',' ')}</Text>
+            </View>
+            <View style={styles.heroStatus}>
+              <Text style={styles.heroStatusLabel}>GPS</Text>
+              <Text style={styles.heroStatusValue}>{status?.locationFreshness?.isStale ? 'Needs update' : 'Fresh'}</Text>
+            </View>
+          </View>
+          {workStatus === 'OFFLINE' ? (
+            <ActionButton label={busy ? 'Starting…' : 'Go online & receive offers'} disabled={busy} onPress={() => void perform(goOnline, 'You are online.')} />
+          ) : (
+            <ActionButton label={busy ? 'Stopping…' : workStatus === 'BUSY' ? 'Delivery in progress' : 'Go offline'} disabled={busy || workStatus === 'BUSY'} danger={workStatus!=='BUSY'} onPress={() => void perform(goOffline, 'You are offline.')} />
+          )}
         </View>
 
         {message && (
           <View style={styles.notice}>
-            <Text>{message}</Text>
+            <Text style={styles.noticeText}>{message}</Text>
           </View>
         )}
-
-        <View style={styles.card}>
-          <Text style={styles.sectionTitle}>Availability</Text>
-          <Text style={styles.status}>{workStatus}</Text>
-          <Text style={styles.muted}>
-            GPS: {status?.locationFreshness?.isStale ? 'stale / unavailable' : 'fresh'}
-          </Text>
-          <Text style={styles.muted}>
-            Push notifications: {pushReady ? 'ready' : 'not enabled'}
-          </Text>
-          {workStatus === 'OFFLINE' ? (
-            <ActionButton label={busy ? 'Starting…' : 'Go online'} disabled={busy} onPress={() => void perform(goOnline, 'You are online.')} />
-          ) : (
-            <ActionButton label={busy ? 'Stopping…' : 'Go offline'} disabled={busy || workStatus === 'BUSY'} danger onPress={() => void perform(goOffline, 'You are offline.')} />
-          )}
-          {!pushReady && (
-            <ActionButton
-              label="Enable delivery notifications"
-              disabled={busy}
-              onPress={() => void enablePushNotifications()}
-            />
-          )}
-        </View>
 
         {offer && (
           <View style={styles.offerCard}>
@@ -570,29 +556,40 @@ export function RiderNativeApp() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F7F7F4' },
-  centered: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12 },
-  content: { padding: 16, gap: 14, paddingBottom: 48 },
-  loginCard: { margin: 20, marginTop: 120, padding: 20, gap: 14, backgroundColor: '#fff', borderRadius: 18 },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  brand: { fontSize: 28, fontWeight: '800', color: '#10231A' },
-  sectionTitle: { fontSize: 18, fontWeight: '800', color: '#10231A' },
-  bigText: { fontSize: 20, fontWeight: '700', color: '#10231A' },
-  status: { fontSize: 16, fontWeight: '800', color: '#00A651', marginVertical: 6 },
-  muted: { color: '#68736D', marginTop: 4 },
-  money: { fontWeight: '800', marginVertical: 8 },
-  link: { color: '#006D3C', fontWeight: '700', paddingVertical: 8 },
-  card: { backgroundColor: '#fff', borderRadius: 18, padding: 16, gap: 10 },
-  offerCard: { backgroundColor: '#E9FFF2', borderColor: '#00A651', borderWidth: 2, borderRadius: 18, padding: 16, gap: 10 },
-  notice: { padding: 12, backgroundColor: '#FFF5D6', borderRadius: 12 },
-  incident: { marginTop: 10, paddingTop: 12, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: '#ccc', gap: 8 },
-  input: { backgroundColor: '#F3F4F1', borderColor: '#D6D9D4', borderWidth: 1, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 12, fontSize: 16 },
-  textArea: { minHeight: 80, textAlignVertical: 'top' },
-  button: { backgroundColor: '#00A651', borderRadius: 12, paddingVertical: 14, alignItems: 'center', marginTop: 4 },
+  container: { flex: 1, backgroundColor: '#F4F9F6' },
+  centered: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12, backgroundColor: '#F4F9F6' },
+  content: { padding: 16, gap: 14, paddingBottom: 56 },
+  loginCard: { margin: 20, marginTop: 100, padding: 24, gap: 14, backgroundColor: '#FFFFFF', borderRadius: 26, borderWidth: 1, borderColor: '#E0EBE4' },
+  riderHero: { backgroundColor: '#0B1E15', borderRadius: 28, padding: 20, gap: 18 },
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 },
+  heroEyebrow: { color: '#66F0A6', fontSize: 10, fontWeight: '900', letterSpacing: 1.6, marginBottom: 5 },
+  brand: { fontSize: 30, lineHeight: 34, fontWeight: '900', color: '#FFFFFF', letterSpacing: -1.1 },
+  loginBrand: { fontSize: 30, lineHeight: 34, fontWeight: '900', color: '#10231A', letterSpacing: -1.1 },
+  heroMuted: { color: '#9DB2A6', marginTop: 5, fontSize: 12 },
+  signOutPill: { paddingHorizontal: 12, paddingVertical: 9, backgroundColor: '#173126', borderRadius: 14 },
+  signOutText: { color: '#D7E8DE', fontSize: 11, fontWeight: '800' },
+  heroStatusRow: { flexDirection: 'row', gap: 10 },
+  heroStatus: { flex: 1, backgroundColor: '#112B1E', borderRadius: 18, padding: 14, borderWidth: 1, borderColor: '#1F4432' },
+  heroStatusLabel: { color: '#789183', fontSize: 9, fontWeight: '900', letterSpacing: 1 },
+  heroStatusValue: { color: '#FFFFFF', fontSize: 14, fontWeight: '900', marginTop: 5 },
+  sectionTitle: { fontSize: 18, fontWeight: '900', color: '#10231A', letterSpacing: -0.4 },
+  bigText: { fontSize: 22, fontWeight: '900', color: '#10231A', letterSpacing: -0.5 },
+  status: { fontSize: 13, fontWeight: '900', color: '#00BF62', marginVertical: 6, textTransform: 'uppercase', letterSpacing: 0.7 },
+  muted: { color: '#66786E', marginTop: 4, fontSize: 13, lineHeight: 19 },
+  money: { fontWeight: '900', marginVertical: 8, color: '#10231A', fontSize: 18 },
+  link: { color: '#007C43', fontWeight: '900', paddingVertical: 8 },
+  card: { backgroundColor: '#FFFFFF', borderRadius: 24, padding: 18, gap: 10, borderWidth: 1, borderColor: '#E2ECE6' },
+  offerCard: { backgroundColor: '#E8FFF2', borderColor: '#00BF62', borderWidth: 1.5, borderRadius: 26, padding: 18, gap: 10 },
+  notice: { padding: 13, backgroundColor: '#FFF6DA', borderRadius: 16, borderWidth: 1, borderColor: '#F5DC8B' },
+  noticeText: { color: '#654A00', fontWeight: '700' },
+  incident: { marginTop: 10, paddingTop: 14, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: '#DCE7E0', gap: 8 },
+  input: { backgroundColor: '#F8FBF9', borderColor: '#D7E4DB', borderWidth: 1, borderRadius: 15, paddingHorizontal: 14, paddingVertical: 13, fontSize: 16, color: '#10231A' },
+  textArea: { minHeight: 92, textAlignVertical: 'top' },
+  button: { backgroundColor: '#00BF62', borderRadius: 15, paddingVertical: 15, alignItems: 'center', marginTop: 4 },
   dangerButton: { backgroundColor: '#B42318' },
   disabledButton: { opacity: 0.45 },
-  buttonText: { color: '#fff', fontWeight: '800', fontSize: 16 },
-  error: { color: '#B42318', fontWeight: '600' },
+  buttonText: { color: '#FFFFFF', fontWeight: '900', fontSize: 15 },
+  error: { color: '#B42318', fontWeight: '700' },
   camera: { flex: 1 },
-  cameraActions: { padding: 16, gap: 8, backgroundColor: '#111' },
+  cameraActions: { padding: 16, gap: 8, backgroundColor: '#07140E' },
 });
