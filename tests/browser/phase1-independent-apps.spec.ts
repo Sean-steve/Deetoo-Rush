@@ -15,7 +15,10 @@ async function expectSecureWebSession(context: BrowserContext) {
 }
 
 test('Customer Web authenticates with cookies, not localStorage, and remains role-scoped', async ({ browser }) => {
-  const context = await browser.newContext();
+  const context = await browser.newContext({
+    geolocation: { latitude: -1.2864, longitude: 36.8172 },
+    permissions: ['geolocation'],
+  });
   const page = await context.newPage();
   await page.goto('http://127.0.0.1:5173');
 
