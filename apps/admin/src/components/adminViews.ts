@@ -80,6 +80,43 @@ export const adminViews: Record<string, TableConfig> = {
       },
     ],
   },
+  customers: {
+    title: "Customers",
+    endpoint: "/admin/customers",
+    searchable: true,
+    pageable: true,
+    offsetPaging: true,
+    columns: [
+      { key: "display_name", label: "Customer" },
+      { key: "email", label: "Email" },
+      { key: "phone", label: "Phone" },
+      { key: "created_at", label: "Joined" },
+    ],
+    detail: (row) => `/admin/customers/${id(row)}`,
+    actions: [
+      {
+        label: "Edit profile",
+        endpoint: (row) => `/admin/customers/${id(row)}`,
+        method: "PATCH",
+        requiredPermission: "customer.profile.manage",
+        fields: [
+          { key: "first_name", label: "First name", required: false },
+          { key: "last_name", label: "Last name", required: false },
+          { key: "display_name", label: "Display name", required: false },
+          { key: "phone", label: "Phone", required: false },
+          { key: "email", label: "Email", required: false },
+          { key: "reason", label: "Audit reason" },
+        ],
+      },
+      {
+        label: "Deactivate account",
+        endpoint: (row) => `/admin/customers/${id(row)}`,
+        method: "DELETE",
+        requiredPermission: "identity.deactivate",
+        fields: [{ key: "reason", label: "Deactivation reason" }],
+      },
+    ],
+  },
   merchants: {
     title: "Merchants & approvals",
     endpoint: "/admin/merchants",
@@ -93,6 +130,27 @@ export const adminViews: Record<string, TableConfig> = {
     ],
     detail: (r) => `/admin/merchants/${id(r)}`,
     actions: [
+      {
+        label: "Edit merchant profile",
+        endpoint: (row) => `/admin/merchants/${id(row)}`,
+        method: "PATCH",
+        requiredPermission: "merchant.profile.manage",
+        fields: [
+          { key: "display_name", label: "Display name", required: false },
+          { key: "legal_name", label: "Legal name", required: false },
+          { key: "description", label: "Description", required: false },
+          { key: "phone", label: "Phone", required: false },
+          { key: "email", label: "Email", required: false },
+          { key: "reason", label: "Audit reason" },
+        ],
+      },
+      {
+        label: "Deactivate merchant",
+        endpoint: (row) => `/admin/merchants/${id(row)}`,
+        method: "DELETE",
+        requiredPermission: "identity.deactivate",
+        fields: [{ key: "reason", label: "Deactivation reason" }],
+      },
       {
         label: "Approve merchant",
         endpoint: (r) => `/admin/merchants/${id(r)}/approve`,
