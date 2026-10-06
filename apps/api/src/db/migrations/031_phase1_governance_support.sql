@@ -1,9 +1,8 @@
 -- Phase 1 governance, support conversation and privileged account controls
 
 -- 1. Super Admin role. Existing admins remain admins; elevation is explicit.
-INSERT INTO roles (id, code, name, description, is_system_role)
-SELECT gen_random_uuid(), 'super_admin', 'Super Admin',
-       'Highest business-data authority; privileged identity/account lifecycle actions.', TRUE
+INSERT INTO roles (id, code, name)
+SELECT gen_random_uuid(), 'super_admin', 'Super Admin'
 WHERE NOT EXISTS (SELECT 1 FROM roles WHERE code='super_admin');
 
 -- 2. Support becomes a conversation with proposed resolution + party confirmation.
