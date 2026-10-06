@@ -6664,6 +6664,17 @@ paths:
       tags: [Admin]
       responses:
         '200': { description: Polygon service zones with county and market context }
+  /admin/geography/zones/{id}/hierarchy:
+    patch:
+      summary: Phase 2 assign a service zone to its county and market
+      tags: [Admin]
+      parameters:
+      - in: path
+        name: id
+        required: true
+        schema: { type: string, format: uuid }
+      responses:
+        '200': { description: Service-zone hierarchy updated }
 
   /finance/ops/overview:
     get:
