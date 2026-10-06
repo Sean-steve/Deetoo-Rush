@@ -29,6 +29,7 @@ import { orderEventBroker } from "../realtime/event-broker";
 import { mediaService } from "../media/media.service";
 import { merchantRepository } from "../merchant/merchant.repository";
 import { riderRepository } from "../rider/rider.repository";
+import { deliveryRepository } from "../order/delivery.repository";
 
 export interface SupportViewer {
   id: string;
@@ -57,14 +58,45 @@ export class SupportService {
     description: string;
     creator: { id: string; name: string; role: string };
   }): Promise<SupportCase> {
-    // If order_id provided, validate existence and link customer/merchant if missing
+    // Hydrate linked parties from the transactional graph so an order dispute
+    // automatically becomes a Customer ↔ Merchant ↔ Rider conversation.
     if (params.order_id) {
       const order = await orderRepository.findById(params.order_id);
       if (order) {
         if (!params.customer_id) params.customer_id = order.customer_id;
-        if (!params.merchant_id)
-          params.merchant_id =
-            (order as any).merchant_id || (order as any).branch_id;
+        if (!params.merchant_id) {
+          const directMerchantId = (order as any).merchant_id;
+          if (directMerchantId) {
+            params.merchant_id = directMerchantId;
+          } else if ((order as any).branch_id) {
+            const branch = await merchantRepository.findBranchById(
+              (order as any).branch_id,
+            );
+            params.merchant_id = branch?.merchant_id || null;
+          }
+        }
+      }
+    }
+
+    if (params.delivery_id) {
+      const delivery = await deliveryRepository.findById(params.delivery_id);
+      if (delivery) {
+        if (!params.order_id) params.order_id = delivery.order_id;
+        if (!params.rider_id && delivery.assigned_rider_id) {
+          params.rider_id = delivery.assigned_rider_id;
+        }
+      }
+    }
+
+    // When only an order is supplied, link the current/most relevant delivery
+    // so Rider participation can be included automatically when custody exists.
+    if (params.order_id && !params.delivery_id) {
+      const delivery = await deliveryRepository.findByOrderId(params.order_id);
+      if (delivery) {
+        params.delivery_id = delivery.id;
+        if (!params.rider_id && delivery.assigned_rider_id) {
+          params.rider_id = delivery.assigned_rider_id;
+        }
       }
     }
 
