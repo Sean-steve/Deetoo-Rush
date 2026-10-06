@@ -17,7 +17,7 @@ import {
   SupportCaseCategory,
   SupportNoteVisibility,
   SupportCaseParticipant,
-  SupportParticipantType,
+  SupportCaseAttachment,
   Refund,
   PaymentStatus,
 } from "@deetoo/types";
@@ -201,7 +201,7 @@ export class SupportService {
     case: SupportCase;
     notes: SupportCaseNote[];
     participants: SupportCaseParticipant[];
-    attachments: any[];
+    attachments: SupportCaseAttachment[];
   }> {
     const supportCase = await operationsRepository.getSupportCaseById(caseId);
     if (!supportCase) {
