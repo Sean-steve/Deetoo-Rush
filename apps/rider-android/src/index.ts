@@ -41,8 +41,7 @@ export function isLocalDevelopmentApiOrigin(value: string): boolean {
 export function createRiderAndroidSession(config: RiderAndroidBootstrap): NativeAuthSession {
   const baseUrl = config.apiBaseUrl.replace(/\/$/, '');
   const isHttps = /^https:\/\//i.test(baseUrl);
-  const isDevelopment =
-    typeof __DEV__ !== 'undefined' && __DEV__;
+  const isDevelopment = process.env.NODE_ENV !== 'production';
 
   if (!isHttps && !(isDevelopment && isLocalDevelopmentApiOrigin(baseUrl))) {
     throw new Error(
