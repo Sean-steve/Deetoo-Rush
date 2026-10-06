@@ -50,8 +50,10 @@ import {
   UtensilsCrossed,
   WalletCards,
   LifeBuoy,
+  LocateFixed,
 } from "lucide-react";
 import { CatalogueManager } from "./components/CatalogueManager";
+import { getBrowserCurrentLocation } from "../../../packages/ui-web/src/geolocation";
 
 type MerchantTab = "orders" | "catalogue" | "finance" | "account" | "branch" | "support" | "sessions";
 const merchantTabPath:Record<MerchantTab,string>={
@@ -97,6 +99,7 @@ function MerchantAppInner() {
   const [selectedBranch, setSelectedBranch] = useState("");
   const [addBranchOpen, setAddBranchOpen] = useState(false);
   const [addBranchBusy, setAddBranchBusy] = useState(false);
+  const [isLocatingBranch, setIsLocatingBranch] = useState(false);
   const [addBranchError, setAddBranchError] = useState<string | null>(null);
   const [newBranch, setNewBranch] = useState({
     name: "",
@@ -153,6 +156,23 @@ function MerchantAppInner() {
   // merchant.router.ts) -- Manager/Staff correctly cannot create a branch, only edit one
   // they're already assigned to.
   const canCreateBranch = hasRole(UserRole.MERCHANT_OWNER) || hasRole(UserRole.ADMIN);
+
+  const captureNewBranchLocation = async () => {
+    setIsLocatingBranch(true);
+    setAddBranchError(null);
+    try {
+      const coords = await getBrowserCurrentLocation();
+      setNewBranch((current) => ({
+        ...current,
+        latitude: String(coords.latitude),
+        longitude: String(coords.longitude),
+      }));
+    } catch (error) {
+      setAddBranchError(errorMessage(error));
+    } finally {
+      setIsLocatingBranch(false);
+    }
+  };
 
   const submitNewBranch = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -407,6 +427,7 @@ function MerchantAppInner() {
                   onClick={() => {
                     setAddBranchError(null);
                     setAddBranchOpen(true);
+                    void captureNewBranchLocation();
                   }}
                 >
                   Add branch
@@ -478,27 +499,48 @@ function MerchantAppInner() {
                   />
                 </FormField>
               </div>
-              <div className="grid grid-cols-2 gap-4">
-                <FormField label="Latitude" required>
-                  <Input
-                    type="number"
-                    step="any"
-                    value={newBranch.latitude}
-                    onChange={(e) => setNewBranch({ ...newBranch, latitude: e.target.value })}
-                    placeholder="e.g., -4.0435"
-                    required
-                  />
-                </FormField>
-                <FormField label="Longitude" required>
-                  <Input
-                    type="number"
-                    step="any"
-                    value={newBranch.longitude}
-                    onChange={(e) => setNewBranch({ ...newBranch, longitude: e.target.value })}
-                    placeholder="e.g., 39.6682"
-                    required
-                  />
-                </FormField>
+              <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3">
+                <div className="flex items-center justify-between gap-3 mb-3">
+                  <div>
+                    <p className="text-sm font-semibold text-emerald-900">Branch GPS location</p>
+                    <p className="text-xs text-emerald-800">
+                      Coordinates are captured from the device at the restaurant.
+                    </p>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    disabled={isLocatingBranch}
+                    onClick={() => void captureNewBranchLocation()}
+                    className="gap-1.5"
+                  >
+                    <LocateFixed size={14} />
+                    {isLocatingBranch ? "Locating…" : "Use current location"}
+                  </Button>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField label="Latitude" required>
+                    <Input
+                      type="number"
+                      step="any"
+                      value={newBranch.latitude}
+                      onChange={(e) => setNewBranch({ ...newBranch, latitude: e.target.value })}
+                      placeholder="Captured from GPS"
+                      required
+                    />
+                  </FormField>
+                  <FormField label="Longitude" required>
+                    <Input
+                      type="number"
+                      step="any"
+                      value={newBranch.longitude}
+                      onChange={(e) => setNewBranch({ ...newBranch, longitude: e.target.value })}
+                      placeholder="Captured from GPS"
+                      required
+                    />
+                  </FormField>
+                </div>
               </div>
               {addBranchError && (
                 <p role="alert" className="text-rose-700">
