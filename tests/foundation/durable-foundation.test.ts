@@ -346,6 +346,42 @@ test('support case and private notes persist without stale cache reads', async (
   assert.deepEqual(await repo.getSupportCaseNotes(id,true),[]);
 });
 
+test('participant-visible support notes and lifecycle updates persist in durable storage', async () => {
+  const {operationsRepository: repo}=await import('../../apps/api/src/modules/operations/operations.repository');
+  const user=(await getDbPool().query('SELECT id FROM users LIMIT 1')).rows[0];
+  const id=randomUUID();
+  const proposedAt=new Date().toISOString();
+  await repo.createSupportCase({id,customer_id:user.id,category:'OTHER',subject:'Participant support',description:'Conversation storage verification'});
+  const note=await repo.addSupportCaseNote({
+    id:randomUUID(),
+    case_id:id,
+    author_user_id:user.id,
+    author_role:'customer',
+    author_name:'Foundation Customer',
+    visibility:'ALL_PARTICIPANTS',
+    body:'I need help with this order',
+    message_type:'MESSAGE',
+    target_party:null,
+    created_at:new Date().toISOString(),
+  } as any);
+  assert.equal(note.visibility,'ALL_PARTICIPANTS');
+  assert.equal((await repo.getSupportCaseNotes(id,false,'CUSTOMER')).length,1);
+
+  const updated=await repo.updateSupportCase(id,{
+    status:'RESOLUTION_PROPOSED',
+    resolution_proposed_at:proposedAt,
+  } as any);
+  assert.equal(updated?.status,'RESOLUTION_PROPOSED');
+  const row=(await getDbPool().query(
+    'SELECT status,resolution_proposed_at,disputed_at,closed_at FROM support_cases WHERE id=$1',
+    [id],
+  )).rows[0];
+  assert.equal(row.status,'RESOLUTION_PROPOSED');
+  assert.ok(row.resolution_proposed_at);
+  assert.equal(row.disputed_at,null);
+  assert.equal(row.closed_at,null);
+});
+
 
 test('settlement and payout storage survives reconnect without executing transfers', async () => {
   const {ledgerRepository: repo}=await import('../../apps/api/src/modules/finance/ledger.repository');
