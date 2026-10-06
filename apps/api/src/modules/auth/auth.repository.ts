@@ -439,34 +439,64 @@ export class AuthRepository {
     limit?: number;
     offset?: number;
   }): Promise<{ users: UserRecord[]; total: number }> {
-    allowMemoryAdapter();
-    const limit = options.limit || 20;
-    const offset = options.offset || 0;
+    const limit = Math.min(options.limit || 20, 200);
+    const offset = Math.max(options.offset || 0, 0);
 
-    let allUsers = Array.from(ephemeralStore.users.values());
-
-    if (options.status) {
-      allUsers = allUsers.filter((u) => u.status === options.status);
+    if (config.storage.mode === 'postgres') {
+      const db = getDbPool();
+      const params: any[] = [];
+      const where: string[] = [];
+      if (options.status) {
+        params.push(options.status);
+        where.push(`u.status=$${params.length}`);
+      }
+      if (options.search) {
+        params.push(`%${options.search.trim()}%`);
+        where.push(`(
+          COALESCE(u.email,'') ILIKE $${params.length}
+          OR COALESCE(u.phone_e164,'') ILIKE $${params.length}
+          OR u.id::text ILIKE $${params.length}
+        )`);
+      }
+      if (options.role) {
+        params.push(options.role);
+        where.push(`EXISTS(
+          SELECT 1
+          FROM user_roles ur
+          JOIN roles r ON r.id=ur.role_id
+          WHERE ur.user_id=u.id AND r.code=$${params.length}
+        )`);
+      }
+      const clause = where.length ? 'WHERE ' + where.join(' AND ') : '';
+      const count = await db.query(`SELECT count(*)::int AS total FROM users u ${clause}`, params);
+      const pageParams = [...params, limit, offset];
+      const rows = await db.query(
+        `SELECT u.*
+         FROM users u
+         ${clause}
+         ORDER BY u.created_at DESC
+         LIMIT $${params.length + 1} OFFSET $${params.length + 2}`,
+        pageParams,
+      );
+      return { users: rows.rows, total: Number(count.rows[0]?.total || 0) };
     }
+
+    allowMemoryAdapter();
+    let allUsers = Array.from(ephemeralStore.users.values());
+    if (options.status) allUsers = allUsers.filter((u) => u.status === options.status);
     if (options.search) {
       const q = options.search.toLowerCase();
       allUsers = allUsers.filter(
         (u) =>
           (u.email && u.email.toLowerCase().includes(q)) ||
           (u.phone_e164 && u.phone_e164.includes(q)) ||
-          u.id.includes(q)
+          u.id.includes(q),
       );
     }
     if (options.role) {
-      allUsers = allUsers.filter((u) => {
-        const roles = ephemeralStore.userRoles.get(u.id);
-        return roles ? roles.has(options.role as UserRole) : false;
-      });
+      allUsers = allUsers.filter((u) => ephemeralStore.userRoles.get(u.id)?.has(options.role as UserRole));
     }
-
-    const total = allUsers.length;
-    const paginated = allUsers.slice(offset, offset + limit);
-    return { users: paginated, total };
+    return { users: allUsers.slice(offset, offset + limit), total: allUsers.length };
   }
 
   // ==========================================
@@ -534,16 +564,33 @@ export class AuthRepository {
   // ==========================================
 
   public async getCustomerProfile(userId: string): Promise<CustomerProfileRecord | null> {
+    if (config.storage.mode === 'postgres') {
+      const result = await getDbPool().query(
+        `SELECT user_id::text AS id,user_id,display_name AS name,NOW() AS created_at
+         FROM customer_profiles WHERE user_id=$1`,
+        [userId],
+      );
+      return result.rows[0] || null;
+    }
     allowMemoryAdapter();
     return ephemeralStore.customerProfiles.get(userId) || null;
   }
 
   public async createCustomerProfile(profile: { id: string; user_id: string; name: string }): Promise<void> {
-    allowMemoryAdapter();
     const record: CustomerProfileRecord = {
       ...profile,
       created_at: new Date().toISOString(),
     };
+    if (config.storage.mode === 'postgres') {
+      await getDbPool().query(
+        `INSERT INTO customer_profiles(user_id,display_name,status)
+         VALUES($1,$2,'ACTIVE')
+         ON CONFLICT(user_id) DO UPDATE SET display_name=EXCLUDED.display_name`,
+        [profile.user_id, profile.name],
+      );
+      return;
+    }
+    allowMemoryAdapter();
     ephemeralStore.customerProfiles.set(profile.user_id, record);
   }
 
@@ -553,6 +600,14 @@ export class AuthRepository {
   }
 
   public async getRiderProfile(userId: string): Promise<RiderProfileRecord | null> {
+    if (config.storage.mode === 'postgres') {
+      const result = await getDbPool().query(
+        `SELECT id,user_id,vehicle_type,operational_status,created_at
+         FROM rider_profiles WHERE user_id=$1`,
+        [userId],
+      );
+      return result.rows[0] || null;
+    }
     allowMemoryAdapter();
     return ephemeralStore.riderProfiles.get(userId) || null;
   }
