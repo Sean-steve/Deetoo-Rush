@@ -63,6 +63,7 @@ import { CustomerLocationSelector } from "./components/CustomerLocationSelector"
 import { CustomerAddressModal } from "./components/CustomerAddressModal";
 import { CustomerProfileManager } from "./components/CustomerProfileManager";
 import { RestaurantCard } from "./components/RestaurantCard";
+import { getBrowserCurrentLocation } from "../../../packages/ui-web/src/geolocation";
 
 type CustomerTab = "discovery" | "cart" | "orders" | "profile" | "security" | "support";
 const customerTabPath:Record<CustomerTab,string>={
@@ -133,6 +134,8 @@ function CustomerAppInner() {
     longitude: 0,
   });
   const [hasDeliveryLocation, setHasDeliveryLocation] = useState(false);
+  const [isLocatingCustomer, setIsLocatingCustomer] = useState(false);
+  const [locationError, setLocationError] = useState<string | null>(null);
 
   const [savedAddresses, setSavedAddresses] = useState<CustomerAddress[]>([]);
   const [serviceability, setServiceability] =
@@ -180,10 +183,41 @@ function CustomerAppInner() {
   const [sessions, setSessions] = useState<any[]>([]);
   const [isLoadingSessions, setIsLoadingSessions] = useState(false);
 
-  // 1. Initial load of categories and saved addresses
+  const handleUseCurrentLocation = useCallback(async () => {
+    setIsLocatingCustomer(true);
+    setLocationError(null);
+    try {
+      const coords = await getBrowserCurrentLocation();
+      let address = "Current location";
+      try {
+        const reverse = await apiClient.reverseGeocode(
+          coords.latitude,
+          coords.longitude,
+        );
+        if (reverse.data?.formatted_address) {
+          address = reverse.data.formatted_address;
+        }
+      } catch {
+        // Coordinates remain authoritative even when reverse geocoding is unavailable.
+      }
+      setCustomerLocation({
+        address,
+        latitude: coords.latitude,
+        longitude: coords.longitude,
+      });
+      setHasDeliveryLocation(true);
+    } catch (error) {
+      setLocationError(errorMessage(error));
+    } finally {
+      setIsLocatingCustomer(false);
+    }
+  }, [apiClient]);
+
+  // 1. Initial load of categories and current device location
   useEffect(() => {
     loadCategories();
-  }, []);
+    void handleUseCurrentLocation();
+  }, [handleUseCurrentLocation]);
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -250,16 +284,8 @@ function CustomerAppInner() {
       const addrs = res.data || [];
       setSavedAddresses(addrs);
 
-      // If user has a default address, apply it as initial location
-      const defaultAddr = addrs.find((a) => a.is_default);
-      if (defaultAddr) {
-        setCustomerLocation({
-          address: defaultAddr.address_line1,
-          latitude: defaultAddr.latitude,
-          longitude: defaultAddr.longitude,
-        });
-        setHasDeliveryLocation(true);
-      }
+      // Current device GPS is the default discovery location.
+      // Saved addresses remain explicit user-selected delivery overrides.
     } catch {
       // ignore
     }
@@ -315,15 +341,6 @@ function CustomerAppInner() {
       address: `${addr.label}: ${addr.address_line1}`,
       latitude: addr.latitude,
       longitude: addr.longitude,
-    });
-  };
-
-  const handleSelectPresetCoords = (name: string, lat: number, lng: number) => {
-    setHasDeliveryLocation(true);
-    setCustomerLocation({
-      address: name,
-      latitude: lat,
-      longitude: lng,
     });
   };
 
@@ -510,9 +527,11 @@ function CustomerAppInner() {
               savedAddresses={savedAddresses}
               serviceability={serviceability}
               onSelectAddress={handleSelectAddress}
-              onSelectPresetCoords={handleSelectPresetCoords}
+              onUseCurrentLocation={() => void handleUseCurrentLocation()}
               onAddNewAddress={() => setIsAddressModalOpen(true)}
               isAuthenticated={isAuthenticated}
+              isLocating={isLocatingCustomer}
+              locationError={locationError}
             />
 
             {/* Authentication Bar & Navigation */}
