@@ -464,3 +464,58 @@ test('8. Admin Manual Override assigns courier and logs audit timeline', async (
   assert.equal(adminEntry.action, 'ADMIN_MANUAL_ASSIGNMENT');
   assert.equal(adminEntry.actor_name, 'dispatch-lead@deetoo.co.ke');
 });
+
+
+test('9. Unanswered rider offers expire automatically before the next dispatch cycle', async () => {
+  const deliveryId = `del_expired_offer_${Date.now()}`;
+  const orderId = `ord_${deliveryId}`;
+  const riderId = `rider_expired_${Date.now()}`;
+
+  await deliveryRepository.createDelivery({
+    id: deliveryId,
+    order_id: orderId,
+    order_number: 'AUTO-TIMEOUT-01',
+    status: DeliveryStatus.OFFERED,
+    branch_id: 'b_auto_timeout',
+    customer_id: 'c_auto_timeout',
+    pickup_location: { lat: -1.2864, lng: 36.8172 },
+    dropoff_location: { lat: -1.29, lng: 36.82 },
+    pickup_address_text: 'Automation Kitchen',
+    dropoff_address_text: 'Automation Dropoff',
+    reassignment_count: 0,
+    dispatch_attention_required: false,
+    current_search_radius_meters: 2000,
+    dispatch_cycle_count: 1,
+    version: 1,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  });
+
+  const offer = await deliveryRepository.createOffer({
+    id: `offer_expired_${Date.now()}`,
+    delivery_id: deliveryId,
+    order_id: orderId,
+    order_number: 'AUTO-TIMEOUT-01',
+    rider_id: riderId,
+    rider_name: 'Unresponsive Rider',
+    status: DeliveryOfferStatus.OFFERED,
+    rank: 1,
+    score: 90,
+    distance_to_pickup_meters: 250,
+    estimated_pickup_eta_seconds: 90,
+    offered_at: new Date(Date.now() - 60_000).toISOString(),
+    expires_at: new Date(Date.now() - 30_000).toISOString(),
+    created_at: new Date(Date.now() - 60_000).toISOString(),
+    updated_at: new Date(Date.now() - 60_000).toISOString(),
+  });
+
+  const expired = await deliveryRepository.expireStaleOffersForDelivery(deliveryId);
+  assert.equal(expired.length, 1);
+  assert.equal(expired[0].id, offer.id);
+  assert.equal(expired[0].status, DeliveryOfferStatus.EXPIRED);
+  assert.equal(expired[0].rejection_reason, 'OFFER_TIMEOUT');
+
+  const stored = await deliveryRepository.findOfferById(offer.id);
+  assert.equal(stored?.status, DeliveryOfferStatus.EXPIRED);
+  assert.equal(await deliveryRepository.findActiveOfferByDeliveryId(deliveryId), null);
+});
