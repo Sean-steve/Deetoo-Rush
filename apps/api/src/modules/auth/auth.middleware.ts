@@ -122,7 +122,7 @@ export async function requireAuth(
     }
     if (config.storage.mode === 'postgres' && !config.localWorkflow && !['GET','HEAD','OPTIONS'].includes(req.method)
       && !req.originalUrl.split('?')[0].startsWith('/api/v1/auth/')
-      && authUser.roles.some(role => ['admin','finance','ops'].includes(role))) {
+      && authUser.roles.some(role => ['super_admin','admin','finance','ops'].includes(role))) {
       await requireRecentMfa(user.id, sessionRecord.id);
     }
     next();
