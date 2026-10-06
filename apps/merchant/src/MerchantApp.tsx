@@ -443,12 +443,23 @@ function MerchantAppInner() {
                   <SegmentedControl
                     ariaLabel="Store operating status"
                     value={branch.operational_status}
-                    disabled={!canManageStoreStatus || savingStatus}
                     onChange={(value) => void updateStatus(value)}
                     options={[
-                      { value: "OPEN", label: "Open" },
-                      { value: "PAUSED", label: "Paused" },
-                      { value: "CLOSED", label: "Closed" },
+                      {
+                        value: "OPEN",
+                        label: "Open",
+                        disabled: !canManageStoreStatus || savingStatus,
+                      },
+                      {
+                        value: "PAUSED",
+                        label: "Paused",
+                        disabled: !canManageStoreStatus || savingStatus,
+                      },
+                      {
+                        value: "CLOSED",
+                        label: "Closed",
+                        disabled: !canManageStoreStatus || savingStatus,
+                      },
                     ]}
                   />
                   <p>
