@@ -407,6 +407,25 @@ adminRouter.post(
   },
 );
 
+adminRouter.patch(
+  '/governance/riders/:id',
+  requireRole(UserRole.SUPER_ADMIN),
+  async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      const data = await governanceService.updateRiderProfile(
+        req.params.id,
+        req.body,
+        {
+          id: req.user!.id,
+          role: UserRole.SUPER_ADMIN,
+          requestId: (req as any).requestId,
+        },
+      );
+      res.json({ data, requestId: (req as any).requestId });
+    } catch (err) { next(err); }
+  },
+);
+
 adminRouter.post(
   '/governance/merchants/:id/deactivate',
   requireRole(UserRole.SUPER_ADMIN),
