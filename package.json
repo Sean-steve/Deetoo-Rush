@@ -37,6 +37,7 @@
     "worker:payments": "tsx --import dotenv/config scripts/payment-worker.ts",
     "payment:doctor": "tsx --import dotenv/config scripts/payment-doctor.ts",
     "worker:dispatch": "tsx --import dotenv/config scripts/dispatch-worker.ts",
+    "dispatch:doctor": "tsx --import dotenv/config scripts/dispatch-doctor.ts",
     "openapi:coverage": "tsx scripts/openapi-coverage-check.ts",
     "openapi:validate": "tsx scripts/openapi-validate.ts",
     "test:paid-order": "NODE_ENV=test DEETOO_STORAGE_MODE=postgres DEETOO_FIXTURES=false tsx --test tests/paid-order/*.test.ts",
