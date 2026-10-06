@@ -208,6 +208,14 @@ class MediaService {
     return media;
   }
 
+  async getVerifiedRecord(mediaId: string): Promise<MediaObjectRecord> {
+    const media = await mediaRepository.findById(mediaId);
+    if (!media || media.status !== 'VERIFIED') {
+      throw new AppError(404, 'MEDIA_NOT_FOUND', 'Private media object not found');
+    }
+    return media;
+  }
+
   async getReadUrl(
     mediaId: string,
     requestingUserId: string,
