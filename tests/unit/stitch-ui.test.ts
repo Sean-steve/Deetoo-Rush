@@ -141,7 +141,10 @@ test("Closed drawers do not render interactive content", () => {
 
 test("Inline danger banners use alert semantics", () => {
   const html = renderToStaticMarkup(
-    React.createElement(InlineBanner, { kind: "danger" }, "Payment failed"),
+    React.createElement(InlineBanner, {
+      kind: "danger",
+      children: "Payment failed",
+    }),
   );
   assert.match(html, /role="alert"/);
 });
