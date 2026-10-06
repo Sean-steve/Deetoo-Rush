@@ -29,6 +29,10 @@ const marketCreateSchema = z.object({
   name: z.string().trim().min(2).max(120),
   enabled: z.boolean().optional().default(true),
 });
+const zoneHierarchySchema = z.object({
+  county_code: z.string().regex(/^\d{3}$/),
+  market_id: z.string().uuid().nullable().optional(),
+});
 
 export const geographyRouter = Router();
 geographyRouter.use(requireAuth);
@@ -165,6 +169,45 @@ geographyRouter.post(
         [input.county_code, input.name, input.enabled],
       );
       return res.status(201).json({ data: result.rows[0] });
+    } catch (error) {
+      next(error);
+    }
+  },
+);
+
+geographyRouter.patch(
+  "/zones/:id/hierarchy",
+  requireRole(UserRole.ADMIN, UserRole.OPS),
+  async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      if (config.storage.mode !== "postgres") {
+        throw new AppError(409, "POSTGRES_REQUIRED", "Zone hierarchy requires durable PostgreSQL configuration");
+      }
+      const input = zoneHierarchySchema.parse(req.body);
+      if (input.market_id) {
+        const market = await getDbPool().query(
+          "SELECT id FROM service_markets WHERE id=$1::uuid AND county_code=$2",
+          [input.market_id, input.county_code],
+        );
+        if (!market.rows[0]) {
+          throw new AppError(
+            409,
+            "MARKET_COUNTY_MISMATCH",
+            "The selected market must belong to the selected county",
+          );
+        }
+      }
+      const updated = await getDbPool().query(
+        `UPDATE service_zones
+         SET county_code=$2,market_id=$3
+         WHERE id=$1::uuid
+         RETURNING id,name,status,city_id,county_code,market_id,(boundary IS NOT NULL) AS has_polygon`,
+        [req.params.id, input.county_code, input.market_id || null],
+      );
+      if (!updated.rows[0]) {
+        throw new AppError(404, "SERVICE_ZONE_NOT_FOUND", "Service zone not found");
+      }
+      return res.json({ data: updated.rows[0] });
     } catch (error) {
       next(error);
     }
