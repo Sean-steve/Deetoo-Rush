@@ -281,14 +281,14 @@ describe('Sprint 13: Operations, Support, Failure Recovery & Fraud Controls', ()
       const staffView = await supportService.getCaseById(supportCase.id, staffAgent);
       assert.equal(staffView.notes.length, 3, 'Staff sees initial + internal + public note');
 
-      // 6. Non-staff user attempting to create INTERNAL note is forced to CUSTOMER_VISIBLE
+      // 6. Participant messages cannot become internal staff notes; they join the case conversation.
       const customerAttemptedInternalNote = await supportService.addNote(
         supportCase.id,
         customer,
         'INTERNAL',
         'Sneaky customer note'
       );
-      assert.equal(customerAttemptedInternalNote.visibility, 'CUSTOMER_VISIBLE');
+      assert.equal(customerAttemptedInternalNote.visibility, 'ALL_PARTICIPANTS');
     });
 
     test('support case resolution requires participant confirmation before closure', async () => {
