@@ -123,6 +123,10 @@ export class RiderWalletService {
     const pendingEarnings = earnings
       .filter((earning) => earning.status === RiderEarningStatus.PENDING)
       .reduce((sum, earning) => sum + earning.total_amount_minor, 0);
+    const adjustmentsMinor = earnings.reduce(
+      (sum, earning) => sum + Number(earning.adjustment_amount_minor || 0),
+      0,
+    );
 
     const cashEvents = await this.listCashEvents(riderId);
     const cashCollected = cashEvents
@@ -155,6 +159,7 @@ export class RiderWalletService {
       // receivable and cannot silently alter a Rider payout.
       available_earnings_minor: Math.max(0, grossPayable - reservedForPayoutMinor),
       pending_earnings_minor: pendingEarnings,
+      adjustments_minor: adjustmentsMinor,
       cash_collected_minor: cashCollected,
       cash_settled_minor: cashSettled,
       cash_owed_minor: ledgerCashOwed,
