@@ -168,7 +168,7 @@ class GovernanceService {
         id: randomUUID(),
         merchant_id: merchantId,
         user_id: userId,
-        role_code: 'OWNER' as any,
+        role_code: 'merchant_owner' as any,
         status: 'ACTIVE' as any,
         branch_ids: [],
         created_at: now,
