@@ -16,9 +16,25 @@ class MerchantOnboardingService {
       EXISTS(SELECT 1 FROM merchants m WHERE m.id=$1) AS merchant_exists,
       EXISTS(SELECT 1 FROM merchant_branches b WHERE b.merchant_id=$1 AND b.status='ACTIVE'
         AND b.latitude IS NOT NULL AND b.longitude IS NOT NULL) AS branch_ready,
-      EXISTS(SELECT 1 FROM menus mn JOIN merchant_branches b ON b.id=mn.branch_id
-        WHERE b.merchant_id=$1 AND mn.status='ACTIVE'
-        AND EXISTS(SELECT 1 FROM menu_items mi WHERE mi.menu_id=mn.id AND mi.is_available=true)) AS menu_ready,
+      EXISTS(
+        SELECT 1
+        FROM menus mn
+        WHERE mn.merchant_id=$1
+          AND mn.is_active=true
+          AND EXISTS(
+            SELECT 1 FROM menu_items mi
+            WHERE mi.menu_id=mn.id AND mi.is_available=true
+          )
+          AND EXISTS(
+            SELECT 1
+            FROM merchant_branches b
+            LEFT JOIN menu_branch_assignments mba
+              ON mba.branch_id=b.id AND mba.menu_id=mn.id AND mba.is_active=true
+            WHERE b.merchant_id=$1
+              AND b.status='ACTIVE'
+              AND (mn.branch_id=b.id OR mba.menu_id IS NOT NULL)
+          )
+      ) AS menu_ready,
       EXISTS(SELECT 1 FROM merchant_memberships mm WHERE mm.merchant_id=$1
         AND mm.status='ACTIVE' AND mm.role_code='merchant_owner') AS staff_ready,
       EXISTS(SELECT 1 FROM merchants m WHERE m.id=$1 AND m.commission_bps IS NOT NULL

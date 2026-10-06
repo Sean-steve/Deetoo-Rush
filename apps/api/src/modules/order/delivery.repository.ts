@@ -623,6 +623,42 @@ export class DeliveryRepository {
     return null;
   }
 
+  /**
+   * Atomically expires unanswered offers whose deadline has passed.
+   * Returns the riders that should be excluded from the next automatic cycle.
+   */
+  public async expireStaleOffersForDelivery(deliveryId: string): Promise<DeliveryOffer[]> {
+    const now = new Date().toISOString();
+    if (config.storage.mode === "postgres") {
+      const expired = await rows(
+        `UPDATE delivery_offers
+         SET status='EXPIRED', responded_at=COALESCE(responded_at,now()), updated_at=now(),
+             rejection_reason=COALESCE(rejection_reason,'OFFER_TIMEOUT')
+         WHERE delivery_id=$1 AND status='OFFERED' AND expires_at<=now()
+         RETURNING *`,
+        [deliveryId],
+      );
+      return expired as DeliveryOffer[];
+    }
+
+    allowMemoryAdapter();
+    const changed: DeliveryOffer[] = [];
+    for (const offer of this.offers.values()) {
+      if (
+        offer.delivery_id === deliveryId &&
+        offer.status === DeliveryOfferStatus.OFFERED &&
+        new Date(offer.expires_at).getTime() <= Date.now()
+      ) {
+        offer.status = DeliveryOfferStatus.EXPIRED;
+        offer.responded_at = offer.responded_at || now;
+        offer.rejection_reason = offer.rejection_reason || 'OFFER_TIMEOUT';
+        offer.updated_at = now;
+        changed.push({ ...offer });
+      }
+    }
+    return changed;
+  }
+
   public async updateOfferStatus(
     offerId: string,
     status: DeliveryOfferStatus,

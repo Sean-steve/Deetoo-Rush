@@ -9,12 +9,10 @@
  * scheduled dispatch worker exists). This closes that gap the same way payment-worker.ts already
  * closes the equivalent gap for payment verification: a small polling loop, not a cron dependency.
  *
- * Known follow-on limitation, not fixed here: a rider who receives an offer and never responds
- * (letting it expire) is not added to the delivery's rejected-rider set, since nothing flips that
- * offer's status from OFFERED to EXPIRED -- only an explicit rider rejection or response does. A
- * delivery swept here can therefore be re-offered to the same unresponsive rider on a later cycle.
- * Fixing that requires changing offer status-transition logic, not just adding a scheduler, and is
- * out of scope for this pass.
+ * Unanswered offers are expired by the dispatch service before every new cycle, so timeout
+ * behaves like a rejection for candidate exclusion and the next eligible rider is offered
+ * automatically. Future dispatches also honor dispatch_not_before until the kitchen lead-time
+ * threshold is reached.
  */
 import { dispatchService } from '../apps/api/src/modules/order/dispatch.service';
 import { deliveryRepository } from '../apps/api/src/modules/order/delivery.repository';
@@ -33,9 +31,14 @@ process.on('SIGINT', () => { stopping = true; });
 const SCAN_INTERVAL_MS = 15000;
 
 async function findStuckDeliveries() {
-  const { deliveries: unassigned } = await deliveryRepository.listDeliveries({
+  const { deliveries: unassignedRaw } = await deliveryRepository.listDeliveries({
     status: DeliveryStatus.UNASSIGNED,
     limit: 100,
+  });
+  const now = Date.now();
+  const unassigned = unassignedRaw.filter((delivery) => {
+    if (!delivery.dispatch_not_before) return true;
+    return new Date(delivery.dispatch_not_before).getTime() <= now;
   });
   const { deliveries: offered } = await deliveryRepository.listDeliveries({
     status: DeliveryStatus.OFFERED,

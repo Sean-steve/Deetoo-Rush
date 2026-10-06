@@ -22,6 +22,7 @@ import { config } from '@deetoo/config';
 import { AppError } from '../../middleware/error-handler';
 import { riderRepository } from './rider.repository';
 import { riderLocationStore } from '../../db/redis';
+import { getDbPool } from '../../db/client';
 import { RiderStateMachine } from './rider-state-machine';
 import { riderEligibilityService } from './rider-eligibility.service';
 import { authRepository } from '../auth/auth.repository';
@@ -330,13 +331,48 @@ export class RiderService {
       );
     }
 
-    // 3. Validate Service Zone Assignment
-    const zoneIds = profile.serviceZoneIds || [];
+    // 3. Validate / bootstrap Service Zone Assignment.
+    // When an approved Rider is physically inside an active service-zone polygon,
+    // GPS can establish the initial zone without an Operations click. Existing
+    // explicit assignments are preserved and remain authoritative.
+    let zoneIds = profile.serviceZoneIds || [];
+    const suppliedLat = locationPayload?.latitude;
+    const suppliedLng = locationPayload?.longitude;
+    if (
+      zoneIds.length === 0 &&
+      config.storage.mode === 'postgres' &&
+      typeof suppliedLat === 'number' &&
+      Number.isFinite(suppliedLat) &&
+      typeof suppliedLng === 'number' &&
+      Number.isFinite(suppliedLng)
+    ) {
+      const matched = await getDbPool().query(
+        `SELECT id
+         FROM service_zones
+         WHERE status='ACTIVE'
+           AND boundary IS NOT NULL
+           AND ST_Covers(
+             boundary,
+             ST_SetSRID(ST_Point($1,$2),4326)
+           )
+         ORDER BY name`,
+        [suppliedLng, suppliedLat],
+      );
+      const automaticZoneIds = matched.rows.map((row) => String(row.id));
+      if (automaticZoneIds.length > 0) {
+        zoneIds = await riderRepository.assignZones(profile.id, automaticZoneIds);
+        logger.info('Automatically assigned Rider service zone from GPS', {
+          service: 'rider',
+          metadata: { riderId: profile.id, zoneIds },
+        });
+      }
+    }
+
     if (zoneIds.length === 0) {
       throw new AppError(
         400,
         'RIDER_ZONE_REQUIRED',
-        'Rider has not been assigned to any operational service zones. Contact operations support.'
+        'Your current location is outside configured delivery zones. Operations can assign an override when necessary.'
       );
     }
 
