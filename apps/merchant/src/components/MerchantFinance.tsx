@@ -5,6 +5,11 @@ import {
   Price,
   Button,
   EmptyState,
+  FormField,
+  Input,
+  InlineBanner,
+  Select,
+  Textarea,
 } from "../../../../packages/ui/src/index";
 import {
   MetricCard,
@@ -206,15 +211,19 @@ export function MerchantFinance({ merchantId }: { merchantId: string }) {
                 Your current commission rate is visible above. Merchant users cannot change this
                 rate directly; negotiated changes are effective-dated and controlled by Finance.
               </p>
-              <label className="mt-3 block text-sm font-medium text-slate-700">
-                Request a commercial review
-                <textarea
-                  className="mt-1 min-h-24 w-full rounded-lg border border-slate-300 p-2 text-sm"
-                  value={reviewReason}
-                  onChange={(event) => setReviewReason(event.target.value)}
-                  placeholder="Explain why you would like Finance to review the commercial terms."
-                />
-              </label>
+              <div className="mt-3">
+                <FormField
+                  label="Request a commercial review"
+                  hint="Explain why Finance should review the current effective-dated terms."
+                >
+                  <Textarea
+                    className="min-h-24"
+                    value={reviewReason}
+                    onChange={(event) => setReviewReason(event.target.value)}
+                    placeholder="Explain why you would like Finance to review the commercial terms."
+                  />
+                </FormField>
+              </div>
               <div className="mt-3 flex flex-wrap items-center gap-3">
                 <Button
                   onClick={() => void requestCommercialReview()}
@@ -224,48 +233,46 @@ export function MerchantFinance({ merchantId }: { merchantId: string }) {
                   Request review
                 </Button>
                 {reviewMessage && (
-                  <span role="status" className="text-sm text-slate-600">
-                    {reviewMessage}
-                  </span>
+                  <InlineBanner kind="info">{reviewMessage}</InlineBanner>
                 )}
               </div>
             </Card>
 
             <div className="flex flex-wrap gap-3 items-end mt-5">
-              <label className="text-sm">
-                Status
-                <select
-                  className="block border rounded px-2 py-1 mt-1"
-                  value={statusFilter}
-                  onChange={(e) => setStatusFilter(e.target.value)}
-                >
-                  <option value="ALL">All</option>
-                  <option value="DRAFT">Draft</option>
-                  <option value="CALCULATED">Calculated</option>
-                  <option value="APPROVED">Approved</option>
-                  <option value="PROCESSING">Processing</option>
-                  <option value="PAID">Paid</option>
-                  <option value="FAILED">Failed</option>
-                </select>
-              </label>
-              <label className="text-sm">
-                From
-                <input
-                  type="date"
-                  className="block border rounded px-2 py-1 mt-1"
-                  value={fromDate}
-                  onChange={(e) => setFromDate(e.target.value)}
-                />
-              </label>
-              <label className="text-sm">
-                To
-                <input
-                  type="date"
-                  className="block border rounded px-2 py-1 mt-1"
-                  value={toDate}
-                  onChange={(e) => setToDate(e.target.value)}
-                />
-              </label>
+              <div className="min-w-40">
+                <FormField label="Status">
+                  <Select
+                    value={statusFilter}
+                    onChange={(e) => setStatusFilter(e.target.value)}
+                  >
+                    <option value="ALL">All</option>
+                    <option value="DRAFT">Draft</option>
+                    <option value="CALCULATED">Calculated</option>
+                    <option value="APPROVED">Approved</option>
+                    <option value="PROCESSING">Processing</option>
+                    <option value="PAID">Paid</option>
+                    <option value="FAILED">Failed</option>
+                  </Select>
+                </FormField>
+              </div>
+              <div>
+                <FormField label="From">
+                  <Input
+                    type="date"
+                    value={fromDate}
+                    onChange={(e) => setFromDate(e.target.value)}
+                  />
+                </FormField>
+              </div>
+              <div>
+                <FormField label="To">
+                  <Input
+                    type="date"
+                    value={toDate}
+                    onChange={(e) => setToDate(e.target.value)}
+                  />
+                </FormField>
+              </div>
               {(statusFilter !== "ALL" || fromDate || toDate) && (
                 <button
                   type="button"
