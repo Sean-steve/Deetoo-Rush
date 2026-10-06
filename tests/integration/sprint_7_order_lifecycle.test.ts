@@ -230,7 +230,7 @@ describe("Sprint 7 Integration: Core Order Engine & Merchant Workflow", () => {
     assert.equal(notification!.channel, "IN_APP");
   });
 
-  test("Step 7: Customer cannot cancel after merchant acceptance", async () => {
+  test("Step 7: Customer cancellation after merchant acceptance opens Support review", async () => {
     const res = await fetch(
       `${baseUrl}/api/v1/orders/${createdOrderId}/cancel`,
       {
@@ -238,14 +238,20 @@ describe("Sprint 7 Integration: Core Order Engine & Merchant Workflow", () => {
         headers: customerHeaders,
         body: JSON.stringify({
           reason_code: "CHANGED_MIND",
-          note: "Attempting cancellation after accept",
+          note: "Requesting cancellation after accept",
         }),
       },
     );
 
     assert.equal(res.status, 409);
     const body = (await res.json()) as any;
-    assert.equal(body.error.code, "CUSTOMER_CANCELLATION_WINDOW_CLOSED");
+    assert.equal(body.error.code, "CANCELLATION_REVIEW_REQUIRED");
+    assert.equal(body.error.details?.cancellation_assessment?.outcome, "SUPPORT_REVIEW");
+    assert.equal(body.error.details?.cancellation_assessment?.stage, "PREPARATION");
+    assert.ok(
+      body.error.details?.cancellation_assessment?.support_case_id,
+      "late cancellation must create a linked Support case instead of guessing financial consequences",
+    );
   });
 
   test("Step 8: Merchant transitions order to PREPARING", async () => {
