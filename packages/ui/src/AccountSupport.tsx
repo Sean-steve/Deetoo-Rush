@@ -16,10 +16,17 @@ import {
   StatusBadge,
   useResource,
 } from "./workflows";
-export function AccountSupport() {
+export function AccountSupport({
+  mode = "customer",
+}: {
+  mode?: "customer" | "participant";
+}) {
   const { apiClient } = useAuth();
-  const cases = useResource<any>("/customer/support/cases");
-  const notifications = useResource<any>("/customer/support/notifications");
+  const supportBase = mode === "customer" ? "/customer/support" : "/support";
+  const cases = useResource<any>(`${supportBase}/cases`);
+  const notifications = useResource<any>(
+    mode === "customer" ? "/customer/support/notifications" : null,
+  );
   const [subject, setSubject] = useState("");
   const [description, setDescription] = useState("");
   const [orderId, setOrderId] = useState("");
@@ -29,7 +36,7 @@ export function AccountSupport() {
   const [reply, setReply] = useState("");
   const [files, setFiles] = useState<File[]>([]);
   const detail = useResource<any>(
-    caseId ? `/customer/support/cases/${encodeURIComponent(caseId)}` : null,
+    caseId ? `${supportBase}/cases/${encodeURIComponent(caseId)}` : null,
   );
 
   const uploadEvidence = async (targetCaseId: string, selected: File[]) => {
@@ -66,7 +73,7 @@ export function AccountSupport() {
     setBusy(true);
     setError(null);
     try {
-      const created = await apiClient.request<any>("/customer/support/cases", {
+      const created = await apiClient.request<any>(`${supportBase}/cases`, {
         method: "POST",
         body: JSON.stringify({
           subject,
@@ -79,7 +86,9 @@ export function AccountSupport() {
       if (createdCaseId && files.length) {
         const mediaIds = await uploadEvidence(createdCaseId, files);
         await apiClient.request(
-          `/customer/support/cases/${encodeURIComponent(createdCaseId)}/notes`,
+          mode === "customer"
+            ? `/customer/support/cases/${encodeURIComponent(createdCaseId)}/notes`
+            : `/support/cases/${encodeURIComponent(createdCaseId)}/messages`,
           {
             method: "POST",
             body: JSON.stringify({
@@ -201,7 +210,7 @@ export function AccountSupport() {
                           setBusy(true);
                           try {
                             await apiClient.request(
-                              `/customer/support/cases/${encodeURIComponent(caseId!)}/resolution-response`,
+                              `${supportBase}/cases/${encodeURIComponent(caseId!)}/resolution-response`,
                               { method: "POST", body: JSON.stringify({ decision: "ACCEPTED" }) },
                             );
                             await detail.refresh();
@@ -257,7 +266,9 @@ export function AccountSupport() {
                         ? await uploadEvidence(caseId, files)
                         : [];
                       await apiClient.request(
-                        `/customer/support/cases/${encodeURIComponent(caseId)}/notes`,
+                        mode === "customer"
+                          ? `/customer/support/cases/${encodeURIComponent(caseId)}/notes`
+                          : `/support/cases/${encodeURIComponent(caseId)}/messages`,
                         {
                           method: "POST",
                           body: JSON.stringify({ body: reply, media_ids: mediaIds }),
@@ -278,38 +289,42 @@ export function AccountSupport() {
               </ResourceState>
             </Card>
           )}
-          <h2 className="text-xl font-bold">Notifications</h2>
-          <ResourceState resource={notifications}>
-            {messages.map((message: any) => (
-              <Card key={message.id}>
-                <h3 className="font-bold">
-                  {message.title || message.subject || message.template_key}
-                </h3>
-                <p>{message.body || message.message}</p>
-                {!message.read_at && (
-                  <Button
-                    variant="ghost"
-                    onClick={async () => {
-                      try {
-                        await apiClient.request(
-                          `/customer/support/notifications/${encodeURIComponent(message.id)}/read`,
-                          { method: "POST" },
-                        );
-                        await notifications.refresh();
-                      } catch (e) {
-                        setError(errorMessage(e));
-                      }
-                    }}
-                  >
-                    Mark as read
-                  </Button>
+          {mode === "customer" && (
+            <>
+              <h2 className="text-xl font-bold">Notifications</h2>
+              <ResourceState resource={notifications}>
+                {messages.map((message: any) => (
+                  <Card key={message.id}>
+                    <h3 className="font-bold">
+                      {message.title || message.subject || message.template_key}
+                    </h3>
+                    <p>{message.body || message.message}</p>
+                    {!message.read_at && (
+                      <Button
+                        variant="ghost"
+                        onClick={async () => {
+                          try {
+                            await apiClient.request(
+                              `/customer/support/notifications/${encodeURIComponent(message.id)}/read`,
+                              { method: "POST" },
+                            );
+                            await notifications.refresh();
+                          } catch (e) {
+                            setError(errorMessage(e));
+                          }
+                        }}
+                      >
+                        Mark as read
+                      </Button>
+                    )}
+                  </Card>
+                ))}
+                {notifications.data && !messages.length && (
+                  <p className="text-sm">No notifications.</p>
                 )}
-              </Card>
-            ))}
-            {notifications.data && !messages.length && (
-              <p className="text-sm">No notifications.</p>
-            )}
-          </ResourceState>
+              </ResourceState>
+            </>
+          )}
         </section>
         <Card className="h-fit">
           <h2 className="text-xl font-bold mb-4">How can we help?</h2>
