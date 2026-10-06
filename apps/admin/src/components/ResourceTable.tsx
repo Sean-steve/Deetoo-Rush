@@ -29,11 +29,12 @@ export interface Field {
 export interface RowAction {
   label: string;
   endpoint: (row: any) => string;
-  method?: "POST" | "PATCH" | "PUT";
+  method?: "POST" | "PATCH" | "PUT" | "DELETE";
   fields?: Field[];
   body?: Record<string, unknown>;
   when?: (row: any) => boolean;
   schema?: { safeParse: (value: unknown) => any };
+  requiredPermission?: string;
 }
 export interface TableConfig {
   title: string;
@@ -88,7 +89,7 @@ export function RecordDetails({ value }: { value: any }) {
   return <span>{String(value)}</span>;
 }
 export function ResourceTable({ config }: { config: TableConfig }) {
-  const { apiClient } = useAuth();
+  const { apiClient, hasPermission } = useAuth();
   const [search, setSearch] = useState("");
   const [query, setQuery] = useState("");
   const [page, setPage] = useState(1);
@@ -225,7 +226,13 @@ export function ResourceTable({ config }: { config: TableConfig }) {
       />
       {config.toolbar && (
         <div className="flex gap-3 mb-4">
-          {config.toolbar.map((action) => (
+          {config.toolbar
+            .filter(
+              (action) =>
+                !action.requiredPermission ||
+                hasPermission(action.requiredPermission),
+            )
+            .map((action) => (
             <Button
               key={action.label}
               onClick={() => {
@@ -292,7 +299,12 @@ export function ResourceTable({ config }: { config: TableConfig }) {
                         Details
                       </Button>
                       {config.actions
-                        ?.filter((a) => !a.when || a.when(row))
+                        ?.filter(
+                          (action) =>
+                            (!action.requiredPermission ||
+                              hasPermission(action.requiredPermission)) &&
+                            (!action.when || action.when(row)),
+                        )
                         .map((action) => (
                           <Button
                             key={action.label}
