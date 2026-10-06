@@ -48,31 +48,10 @@ import {
   History,
   Key,
   UtensilsCrossed,
-  WalletCards,
-  LifeBuoy,
+  LocateFixed,
 } from "lucide-react";
 import { CatalogueManager } from "./components/CatalogueManager";
-
-type MerchantTab = "orders" | "catalogue" | "finance" | "account" | "branch" | "support" | "sessions";
-const merchantTabPath:Record<MerchantTab,string>={
-  orders:"/orders",
-  catalogue:"/menu",
-  finance:"/finance",
-  account:"/business",
-  branch:"/branch",
-  support:"/support",
-  sessions:"/security",
-};
-function merchantTabFromPath():MerchantTab{
-  const path=window.location.pathname.replace(/^\/merchant/,"").replace(/\/+$/,"")||"/orders";
-  if(path==="/menu"||path==="/catalogue")return "catalogue";
-  if(path==="/finance")return "finance";
-  if(path==="/business"||path==="/account")return "account";
-  if(path==="/branch")return "branch";
-  if(path==="/support")return "support";
-  if(path==="/security"||path==="/sessions")return "sessions";
-  return "orders";
-}
+import { getBrowserCurrentLocation } from "../../../packages/ui-web/src/geolocation";
 
 export function MerchantApp() {
   return (
@@ -97,6 +76,7 @@ function MerchantAppInner() {
   const [selectedBranch, setSelectedBranch] = useState("");
   const [addBranchOpen, setAddBranchOpen] = useState(false);
   const [addBranchBusy, setAddBranchBusy] = useState(false);
+  const [isLocatingBranch, setIsLocatingBranch] = useState(false);
   const [addBranchError, setAddBranchError] = useState<string | null>(null);
   const [newBranch, setNewBranch] = useState({
     name: "",
@@ -112,18 +92,15 @@ function MerchantAppInner() {
   const [activeQueueTab, setActiveQueueTab] = useState<
     "PLACED" | "PREPARING" | "READY"
   >("PLACED");
-  const [activeMainTab, setActiveMainTabState] = useState<MerchantTab>(()=>merchantTabFromPath());
-  const setActiveMainTab=(tab:MerchantTab)=>{
-    setActiveMainTabState(tab);
-    const prefix=window.location.pathname.startsWith("/merchant")?"/merchant":"";
-    const next=prefix+merchantTabPath[tab];
-    if(window.location.pathname!==next)window.history.pushState({}, "", next);
-  };
-  useEffect(()=>{
-    const sync=()=>setActiveMainTabState(merchantTabFromPath());
-    window.addEventListener("popstate",sync);
-    return()=>window.removeEventListener("popstate",sync);
-  },[]);
+  const [activeMainTab, setActiveMainTab] = useState<
+    | "orders"
+    | "catalogue"
+    | "finance"
+    | "account"
+    | "branch"
+    | "support"
+    | "sessions"
+  >("orders");
   const [prepModalOpen, setPrepModalOpen] = useState(false);
   const [prepMinutes, setPrepMinutes] = useState("20");
 
@@ -153,6 +130,23 @@ function MerchantAppInner() {
   // merchant.router.ts) -- Manager/Staff correctly cannot create a branch, only edit one
   // they're already assigned to.
   const canCreateBranch = hasRole(UserRole.MERCHANT_OWNER) || hasRole(UserRole.ADMIN);
+
+  const captureNewBranchLocation = async () => {
+    setIsLocatingBranch(true);
+    setAddBranchError(null);
+    try {
+      const coords = await getBrowserCurrentLocation();
+      setNewBranch((current) => ({
+        ...current,
+        latitude: String(coords.latitude),
+        longitude: String(coords.longitude),
+      }));
+    } catch (error) {
+      setAddBranchError(errorMessage(error));
+    } finally {
+      setIsLocatingBranch(false);
+    }
+  };
 
   const submitNewBranch = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -268,19 +262,19 @@ function MerchantAppInner() {
   // 1. UNFAUTHENTICATED STATE: Clean Merchant Login Portal
   if (!isAuthenticated) {
     return (
-      <div className="portal-login-shell min-h-screen bg-canvas flex flex-col justify-center items-center p-4 font-sans text-ink">
-        <div className="portal-login-wrap max-w-md w-full">
+      <div className="min-h-screen bg-canvas flex flex-col justify-center items-center p-4 font-sans text-ink">
+        <div className="max-w-md w-full">
           <div className="text-center mb-8">
             <DeetooLogo className="h-10 mx-auto  mb-3" />
             <h1 className="text-xl font-bold text-ink tracking-tight">
-              DeeToo for Restaurants
+              Merchant Operations Console
             </h1>
             <p className="text-xs text-slate-600 mt-1">
-              Orders, menu, branches, finance and your restaurant team — in one workspace.
+              Manage your kitchen, orders, and team.
             </p>
           </div>
 
-          <Card className="portal-login-card bg-white border-stone-200 p-6 text-ink shadow-2xl">
+          <Card className="bg-white border-stone-200 p-6 text-ink shadow-2xl">
             <form onSubmit={handleLogin} className="space-y-4">
               {authError && (
                 <div className="p-3 bg-rose-950/80 border border-rose-800 rounded text-rose-300 text-xs flex items-center gap-2">
@@ -328,7 +322,7 @@ function MerchantAppInner() {
   // 2. FORBIDDEN ROLE STATE: User logged in without merchant permissions (e.g. customer)
   if (!isMerchantAuthorized) {
     return (
-      <div className="portal-login-shell min-h-screen bg-canvas flex flex-col justify-center items-center p-4 font-sans text-ink">
+      <div className="min-h-screen bg-canvas flex flex-col justify-center items-center p-4 font-sans text-ink">
         <Card className="max-w-md w-full bg-white border-stone-200 p-6 text-center">
           <Lock size={36} className="mx-auto text-rose-500 mb-3" />
           <h2 className="text-base font-bold text-ink">
@@ -372,13 +366,13 @@ function MerchantAppInner() {
               if (id === "sessions") void loadSessions();
             }}
             items={[
-              { id: "orders", label: "Kitchen display", icon:<ChefHat size={16}/>, group:"Live operations" },
-              { id: "catalogue", label: "Menu & availability", icon:<UtensilsCrossed size={16}/>, group:"Live operations" },
-              { id: "finance", label: "Finance & settlements", icon:<WalletCards size={16}/>, group:"Business" },
-              { id: "account", label: "Business & team", icon:<User size={16}/>, group:"Business" },
-              { id: "branch", label: "Branch settings", icon:<Store size={16}/>, group:"Business" },
-              { id: "sessions", label: "Security & sessions", icon:<ShieldCheck size={16}/>, group:"Account" },
-              { id: "support", label: "Support", icon:<LifeBuoy size={16}/>, group:"Account" },
+              { id: "orders", label: "Kitchen display" },
+              { id: "catalogue", label: "Menu & availability" },
+              { id: "finance", label: "Finance & settlements" },
+              { id: "account", label: "Business & team" },
+              { id: "branch", label: "Branch settings" },
+              { id: "sessions", label: "Security & sessions" },
+              { id: "support", label: "Support" },
             ]}
           />
         }
@@ -407,6 +401,7 @@ function MerchantAppInner() {
                   onClick={() => {
                     setAddBranchError(null);
                     setAddBranchOpen(true);
+                    void captureNewBranchLocation();
                   }}
                 >
                   Add branch
@@ -478,27 +473,48 @@ function MerchantAppInner() {
                   />
                 </FormField>
               </div>
-              <div className="grid grid-cols-2 gap-4">
-                <FormField label="Latitude" required>
-                  <Input
-                    type="number"
-                    step="any"
-                    value={newBranch.latitude}
-                    onChange={(e) => setNewBranch({ ...newBranch, latitude: e.target.value })}
-                    placeholder="e.g., -4.0435"
-                    required
-                  />
-                </FormField>
-                <FormField label="Longitude" required>
-                  <Input
-                    type="number"
-                    step="any"
-                    value={newBranch.longitude}
-                    onChange={(e) => setNewBranch({ ...newBranch, longitude: e.target.value })}
-                    placeholder="e.g., 39.6682"
-                    required
-                  />
-                </FormField>
+              <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3">
+                <div className="flex items-center justify-between gap-3 mb-3">
+                  <div>
+                    <p className="text-sm font-semibold text-emerald-900">Branch GPS location</p>
+                    <p className="text-xs text-emerald-800">
+                      Coordinates are captured from the device at the restaurant.
+                    </p>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    disabled={isLocatingBranch}
+                    onClick={() => void captureNewBranchLocation()}
+                    className="gap-1.5"
+                  >
+                    <LocateFixed size={14} />
+                    {isLocatingBranch ? "Locating…" : "Use current location"}
+                  </Button>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField label="Latitude" required>
+                    <Input
+                      type="number"
+                      step="any"
+                      value={newBranch.latitude}
+                      onChange={(e) => setNewBranch({ ...newBranch, latitude: e.target.value })}
+                      placeholder="Captured from GPS"
+                      required
+                    />
+                  </FormField>
+                  <FormField label="Longitude" required>
+                    <Input
+                      type="number"
+                      step="any"
+                      value={newBranch.longitude}
+                      onChange={(e) => setNewBranch({ ...newBranch, longitude: e.target.value })}
+                      placeholder="Captured from GPS"
+                      required
+                    />
+                  </FormField>
+                </div>
               </div>
               {addBranchError && (
                 <p role="alert" className="text-rose-700">
