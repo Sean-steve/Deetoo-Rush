@@ -513,6 +513,7 @@ function AdminAppInner() {
   return (
     <ErrorBoundary fallbackTitle="Admin Platform Operations Error Boundary">
       <OperationsLayout
+        density="dense"
         title="Operations command"
         userName={user?.name || user?.email}
         onLogout={logout}

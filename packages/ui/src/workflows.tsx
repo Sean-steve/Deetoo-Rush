@@ -9,12 +9,12 @@ import {
   DeetooLogo,
   Price,
   Skeleton,
+  Sparkline,
+  type Density,
 } from "./index";
+import { normalizeUXError } from "./errors";
 
-export const errorMessage = (error: any) =>
-  error?.error?.message ||
-  error?.message ||
-  "Unable to complete this request. Please retry.";
+export const errorMessage = (error: any) => normalizeUXError(error).message;
 
 /** Authenticated authoritative refresh. Never replace failed requests with fabricated records. */
 export function useResource<T>(
@@ -108,21 +108,35 @@ export function useResource<T>(
       document.removeEventListener("visibilitychange", resume);
     };
   }, [refresh, interval, channel, apiClient]);
-  return { data, meta, loading, error, refresh, updatedAt };
+  return {
+    data,
+    meta,
+    loading,
+    isRefreshing: Boolean(data) && loading,
+    error,
+    refresh,
+    updatedAt,
+  };
 }
 
 export function ResourceState({
   resource,
   children,
+  loading,
+  compact = false,
 }: {
   resource: ReturnType<typeof useResource<any>>;
   children: React.ReactNode;
+  loading?: React.ReactNode;
+  compact?: boolean;
 }) {
-  if (!resource.data && resource.loading) return <Skeleton className="h-36" />;
+  if (!resource.data && resource.loading)
+    return <>{loading || <Skeleton className={compact ? "h-20" : "h-36"} />}</>;
   return (
     <>
       {resource.error && (
         <ErrorState
+          compact={compact}
           title={
             resource.data
               ? "Updates interrupted — showing previous data"
@@ -136,17 +150,30 @@ export function ResourceState({
     </>
   );
 }
-export function StatusBadge({ status }: { status?: string | null }) {
+export type StatusTone = "default" | "success" | "warning" | "danger" | "info";
+
+export function getStatusTone(status?: string | null): StatusTone {
+  const value = (status || "UNKNOWN").toUpperCase();
+  if (/FAIL|REJECT|CANCEL|SUSPEND|EXPIRE|BLOCK|OVERDUE/.test(value)) return "danger";
+  if (/PAID|SUCCESS|DELIVERED|COMPLETED|READY|OPEN|ONLINE|APPROVED|CLEAR/.test(value))
+    return "success";
+  if (/PENDING|PREPAR|PLACED|OFFER|BUSY|REVIEW|WAIT/.test(value)) return "warning";
+  if (/INFO|NOTICE|ACKNOWLEDGED/.test(value)) return "info";
+  return "default";
+}
+
+export function StatusBadge({
+  status,
+  tone,
+}: {
+  status?: string | null;
+  tone?: StatusTone;
+}) {
   const value = status || "UNKNOWN";
-  const variant = /FAIL|REJECT|CANCEL|SUSPEND|EXPIRE/.test(value)
-    ? "danger"
-    : /PAID|SUCCESS|DELIVERED|COMPLETED|READY|OPEN|ONLINE|APPROVED/.test(value)
-      ? "success"
-      : /PENDING|PREPAR|PLACED|OFFER|BUSY/.test(value)
-        ? "warning"
-        : "default";
   return (
-    <Badge variant={variant}>{value.toLowerCase().replaceAll("_", " ")}</Badge>
+    <Badge variant={tone || getStatusTone(value)}>
+      {value.toLowerCase().replaceAll("_", " ")}
+    </Badge>
   );
 }
 export function PageHeading({
@@ -154,20 +181,33 @@ export function PageHeading({
   title,
   subtitle,
   action,
+  status,
+  metadata,
+  breadcrumbs,
+  density = "comfortable",
 }: {
   eyebrow?: string;
   title: string;
   subtitle?: string;
   action?: React.ReactNode;
+  status?: React.ReactNode;
+  metadata?: React.ReactNode;
+  breadcrumbs?: React.ReactNode;
+  density?: Density;
 }) {
   return (
-    <div className="page-heading deetoo-page-heading">
-      <div>
+    <div className="page-heading deetoo-page-heading" data-density={density}>
+      <div className="min-w-0">
+        {breadcrumbs && <div className="deetoo-page-breadcrumbs">{breadcrumbs}</div>}
         {eyebrow && <p className="eyebrow">{eyebrow}</p>}
-        <h1>{title}</h1>
+        <div className="deetoo-page-title-row">
+          <h1>{title}</h1>
+          {status}
+        </div>
         {subtitle && <p className="mt-1 text-sm text-slate-500 max-w-3xl">{subtitle}</p>}
+        {metadata && <div className="deetoo-page-metadata">{metadata}</div>}
       </div>
-      {action}
+      {action && <div className="deetoo-page-actions">{action}</div>}
     </div>
   );
 }
@@ -249,16 +289,48 @@ export function MetricCard({
   label,
   value,
   detail,
+  trend,
+  status,
+  sparkline,
 }: {
   label: string;
   value: React.ReactNode;
   detail?: string;
+  trend?: {
+    direction: "up" | "down" | "flat";
+    value: string;
+    sentiment?: "positive" | "negative" | "neutral";
+  };
+  status?: React.ReactNode;
+  sparkline?: number[];
 }) {
   return (
     <Card className="dashboard-metric-card">
-      <p className="eyebrow">{label}</p>
+      <div className="deetoo-metric-heading">
+        <p className="eyebrow">{label}</p>
+        {status}
+      </div>
       <div className="metric-value">{value}</div>
-      {detail && <p className="dashboard-metric-detail text-sm text-slate-500">{detail}</p>}
+      {sparkline && sparkline.length > 1 && (
+        <Sparkline values={sparkline} label={`${label} trend`} />
+      )}
+      {(detail || trend) && (
+        <div className="deetoo-metric-footer">
+          {detail && <p className="dashboard-metric-detail text-sm text-slate-500">{detail}</p>}
+          {trend && (
+            <span
+              className="deetoo-metric-trend"
+              data-sentiment={trend.sentiment || "neutral"}
+              aria-label={`${trend.value} ${trend.direction}`}
+            >
+              <span aria-hidden="true">
+                {trend.direction === "up" ? "↑" : trend.direction === "down" ? "↓" : "→"}
+              </span>
+              {trend.value}
+            </span>
+          )}
+        </div>
+      )}
     </Card>
   );
 }
@@ -313,16 +385,25 @@ export function Navigation({
   active,
   onChange,
   mobile = false,
+  density = "compact",
 }: {
-  items: Array<{ id: string; label: string; icon?: React.ReactNode; group?: string }>;
+  items: Array<{
+    id: string;
+    label: string;
+    icon?: React.ReactNode;
+    group?: string;
+    badge?: React.ReactNode;
+  }>;
   active: string;
   onChange: (id: string) => void;
   mobile?: boolean;
+  density?: Density;
 }) {
   return (
     <nav
       aria-label="Application navigation"
       className={mobile ? "bottom-navigation deetoo-navigation" : "app-navigation deetoo-navigation"}
+      data-density={density}
     >
       {items.map((item,index) => (
         <React.Fragment key={item.id}>
@@ -333,7 +414,8 @@ export function Navigation({
             onClick={() => onChange(item.id)}
           >
             {item.icon}
-            {item.label}
+            <span>{item.label}</span>
+            {item.badge != null && <span className="deetoo-nav-badge">{item.badge}</span>}
           </button>
         </React.Fragment>
       ))}
@@ -364,16 +446,22 @@ export function OperationsLayout({
   navigation,
   children,
   onLogout,
+  density = "compact",
+  status,
+  headerActions,
 }: {
   title: string;
   userName?: string;
   navigation: React.ReactNode;
   children: React.ReactNode;
   onLogout: () => void;
+  density?: Density;
+  status?: React.ReactNode;
+  headerActions?: React.ReactNode;
 }) {
   const initials=(userName||"DeeToo").split(/[\s@._-]+/).filter(Boolean).slice(0,2).map(part=>part[0]?.toUpperCase()).join("");
   return (
-    <div className="operations-layout dashboard-workspace">
+    <div className="operations-layout dashboard-workspace" data-density={density}>
       <aside className="operations-sidebar">
         <div className="ops-brand">
           <DeetooLogo className="h-10 w-auto" />
@@ -398,7 +486,8 @@ export function OperationsLayout({
             <h1>{title}</h1>
           </div>
           <div className="operations-header-actions">
-            <span className="ops-live-dot"><i/>Live</span>
+            {status || <span className="ops-live-dot"><i/>Live</span>}
+            {headerActions}
             <Button variant="outline" onClick={onLogout}>Sign out</Button>
           </div>
         </header>

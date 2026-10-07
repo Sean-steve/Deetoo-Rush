@@ -112,13 +112,48 @@ export const tokens = {
     xxxl: "4rem",
   },
   breakpoints: { tablet: 640, desktop: 1024 },
-  layout: { maxWidth: "1240px", touchTarget: "44px" },
+  layout: {
+    maxWidth: "1240px",
+    touchTarget: "44px",
+    inspectorSm: "360px",
+    inspectorMd: "440px",
+    inspectorLg: "560px",
+    stickyActionHeight: "72px",
+  },
   shadows: {
     card: "0 2px 8px -2px rgb(25 28 30 / .04), 0 1px 3px rgb(25 28 30 / .06)",
+    raised: "0 10px 32px rgb(16 35 26 / .07), 0 1px 3px rgb(16 35 26 / .04)",
     floating:
       "0 8px 24px -4px rgb(25 28 30 / .08), 0 3px 6px -1px rgb(25 28 30 / .04)",
     overlay: "0 20px 48px -8px rgb(25 28 30 / .16)",
+    focus: "0 0 0 4px rgb(0 191 98 / .12)",
   },
-  motion: { fast: "150ms", normal: "220ms" },
-  zIndex: { dropdown: 1000, sticky: 1020, modal: 1050, toast: 1080 },
+  motion: {
+    instant: "120ms",
+    micro: "180ms",
+    component: "240ms",
+    overlay: "300ms",
+    major: "380ms",
+    // Compatibility aliases for existing CSS. New UI should use semantic names above.
+    fast: "180ms",
+    normal: "240ms",
+  },
+  easing: {
+    standard: "cubic-bezier(.2, 0, 0, 1)",
+    enter: "cubic-bezier(.16, 1, .3, 1)",
+    exit: "cubic-bezier(.4, 0, 1, 1)",
+  },
+  density: {
+    comfortable: { controlHeight: "48px", gap: "1rem", padding: "1.25rem" },
+    compact: { controlHeight: "44px", gap: ".75rem", padding: "1rem" },
+    dense: { controlHeight: "40px", gap: ".5rem", padding: ".75rem" },
+  },
+  zIndex: {
+    dropdown: 1000,
+    sticky: 1020,
+    drawer: 1040,
+    modal: 1050,
+    stickyAction: 1060,
+    toast: 1080,
+  },
 } as const;

@@ -11,6 +11,8 @@ import {
   Select,
   Modal,
   Textarea,
+  Countdown,
+  InlineBanner,
 } from "../../../../packages/ui/src/index";
 import {
   errorMessage,
@@ -55,7 +57,6 @@ export function RiderRun({
       : null,
     3000,
   );
-  const [now, setNow] = useState(Date.now());
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [problem, setProblem] = useState<"fail" | "release" | null>(null);
@@ -63,10 +64,6 @@ export function RiderRun({
   const [problemNote, setProblemNote] = useState("");
   const [code, setCode] = useState("");
   const [reason, setReason] = useState("OTHER");
-  useEffect(() => {
-    const timer = setInterval(() => setNow(Date.now()), 1000);
-    return () => clearInterval(timer);
-  }, []);
   async function act(path: string, body: any = {}) {
     setBusy(true);
     setError(null);
@@ -91,14 +88,13 @@ export function RiderRun({
     }
   }
   const delivery = active.data?.delivery;
-  const remaining = offer.data?.offer
-    ? Math.max(
-        0,
-        Math.ceil(
-          (new Date(offer.data.offer.expires_at).getTime() - now) / 1000,
-        ),
-      )
-    : 0;
+  const offerExpiry = offer.data?.offer?.expires_at;
+  const [offerExpired, setOfferExpired] = useState(false);
+  useEffect(() => {
+    setOfferExpired(
+      !offerExpiry || new Date(offerExpiry).getTime() <= Date.now(),
+    );
+  }, [offer.data?.offer?.id, offerExpiry]);
   const next: Record<string, [string, string]> = {
     ASSIGNED: ["arrive-pickup", "Arrived at kitchen"],
     ARRIVED_PICKUP: ["confirm-pickup", "Confirm pickup"],
@@ -169,17 +165,17 @@ export function RiderRun({
             </div>
             <ResourceState resource={authoritativeAmount}>
               {authoritativeAmount.data && (
-                <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4">
-                  <p className="text-xs font-bold uppercase tracking-wide text-emerald-800">
-                    Authoritative amount payable at handover
-                  </p>
-                  <p className="mt-1 text-2xl font-bold text-emerald-950">
+                <InlineBanner
+                  kind="success"
+                  title="Authoritative amount payable at handover"
+                >
+                  <p className="text-2xl font-bold">
                     KES {(Number(authoritativeAmount.data.amount_due_at_handover_minor || 0) / 100).toFixed(2)}
                   </p>
-                  <p className="mt-1 text-xs text-emerald-800">
+                  <p className="mt-1">
                     Never request a different amount outside DeeToo. Digital-paid orders normally show KES 0.00 here.
                   </p>
-                </div>
+                </InlineBanner>
               )}
             </ResourceState>
             {delivery.delivery_instructions && (
@@ -257,9 +253,12 @@ export function RiderRun({
               <Card className="space-y-5">
                 <div className="flex justify-between">
                   <StatusBadge status={offer.data.offer.status} />
-                  <strong className="text-2xl text-brand deetoo-price">
-                    {remaining}s left
-                  </strong>
+                  <Countdown
+                    expiresAt={offer.data.offer.expires_at}
+                    warningAtSeconds={30}
+                    onExpire={() => setOfferExpired(true)}
+                    className="text-2xl text-brand"
+                  />
                 </div>
                 <h2 className="text-xl font-bold">New delivery offer</h2>
                 <div className="delivery-stops">
@@ -288,7 +287,7 @@ export function RiderRun({
                 )}
                 <Button
                   className="w-full"
-                  disabled={busy || remaining === 0 || Boolean(offer.error)}
+                  disabled={busy || offerExpired || Boolean(offer.error)}
                   onClick={() =>
                     act(
                       `/rider/offers/${encodeURIComponent(offer.data.offer.id)}/accept`,
@@ -319,7 +318,7 @@ export function RiderRun({
                 </FormField>
                 <Button
                   variant="ghost"
-                  disabled={busy || remaining === 0}
+                  disabled={busy || offerExpired}
                   onClick={() =>
                     act(
                       `/rider/offers/${encodeURIComponent(offer.data.offer.id)}/reject`,

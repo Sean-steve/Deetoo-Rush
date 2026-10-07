@@ -12,6 +12,8 @@ import {
   Modal,
   EmptyState,
   Toast,
+  FilterChip,
+  ListSkeleton,
 } from "../../../../packages/ui/src/index";
 import { useAuth } from "../../../../packages/auth/src/react";
 import {
@@ -190,11 +192,8 @@ export function CustomerMenuViewer({
 
   if (loading) {
     return (
-      <div className="py-20 flex flex-col items-center justify-center text-slate-500 font-sans">
-        <div className="h-8 w-8 rounded-full border-2 border-brand border-t-transparent animate-spin mb-3" />
-        <span className="text-xs font-semibold">
-          Loading live restaurant menu...
-        </span>
+      <div className="py-8 font-sans" aria-label="Loading live restaurant menu">
+        <ListSkeleton rows={6} />
       </div>
     );
   }
@@ -299,30 +298,23 @@ export function CustomerMenuViewer({
 
       {/* Category Navigation Pills */}
       <div className="sticky top-0 z-10 bg-white/95 backdrop-blur-md p-2 rounded-xl border border-slate-200 shadow-xs flex items-center gap-1.5 overflow-x-auto no-scrollbar">
-        <button
+        <FilterChip
+          selected={activeCategory === "ALL"}
+          count={menuData.categories.reduce((sum, category) => sum + category.items.length, 0)}
           onClick={() => setActiveCategory("ALL")}
-          className={`px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap cursor-pointer transition-all ${
-            activeCategory === "ALL"
-              ? "bg-brand text-white shadow-xs"
-              : "text-slate-600 hover:bg-slate-100"
-          }`}
         >
-          All Items (
-          {menuData.categories.reduce((sum, c) => sum + c.items.length, 0)})
-        </button>
+          All items
+        </FilterChip>
 
         {menuData.categories.map((cat) => (
-          <button
+          <FilterChip
             key={cat.id}
+            selected={activeCategory === cat.id}
+            count={cat.items.length}
             onClick={() => setActiveCategory(cat.id)}
-            className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap cursor-pointer transition-all ${
-              activeCategory === cat.id
-                ? "bg-brand text-white shadow-xs"
-                : "text-slate-600 hover:bg-slate-100"
-            }`}
           >
-            {cat.name} ({cat.items.length})
-          </button>
+            {cat.name}
+          </FilterChip>
         ))}
       </div>
 

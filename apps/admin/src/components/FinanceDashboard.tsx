@@ -1,7 +1,11 @@
 import React, { useState } from "react";
 import { RefreshCw, ShieldCheck } from "lucide-react";
 import { useAuth } from "../../../../packages/auth/src/react";
-import { Button, Card } from "../../../../packages/ui/src/index";
+import {
+  Button,
+  Card,
+  InlineBanner,
+} from "../../../../packages/ui/src/index";
 import {
   MetricCard,
   PageHeading,
@@ -57,11 +61,7 @@ export function FinanceDashboard({ mode }: { mode: "overview" | "reconciliation"
             </Button>
           }
         />
-        {runError && (
-          <div role="alert" className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-800">
-            {runError}
-          </div>
-        )}
+        {runError && <InlineBanner kind="danger">{runError}</InlineBanner>}
         <ResourceState resource={resource}>
           {resource.data && (
             <>

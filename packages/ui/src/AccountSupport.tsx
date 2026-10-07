@@ -8,6 +8,9 @@ import {
   FormField,
   Input,
   Textarea,
+  FileInput,
+  InlineBanner,
+  Select,
 } from "./index";
 import {
   errorMessage,
@@ -196,9 +199,9 @@ export function AccountSupport({
       <PageHeading title="Support & notifications" />
       {error && <ErrorState message={error} />}
       {actionMessage && (
-        <div className="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-900">
+        <InlineBanner kind="success" className="mb-4">
           {actionMessage}
-        </div>
+        </InlineBanner>
       )}
       <div className="workflow-grid">
         <section className="space-y-4">
@@ -208,12 +211,13 @@ export function AccountSupport({
                 <StatusBadge status={item.status} />
                 <h2 className="font-bold mt-3">{item.subject}</h2>
                 <div className="mt-3">
-                  <input
-                    type="file"
+                  <FileInput
                     multiple
+                    files={files}
+                    label="Attach evidence"
                     accept="image/jpeg,image/png,image/webp,video/mp4,video/quicktime,application/pdf"
-                    onChange={(e) => setFiles(Array.from(e.target.files || []))}
-                    className="block w-full text-xs text-slate-500 mb-3"
+                    onFilesChange={setFiles}
+                    hint="JPEG, PNG, WebP, MP4, QuickTime or PDF."
                   />
                 </div>
                 <Button
@@ -282,9 +286,12 @@ export function AccountSupport({
                   </div>
                 )}
                 {["RESOLUTION_PROPOSED", "PARTY_CONFIRMATION"].includes(detail.data?.case?.status) && (
-                  <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 mb-4">
-                    <p className="font-bold text-emerald-950">Support has proposed a resolution</p>
-                    <p className="text-sm text-emerald-900 mt-1">
+                  <InlineBanner
+                    kind="success"
+                    title="Support has proposed a resolution"
+                    className="mb-4"
+                  >
+                    <p>
                       {detail.data?.case?.resolution_notes || "Review the conversation and tell us if this resolves the issue."}
                     </p>
                     <div className="flex flex-wrap gap-2 mt-3">
@@ -331,7 +338,7 @@ export function AccountSupport({
                         I still need help
                       </Button>
                     </div>
-                  </div>
+                  </InlineBanner>
                 )}
                 <FormField label="Reply">
                   <Textarea
@@ -414,14 +421,13 @@ export function AccountSupport({
           <h2 className="text-xl font-bold mb-4">How can we help?</h2>
           <form onSubmit={create} className="space-y-4">
             <FormField label="Case type" required>
-              <select
-                className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm"
+              <Select
                 value={caseKind}
                 onChange={(e) => setCaseKind(e.target.value as "SUPPORT" | "DISPUTE")}
               >
                 <option value="SUPPORT">Support request</option>
                 <option value="DISPUTE">Formal dispute</option>
-              </select>
+              </Select>
             </FormField>
             <FormField label="Subject" required>
               <Input
@@ -446,12 +452,13 @@ export function AccountSupport({
               />
             </FormField>
             <FormField label="Evidence (optional)">
-              <input
-                type="file"
+              <FileInput
                 multiple
+                files={files}
+                label="Choose evidence"
                 accept="image/jpeg,image/png,image/webp,video/mp4,video/quicktime,application/pdf"
-                onChange={(e) => setFiles(Array.from(e.target.files || []))}
-                className="block w-full text-xs text-slate-500"
+                onFilesChange={setFiles}
+                hint="JPEG, PNG, WebP, MP4, QuickTime or PDF."
               />
             </FormField>
             <Button type="submit" isLoading={busy}>
