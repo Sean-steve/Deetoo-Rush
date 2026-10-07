@@ -237,6 +237,7 @@ geographyRouter.get(
            z.market_id,m.name AS market_name,
            (z.boundary IS NOT NULL) AS has_polygon,
            CASE WHEN z.boundary IS NOT NULL THEN ST_Area(z.boundary) ELSE NULL END AS polygon_area_square_meters,
+           CASE WHEN z.boundary IS NOT NULL THEN ST_AsGeoJSON(z.boundary)::json ELSE NULL END AS boundary_geojson,
            COUNT(DISTINCT bsz.branch_id)::int AS branch_count,
            COUNT(DISTINCT rsz.rider_id)::int AS rider_count
          FROM service_zones z

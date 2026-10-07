@@ -39,6 +39,13 @@ export interface RowAction {
   schema?: { safeParse: (value: unknown) => any };
   roles?: string[];
 }
+export interface TableFilter {
+  key: string;
+  label: string;
+  param?: string;
+  options: Array<string | { value: string; label: string }>;
+  defaultValue?: string;
+}
 export interface TableConfig {
   title: string;
   endpoint: string;
@@ -51,6 +58,7 @@ export interface TableConfig {
   offsetPaging?: boolean;
   refreshInterval?: number;
   searchable?: boolean;
+  filters?: TableFilter[];
 }
 export function RecordDetails({ value }: { value: any }) {
   if (value == null) return <span>—</span>;
@@ -96,8 +104,20 @@ export function ResourceTable({ config }: { config: TableConfig }) {
   const [search, setSearch] = useState("");
   const [query, setQuery] = useState("");
   const [page, setPage] = useState(1);
+  const [filters, setFilters] = useState<Record<string, string>>(() =>
+    Object.fromEntries(
+      (config.filters || []).map((filter) => [
+        filter.key,
+        filter.defaultValue || "",
+      ]),
+    ),
+  );
   const suffix = new URLSearchParams();
   if (config.searchable && query) suffix.set("search", query);
+  for (const filter of config.filters || []) {
+    const value = filters[filter.key];
+    if (value) suffix.set(filter.param || filter.key, value);
+  }
   if (config.pageable) {
     suffix.set("page", String(page));
     suffix.set("limit", "20");
@@ -246,28 +266,69 @@ export function ResourceTable({ config }: { config: TableConfig }) {
           ))}
         </div>
       )}
-      {config.searchable && (
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            setPage(1);
-            setQuery(search);
-          }}
-          className="flex gap-3 mb-4"
-        >
-          <SearchInput
-            aria-label={`Search ${config.title}`}
-            placeholder={`Search ${config.title.toLowerCase()}`}
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            onClear={() => {
-              setSearch("");
-              setQuery("");
-              setPage(1);
-            }}
-          />
-          <Button type="submit">Search</Button>
-        </form>
+      {(config.searchable || config.filters?.length) && (
+        <div className="admin-resource-commandbar">
+          {config.searchable && (
+            <form
+              onSubmit={(event) => {
+                event.preventDefault();
+                setPage(1);
+                setQuery(search);
+              }}
+              className="admin-resource-search"
+            >
+              <SearchInput
+                aria-label={`Search ${config.title}`}
+                placeholder={`Search ${config.title.toLowerCase()}`}
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                onClear={() => {
+                  setSearch("");
+                  setQuery("");
+                  setPage(1);
+                }}
+              />
+              <Button type="submit">Search</Button>
+            </form>
+          )}
+
+          {config.filters?.map((filter) => (
+            <label className="admin-resource-filter" key={filter.key}>
+              <span>{filter.label}</span>
+              <Select
+                aria-label={filter.label}
+                value={filters[filter.key] || ""}
+                onChange={(event) => {
+                  setFilters((current) => ({
+                    ...current,
+                    [filter.key]: event.target.value,
+                  }));
+                  setPage(1);
+                }}
+              >
+                <option value="">All</option>
+                {filter.options.map((option) => {
+                  const value =
+                    typeof option === "string" ? option : option.value;
+                  const label =
+                    typeof option === "string"
+                      ? option.toLowerCase().replaceAll("_", " ")
+                      : option.label;
+                  return (
+                    <option key={value} value={value}>
+                      {label}
+                    </option>
+                  );
+                })}
+              </Select>
+            </label>
+          ))}
+
+          <div className="admin-resource-command-meta">
+            <strong>{list.length}</strong>
+            <span>{config.pageable ? `records on page ${page}` : "records"}</span>
+          </div>
+        </div>
       )}
       <ResourceState resource={resource}>
         <DataTable<any>
@@ -287,6 +348,17 @@ export function ResourceTable({ config }: { config: TableConfig }) {
               description="No records match this view."
             />
           }
+          selectedRowKey={
+            detailRow
+              ? String(
+                  detailRow.id ||
+                    detailRow.order_number ||
+                    detailRow.reference_id ||
+                    list.indexOf(detailRow),
+                )
+              : null
+          }
+          onRowClick={config.detail ? (row) => setDetailRow(row) : undefined}
           columns={[
             ...config.columns.map((column) => ({
               key: column.key,
@@ -305,13 +377,18 @@ export function ResourceTable({ config }: { config: TableConfig }) {
               label: "Actions",
               render: (row: any) => (
                 <div className="flex flex-wrap gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setDetailRow(row)}
-                  >
-                    Details
-                  </Button>
+                  {config.detail && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        setDetailRow(row);
+                      }}
+                    >
+                      Inspect
+                    </Button>
+                  )}
                   {config.actions
                     ?.filter(
                       (action) =>
@@ -325,7 +402,8 @@ export function ResourceTable({ config }: { config: TableConfig }) {
                         variant="outline"
                         size="sm"
                         disabled={busy || Boolean(resource.error)}
-                        onClick={() => {
+                        onClick={(event) => {
+                          event.stopPropagation();
                           setTarget({ row, action });
                           setValues({});
                           setError(null);

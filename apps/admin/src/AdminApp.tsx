@@ -12,6 +12,7 @@ import { SupportCaseConsole } from "./components/SupportCaseConsole";
 import { IdentityGovernance } from "./components/IdentityGovernance";
 import { GeographyControl } from "./components/GeographyControl";
 import { FinanceDashboard } from "./components/FinanceDashboard";
+import { MerchantOnboardingPipeline } from "./components/MerchantOnboardingPipeline";
 
 function adminTabFromPath(){
   const path=window.location.pathname.replace(/^\/ops/,"").replace(/\/+$/,"");
@@ -526,13 +527,16 @@ function AdminAppInner() {
         }
       >
         <AuthenticatorPanel />
-        {selectedView === "command" && <CommandCenter />}
+        {selectedView === "command" && (
+          <CommandCenter onNavigate={(view) => setActiveTab(view)} />
+        )}
         {selectedView === "support" && <SupportCaseConsole />}
         {selectedView === "governance" && <IdentityGovernance />}
         {selectedView === "geography" && <GeographyControl />}
         {selectedView === "financeOverview" && <FinanceDashboard mode="overview" />}
         {selectedView === "reconciliation" && <FinanceDashboard mode="reconciliation" />}
-        {adminViews[selectedView] && !["support", "governance"].includes(selectedView) && (
+        {selectedView === "onboarding" && <MerchantOnboardingPipeline />}
+        {adminViews[selectedView] && !["support", "governance", "onboarding"].includes(selectedView) && (
           <ResourceTable
             key={selectedView}
             config={{

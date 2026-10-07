@@ -1,23 +1,98 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Order } from "@deetoo/types";
 import { useAuth } from "../../../../packages/auth/src/react";
 import {
   Button,
   Card,
+  ChoiceChip,
   EmptyState,
   ErrorState,
   FormField,
+  InlineBanner,
   Input,
   Modal,
   Price,
 } from "../../../../packages/ui/src/index";
 import {
   errorMessage,
+  MetricCard,
   PageHeading,
   ResourceState,
   StatusBadge,
   useResource,
 } from "../../../../packages/ui/src/workflows";
+import {
+  BellRing,
+  ChefHat,
+  Clock3,
+  PackageCheck,
+  TimerReset,
+  UtensilsCrossed,
+} from "lucide-react";
+
+type KitchenTiming = {
+  label: string;
+  detail: string;
+  tone: "normal" | "warning" | "overdue";
+  minutes: number;
+};
+
+function minutesSince(value?: string | null, now = Date.now()): number {
+  if (!value) return 0;
+  return Math.max(0, Math.floor((now - new Date(value).getTime()) / 60000));
+}
+
+export function kitchenTiming(order: Order, now = Date.now()): KitchenTiming {
+  if (order.status === "PLACED") {
+    const minutes = minutesSince(order.placed_at || order.created_at, now);
+    return {
+      label: `Waiting ${minutes}m`,
+      detail: "Response age",
+      tone: minutes >= 5 ? "overdue" : minutes >= 3 ? "warning" : "normal",
+      minutes,
+    };
+  }
+
+  if (
+    ["ACCEPTED", "PREPARING"].includes(order.status) &&
+    order.estimated_ready_at
+  ) {
+    const target = new Date(order.estimated_ready_at).getTime();
+    const deltaMinutes = Math.ceil((target - now) / 60000);
+    if (deltaMinutes < 0) {
+      return {
+        label: `${Math.abs(deltaMinutes)}m past target`,
+        detail: "Prep target",
+        tone: "overdue",
+        minutes: Math.abs(deltaMinutes),
+      };
+    }
+    return {
+      label: deltaMinutes === 0 ? "Due now" : `${deltaMinutes}m to target`,
+      detail: "Prep target",
+      tone: deltaMinutes <= 5 ? "warning" : "normal",
+      minutes: deltaMinutes,
+    };
+  }
+
+  if (order.status === "READY") {
+    const minutes = minutesSince(order.ready_at || order.updated_at, now);
+    return {
+      label: minutes ? `Ready ${minutes}m` : "Ready now",
+      detail: "Pickup waiting",
+      tone: minutes >= 5 ? "warning" : "normal",
+      minutes,
+    };
+  }
+
+  return {
+    label: "Live",
+    detail: "Order state",
+    tone: "normal",
+    minutes: 0,
+  };
+}
+
 export function KitchenOrders({ branchId }: { branchId: string }) {
   const { apiClient } = useAuth();
   const orders = useResource<Order[]>(
@@ -28,15 +103,21 @@ export function KitchenOrders({ branchId }: { branchId: string }) {
   );
   const [target, setTarget] = useState<{
     order: Order;
-    action: "accept" | "reject" | "cancel";
+    action: "accept" | "reject";
   } | null>(null);
   const [minutes, setMinutes] = useState("20");
   const [reason, setReason] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [soundEnabled, setSoundEnabled] = useState(false);
+  const [now, setNow] = useState(Date.now());
   const audioContextRef = useRef<AudioContext | null>(null);
   const previousPlacedCountRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(Date.now()), 15000);
+    return () => window.clearInterval(timer);
+  }, []);
 
   function playIncomingOrderSound() {
     if (!soundEnabled || !audioContextRef.current) return;
@@ -44,12 +125,12 @@ export function KitchenOrders({ branchId }: { branchId: string }) {
     const oscillator = ctx.createOscillator();
     const gain = ctx.createGain();
     oscillator.frequency.value = 880;
-    gain.gain.setValueAtTime(0.12, ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.45);
+    gain.gain.setValueAtTime(0.08, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.28);
     oscillator.connect(gain);
     gain.connect(ctx.destination);
     oscillator.start();
-    oscillator.stop(ctx.currentTime + 0.45);
+    oscillator.stop(ctx.currentTime + 0.28);
   }
 
   function enableSound() {
@@ -70,7 +151,9 @@ export function KitchenOrders({ branchId }: { branchId: string }) {
   useEffect(() => {
     if (!branchId) return;
     const source = new EventSource(
-      `/api/v1/realtime/stream?channels=${encodeURIComponent(`merchant-branch:${branchId}`)}`,
+      `/api/v1/realtime/stream?channels=${encodeURIComponent(
+        `merchant-branch:${branchId}`,
+      )}`,
       { withCredentials: true },
     );
     const refresh = () => void orders.refresh();
@@ -95,11 +178,14 @@ export function KitchenOrders({ branchId }: { branchId: string }) {
 
   useEffect(() => {
     if (!orders.data) return;
-    const placedCount = orders.data.filter((order) => order.status === "PLACED").length;
+    const placedCount = orders.data.filter(
+      (order) => order.status === "PLACED",
+    ).length;
     const previous = previousPlacedCountRef.current;
     if (previous !== null && placedCount > previous) playIncomingOrderSound();
     previousPlacedCountRef.current = placedCount;
   }, [orders.data, soundEnabled]);
+
   async function act(fn: () => Promise<unknown>) {
     setBusy(true);
     setError(null);
@@ -107,161 +193,327 @@ export function KitchenOrders({ branchId }: { branchId: string }) {
       await fn();
       setTarget(null);
       await orders.refresh();
-    } catch (e) {
-      setError(errorMessage(e));
+    } catch (cause) {
+      setError(errorMessage(cause));
     } finally {
       setBusy(false);
     }
   }
+
+  const liveOrders = orders.data || [];
+  const summary = useMemo(() => {
+    const newOrders = liveOrders.filter((order) => order.status === "PLACED");
+    const preparing = liveOrders.filter((order) =>
+      ["ACCEPTED", "PREPARING"].includes(order.status),
+    );
+    const ready = liveOrders.filter((order) => order.status === "READY");
+    const pastTarget = preparing.filter(
+      (order) =>
+        order.estimated_ready_at &&
+        new Date(order.estimated_ready_at).getTime() < now,
+    );
+    const prepValues = preparing
+      .map((order) => Number(order.estimated_prep_minutes || 0))
+      .filter((value) => value > 0);
+    const averagePrep =
+      prepValues.length > 0
+        ? Math.round(
+            prepValues.reduce((total, value) => total + value, 0) /
+              prepValues.length,
+          )
+        : null;
+    return {
+      newOrders,
+      preparing,
+      ready,
+      pastTarget,
+      averagePrep,
+    };
+  }, [liveOrders, now]);
+
   const columns = [
-    { title: "Action required", states: ["PLACED"] },
-    { title: "Cooking / prep", states: ["ACCEPTED", "PREPARING"] },
-    { title: "Ready for pickup", states: ["READY"] },
+    {
+      id: "new",
+      title: "New orders",
+      subtitle: "Respond first",
+      icon: BellRing,
+      states: ["PLACED"],
+    },
+    {
+      id: "preparing",
+      title: "Preparing",
+      subtitle: "Protect ready targets",
+      icon: ChefHat,
+      states: ["ACCEPTED", "PREPARING"],
+    },
+    {
+      id: "ready",
+      title: "Ready",
+      subtitle: "Handover to Rider",
+      icon: PackageCheck,
+      states: ["READY"],
+    },
   ];
+
   return (
     <>
       <PageHeading
-        title="Kitchen display"
-        eyebrow="Live orders · realtime with 5-second polling fallback"
+        title="Kitchen orders"
+        eyebrow="Live service"
+        subtitle="Work from left to right. Oldest and past-target orders are surfaced first."
         action={
-          <div className="flex gap-2">
-            {!soundEnabled && (
+          <div className="flex flex-wrap gap-2">
+            {!soundEnabled ? (
               <Button variant="outline" onClick={enableSound}>
-                Enable order sound
+                <BellRing size={15} aria-hidden="true" />
+                Enable new-order sound
               </Button>
+            ) : (
+              <span className="merchant-sound-enabled" role="status">
+                <BellRing size={14} aria-hidden="true" />
+                Sound on
+              </span>
             )}
             <Button
               variant="outline"
               onClick={orders.refresh}
               isLoading={orders.loading}
             >
-              Refresh orders
+              Refresh
             </Button>
           </div>
         }
       />
+
       {error && <ErrorState message={error} />}
+
       <ResourceState resource={orders}>
-        <div className="kitchen-board">
+        <div className="merchant-kitchen-summary">
+          <MetricCard
+            label="New"
+            value={summary.newOrders.length}
+            detail={
+              summary.newOrders.length
+                ? "Waiting for acceptance or decline"
+                : "No response needed"
+            }
+            status={
+              summary.newOrders.length ? (
+                <StatusBadge status="ACTION_REQUIRED" tone="warning" />
+              ) : undefined
+            }
+          />
+          <MetricCard
+            label="Preparing"
+            value={summary.preparing.length}
+            detail={
+              summary.averagePrep != null
+                ? `Average target ${summary.averagePrep} min`
+                : "Kitchen work in progress"
+            }
+          />
+          <MetricCard
+            label="Ready"
+            value={summary.ready.length}
+            detail="Waiting for Rider pickup"
+          />
+          <MetricCard
+            label="Past target"
+            value={summary.pastTarget.length}
+            detail={
+              summary.pastTarget.length
+                ? "Prioritize these orders"
+                : "Preparation targets healthy"
+            }
+            status={
+              summary.pastTarget.length ? (
+                <StatusBadge status="OVERDUE" tone="danger" />
+              ) : (
+                <StatusBadge status="CLEAR" tone="success" />
+              )
+            }
+          />
+        </div>
+
+        <div className="kitchen-board merchant-kitchen-board">
           {columns.map((column) => {
-            const rows = (orders.data || []).filter((order) =>
-              column.states.includes(order.status),
-            );
+            const rows = liveOrders
+              .filter((order) => column.states.includes(order.status))
+              .sort((a, b) => {
+                const aTiming = kitchenTiming(a, now);
+                const bTiming = kitchenTiming(b, now);
+                const priority = { overdue: 2, warning: 1, normal: 0 };
+                const toneDiff =
+                  priority[bTiming.tone] - priority[aTiming.tone];
+                if (toneDiff) return toneDiff;
+                return (
+                  new Date(a.created_at).getTime() -
+                  new Date(b.created_at).getTime()
+                );
+              });
+            const Icon = column.icon;
             return (
-              <section className="kitchen-column" key={column.title}>
-                <div className="flex justify-between items-center">
-                  <h2>{column.title}</h2>
-                  {orders.data && (
-                    <span className="rounded-full bg-white px-3 py-1 text-sm">
-                      {rows.length}
+              <section
+                className="kitchen-column merchant-kitchen-column"
+                data-stage={column.id}
+                key={column.id}
+              >
+                <header className="merchant-kitchen-column-head">
+                  <div>
+                    <span className="merchant-kitchen-column-icon">
+                      <Icon size={18} aria-hidden="true" />
                     </span>
-                  )}
-                </div>
-                {rows.map((order) => (
-                  <article key={order.id} className="order-card space-y-4">
-                    <div className="flex justify-between gap-2">
-                      <h3 className="text-2xl font-extrabold break-all">
-                        #{order.order_number}
-                      </h3>
-                      <div className="text-right">
-                        <StatusBadge status={order.status} />
-                        {order.payment_status && (
-                          <StatusBadge status={order.payment_status} />
-                        )}
-                        <div className="mt-2">
-                          <Price minor={order.total_minor} />
+                    <div>
+                      <h2>{column.title}</h2>
+                      <p>{column.subtitle}</p>
+                    </div>
+                  </div>
+                  <strong>{rows.length}</strong>
+                </header>
+
+                {rows.map((order) => {
+                  const timing = kitchenTiming(order, now);
+                  return (
+                    <article
+                      key={order.id}
+                      className="order-card merchant-order-ticket"
+                      data-urgency={timing.tone}
+                    >
+                      <div className="merchant-order-ticket-head">
+                        <div>
+                          <span className="eyebrow">Order</span>
+                          <h3>#{order.order_number}</h3>
+                        </div>
+                        <div className="merchant-order-time" data-tone={timing.tone}>
+                          <Clock3 size={15} aria-hidden="true" />
+                          <div>
+                            <strong>{timing.label}</strong>
+                            <span>{timing.detail}</span>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                    <p className="text-sm">
-                      {order.customer_name || "Customer"} ·{" "}
-                      {new Date(order.created_at).toLocaleTimeString()}
-                    </p>
-                    <ul className="p-3 rounded-xl bg-stone-50 space-y-2">
-                      {order.items.map((item) => (
-                        <li key={item.id} className="text-sm">
+
+                      <div className="merchant-order-meta">
+                        <span>{order.customer_name || "Customer"}</span>
+                        <span>
+                          {new Date(
+                            order.placed_at || order.created_at,
+                          ).toLocaleTimeString([], {
+                            hour: "numeric",
+                            minute: "2-digit",
+                          })}
+                        </span>
+                        <Price minor={order.total_minor} />
+                      </div>
+
+                      <div className="merchant-order-items">
+                        {order.items.map((item) => (
+                          <div key={item.id}>
+                            <strong>
+                              {item.quantity} × {item.item_name}
+                            </strong>
+                            {item.modifiers?.length ? (
+                              <p>
+                                {item.modifiers
+                                  .map((modifier) => modifier.option_name)
+                                  .join(", ")}
+                              </p>
+                            ) : null}
+                          </div>
+                        ))}
+                      </div>
+
+                      {order.special_instructions && (
+                        <InlineBanner kind="warning" title="Kitchen note">
+                          {order.special_instructions}
+                        </InlineBanner>
+                      )}
+
+                      {order.estimated_ready_at && (
+                        <div className="merchant-ready-target">
+                          <TimerReset size={15} aria-hidden="true" />
+                          <span>Ready target</span>
                           <strong>
-                            {item.quantity} × {item.item_name}
+                            {new Date(
+                              order.estimated_ready_at,
+                            ).toLocaleTimeString([], {
+                              hour: "numeric",
+                              minute: "2-digit",
+                            })}
                           </strong>
-                          <p className="text-xs">
-                            {item.modifiers
-                              ?.map((mod) => mod.option_name)
-                              .join(", ")}
-                          </p>
-                        </li>
-                      ))}
-                    </ul>
-                    {order.special_instructions && (
-                      <p className="bg-amber-50 p-3 rounded-xl text-sm">
-                        Kitchen note: {order.special_instructions}
-                      </p>
-                    )}
-                    {order.estimated_ready_at && (
-                      <p className="text-sm">
-                        Prep target:{" "}
-                        {new Date(
-                          order.estimated_ready_at,
-                        ).toLocaleTimeString()}
-                      </p>
-                    )}
-                    <div className="grid gap-2">
-                      {order.status === "PLACED" && (
-                        <>
+                        </div>
+                      )}
+
+                      <div className="merchant-order-action">
+                        {order.status === "PLACED" && (
+                          <>
+                            <Button
+                              fullWidth
+                              disabled={busy || Boolean(orders.error)}
+                              onClick={() => {
+                                setTarget({ order, action: "accept" });
+                                setMinutes("20");
+                              }}
+                            >
+                              Accept · set prep time
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              disabled={busy}
+                              onClick={() => {
+                                setTarget({ order, action: "reject" });
+                                setReason("");
+                              }}
+                            >
+                              Decline
+                            </Button>
+                          </>
+                        )}
+
+                        {order.status === "ACCEPTED" && (
                           <Button
+                            fullWidth
                             disabled={busy || Boolean(orders.error)}
-                            onClick={() => {
-                              setTarget({ order, action: "accept" });
-                              setMinutes("20");
-                            }}
+                            onClick={() =>
+                              void act(() =>
+                                apiClient.markMerchantOrderPreparing(order.id),
+                              )
+                            }
                           >
-                            Accept & set prep time
+                            Start preparing
                           </Button>
+                        )}
+
+                        {order.status === "PREPARING" && (
                           <Button
-                            variant="danger"
-                            disabled={busy}
-                            onClick={() => {
-                              setTarget({ order, action: "reject" });
-                              setReason("");
-                            }}
+                            fullWidth
+                            disabled={busy || Boolean(orders.error)}
+                            onClick={() =>
+                              void act(() =>
+                                apiClient.markMerchantOrderReady(order.id),
+                              )
+                            }
                           >
-                            Decline order
+                            Mark ready
                           </Button>
-                        </>
-                      )}
-                      {order.status === "ACCEPTED" && (
-                        <Button
-                          disabled={busy || Boolean(orders.error)}
-                          onClick={() =>
-                            act(() =>
-                              apiClient.markMerchantOrderPreparing(order.id),
-                            )
-                          }
-                        >
-                          Start preparing
-                        </Button>
-                      )}
-                      {order.status === "PREPARING" && (
-                        <Button
-                          disabled={busy || Boolean(orders.error)}
-                          onClick={() =>
-                            act(() =>
-                              apiClient.markMerchantOrderReady(order.id),
-                            )
-                          }
-                        >
-                          Mark ready for pickup
-                        </Button>
-                      )}
-                      {order.status === "READY" && (
-                        <PickupStatus orderId={order.id} branchId={branchId} />
-                      )}
-                    </div>
-                  </article>
-                ))}
+                        )}
+
+                        {order.status === "READY" && (
+                          <PickupStatus
+                            orderId={order.id}
+                            branchId={branchId}
+                          />
+                        )}
+                      </div>
+                    </article>
+                  );
+                })}
+
                 {orders.data && !rows.length && (
                   <EmptyState
                     title="Queue clear"
                     description="Orders in this stage will appear here."
+                    icon={UtensilsCrossed}
                   />
                 )}
               </section>
@@ -269,6 +521,7 @@ export function KitchenOrders({ branchId }: { branchId: string }) {
           })}
         </div>
       </ResourceState>
+
       <Modal
         isOpen={Boolean(target)}
         onClose={() => !busy && setTarget(null)}
@@ -276,8 +529,8 @@ export function KitchenOrders({ branchId }: { branchId: string }) {
       >
         {target && (
           <form
-            onSubmit={(e) => {
-              e.preventDefault();
+            onSubmit={(event) => {
+              event.preventDefault();
               void act(() =>
                 target.action === "accept"
                   ? apiClient.acceptMerchantOrder(
@@ -294,28 +547,54 @@ export function KitchenOrders({ branchId }: { branchId: string }) {
             className="space-y-4"
           >
             {target.action === "accept" ? (
-              <FormField label="Preparation minutes" required>
-                <Input
-                  required
-                  type="number"
-                  min="1"
-                  max="180"
-                  value={minutes}
-                  onChange={(e) => setMinutes(e.target.value)}
-                />
-              </FormField>
+              <>
+                <InlineBanner kind="info">
+                  Set a realistic preparation target. Riders and customers use
+                  this operational promise downstream.
+                </InlineBanner>
+                <FormField label="Preparation time" required>
+                  <div className="merchant-prep-choices">
+                    {[10, 15, 20, 30, 45].map((value) => (
+                      <ChoiceChip
+                        key={value}
+                        selected={minutes === String(value)}
+                        onClick={() => setMinutes(String(value))}
+                      >
+                        {value} min
+                      </ChoiceChip>
+                    ))}
+                  </div>
+                  <Input
+                    required
+                    type="number"
+                    min="1"
+                    max="180"
+                    value={minutes}
+                    onChange={(event) => setMinutes(event.target.value)}
+                    className="mt-3"
+                  />
+                </FormField>
+              </>
             ) : (
               <FormField label="Reason" required>
                 <Input
                   required
                   value={reason}
-                  onChange={(e) => setReason(e.target.value)}
+                  onChange={(event) => setReason(event.target.value)}
+                  placeholder="Explain why the kitchen cannot fulfil this order"
                 />
               </FormField>
             )}
-            {error && <p role="alert">{error}</p>}
-            <Button type="submit" isLoading={busy}>
-              Confirm {target.action}
+            {error && <ErrorState message={error} />}
+            <Button
+              fullWidth
+              type="submit"
+              variant={target.action === "reject" ? "danger" : "primary"}
+              isLoading={busy}
+            >
+              {target.action === "accept"
+                ? `Accept · ${minutes} min prep`
+                : "Decline order"}
             </Button>
           </form>
         )}
@@ -323,6 +602,7 @@ export function KitchenOrders({ branchId }: { branchId: string }) {
     </>
   );
 }
+
 function PickupStatus({
   orderId,
   branchId,
@@ -331,22 +611,27 @@ function PickupStatus({
   branchId: string;
 }) {
   const pickup = useResource<any>(
-    `/merchant/orders/${encodeURIComponent(orderId)}/pickup-status?branch_id=${encodeURIComponent(branchId)}`,
+    `/merchant/orders/${encodeURIComponent(
+      orderId,
+    )}/pickup-status?branch_id=${encodeURIComponent(branchId)}`,
     5000,
   );
+
   return (
-    <ResourceState resource={pickup}>
+    <ResourceState resource={pickup} compact>
       {pickup.data && (
-        <div className="p-3 bg-stone-50 rounded-xl">
-          <StatusBadge status={pickup.data.deliveryStatus} />
-          <p className="text-sm mt-2">
-            {pickup.data.rider?.firstName || "Waiting for assigned rider"}
-          </p>
+        <div className="merchant-pickup-status">
+          <div>
+            <StatusBadge status={pickup.data.deliveryStatus} />
+            <strong>
+              {pickup.data.rider?.firstName || "Waiting for assigned Rider"}
+            </strong>
+          </div>
           {pickup.data.pickupVerificationCode && (
-            <p>
-              Handover code:{" "}
+            <div className="merchant-handover-code">
+              <span>Handover code</span>
               <strong>{pickup.data.pickupVerificationCode}</strong>
-            </p>
+            </div>
           )}
         </div>
       )}
