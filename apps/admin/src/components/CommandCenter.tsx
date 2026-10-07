@@ -102,7 +102,7 @@ export function CommandCenter({ onNavigate }: CommandCenterProps) {
     const ops = operations.data;
     if (!snapshot && !ops) return [];
 
-    return [
+    const items: ActionItem[] = [
       {
         id: "delayed",
         label: "Delayed deliveries",
@@ -174,7 +174,8 @@ export function CommandCenter({ onNavigate }: CommandCenterProps) {
         tone: "warning",
         icon: FileWarning,
       },
-    ]
+    ];
+    return items
       .filter((item) => item.count > 0)
       .sort((a, b) => {
         const severity = { danger: 2, warning: 1, info: 0 };
