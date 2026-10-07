@@ -1,67 +1,104 @@
 import React from "react";
 import { PublicRestaurantBranch } from "@deetoo/types";
-import { Clock, MapPin, ArrowUpRight, UtensilsCrossed } from "lucide-react";
+import {
+  ArrowRight,
+  Clock3,
+  MapPin,
+  ShoppingBag,
+  UtensilsCrossed,
+} from "lucide-react";
 import { Price } from "../../../../packages/ui/src/index";
 import { StatusBadge } from "../../../../packages/ui/src/workflows";
+
 export function RestaurantCard({
   restaurant,
   onSelect,
+  featured = false,
 }: {
   restaurant: PublicRestaurantBranch;
   onSelect: (branchId: string) => void;
+  featured?: boolean;
 }) {
   const cover = restaurant.cover_url || restaurant.logo_url;
+  const unavailable = !restaurant.serviceable || restaurant.open_status === "UNAVAILABLE";
+  const busy = restaurant.is_busy || restaurant.open_status === "BUSY";
+  const distanceLabel =
+    restaurant.distance_km != null
+      ? `${Number(restaurant.distance_km).toFixed(
+          Number(restaurant.distance_km) >= 10 ? 0 : 1,
+        )} km away`
+      : null;
+
   return (
     <button
       type="button"
       onClick={() => onSelect(restaurant.branch_id)}
-      className="restaurant-card text-left group"
+      className={`restaurant-card customer-restaurant-card text-left group ${
+        featured ? "customer-restaurant-card-featured" : ""
+      }`}
+      aria-label={`Open ${restaurant.merchant_name} menu`}
     >
-      <div className="restaurant-cover">
+      <div className="restaurant-cover customer-restaurant-media">
         {cover ? (
-          <img src={cover} alt={restaurant.merchant_name} loading="lazy" />
+          <img src={cover} alt="" loading="lazy" />
         ) : (
           <div className="restaurant-placeholder">
-            <UtensilsCrossed size={40} />
+            <UtensilsCrossed size={38} aria-hidden="true" />
             <span>{restaurant.merchant_name}</span>
           </div>
         )}
-        <div className="absolute top-3 left-3">
+
+        <div className="customer-restaurant-status">
           <StatusBadge status={restaurant.open_status} />
+          {busy && <span className="customer-busy-badge">Busy kitchen</span>}
         </div>
-        <div className="restaurant-cover-meta">
+
+        <div className="customer-restaurant-image-footer">
           <span>
-            <MapPin size={12} />
-            {restaurant.branch_name}
+            <Clock3 size={13} aria-hidden="true" />
+            ~{restaurant.prep_default_min} min prep
           </span>
-          <span>
-            <Clock size={12} />
-            {restaurant.prep_default_min} min prep
-          </span>
-        </div>
-      </div>
-      <div className="p-4">
-        <div className="flex items-start justify-between gap-3">
-          <h3 className="font-bold text-lg leading-tight">
-            {restaurant.merchant_name}
-          </h3>
-          <span className="rounded-full bg-stone-100 p-2">
-            <ArrowUpRight size={18} />
-          </span>
-        </div>
-        <p className="text-sm text-stone-600 mt-2">
-          {restaurant.categories.join(" · ")}
-        </p>
-        <div className="flex justify-between text-xs mt-3">
-          <span>
-            Minimum <Price minor={restaurant.min_order_minor} />
-          </span>
-          {restaurant.distance_km != null && (
-            <span>{restaurant.distance_km} km</span>
+          {distanceLabel && (
+            <span>
+              <MapPin size={13} aria-hidden="true" />
+              {distanceLabel}
+            </span>
           )}
         </div>
-        {restaurant.is_busy && (
-          <p className="mt-2 text-xs text-amber-800">Kitchen is busy</p>
+      </div>
+
+      <div className="customer-restaurant-content">
+        <div className="customer-restaurant-heading">
+          <div className="min-w-0">
+            <h3>{restaurant.merchant_name}</h3>
+            <p className="customer-restaurant-cuisines">
+              {restaurant.categories.length
+                ? restaurant.categories.join(" · ")
+                : "Restaurant"}
+            </p>
+          </div>
+          <span className="customer-restaurant-arrow" aria-hidden="true">
+            <ArrowRight size={18} />
+          </span>
+        </div>
+
+        <div className="customer-restaurant-facts">
+          <span>
+            <ShoppingBag size={13} aria-hidden="true" />
+            Minimum <Price minor={restaurant.min_order_minor} />
+          </span>
+          <span className="customer-restaurant-branch">{restaurant.branch_name}</span>
+        </div>
+
+        {unavailable && (
+          <p className="customer-restaurant-note">
+            Browse the menu now; ordering is unavailable at this location.
+          </p>
+        )}
+        {busy && !unavailable && (
+          <p className="customer-restaurant-note customer-restaurant-note-warning">
+            Preparation may take longer than usual.
+          </p>
         )}
       </div>
     </button>

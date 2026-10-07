@@ -25,6 +25,11 @@ import {
   ErrorBoundary,
   Modal,
   FormField,
+  CardSkeleton,
+  FilterChip,
+  InlineBanner,
+  SearchInput,
+  SegmentedControl,
 } from "../../../packages/ui/src/index";
 import { AuthProvider, useAuth } from "../../../packages/auth/src/react";
 import {
@@ -674,7 +679,7 @@ function CustomerAppInner() {
                 <div className="space-y-5">
                   <section className="customer-hero">
                     <p className="uppercase text-xs tracking-wider">
-                      Deetoo · Nairobi kitchens
+                      DeeToo · nearby kitchens
                     </p>
                     <h1>Good food. At your door.</h1>
                     <p>
@@ -695,109 +700,73 @@ function CustomerAppInner() {
                   )}
                   {/* Outside Service Zone Warning if PostGIS returns outside */}
                   {serviceability && !serviceability.serviceable && (
-                    <div className="p-4 bg-amber-50 border border-amber-200 rounded-2xl flex items-start gap-3 text-amber-900">
-                      <AlertTriangle
-                        size={18}
-                        className="text-amber-600 shrink-0 mt-0.5"
-                      />
-                      <div>
-                        <h4 className="font-bold text-xs">
-                          Outside Delivery Service Area
-                        </h4>
-                        <p className="text-xs text-amber-800 mt-0.5 leading-relaxed">
-                          Your selected location is outside Deetoo's active
-                          Nairobi delivery zones. You can still browse menus,
-                          but ordering is currently limited to verified
-                          serviceable zones.
-                        </p>
-                      </div>
-                    </div>
+                    <InlineBanner
+                      kind="warning"
+                      title="Outside the active delivery area"
+                    >
+                      You can still browse menus, but checkout is only available
+                      when the selected address is inside a verified DeeToo
+                      service zone.
+                    </InlineBanner>
                   )}
 
                   {/* Search and Filter Controls */}
-                  <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs space-y-3">
-                    <div className="flex flex-col sm:flex-row gap-3">
-                      <div className="relative flex-1">
-                        <Search
-                          size={16}
-                          className="absolute left-3.5 top-3 text-slate-400"
-                        />
-                        <Input
-                          value={searchQuery}
-                          onChange={(e) => setSearchQuery(e.target.value)}
-                          placeholder="Search restaurants, cuisines, or dishes (e.g. Burger, Pizza, Smash)..."
-                          className="pl-9 pr-8"
-                        />
-                        {searchQuery && (
-                          <button
-                            type="button"
-                            onClick={() => setSearchQuery("")}
-                            className="absolute right-3 top-3 text-slate-400 hover:text-slate-600"
-                          >
-                            <X size={14} />
-                          </button>
-                        )}
-                      </div>
-
-                      <div className="flex items-center gap-2 shrink-0">
-                        <button
-                          type="button"
-                          onClick={() => setOpenNowOnly(!openNowOnly)}
-                          className={`px-3 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer border ${
-                            openNowOnly
-                              ? "bg-emerald-600 text-white border-emerald-600 shadow-xs"
-                              : "bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100"
-                          }`}
-                        >
-                          <Clock size={13} />
-                          <span>Open Now</span>
-                        </button>
-
-                        <select
-                          value={sortOption}
-                          onChange={(e: any) => setSortOption(e.target.value)}
-                          className="px-3 py-2 rounded-xl text-xs font-semibold bg-slate-50 text-slate-700 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 cursor-pointer"
-                        >
-                          <option value="recommended">Sort: Recommended</option>
-                          <option value="distance">Sort: Nearest First</option>
-                          <option value="open_now">Sort: Open Stores</option>
-                        </select>
-                      </div>
+                  <div className="customer-discovery-controls">
+                    <div className="customer-discovery-search-row">
+                      <SearchInput
+                        aria-label="Search DeeToo restaurants"
+                        value={searchQuery}
+                        onChange={(event) => setSearchQuery(event.target.value)}
+                        onClear={() => setSearchQuery("")}
+                        placeholder="Search DeeToo"
+                      />
+                      <FilterChip
+                        selected={openNowOnly}
+                        icon={<Clock size={13} aria-hidden="true" />}
+                        onClick={() => setOpenNowOnly(!openNowOnly)}
+                      >
+                        Open now
+                      </FilterChip>
                     </div>
 
-                    {/* Cuisine & Category Pills */}
-                    <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none text-xs">
-                      <button
-                        type="button"
-                        onClick={() => setSelectedCategory(null)}
-                        className={`px-3 py-1.5 rounded-full font-semibold whitespace-nowrap transition-all cursor-pointer ${
-                          selectedCategory === null
-                            ? "bg-slate-900 text-white shadow-xs"
-                            : "bg-slate-100 text-slate-600 hover:bg-slate-200"
-                        }`}
-                      >
-                        All Cuisines
-                      </button>
+                    <div className="customer-discovery-filter-row">
+                      <div className="customer-category-strip" aria-label="Cuisine filters">
+                        <FilterChip
+                          selected={selectedCategory === null}
+                          onClick={() => setSelectedCategory(null)}
+                        >
+                          All cuisines
+                        </FilterChip>
+                        {categories.map((category) => {
+                          const selected = selectedCategory === category.slug;
+                          return (
+                            <FilterChip
+                              key={category.id}
+                              selected={selected}
+                              onClick={() =>
+                                setSelectedCategory(selected ? null : category.slug)
+                              }
+                            >
+                              {category.name}
+                            </FilterChip>
+                          );
+                        })}
+                      </div>
 
-                      {categories.map((cat) => {
-                        const isSelected = selectedCategory === cat.slug;
-                        return (
-                          <button
-                            key={cat.id}
-                            type="button"
-                            onClick={() =>
-                              setSelectedCategory(isSelected ? null : cat.slug)
-                            }
-                            className={`px-3 py-1.5 rounded-full font-semibold whitespace-nowrap transition-all cursor-pointer flex items-center gap-1.5 ${
-                              isSelected
-                                ? "bg-emerald-600 text-white shadow-xs"
-                                : "bg-slate-100 text-slate-600 hover:bg-slate-200"
-                            }`}
-                          >
-                            <span>{cat.name}</span>
-                          </button>
-                        );
-                      })}
+                      <SegmentedControl
+                        ariaLabel="Sort restaurants"
+                        value={sortOption}
+                        onChange={(value) =>
+                          setSortOption(
+                            value as "recommended" | "distance" | "open_now",
+                          )
+                        }
+                        options={[
+                          { value: "recommended", label: "Recommended" },
+                          { value: "distance", label: "Nearest" },
+                          { value: "open_now", label: "Open" },
+                        ]}
+                      />
                     </div>
                   </div>
 
@@ -816,7 +785,7 @@ function CustomerAppInner() {
                       <p className="text-xs text-slate-500">
                         {serviceability?.zone_name
                           ? `In ${serviceability.zone_name} Delivery Zone · Real-time operational availability`
-                          : "Discover open branches and artisanal kitchens in Nairobi"}
+                          : "Discover kitchens available for your selected delivery location"}
                       </p>
                     </div>
 
@@ -830,11 +799,13 @@ function CustomerAppInner() {
 
                   {/* Restaurants List / Grid */}
                   {isLoadingRestaurants && restaurants.length === 0 ? (
-                    <div className="py-16 flex flex-col items-center justify-center gap-2">
-                      <Spinner size="md" />
-                      <p className="text-xs text-slate-500">
-                        Discovering serviceable restaurants in Nairobi...
-                      </p>
+                    <div
+                      className="customer-restaurant-grid"
+                      aria-label="Discovering serviceable restaurants"
+                    >
+                      {Array.from({ length: 6 }).map((_, index) => (
+                        <CardSkeleton key={index} />
+                      ))}
                     </div>
                   ) : discoveryError ? null : restaurants.length === 0 ? (
                     <Card className="p-12 text-center bg-white border border-slate-200 rounded-2xl">
@@ -872,11 +843,17 @@ function CustomerAppInner() {
                       </div>
                     </Card>
                   ) : (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-                      {restaurants.map((restaurant) => (
+                    <div className="customer-restaurant-grid">
+                      {restaurants.map((restaurant, index) => (
                         <RestaurantCard
                           key={restaurant.branch_id}
                           restaurant={restaurant}
+                          featured={
+                            index === 0 &&
+                            !searchQuery &&
+                            !selectedCategory &&
+                            sortOption === "recommended"
+                          }
                           onSelect={(branchId) => setSelectedBranchId(branchId)}
                         />
                       ))}

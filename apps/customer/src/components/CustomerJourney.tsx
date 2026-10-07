@@ -9,7 +9,15 @@ import {
   Input,
   Select,
   Price,
+  Countdown,
+  InlineBanner,
+  ProgressSteps,
+  StickyActionBar,
 } from "../../../../packages/ui/src/index";
+import {
+  LocationMap,
+  type MapPoint,
+} from "../../../../packages/ui/src/LocationMap";
 import {
   errorMessage,
   PageHeading,
@@ -27,6 +35,29 @@ import {
   Payment,
 } from "@deetoo/types";
 import { PaymentInitiateSchema } from "@deetoo/validation";
+import {
+  Bike,
+  CheckCircle2,
+  MapPin,
+  ShieldCheck,
+  Store,
+} from "lucide-react";
+
+const deliveryProgressSteps = [
+  { id: "confirmed", label: "Confirmed", description: "Payment and kitchen confirmation" },
+  { id: "preparing", label: "Preparing", description: "Your order is being prepared" },
+  { id: "collecting", label: "Rider collecting", description: "Courier assigned or at the restaurant" },
+  { id: "on_way", label: "On the way", description: "Your order is travelling to you" },
+  { id: "delivered", label: "Delivered", description: "Handover complete" },
+];
+
+export function customerProgressStage(orderStatus?: string, deliveryStatus?: string): string {
+  if (orderStatus === "COMPLETED" || deliveryStatus === "DELIVERED") return "delivered";
+  if (["PICKED_UP", "EN_ROUTE", "ARRIVED_DROPOFF"].includes(deliveryStatus || "")) return "on_way";
+  if (["ASSIGNED", "OFFERED", "ARRIVED_PICKUP"].includes(deliveryStatus || "")) return "collecting";
+  if (["ACCEPTED", "PREPARING", "READY"].includes(orderStatus || "")) return "preparing";
+  return "confirmed";
+}
 
 export function CustomerJourney({
   view,
@@ -56,11 +87,7 @@ export function CustomerJourney({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const key = useRef<string | null>(null);
-  const [now, setNow] = useState(Date.now());
-  useEffect(() => {
-    const timer = setInterval(() => setNow(Date.now()), 1000);
-    return () => clearInterval(timer);
-  }, []);
+  const [quoteExpired, setQuoteExpired] = useState(false);
   const action = async (fn: () => Promise<void>) => {
     setBusy(true);
     setError(null);
@@ -75,6 +102,7 @@ export function CustomerJourney({
   const mutateCart = (fn: () => Promise<unknown>) =>
     action(async () => {
       setQuote(null);
+      setQuoteExpired(false);
       key.current = null;
       await fn();
       await cart.refresh();
@@ -137,7 +165,42 @@ export function CustomerJourney({
         </ResourceState>
       </>
     );
-  const expired = quote && new Date(quote.expires_at).getTime() <= now;
+  const expired = Boolean(
+    quote &&
+      (quoteExpired || new Date(quote.expires_at).getTime() <= Date.now()),
+  );
+  const selectedAddress = addresses.find((address) => address.id === addressId);
+
+  const reviewCheckout = () =>
+    action(async () => {
+      const result = await apiClient.generateCheckoutQuote({
+        address_id: addressId,
+        notes,
+        payment_method: paymentMethod,
+      });
+      setQuote(result.data);
+      setQuoteExpired(false);
+      key.current = crypto.randomUUID();
+    });
+
+  const placeOrder = () =>
+    quote
+      ? action(async () => {
+          key.current ||= crypto.randomUUID();
+          const result = await apiClient.createOrder(
+            {
+              quote_id: quote.quote_id,
+              special_instructions: notes,
+            },
+            key.current,
+          );
+          setOrderId(result.data.id);
+          setQuote(null);
+          setQuoteExpired(false);
+          onCartChange();
+        })
+      : Promise.resolve();
+
   return (
     <>
       <PageHeading title="Your bag" eyebrow="Made for your cravings" />
@@ -256,127 +319,195 @@ export function CustomerJourney({
                   )}
                 </Card>
               </section>
-              <Card className="h-fit space-y-4">
-                <h2 className="text-xl font-bold">Delivery & checkout</h2>
-                <FormField label="Delivery address">
-                  <Select
-                    value={addressId}
-                    onChange={(e) => {
-                      setAddressId(e.target.value);
-                      setQuote(null);
-                      key.current = null;
-                    }}
-                  >
-                    <option value="">Choose an address</option>
-                    {addresses.map((address) => (
-                      <option key={address.id} value={address.id}>
-                        {address.label}: {address.address_line1}
-                      </option>
-                    ))}
-                  </Select>
-                </FormField>
-                <Button variant="outline" onClick={onAddress}>
-                  Add address
-                </Button>
-                <FormField label="Delivery notes">
-                  <Input
-                    value={notes}
-                    onChange={(e) => {
-                      setNotes(e.target.value);
-                      setQuote(null);
-                      key.current = null;
-                    }}
-                  />
-                </FormField>
-                <FormField label="Payment method">
-                  <Select value={paymentMethod} disabled={busy} onChange={(e) => {
-                    setPaymentMethod(e.target.value as "MPESA" | "CARD");
-                    setQuote(null);
-                    key.current = null;
-                  }}>
-                    <option value="MPESA">M-PESA</option>
-                    <option value="CARD">Card</option>
-                  </Select>
-                </FormField>
-                {quote ? (
-                  <>
+              <Card className="customer-checkout-card h-fit">
+                <div className="customer-checkout-heading">
+                  <div>
+                    <p className="eyebrow">Checkout</p>
+                    <h2>Confirm the important details</h2>
+                  </div>
+                  <ShieldCheck size={22} aria-hidden="true" />
+                </div>
+
+                <div className="customer-checkout-decisions">
+                  <section className="customer-checkout-decision">
+                    <div className="customer-checkout-decision-icon">
+                      <MapPin size={18} aria-hidden="true" />
+                    </div>
+                    <div className="min-w-0">
+                      <div className="customer-checkout-decision-title">
+                        <strong>Delivery address</strong>
+                        {selectedAddress && <CheckCircle2 size={16} aria-label="Confirmed" />}
+                      </div>
+                      <FormField label="Choose where to deliver">
+                        <Select
+                          value={addressId}
+                          onChange={(event) => {
+                            setAddressId(event.target.value);
+                            setQuote(null);
+                            setQuoteExpired(false);
+                            key.current = null;
+                          }}
+                        >
+                          <option value="">Choose an address</option>
+                          {addresses.map((address) => (
+                            <option key={address.id} value={address.id}>
+                              {address.label}: {address.address_line1}
+                            </option>
+                          ))}
+                        </Select>
+                      </FormField>
+                      <Button variant="ghost" size="sm" onClick={onAddress}>
+                        Add another address
+                      </Button>
+                    </div>
+                  </section>
+
+                  <section className="customer-checkout-decision">
+                    <div className="customer-checkout-decision-icon">
+                      <Store size={18} aria-hidden="true" />
+                    </div>
+                    <div className="min-w-0">
+                      <div className="customer-checkout-decision-title">
+                        <strong>Delivery instructions</strong>
+                        {notes.trim() && <CheckCircle2 size={16} aria-label="Added" />}
+                      </div>
+                      <FormField label="Notes for the Rider">
+                        <Input
+                          value={notes}
+                          placeholder="Gate, floor, landmark or handover note"
+                          onChange={(event) => {
+                            setNotes(event.target.value);
+                            setQuote(null);
+                            setQuoteExpired(false);
+                            key.current = null;
+                          }}
+                        />
+                      </FormField>
+                    </div>
+                  </section>
+
+                  <section className="customer-checkout-decision">
+                    <div className="customer-checkout-decision-icon">
+                      <ShieldCheck size={18} aria-hidden="true" />
+                    </div>
+                    <div className="min-w-0">
+                      <div className="customer-checkout-decision-title">
+                        <strong>Payment method</strong>
+                        <CheckCircle2 size={16} aria-label="Confirmed" />
+                      </div>
+                      <FormField label="How you want to pay">
+                        <Select
+                          value={paymentMethod}
+                          disabled={busy}
+                          onChange={(event) => {
+                            setPaymentMethod(event.target.value as "MPESA" | "CARD");
+                            setQuote(null);
+                            setQuoteExpired(false);
+                            key.current = null;
+                          }}
+                        >
+                          <option value="MPESA">M-PESA</option>
+                          <option value="CARD">Card</option>
+                        </Select>
+                      </FormField>
+                    </div>
+                  </section>
+                </div>
+
+                <section className="customer-checkout-summary">
+                  <div className="customer-checkout-summary-heading">
+                    <strong>{quote ? "Confirmed price" : "Estimated price"}</strong>
+                    {quote && !expired && (
+                      <span className="customer-quote-countdown">
+                        Price confirmed for{" "}
+                        <Countdown
+                          expiresAt={quote.expires_at}
+                          warningAtSeconds={60}
+                          onExpire={() => setQuoteExpired(true)}
+                        />
+                      </span>
+                    )}
+                  </div>
+
+                  {quote ? (
+                    <>
+                      <PriceBreakdown
+                        rows={[
+                          ["Subtotal", quote.gross_subtotal_minor],
+                          ["Discount", -quote.discount_minor],
+                          ["Delivery", quote.delivery_fee_minor],
+                          [
+                            "Service fee",
+                            quote.service_fee_minor -
+                              (quote.pricing_rule_snapshot?.rounding_adjustment_minor || 0),
+                          ],
+                          [
+                            "M-PESA rounding",
+                            quote.pricing_rule_snapshot?.rounding_adjustment_minor || 0,
+                          ],
+                          ["Tax", quote.tax_minor],
+                          ["Total", quote.total_minor],
+                        ]}
+                      />
+                      {expired && (
+                        <InlineBanner kind="warning">
+                          This confirmed price expired. Refresh it before placing the order.
+                        </InlineBanner>
+                      )}
+                    </>
+                  ) : (
                     <PriceBreakdown
                       rows={[
-                        ["Subtotal", quote.gross_subtotal_minor],
-                        ["Discount", -quote.discount_minor],
-                        ["Delivery", quote.delivery_fee_minor],
-                        ["Service fee", quote.service_fee_minor - (quote.pricing_rule_snapshot?.rounding_adjustment_minor || 0)],
-                        ["M-PESA rounding", quote.pricing_rule_snapshot?.rounding_adjustment_minor || 0],
-                        ["Tax", quote.tax_minor],
-                        ["Total", quote.total_minor],
+                        ["Subtotal", cart.data.pricing.subtotal_minor],
+                        [
+                          "Estimated delivery",
+                          cart.data.pricing.estimated_delivery_fee_minor,
+                        ],
+                        [
+                          "Estimated service fee",
+                          cart.data.pricing.estimated_service_fee_minor,
+                        ],
+                        ["Discount", -cart.data.pricing.discount_minor],
+                        ["Estimated total", cart.data.pricing.estimated_total_minor],
                       ]}
                     />
-                    <p role="status" className="text-sm">
-                      {expired
-                        ? "This quote expired. Refresh it before ordering."
-                        : `Quote valid until ${new Date(quote.expires_at).toLocaleTimeString()}`}
-                    </p>
-                    <Button
-                      disabled={busy || Boolean(expired)}
-                      className="w-full"
-                      isLoading={busy}
-                      onClick={() =>
-                        action(async () => {
-                          key.current ||= crypto.randomUUID();
-                          const result = await apiClient.createOrder(
-                            {
-                              quote_id: quote.quote_id,
-                              special_instructions: notes,
-                            },
-                            key.current,
-                          );
-                          setOrderId(result.data.id);
-                          setQuote(null);
-                          onCartChange();
-                        })
-                      }
-                    >
-                      Place order · <Price minor={quote.total_minor} />
-                    </Button>
-                  </>
-                ) : (
-                  <PriceBreakdown
-                    rows={[
-                      ["Subtotal", cart.data.pricing.subtotal_minor],
-                      [
-                        "Estimated delivery",
-                        cart.data.pricing.estimated_delivery_fee_minor,
-                      ],
-                      [
-                        "Estimated service fee",
-                        cart.data.pricing.estimated_service_fee_minor,
-                      ],
-                      ["Discount", -cart.data.pricing.discount_minor],
-                      [
-                        "Estimated total",
-                        cart.data.pricing.estimated_total_minor,
-                      ],
-                    ]}
-                  />
-                )}
-                <Button
-                  variant={quote && !expired ? "outline" : "primary"}
-                  className="w-full"
-                  disabled={busy || !addressId}
-                  onClick={() =>
-                    action(async () => {
-                      const result = await apiClient.generateCheckoutQuote({
-                        address_id: addressId,
-                        notes,
-                        payment_method: paymentMethod,
-                      });
-                      setQuote(result.data);
-                      key.current = crypto.randomUUID();
-                    })
+                  )}
+                </section>
+
+                <StickyActionBar
+                  secondary={
+                    quote && !expired ? (
+                      <Button
+                        variant="ghost"
+                        disabled={busy || !addressId}
+                        onClick={() => void reviewCheckout()}
+                      >
+                        Refresh price
+                      </Button>
+                    ) : undefined
                   }
-                >
-                  {quote ? "Refresh checkout quote" : "Review checkout"}
-                </Button>
+                  primary={
+                    quote && !expired ? (
+                      <Button
+                        fullWidth
+                        isLoading={busy}
+                        disabled={busy}
+                        onClick={() => void placeOrder()}
+                      >
+                        Place order · <Price minor={quote.total_minor} />
+                      </Button>
+                    ) : (
+                      <Button
+                        fullWidth
+                        isLoading={busy}
+                        disabled={busy || !addressId}
+                        onClick={() => void reviewCheckout()}
+                      >
+                        {quote ? "Refresh confirmed price" : "Review checkout"}
+                      </Button>
+                    )
+                  }
+                />
               </Card>
             </div>
           )
@@ -463,6 +594,46 @@ export function CustomerOrder({
       setBusy(false);
     }
   };
+  const progressStage = customerProgressStage(
+    order.data?.status,
+    tracking.data?.deliveryStatus,
+  );
+  const trackingPoints: MapPoint[] = tracking.data
+    ? [
+        tracking.data.restaurant?.location && {
+          id: "restaurant",
+          label: tracking.data.restaurant.name || "Restaurant",
+          latitude:
+            tracking.data.restaurant.location.latitude ??
+            tracking.data.restaurant.location.lat,
+          longitude:
+            tracking.data.restaurant.location.longitude ??
+            tracking.data.restaurant.location.lng,
+          kind: "pickup" as const,
+        },
+        tracking.data.dropoff?.location && {
+          id: "dropoff",
+          label: tracking.data.dropoff.address || "Delivery address",
+          latitude:
+            tracking.data.dropoff.location.latitude ??
+            tracking.data.dropoff.location.lat,
+          longitude:
+            tracking.data.dropoff.location.longitude ??
+            tracking.data.dropoff.location.lng,
+          kind: "dropoff" as const,
+        },
+        tracking.data.riderLiveLocation && {
+          id: "rider",
+          label: tracking.data.rider?.firstName
+            ? `${tracking.data.rider.firstName}'s latest location`
+            : "Rider's latest location",
+          latitude: tracking.data.riderLiveLocation.latitude,
+          longitude: tracking.data.riderLiveLocation.longitude,
+          kind: "rider" as const,
+        },
+      ].filter(Boolean) as MapPoint[]
+    : [];
+
   return (
     <>
       <Button variant="ghost" onClick={onBack}>
@@ -479,58 +650,148 @@ export function CustomerOrder({
             {error && <ErrorState message={error} />}
             <div className="workflow-grid">
               <div className="space-y-5">
-                <Card>
-                  <h2 className="text-xl font-bold mb-4">Order updates</h2>
-                  <Timeline entries={order.data.timeline || []} />
-                  <p className="text-sm mt-3">This order is separate from your bag. Removing bag items does not cancel it.</p>
-                </Card>
-                <Card>
-                  <h2 className="text-xl font-bold mb-4">Delivery tracking</h2>
+                <Card className="customer-tracking-hero">
+                  <div className="customer-tracking-hero-head">
+                    <div>
+                      <p className="eyebrow">Live delivery</p>
+                      {tracking.data?.estimatedArrivalAt ? (
+                        <>
+                          <h2>
+                            Arriving around{" "}
+                            {new Date(
+                              tracking.data.estimatedArrivalAt,
+                            ).toLocaleTimeString([], {
+                              hour: "numeric",
+                              minute: "2-digit",
+                            })}
+                          </h2>
+                          <p>
+                            About {tracking.data.estimatedEtaMinutes} minutes
+                            away based on the latest provider route.
+                          </p>
+                        </>
+                      ) : (
+                        <>
+                          <h2>
+                            {tracking.data?.statusMessage ||
+                              trackingMessage ||
+                              "We’re preparing your order"}
+                          </h2>
+                          <p>
+                            DeeToo only shows an ETA when live Rider GPS and the
+                            routing provider can support one.
+                          </p>
+                        </>
+                      )}
+                    </div>
+                    <StatusBadge
+                      status={
+                        tracking.data?.deliveryStatus || order.data.status
+                      }
+                    />
+                  </div>
+
+                  <ProgressSteps
+                    steps={deliveryProgressSteps}
+                    current={progressStage}
+                  />
+
                   {trackingMessage ? (
-                    <p role="status">{trackingMessage}</p>
+                    <InlineBanner kind="info">{trackingMessage}</InlineBanner>
                   ) : (
-                    <ResourceState resource={tracking}>
+                    <ResourceState resource={tracking} compact>
                       {tracking.data && (
-                        <div className="space-y-3">
-                          <StatusBadge status={tracking.data.deliveryStatus} />
-                          <p>{tracking.data.statusMessage}</p>
-                          {tracking.data.rider && (
-                            <p>Rider: {tracking.data.rider.firstName}</p>
+                        <div className="space-y-4">
+                          {trackingPoints.length > 0 && (
+                            <LocationMap points={trackingPoints} />
                           )}
-                          {tracking.data.estimatedEtaMinutes != null && (
-                            <p>
-                              Estimated arrival in{" "}
-                              {tracking.data.estimatedEtaMinutes} minutes
-                            </p>
+
+                          <div className="customer-tracking-cards">
+                            <div className="customer-rider-card">
+                              <div className="customer-rider-avatar">
+                                <Bike size={22} aria-hidden="true" />
+                              </div>
+                              <div>
+                                <span className="eyebrow">Your Rider</span>
+                                <strong>
+                                  {tracking.data.rider?.firstName ||
+                                    "Rider assignment in progress"}
+                                </strong>
+                                {tracking.data.rider && (
+                                  <p>
+                                    {tracking.data.rider.vehicleType ||
+                                      "Delivery vehicle"}
+                                    {tracking.data.rider
+                                      .vehicleRegistrationMasked
+                                      ? ` · ${tracking.data.rider.vehicleRegistrationMasked}`
+                                      : ""}
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+
+                            <div className="customer-dropoff-card">
+                              <MapPin size={18} aria-hidden="true" />
+                              <div>
+                                <span className="eyebrow">Delivering to</span>
+                                <strong>
+                                  {tracking.data.dropoff?.address ||
+                                    "Your selected address"}
+                                </strong>
+                              </div>
+                            </div>
+                          </div>
+
+                          {tracking.data.riderLiveLocation?.isStale && (
+                            <InlineBanner kind="warning">
+                              The Rider’s latest GPS update is overdue. The map
+                              is showing the last known position.
+                            </InlineBanner>
                           )}
-                          <p>{tracking.data.dropoff?.address}</p>
-                          {tracking.data.riderLiveLocation && (
-                            <p className="text-sm">
-                              {tracking.data.riderLiveLocation.isStale ? "Last known rider position (GPS update overdue):" : "Latest rider position:"}{" "}
-                              {tracking.data.riderLiveLocation.latitude},{" "}
-                              {tracking.data.riderLiveLocation.longitude}
-                            </p>
-                          )}
-                          {tracking.data.rider && !tracking.data.riderLiveLocation && (
-                            <p role="status">Waiting for your courier’s GPS update. Location appears when their device sends it.</p>
-                          )}
-                          {tracking.updatedAt && <p className="text-xs">Last checked: {tracking.updatedAt.toLocaleTimeString()}</p>}
+
+                          {tracking.data.rider &&
+                            !tracking.data.riderLiveLocation && (
+                              <InlineBanner kind="info">
+                                Waiting for the Rider’s device to send a live
+                                GPS update.
+                              </InlineBanner>
+                            )}
+
                           {tracking.data.deliveryOtp && (
-                            <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                            <div className="customer-delivery-pin">
+                              <div>
+                                <span className="eyebrow">Delivery PIN</span>
+                                <strong>{tracking.data.deliveryOtp}</strong>
+                              </div>
                               <p>
-                                Delivery code:{" "}
-                                <strong className="text-lg">{tracking.data.deliveryOtp}</strong>
-                              </p>
-                              <p className="mt-1 text-xs text-slate-500">
-                                Share this only with the assigned Rider at handover. The Rider cannot normally complete delivery without it.
+                                Share this only with the assigned Rider when you
+                                receive the order.
                               </p>
                             </div>
+                          )}
+
+                          {tracking.updatedAt && (
+                            <p className="customer-tracking-updated">
+                              Last checked{" "}
+                              {tracking.updatedAt.toLocaleTimeString()}
+                            </p>
                           )}
                         </div>
                       )}
                     </ResourceState>
                   )}
                 </Card>
+
+                <details className="customer-order-activity">
+                  <summary>Order details & activity</summary>
+                  <div>
+                    <Timeline entries={order.data.timeline || []} />
+                    <p>
+                      This order is separate from your bag. Removing bag items
+                      does not cancel it.
+                    </p>
+                  </div>
+                </details>
               </div>
               <div className="space-y-5">
                 <Card>
