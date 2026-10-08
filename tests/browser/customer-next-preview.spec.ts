@@ -149,7 +149,9 @@ test("Screen 09: active tracking map stays explicitly illustrative", async ({pag
   await fs.mkdir("visual-output/customer-next",{recursive:true});
   await page.goto("/orders");
   await page.locator('.dt-history-card[data-order-id="DT-E2ZG5"]').getByRole("button",{name:/View details/}).click();
-  await expect(page).toHaveURL(/\/orders\/tracking$/);
+  await expect(page).toHaveURL(/\/orders\/DT-E2ZG5\/tracking$/);
+  await page.reload();
+  await expect(page.getByText("#DT-E2ZG5")).toBeVisible();
   await expect(page.getByRole("heading",{name:"Your order is on the way"})).toBeVisible();
   await expect(page.locator(".dt-tracking-map")).toBeVisible();
   await expect(page.getByText("Illustrative route · NOT LIVE GPS")).toBeVisible();
@@ -176,7 +178,9 @@ test("Screen 10: completed order, accurate demo receipt and three rating control
   await fs.mkdir("visual-output/customer-next",{recursive:true});
   await page.goto("/orders");
   await page.locator('.dt-history-card[data-order-id="DT-6Z6X6"]').getByRole("button",{name:/View details/}).click();
-  await expect(page).toHaveURL(/\/orders\/delivered$/);
+  await expect(page).toHaveURL(/\/orders\/DT-6Z6X6\/delivered$/);
+  await page.reload();
+  await expect(page.getByText("#DT-6Z6X6")).toBeVisible();
   await expect(page.getByRole("heading",{name:"Order delivered!"})).toBeVisible();
   await expect(page.getByText("Total paid (demo)")).toBeVisible();
   await expect(page.locator(".dt-receipt-grand")).toContainText("Ksh 1,535.00");
