@@ -135,7 +135,7 @@ function ConnectedInner(){
      <LiveOrders gateway={gateway} screen={route.screen==="orders"?"history":route.screen==="delivered"?"completed":"tracking"} orderId={route.orderId}
        onNavigate={navigate} authenticated={isCustomer} requestSignIn={()=>setAuthOpen(true)}/>:
      route.screen==="profile"||route.screen==="security"||route.screen==="notifications"?
-      <LiveAccount gateway={gateway} screen={route.screen} authenticated={isCustomer} requestSignIn={()=>setAuthOpen(true)} onNavigate={navigate} logout={logout} userId={user?.id||""}/>:
+      <LiveAccount gateway={gateway} screen={route.screen} authenticated={isCustomer} requestSignIn={()=>setAuthOpen(true)} onNavigate={navigate} logout={logout} userId={user?.id||""} onAddressesChanged={addresses.refresh}/>:
      route.screen==="support"||route.screen==="conversation"?
       <LiveSupport gateway={gateway} screen={route.screen==="conversation"?"conversation":"support"} caseId={route.caseId||""} onNavigate={navigate} authenticated={isCustomer} requestSignIn={()=>setAuthOpen(true)}/>:
       <StatusPanel title="Page unavailable" description="The requested customer page is not available." onRetry={()=>navigate("/")}/>}
