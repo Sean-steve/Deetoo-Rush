@@ -18,12 +18,14 @@ import {
   StickyActionBar,
 } from "../../../../packages/ui/src/index";
 import { useAuth } from "../../../../packages/auth/src/react";
+import { useResource } from "../../../../packages/ui/src/workflows";
 import {
   PublicRestaurantMenu,
   PublicMenuCategory,
   PublicMenuItem,
   PublicModifierGroup,
   PublicModifierOption,
+  EnrichedCart,
 } from "../../../../packages/types/src/index";
 import {
   ArrowLeft,
@@ -44,6 +46,7 @@ interface CustomerMenuViewerProps {
   onBackToBranches: () => void;
   onCartChanged?: () => void;
   onSignIn?: () => void;
+  onGoToCart?: () => void;
 }
 
 export function CustomerMenuViewer({
@@ -51,8 +54,10 @@ export function CustomerMenuViewer({
   onBackToBranches,
   onCartChanged,
   onSignIn,
+  onGoToCart,
 }: CustomerMenuViewerProps) {
   const { apiClient, isAuthenticated } = useAuth();
+  const currentCart = useResource<EnrichedCart>(isAuthenticated ? "/cart" : null);
   const [adding, setAdding] = useState(false);
   const [cartError, setCartError] = useState<string | null>(null);
 
@@ -449,6 +454,36 @@ export function CustomerMenuViewer({
         ))}
       </div>
 
+        <aside className="customer-menu-order-rail" aria-label="Your DeeToo bag">
+          <header><ShoppingBag size={20}/><h2>Your order</h2><span>{currentCart.data?.items?.length || 0} items</span></header>
+          {isAuthenticated ? (
+            <>
+              {currentCart.data?.items?.length ? (
+                <div className="customer-menu-order-lines">
+                  {currentCart.data.items.map(item => (
+                    <div className="customer-menu-order-line" key={item.id}>
+                      {item.item_image_url ? <img src={item.item_image_url} alt="" /> : <div className="customer-menu-order-placeholder"><ShoppingBag size={18}/></div>}
+                      <div><strong>{item.item_name}</strong><small>{item.quantity} × {formatKES(item.line_total_minor / Math.max(item.quantity,1))}</small></div>
+                      <span>{formatKES(item.line_total_minor)}</span>
+                    </div>
+                  ))}
+                </div>
+              ) : <p className="customer-menu-cart-empty">Choose something from this menu to start your order.</p>}
+              {currentCart.data && (
+                <div className="customer-menu-order-pricing">
+                  <p><span>Items</span><strong>{formatKES(currentCart.data.pricing.subtotal_minor)}</strong></p>
+                  <p><span>Estimated delivery</span><strong>{formatKES(currentCart.data.pricing.estimated_delivery_fee_minor)}</strong></p>
+                  <p><span>Service fee</span><strong>{formatKES(currentCart.data.pricing.estimated_service_fee_minor)}</strong></p>
+                  <p className="customer-menu-order-total"><span>Estimated total</span><strong>{formatKES(currentCart.data.pricing.estimated_total_minor)}</strong></p>
+                </div>
+              )}
+              <Button onClick={onGoToCart} fullWidth disabled={!currentCart.data?.items?.length}>View bag & checkout</Button>
+              <p className="customer-menu-cart-note">Final fees and discounts are confirmed during checkout.</p>
+            </>
+          ) : (
+            <div className="customer-menu-signin"><p>Sign in to save items to your bag and continue to checkout.</p><Button variant="outline" onClick={onSignIn} fullWidth>Sign in to order</Button></div>
+          )}
+        </aside>
       </div>{/* customer-menu-browse */}
       {/* ==========================================
           MODAL: Item Customization & Modifier Selections
@@ -651,6 +686,7 @@ export function CustomerMenuViewer({
                       setItemQuantity(1);
                       setToastMessage("Added to your bag.");
                       onCartChanged?.();
+                       void currentCart.refresh();
                     } catch (e: any) {
                       setCartError(
                         e?.error?.message || e.message || "Unable to add item.",
