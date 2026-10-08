@@ -495,6 +495,7 @@ export function CustomerMenuViewer({
           title={selectedItem.name}
           description="Choose your options, quantity and extras."
           size="lg"
+          className="customer-product-modal"
         >
           <div className="space-y-6">
             {/* Food Header Card */}
