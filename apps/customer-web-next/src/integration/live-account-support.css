@@ -89,3 +89,14 @@
 @media(max-width:970px){.dt-live-account{grid-template-columns:1fr}.dt-live-account-side{grid-column:1}.dt-live-security-grid{grid-template-columns:1fr}.dt-live-support .dt-support-columns{grid-template-columns:1fr}.dt-live-support .dt-support-side{grid-template-columns:1fr 1fr;grid-column:auto}.dt-live-support .dt-support-chat-panel{height:540px}}
 @media(max-width:650px){.dt-live-account-form,.dt-live-security-grid{grid-template-columns:1fr}.dt-live-account-dl{grid-template-columns:1fr}.dt-live-account-addresses article{flex-wrap:wrap}.dt-live-account-addresses article>div:last-child{width:100%;justify-content:flex-end}.dt-live-notify-tools{align-items:stretch;flex-direction:column}.dt-live-notify-tools input{max-width:none}.dt-live-notification-list article{flex-wrap:wrap}.dt-live-notification-list article .dt-button{margin-left:auto}.dt-live-support .dt-support-side{grid-template-columns:1fr}.dt-live-support .dt-support-banner{display:flex;flex-direction:column;gap:9px}.dt-live-support .dt-support-banner>.dt-support-urgent{width:100%}}
 @media(prefers-reduced-motion:reduce){.dt-live-account *, .dt-live-support *{transition:none!important;animation:none!important}}
+
+
+.dt-live-address-editor{max-height:min(93dvh,750px);overflow-y:auto}
+.dt-live-address-editor header{display:flex;justify-content:space-between;gap:10px;align-items:center}
+.dt-live-address-editor header button{display:grid;place-items:center;border:0;border-radius:8px;background:#eef8f2;width:32px;height:32px;color:#007d4c}
+.dt-live-address-editor form{display:grid;gap:11px}
+.dt-live-address-editor form label{display:grid;gap:6px;font-size:12px;font-weight:750;color:#415a71}
+.dt-live-address-editor :is(input,select,textarea){border:1px solid #d4e5db;border-radius:10px;padding:11px 12px;width:100%;max-width:100%;font:inherit}
+.dt-live-address-editor textarea{resize:vertical}
+.dt-live-address-editor .dt-live-success{margin:0}
+.dt-live-address-editor footer{display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap}
