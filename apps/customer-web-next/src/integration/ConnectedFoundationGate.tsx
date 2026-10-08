@@ -12,18 +12,19 @@ import {CONNECTED_MODE_WARNING} from "./mode";
 function ConnectedFoundationInner(){
   const {user,isLoading,isAuthenticated,login,logout,apiClient,error,refreshProfile}=useAuth();
   const gateway=useMemo(()=>createCustomerGateway(apiClient),[apiClient]);
+  const isCustomer=Boolean(user?.roles.some(role=>String(role).toLowerCase()==="customer"));
   const [identifier,setIdentifier]=useState("");
   const [password,setPassword]=useState("");
   const [submitting,setSubmitting]=useState(false);
   const [actionError,setActionError]=useState<string|null>(null);
-  const profile=useBackendResource(()=>gateway.account.profile(),isAuthenticated,[user?.id]);
-  const addresses=useBackendResource(()=>gateway.account.addresses(),isAuthenticated,[user?.id]);
-  const sessions=useBackendResource(()=>gateway.auth.sessions(),isAuthenticated,[user?.id]);
+  const profile=useBackendResource(()=>gateway.account.profile(),isAuthenticated&&isCustomer,[user?.id]);
+  const addresses=useBackendResource(()=>gateway.account.addresses(),isAuthenticated&&isCustomer,[user?.id]);
+  const sessions=useBackendResource(()=>gateway.auth.sessions(),isAuthenticated&&isCustomer,[user?.id]);
   const submit=async(e:React.FormEvent)=>{
     e.preventDefault();
     if(submitting)return;
     setSubmitting(true);setActionError(null);
-    try {await login(identifier,password);setPassword("");}
+    try {const account=await login(identifier,password);setPassword("");if(!account.roles.some(role=>String(role).toLowerCase()==="customer")){await logout();setActionError("Only customer accounts can use this connection check.");}}
     catch(err){setActionError(backendError(err).message);}
     finally{setSubmitting(false);}
   };
@@ -31,7 +32,7 @@ function ConnectedFoundationInner(){
     <header><span className="dt-foundation-logo"><ShieldCheck size={25}/></span><span>DeeToo Customer vNext · Stage B1</span></header>
     <h1>Backend connection gate</h1>
     <p className="dt-foundation-description">{CONNECTED_MODE_WARNING}</p>
-    {isLoading?<p role="status">Checking authenticated session…</p>:isAuthenticated?<>
+    {isLoading?<p role="status">Checking authenticated session…</p>:isAuthenticated&&!isCustomer?<><p role="alert" className="dt-foundation-error">This account has no customer role. Customer data will not be queried.</p><button type="button" onClick={()=>void logout()}>Sign out</button></>:isAuthenticated?<>
       <div className="dt-foundation-success"><ShieldCheck size={20}/> Authenticated session found</div>
       <p>Signed in as <strong>{user?.name||user?.email||"Customer"}</strong>. Real data is queried read-only below; the 15 approved screens remain in preview mode until their adapters pass acceptance.</p>
       <dl className="dt-foundation-probes">
