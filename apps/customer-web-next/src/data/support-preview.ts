@@ -9,7 +9,7 @@ export type CaseMessage={id:string;author:"customer"|"agent"|"system";name:strin
 export type SupportCase={
  id:string;subject:string;summary:string;topic:CaseTopic;status:CaseStatus;
  orderId?:string;restaurant?:string;createdAt:string;relative:string;
- messages:CaseMessage[];attachments:string[];resolution?:string;
+ messages:CaseMessage[];attachments:string[];resolution?:string;resolutionProposal?:string;resolutionResponse?:"accepted"|"disputed";
 };
 const msg=(id:string,author:CaseMessage["author"],text:string,at:string,name=author==="customer"?"You":"DeeToo Support"):CaseMessage=>({id,author,text,at,name});
 export const sampleCases:SupportCase[]=[
@@ -18,7 +18,7 @@ export const sampleCases:SupportCase[]=[
   msg("mm2","agent","I'm sorry an item was missing. We've noted your report and will review it with the restaurant.","2:20 PM"),
   msg("mm3","customer","Thank you. I also have a photo of the items received.","2:25 PM")
  ]},
- {id:"case-refund",subject:"Refund for cancelled order",summary:"I need an update on a sample refund.",topic:"payments",status:"waiting",orderId:"DT12801",restaurant:"Pizza Palace",createdAt:"Oct 6, 2026 · 6:22 PM",relative:"2 days ago",attachments:[],messages:[
+ {id:"case-refund",subject:"Refund for cancelled order",summary:"I need an update on a sample refund.",topic:"payments",status:"waiting",orderId:"DT12801",restaurant:"Pizza Palace",createdAt:"Oct 6, 2026 · 6:22 PM",relative:"2 days ago",attachments:[],resolutionProposal:"A sample refund review has been completed. Do you agree with the proposed outcome?",messages:[
   msg("mr1","customer","Can you help with the refund for my cancelled order?","6:22 PM"),
   msg("mr2","agent","We've received your question. An agent will review the payment details.","6:26 PM"),
  ]},
