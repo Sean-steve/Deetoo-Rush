@@ -219,3 +219,10 @@
 @media(prefers-reduced-motion:reduce) {
  .dt-history-card { animation:none!important; }.dt-map-inner,.dt-orders-tabsbar [role=tab] { transition:none!important; }
 }
+
+
+/* Stable, browser-independent food/bag celebration art; no flashing or loops. */
+.dt-delivered-art { height:157px;width:300px;right:18px;bottom:0;pointer-events:none;align-items:center; }
+.dt-delivered-art svg { display:block;width:100%;height:100%;filter:drop-shadow(0 6px 8px rgba(0,108,64,.13)); }
+@media(max-width:740px){.dt-delivered-art{width:155px;height:110px;right:0;bottom:0;opacity:.62;}}
+@media(prefers-reduced-motion:reduce){.dt-delivered-art svg {filter:none;}}
