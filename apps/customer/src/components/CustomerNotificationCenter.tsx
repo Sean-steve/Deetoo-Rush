@@ -12,7 +12,7 @@ type NotificationRecord = {
   read_at?: string | null;
   payload?: { message?: string; description?: string; order_id?: string };
 };
-type Kind = "all" | "orders" | "payments" | "offers" | "security" | "support";
+type Kind = "all" | "orders" | "payments" | "offers" | "security" | "support" | "system";
 const kinds: { id: Kind; label: string }[] = [
   { id: "all", label: "All updates" },
   { id: "orders", label: "Orders" },
@@ -20,6 +20,7 @@ const kinds: { id: Kind; label: string }[] = [
   { id: "offers", label: "Offers" },
   { id: "security", label: "Security" },
   { id: "support", label: "Support" },
+  { id: "system", label: "System" },
 ];
 function kindOf(n: NotificationRecord): Kind {
   const value = `${n.template_code || ""} ${n.subject || ""}`.toLowerCase();
@@ -27,10 +28,11 @@ function kindOf(n: NotificationRecord): Kind {
   if (/promot|voucher|discount|campaign|offer|reward|loyal/.test(value)) return "offers";
   if (/device|login|password|auth|mfa|security|session/.test(value)) return "security";
   if (/case|support|dispute|resolution|incident/.test(value)) return "support";
-  return "orders";
+  if (/order|rider|courier|deliver|kitchen|prepar|pickup|merchant/.test(value)) return "orders";
+  return "system";
 }
 const icons = {
-  all: Bell, orders: Package, payments: CreditCard, offers: Gift, security: ShieldCheck, support: LifeBuoy,
+  all: Bell, orders: Package, payments: CreditCard, offers: Gift, security: ShieldCheck, support: LifeBuoy, system: Bell,
 };
 export function CustomerNotificationCenter({ onOpenOrders }: { onOpenOrders: () => void }) {
   const { apiClient } = useAuth();
