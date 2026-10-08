@@ -14,8 +14,8 @@ import {money,ResourceView,SafePhoto,StatusPanel} from "./LiveUtilities";
 type View="history"|"tracking"|"completed";
 type Props={gateway:CustomerGateway;screen:View;orderId:string;onNavigate:(path:string)=>void;authenticated:boolean;requestSignIn:()=>void};
 type Tab="all"|"active"|"completed"|"cancelled";
-const terminal=new Set<OrderStatus>(["COMPLETED","CANCELLED","REJECTED"]);
-const arrival=new Set<DeliveryStatus>(["PICKED_UP","EN_ROUTE","ARRIVED_DROPOFF"]);
+const terminal=new Set<string>(["COMPLETED","CANCELLED","REJECTED"]);
+const arrival=new Set<string>(["PICKED_UP","EN_ROUTE","ARRIVED_DROPOFF"]);
 const validCoordinate=(lat:number,lng:number)=>Number.isFinite(lat)&&Number.isFinite(lng)&&Math.abs(lat)<=90&&Math.abs(lng)<=180;
 const statusName:Record<OrderStatus,string>={
  PENDING_PAYMENT:"Awaiting payment",PLACED:"Order placed",ACCEPTED:"Accepted",PREPARING:"Preparing",
