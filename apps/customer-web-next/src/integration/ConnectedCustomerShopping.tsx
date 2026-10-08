@@ -60,8 +60,11 @@ function LocationPicker({gateway,addresses,currentId,onChoose,onSaved,onClose}:{
    const point={latitude:pos.coords.latitude,longitude:pos.coords.longitude};
    try{const check=await gateway.discovery.serviceability(point.latitude,point.longitude);
     setService(check.serviceable);setCoordinate(point);
-    const result=await gateway.discovery.restaurant; // Placeholder avoided below; server reverse geocoding is separate.
-    void result;
+    try {
+      const result=await gateway.discovery.reverseGeocode(point.latitude,point.longitude);
+      if(result?.formatted_address)setAddress(result.formatted_address);
+      if(result?.city)setCity(result.city);
+    } catch { /* Reverse geocoding is optional; customer enters a precise street address. */ }
    }catch(e){setMessage(backendError(e).message);}finally{setLocating(false);}
   },()=>{setMessage("Location permission was denied or unavailable. Allow access in your browser to save a verified address.");setLocating(false);},{enableHighAccuracy:true,timeout:12000,maximumAge:120000});
  };
