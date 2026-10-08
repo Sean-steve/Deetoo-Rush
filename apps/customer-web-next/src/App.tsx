@@ -9,8 +9,9 @@ import { Badge, Button, IconButton, Panel, classNames } from "../../../packages/
 import { categories, heroBurger, previewLocation, previewRestaurants, type Cuisine, type PreviewRestaurant } from "./data/preview";
 import { FoodArt } from "./components/FoodArt";
 import { ShoppingPreview, type CartLine } from "./components/ShoppingPreview";
+import { OrdersPreview } from "./components/OrdersPreview";
 
-type Route = "discover" | "search" | "restaurant" | "bag" | "checkout" | "orders" | "profile" | "security" | "notifications" | "support";
+type Route = "discover" | "search" | "restaurant" | "bag" | "checkout" | "orders" | "tracking" | "delivered" | "profile" | "security" | "notifications" | "support";
 type Sort = "recommended" | "rating" | "fastest" | "nearest";
 type View = "grid" | "map";
 
@@ -24,7 +25,7 @@ const routes: Array<{id:Route; label:string; icon:typeof House; path:string}> = 
   {id:"notifications", label:"Notifications", icon:Bell, path:"/notifications"},
   {id:"support", label:"Support", icon:LifeBuoy, path:"/support"},
 ];
-const routeFromPath = (path:string):Route => path === "/restaurant" ? "restaurant" : path === "/checkout" ? "checkout" : routes.find(item => item.path === path)?.id || "discover";
+const routeFromPath = (path:string):Route => path === "/restaurant" ? "restaurant" : path === "/checkout" ? "checkout" : path === "/orders/tracking" ? "tracking" : path === "/orders/delivered" ? "delivered" : routes.find(item => item.path === path)?.id || "discover";
 
 function BrandLogo() {
   return (
@@ -293,16 +294,15 @@ function Discovery({isSearch,query,onQueryChange,goTo,notice,onSelectRestaurant}
   );
 }
 
-const upcoming:Record<Exclude<Route,"discover"|"search"|"restaurant"|"checkout">,{title:string;body:string;stage:string}> = {
+const upcoming:Record<Exclude<Route,"discover"|"search"|"restaurant"|"checkout"|"orders"|"tracking"|"delivered">,{title:string;body:string;stage:string}> = {
   bag:{title:"Your bag",body:"A separate shopping bag, empty state and checkout are scheduled for the Shopping wave.",stage:"Screens 05–07"},
-  orders:{title:"Orders & tracking",body:"Order history, rider tracking and completed delivery interfaces follow in the Delivery wave.",stage:"Screens 08–10"},
   profile:{title:"My profile",body:"Profile, saved addresses and preferences will be reconstructed after the shopping and delivery screens.",stage:"Screen 11"},
   security:{title:"Security & devices",body:"The visual preview will show real security state only after the auth adapter is connected.",stage:"Screen 12"},
   notifications:{title:"Notifications Center",body:"Notification types and preferences will be reconstructed and mapped to their respective APIs.",stage:"Screen 13"},
   support:{title:"Help & Support",body:"The dedicated ticket dashboard and conversation views come in the Support wave.",stage:"Screens 14–15"},
 };
 
-function UpcomingScreen({route,goTo}: {route:Exclude<Route,"discover"|"search"|"restaurant"|"checkout">;goTo:(route:Route)=>void}) {
+function UpcomingScreen({route,goTo}: {route:Exclude<Route,"discover"|"search"|"restaurant"|"checkout"|"orders"|"tracking"|"delivered">;goTo:(route:Route)=>void}) {
   const item=upcoming[route];
   return (
     <section className="dt-upcoming">
@@ -320,6 +320,7 @@ export function App() {
   const [notice,setNotice]=useState<string|null>(null);
   const [mobileOpen,setMobileOpen]=useState(false);
   const [restaurantId,setRestaurantId]=useState("smash");
+  const [selectedOrderId,setSelectedOrderId]=useState<string>("");
   const [cart,setCart]=useState<CartLine[]>([]);
   const bagCount=cart.reduce((total,line)=>total+line.quantity,0);
   useEffect(()=>{
@@ -334,7 +335,7 @@ export function App() {
   },[notice]);
   const goTo=(next:Route)=>{
     setRoute(next);
-    const url=next==="restaurant"?"/restaurant":next==="checkout"?"/checkout":routes.find(item=>item.id===next)?.path || "/";
+    const url=next==="restaurant"?"/restaurant":next==="checkout"?"/checkout":next==="tracking"?"/orders/tracking":next==="delivered"?"/orders/delivered":routes.find(item=>item.id===next)?.path || "/";
     if(window.location.pathname!==url)window.history.pushState({},"",url);
     window.scrollTo({top:0,behavior:window.matchMedia("(prefers-reduced-motion: reduce)").matches?"auto":"smooth"});
   };
@@ -347,13 +348,14 @@ export function App() {
     setNotice("Added to your demo bag. Review it whenever you're ready.");
   };
   const updateCart=(key:string,quantity:number)=>setCart(current=>current.map(item=>item.key===key?{...item,quantity}:item).filter(item=>item.quantity>0));
+  const openOrder=(id:string,screen:"tracking"|"delivered")=>{setSelectedOrderId(id);goTo(screen);};
   return (
     <div className="dt-app">
       <Header query={query} onQueryChange={setQuery} goTo={goTo} bagCount={bagCount} notice={setNotice}/>
-      <Sidebar active={route==="restaurant"?"discover":route==="checkout"?"bag":route} goTo={goTo} open={mobileOpen} onClose={()=>setMobileOpen(false)} bagCount={bagCount}/>
+      <Sidebar active={route==="restaurant"?"discover":route==="checkout"?"bag":route==="tracking"||route==="delivered"?"orders":route} goTo={goTo} open={mobileOpen} onClose={()=>setMobileOpen(false)} bagCount={bagCount}/>
       <main className="dt-main" id="main-content">
         <button className="dt-mobile-menu" aria-label="Open navigation menu" onClick={()=>setMobileOpen(true)} type="button"><Menu size={21}/> Menu</button>
-        {route==="discover"||route==="search" ? <Discovery isSearch={route==="search"} query={query} onQueryChange={setQuery} goTo={goTo} notice={setNotice} onSelectRestaurant={selectRestaurant}/> : route==="restaurant"||route==="bag"||route==="checkout" ? <ShoppingPreview screen={route} restaurantId={restaurantId} cart={cart} onAdd={addToCart} onUpdate={updateCart} onClear={()=>setCart([])} onNavigate={goTo} onNotice={setNotice}/> : <UpcomingScreen route={route} goTo={goTo}/>}
+        {route==="discover"||route==="search" ? <Discovery isSearch={route==="search"} query={query} onQueryChange={setQuery} goTo={goTo} notice={setNotice} onSelectRestaurant={selectRestaurant}/> : route==="restaurant"||route==="bag"||route==="checkout" ? <ShoppingPreview screen={route} restaurantId={restaurantId} cart={cart} onAdd={addToCart} onUpdate={updateCart} onClear={()=>setCart([])} onNavigate={goTo} onNotice={setNotice}/> : route==="orders"||route==="tracking"||route==="delivered" ? <OrdersPreview screen={route} orderId={selectedOrderId} onOpen={openOrder} onBack={()=>goTo("orders")} onRestaurant={selectRestaurant} onSupport={()=>goTo("support")} onNotice={setNotice}/> : <UpcomingScreen route={route} goTo={goTo}/>}
       </main>
       {notice&&<div className="dt-notice" role="status" aria-live="polite"><span className="dt-notice-dot"><Check size={16}/></span><span>{notice}</span><IconButton label="Dismiss message" onClick={()=>setNotice(null)}><X size={17}/></IconButton></div>}
     </div>
