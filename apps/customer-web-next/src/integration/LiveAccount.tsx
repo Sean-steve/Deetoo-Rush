@@ -8,17 +8,55 @@ import {backendError,useBackendResource} from "./resource";
 import {ResourceView,StatusPanel} from "./LiveUtilities";
 
 type Destination="profile"|"security"|"notifications";
-type Props={screen:Destination;gateway:CustomerGateway;authenticated:boolean;requestSignIn:()=>void;onNavigate:(p:string)=>void;logout:()=>Promise<unknown>;userId:string};
+type Props={screen:Destination;gateway:CustomerGateway;authenticated:boolean;requestSignIn:()=>void;onNavigate:(p:string)=>void;logout:()=>Promise<unknown>;userId:string;onAddressesChanged:()=>void};
 const prettyDate=(iso?:string|null)=>iso?new Date(iso).toLocaleString("en-KE",{dateStyle:"medium",timeStyle:"short"}):"Unavailable";
 const inlineError=(err:string)=>err?<p role="alert" className="dt-live-error">{err}</p>:null;
 const ResourceError=({message}:{message:string})=><p role="status" className="dt-live-account-note">{message}</p>;
 
-function Profile({gateway,onNavigate}:{gateway:CustomerGateway;onNavigate:(path:string)=>void}){
+
+function AddressEditor({gateway,original,onClose,onSaved}:{gateway:CustomerGateway;original:CustomerAddress|null;onClose:()=>void;onSaved:()=>void}){
+ const [label,setLabel]=useState(original?.label||"Home"),[line,setLine]=useState(original?.address_line1||""),[city,setCity]=useState(original?.city||""),[region,setRegion]=useState(original?.region||""),[instructions,setInstructions]=useState(original?.delivery_instructions||"");
+ const [location,setLocation]=useState<{latitude:number;longitude:number}|null>(original?{latitude:original.latitude,longitude:original.longitude}:null);
+ const [serviceable,setServiceable]=useState(Boolean(original)),[locating,setLocating]=useState(false),[busy,setBusy]=useState(false),[error,setError]=useState("");
+ const locate=()=>{if(!navigator.geolocation){setError("Geolocation is unavailable. Your saved coordinates remain unchanged.");return;}
+  setLocating(true);setError("");navigator.geolocation.getCurrentPosition(async p=>{const latitude=p.coords.latitude,longitude=p.coords.longitude;
+   try{if(!Number.isFinite(latitude)||!Number.isFinite(longitude)||Math.abs(latitude)>90||Math.abs(longitude)>180)throw new Error("Invalid location");
+    const available=await gateway.discovery.serviceability(latitude,longitude);setServiceable(available.serviceable);
+    setLocation(available.serviceable?{latitude,longitude}:null);
+    if(!available.serviceable)setError("This location is outside DeeToo's active delivery zones.");
+   }catch(e){setError(backendError(e).message);setLocation(null);setServiceable(false);}finally{setLocating(false);}
+  },()=>{setLocating(false);setError("Location permission is required to verify a new delivery location.");},{enableHighAccuracy:true,timeout:12000,maximumAge:30000});
+ };
+ const save=async(e:React.FormEvent)=>{e.preventDefault();if(!location||!serviceable||busy)return;setBusy(true);setError("");
+  const payload={label:label.trim(),address_line1:line.trim(),city:city.trim(),region:region.trim(),country_code:"KE",
+    latitude:location.latitude,longitude:location.longitude,delivery_instructions:instructions.trim()};
+  try{if(original)await gateway.account.updateAddress(original.id,payload);else await gateway.account.addAddress(payload);
+    onSaved();onClose();
+  }catch(e){setError(backendError(e).message);}finally{setBusy(false);}};
+ return <div className="dt-live-account-overlay"><section className="dt-live-account-modal dt-live-address-editor" role="dialog" aria-modal="true" aria-label={original?"Edit delivery address":"Add delivery address"}>
+  <header><h2>{original?"Edit delivery address":"Add delivery address"}</h2><button type="button" aria-label="Close address editor" onClick={onClose}><X size={18}/></button></header>
+  <p>We use verified coordinates for serviceability. No location is guessed from an address label.</p>
+  <form onSubmit={e=>void save(e)}>
+    <label>Label<select value={label} onChange={e=>setLabel(e.target.value)}><option>Home</option><option>Work</option><option>Other</option></select></label>
+    <label>Street, building or landmark<input required maxLength={255} value={line} onChange={e=>setLine(e.target.value)}/></label>
+    <label>Town / city<input required maxLength={100} value={city} onChange={e=>setCity(e.target.value)}/></label>
+    <label>County / region<input required maxLength={100} value={region} onChange={e=>setRegion(e.target.value)}/></label>
+    <label>Delivery instructions<textarea value={instructions} maxLength={500} rows={2} onChange={e=>setInstructions(e.target.value)}/></label>
+    <Button variant="outline" type="button" disabled={locating} onClick={locate}><MapPin size={17}/>{locating?"Verifying location…":original?"Reverify location":"Use and verify my GPS location"}</Button>
+    {location&&serviceable&&<p role="status" className="dt-live-success"><Check size={15}/> Verified coordinates: {location.latitude.toFixed(5)}, {location.longitude.toFixed(5)}</p>}
+    {error&&<p role="alert" className="dt-live-error">{error}</p>}
+    <footer><Button variant="outline" type="button" onClick={onClose}>Cancel</Button><Button type="submit" disabled={busy||!serviceable||!location||!line.trim()||!city.trim()||!region.trim()}>{busy?"Saving…":"Save address"}</Button></footer>
+  </form>
+ </section></div>;
+}
+
+function Profile({gateway,onNavigate,onAddressesChanged}:{gateway:CustomerGateway;onNavigate:(path:string)=>void;onAddressesChanged:()=>void}){
  const profile=useBackendResource(()=>gateway.account.profile(),true,[]);
  const addresses=useBackendResource(()=>gateway.account.addresses(),true,[]);
  const [editing,setEditing]=useState(false),[saving,setSaving]=useState(false),[error,setError]=useState(""),[done,setDone]=useState("");
  const [fields,setFields]=useState({first_name:"",last_name:"",display_name:"",phone:"",email:""});
  const [confirmRemove,setConfirmRemove]=useState<CustomerAddress|null>(null);
+ const [editor,setEditor]=useState<CustomerAddress|"new"|null>(null);
  const [addressBusy,setAddressBusy]=useState("");
  const initial=profile.state.status==="ready"?profile.state.data:null;
  const start=()=>{if(!initial)return;setFields({first_name:initial.first_name||"",last_name:initial.last_name||"",display_name:initial.display_name||"",phone:initial.phone||"",email:initial.email||""});setEditing(true);setError("");};
@@ -28,7 +66,7 @@ function Profile({gateway,onNavigate}:{gateway:CustomerGateway;onNavigate:(path:
   catch(err){setError(backendError(err).message);}finally{setSaving(false);}};
  const changeAddress=async(id:string,action:"default"|"remove")=>{
   setAddressBusy(id);setError("");try{if(action==="default")await gateway.account.makeDefault(id);
-   else await gateway.account.removeAddress(id);addresses.refresh();profile.refresh();setDone(action==="default"?"Default address updated.":"Address deleted.");setConfirmRemove(null);}
+   else await gateway.account.removeAddress(id);addresses.refresh();profile.refresh();onAddressesChanged();setDone(action==="default"?"Default address updated.":"Address deleted.");setConfirmRemove(null);}
   catch(e){setError(backendError(e).message);}finally{setAddressBusy("");}};
  return <section className="dt-profile-page dt-screen-enter dt-live-account">
   <div className="dt-profile-main"><header className="dt-account-pagehead"><div><h1>My profile</h1><p>Manage your account, saved delivery addresses and preferences.</p></div>
@@ -49,11 +87,11 @@ function Profile({gateway,onNavigate}:{gateway:CustomerGateway;onNavigate:(path:
     <div><dt>Email address</dt><dd>{customer.email||"Not provided"}</dd></div><div><dt>Phone number</dt><dd>{customer.phone||"Not provided"}</dd></div>
    </dl>}</ResourceView></Panel>
   <Panel className="dt-live-account-card"><div className="dt-account-section-head"><span className="dt-account-icon"><MapPin/></span><div><h2>Saved addresses</h2><p>Delivery locations verified by DeeToo.</p></div>
-   <Button size="sm" onClick={()=>onNavigate("/checkout")}><Plus size={16}/> Add at checkout</Button></div>
+   <Button size="sm" onClick={()=>setEditor("new")}><Plus size={16}/> Add address</Button></div>
    <ResourceView resource={addresses.state} empty="No saved addresses yet" onRetry={addresses.refresh}>{(list:CustomerAddress[])=><div className="dt-live-account-addresses">{list.map(a=><article key={a.id}>
     <span className="dt-account-icon"><House size={21}/></span><div><h3>{a.label} {a.is_default&&<Badge variant="mint">Default</Badge>}</h3><p>{a.address_text||a.address_line1}, {a.city}, {a.region}</p><small>{a.delivery_instructions||"Delivery address"}</small></div>
     <div>{!a.is_default&&<Button variant="outline" size="sm" disabled={addressBusy===a.id} onClick={()=>void changeAddress(a.id,"default")}>Set default</Button>}
-     <Button variant="outline" size="sm" onClick={()=>setConfirmRemove(a)} disabled={addressBusy===a.id} aria-label={"Remove "+a.label}><Trash2 size={16}/></Button></div>
+     <Button variant="outline" size="sm" onClick={()=>setEditor(a)}>Edit</Button><Button variant="outline" size="sm" onClick={()=>setConfirmRemove(a)} disabled={addressBusy===a.id} aria-label={"Remove "+a.label}><Trash2 size={16}/></Button></div>
    </article>)}</div>}</ResourceView>
    <ResourceError message="New or edited address coordinates must be verified against active service zones. Use the existing checkout location picker; location fields are never guessed."/></Panel>
   <Panel className="dt-live-account-card"><div className="dt-account-section-head"><span className="dt-account-icon"><CreditCard/></span><div><h2>Payment methods & membership</h2><p>Secure payment, rewards and Plus information</p></div></div>
@@ -62,6 +100,7 @@ function Profile({gateway,onNavigate}:{gateway:CustomerGateway;onNavigate:(path:
    <ResourceError message="Notification channel preferences are awaiting a consent-aware backend endpoint. Existing read settings are not persisted by this screen."/>
    <Button variant="outline" onClick={()=>onNavigate("/notifications")}>View notifications <ArrowRight size={16}/></Button></Panel></div>
   <aside className="dt-live-account-side"><Panel><h2>Quick links</h2>{[["Orders & tracking","/orders"],["Security & devices","/security"],["Notifications","/notifications"],["Help & support","/support"]].map(([label,path])=><button key={path} onClick={()=>onNavigate(path)}>{label}<ChevronRight size={16}/></button>)}</Panel></aside>
+  {editor&&<AddressEditor gateway={gateway} original={editor==="new"?null:editor} onClose={()=>setEditor(null)} onSaved={()=>{addresses.refresh();profile.refresh();onAddressesChanged();setDone("Address saved to DeeToo.");}}/>}
   {confirmRemove&&<div className="dt-live-account-overlay"><section role="dialog" aria-modal="true" aria-label="Confirm address deletion" className="dt-live-account-modal"><h2>Remove saved address?</h2><p>This will delete the saved delivery address "{confirmRemove.label}" from DeeToo. Existing order snapshots remain unchanged.</p>
   <div><Button variant="outline" onClick={()=>setConfirmRemove(null)}>Keep address</Button><Button disabled={!!addressBusy} onClick={()=>void changeAddress(confirmRemove.id,"remove")}>Remove address</Button></div></section></div>}
  </section>;
@@ -131,9 +170,9 @@ function Notifications({gateway,onNavigate}:{gateway:CustomerGateway;onNavigate:
    <Button variant="outline" onClick={()=>onNavigate("/orders")}>View orders <ArrowRight size={16}/></Button></Panel></div>
  </section>;
 }
-export function LiveAccount({screen,gateway,authenticated,requestSignIn,onNavigate,logout,userId}:Props){
+export function LiveAccount({screen,gateway,authenticated,requestSignIn,onNavigate,logout,userId,onAddressesChanged}:Props){
  if(!authenticated)return <StatusPanel title="Sign in to manage your account" description="Customer profile, sessions and notifications are private to the signed-in DeeToo account."><Button onClick={requestSignIn}>Sign in</Button></StatusPanel>;
- return screen==="profile"?<Profile key={userId} gateway={gateway} onNavigate={onNavigate}/>:
+ return screen==="profile"?<Profile key={userId} gateway={gateway} onNavigate={onNavigate} onAddressesChanged={onAddressesChanged}/>:
  screen==="security"?<Security key={userId} gateway={gateway} logout={logout}/>:
  <Notifications key={userId} gateway={gateway} onNavigate={onNavigate}/>;
 }
