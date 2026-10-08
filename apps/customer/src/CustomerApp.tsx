@@ -1,5 +1,4 @@
 import { AccountSupport } from "../../../packages/ui/src/AccountSupport";
-import "./customer-redesign.css";
 /**
  * DEETOO - Customer Application Shell
  * Customer-facing food discovery, identity, addresses, and serviceability (Sprint 5)
