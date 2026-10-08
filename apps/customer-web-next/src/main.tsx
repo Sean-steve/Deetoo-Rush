@@ -1,9 +1,10 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { App } from "./App";
-import { ConnectedFoundationGate } from "./integration/ConnectedFoundationGate";
+import { ConnectedCustomerShopping } from "./integration/ConnectedCustomerShopping";
 import { resolveCustomerBackendMode } from "./integration/mode";
 import "./integration/foundation.css";
+import "./integration/live-shopping.css";
 import "./styles.css";
 import "./shopping.css";
 import "./orders.css";
@@ -15,5 +16,5 @@ const connected = import.meta.env.DEV &&
   resolveCustomerBackendMode(import.meta.env.VITE_CUSTOMER_NEXT_BACKEND_MODE) === "connected";
 
 createRoot(document.getElementById("root")!).render(
-  <StrictMode>{connected ? <ConnectedFoundationGate /> : <App />}</StrictMode>
+  <StrictMode>{connected ? <ConnectedCustomerShopping /> : <App />}</StrictMode>
 );

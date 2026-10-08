@@ -13,7 +13,7 @@ import { OrdersPreview } from "./components/OrdersPreview";
 import { AccountPreview } from "./components/AccountPreview";
 import { SupportPreview } from "./components/SupportPreview";
 
-type Route = "discover" | "search" | "restaurant" | "bag" | "checkout" | "orders" | "tracking" | "delivered" | "profile" | "security" | "notifications" | "support" | "conversation";
+export type Route = "discover" | "search" | "restaurant" | "bag" | "checkout" | "orders" | "tracking" | "delivered" | "profile" | "security" | "notifications" | "support" | "conversation";
 type Sort = "recommended" | "rating" | "fastest" | "nearest";
 type View = "grid" | "map";
 
@@ -48,16 +48,17 @@ function BrandLogo() {
   );
 }
 
-function Header({query,onQueryChange,goTo,bagCount,notice}:{
+export function Header({query,onQueryChange,goTo,bagCount,notice,userLabel="Test User",locationLabel=previewLocation.shortLabel,locationDistrict=previewLocation.district,onLocationClick,onProfileClick}:{
   query:string;onQueryChange:(value:string)=>void;goTo:(route:Route)=>void;bagCount:number;notice:(value:string)=>void;
+  userLabel?:string;locationLabel?:string;locationDistrict?:string;onLocationClick?:()=>void;onProfileClick?:()=>void;
 }) {
   const searchRef=useRef<HTMLInputElement>(null);
   return (
     <header className="dt-header">
       <BrandLogo />
-      <button className="dt-location" type="button" onClick={()=>notice("Address selection is a preview in Phase 1. Live serviceability comes in Phase 2.")} aria-label="Deliver to Home, Juja, Kiambu County">
+      <button className="dt-location" type="button" onClick={()=>onLocationClick?onLocationClick():notice("Address selection is a preview in Phase 1. Live serviceability comes in Phase 2.")} aria-label={"Deliver to "+locationLabel+", "+locationDistrict}>
         <MapPin size={24} fill="currentColor" strokeWidth={2.7} aria-hidden="true"/>
-        <span><small>Deliver to</small><strong>{previewLocation.shortLabel}</strong><small>{previewLocation.district}</small></span>
+        <span><small>Deliver to</small><strong>{locationLabel}</strong><small>{locationDistrict}</small></span>
         <ChevronDown size={16} aria-hidden="true"/>
       </button>
       <div className="dt-search-wrap">
@@ -76,8 +77,8 @@ function Header({query,onQueryChange,goTo,bagCount,notice}:{
         <button className="dt-bell" aria-label="Notifications" type="button" onClick={()=>goTo("notifications")}>
           <Bell size={23}/><span className="dt-unread-dot"/>
         </button>
-        <button className="dt-profile-trigger" type="button" onClick={()=>goTo("profile")}>
-          <span className="dt-avatar">T</span><strong>Test User</strong><ChevronDown size={17}/>
+        <button className="dt-profile-trigger" type="button" onClick={()=>onProfileClick?onProfileClick():goTo("profile")}>
+          <span className="dt-avatar">{userLabel.slice(0,1).toUpperCase()}</span><strong>{userLabel}</strong><ChevronDown size={17}/>
         </button>
         <Button className="dt-header-cart" onClick={()=>goTo("bag")} startIcon={<ShoppingBag size={23}/>} >
           <span key={bagCount} className="dt-cart-count" aria-label={`${bagCount} items in preview bag`}>{bagCount}</span>
@@ -88,8 +89,8 @@ function Header({query,onQueryChange,goTo,bagCount,notice}:{
   );
 }
 
-function Sidebar({active,goTo,open,onClose,bagCount}:{
-  active:Route;goTo:(route:Route)=>void;open:boolean;onClose:()=>void;bagCount:number;
+export function Sidebar({active,goTo,open,onClose,bagCount,live=false}:{
+  active:Route;goTo:(route:Route)=>void;open:boolean;onClose:()=>void;bagCount:number;live?:boolean;
 }) {
   return (
     <>
@@ -105,7 +106,7 @@ function Sidebar({active,goTo,open,onClose,bagCount}:{
             </button>
           ))}
         </nav>
-        <div className="dt-sidebar-footer"><span className="dt-preview-light"/> Design preview <small>Backend not connected</small></div>
+        <div className="dt-sidebar-footer"><span className="dt-preview-light"/> {live?"Live shopping":"Design preview"} <small>{live?"Other areas coming in later stages":"Backend not connected"}</small></div>
       </aside>
     </>
   );

@@ -3,7 +3,7 @@
  * Reuse DeeToo's cookie/CSRF/refresh-aware shared API client.
  * Unverified response shapes remain unknown until screen-specific mapping.
  */
-import type { ApiResponse, CustomerProfile, CustomerAddress, Order, PublicRestaurantBranch, PublicRestaurantDetail, PublicRestaurantMenu, RestaurantCategory, RestaurantDiscoveryQuery, ServiceabilityCheckResult, EnrichedCart, CheckoutQuote, GenerateQuoteInput, CreateOrderInput, AddToCartInput, UpdateCartItemInput, AuthUser } from "@deetoo/types";
+import type { ApiResponse, CustomerProfile, CustomerAddress, Order, PublicRestaurantBranch, PublicRestaurantDetail, PublicRestaurantMenu, RestaurantCategory, RestaurantDiscoveryQuery, ServiceabilityCheckResult, EnrichedCart, CheckoutQuote, GenerateQuoteInput, CreateOrderInput, AddToCartInput, UpdateCartItemInput, AuthUser, Payment } from "@deetoo/types";
 import type { DeetooApiClient } from "@deetoo/api-client";
 
 export class ContractMismatchError extends Error {
@@ -47,6 +47,7 @@ export function createCustomerGateway(client:DeetooApiClient){
       categories:():Promise<RestaurantCategory[]>=>responseData(client.getRestaurantCategories(),"/restaurant-categories"),
       serviceability:(lat:number,lng:number):Promise<ServiceabilityCheckResult>=>
         responseData(client.checkServiceability(lat,lng),"/serviceability"),
+      reverseGeocode:(lat:number,lng:number)=>responseData(client.reverseGeocode(lat,lng),"/maps/reverse-geocode"),
     },
     cart:{
       read:():Promise<EnrichedCart|null>=>responseData(client.getActiveCart(),"/cart"),
@@ -71,6 +72,15 @@ export function createCustomerGateway(client:DeetooApiClient){
       delivery:(id:string):Promise<unknown|null>=>request("/customer/orders/"+safeResourceId(id)+"/delivery"),
       cancel:(id:string,reason:string,note?:string):Promise<Order>=>
         responseData(client.cancelCustomerOrder(safeResourceId(id),reason,note),"/customer/orders/:id/cancel"),
+    },
+    payments:{
+      initiate:(orderId:string,method:"MPESA"|"CARD",key:string,phone?:string,paymentMethodToken?:string):Promise<Payment>=>{
+        if(!key||key.length<12)throw new TypeError("Payment initiation requires an idempotency key");
+        return request("/payments/initiate",{method:"POST",idempotencyKey:key,body:JSON.stringify({
+          order_id:safeResourceId(orderId),method,...(phone?{phone}:{}),...(paymentMethodToken?{payment_method_token:paymentMethodToken}:{})
+        })});
+      },
+      forOrder:(orderId:string):Promise<Payment[]>=>request("/payments/order/"+safeResourceId(orderId)),
     },
     account:{
       profile:():Promise<CustomerProfile>=>responseData(client.getCustomerProfile(),"/customer/profile"),

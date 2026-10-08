@@ -1,0 +1,61 @@
+/* Phase B2 connected shopping: additive utilities; approved preview styles untouched. */
+.dt-live-discovery .dt-hero {overflow:hidden}
+.dt-live-discovery .dt-restaurant-card {min-width:0}
+.dt-live-discovery .dt-restaurant-summary {display:flex;align-items:flex-start;flex-direction:column;text-align:left;width:100%;padding:12px 14px 14px;background:transparent;border:0;cursor:pointer;gap:5px;color:#102a20}
+.dt-live-discovery .dt-restaurant-summary strong {font-size:15px;font-weight:800}
+.dt-live-discovery .dt-restaurant-summary>span {font-size:12px;color:#5a6a7b}
+.dt-live-discovery .dt-restaurant-meta {display:flex;align-items:center;gap:6px;font-size:12px;color:#586c79}
+.dt-live-discovery .dt-restaurant-foot {display:flex;align-items:center;justify-content:space-between;width:100%;gap:8px;font-size:11px;color:#56677a}
+.dt-live-discovery .dt-restaurant-image-button {height:145px}
+.dt-live-discovery .dt-restaurant-image-button img {object-fit:cover}
+.dt-live-discovery .dt-category {min-width:100px}
+.dt-live-discovery .dt-category-icon {font-size:24px}
+.dt-live-discovery .dt-hero-copy {position:relative;z-index:2}
+.dt-live-map-placeholder {min-height:230px;display:flex;align-items:center;flex-direction:column;justify-content:center;gap:12px;padding:20px;text-align:center;color:#066f48;background:linear-gradient(150deg,#effcf3,#f7fbf8);border-radius:16px}
+.dt-live-map-placeholder strong {font-weight:800;color:#172c25}
+.dt-live-map-placeholder p {font-size:12px;color:#64768b;max-width:240px;line-height:1.5}
+.dt-live-state {min-height:240px;border:1px solid #e4eeeb;border-radius:16px;background:#fff;padding:45px 25px;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;gap:12px;margin:22px 0;color:#1e3b34}
+.dt-live-state-icon {background:#e6fbef;color:#00854d;width:55px;height:55px;border-radius:18px;display:grid;place-items:center}
+.dt-live-state h2 {font-size:20px;margin:0;color:#0c1e2a}
+.dt-live-state p {font-size:13px;color:#657386;max-width:430px;line-height:1.55;margin:0}
+.dt-live-state button {border:1px solid #c9e5d6;padding:10px 16px;display:flex;gap:8px;align-items:center;border-radius:10px;background:#f2fdf6;color:#007947;font-weight:750;cursor:pointer}
+.dt-live-spinner {width:23px;height:23px;border:3px solid #b5efce;border-top-color:#009f61;border-radius:50%;animation:dt-live-spin .75s linear infinite}
+@keyframes dt-live-spin {to{transform:rotate(360deg)}}
+.dt-live-error {font-size:13px;color:#ae1225;background:#fff0f1;border:1px solid #ffd8dc;border-radius:9px;padding:11px 14px;margin:12px 0}
+.dt-live-alert {padding:15px;color:#6d5716;font-size:12px;background:#fffaf0;border:1px solid #fae7ac;display:flex;align-items:center;gap:11px;margin:14px 0}
+.dt-live-alert p {margin:0;line-height:1.5}
+.dt-live-disabled {opacity:.52;cursor:not-allowed}
+.dt-live-option-help {font-size:11px;color:#718095;line-height:1.5;margin:8px 0}
+.dt-live-conflict {padding:22px;margin:15px 0;background:#fffaf0;border:1px solid #f9ddb2;position:relative;z-index:12}
+.dt-live-conflict h3 {font-size:17px;margin:0 0 6px}
+.dt-live-conflict p {font-size:13px;line-height:1.6;color:#677887}
+.dt-live-conflict>div {display:flex;gap:10px;margin-top:15px}
+.dt-live-payment {display:grid;place-items:center;padding:30px 15px}
+.dt-live-payment>.dt-checkout-summary {width:min(560px,100%);max-width:none;position:relative;display:flex;flex-direction:column;gap:18px}
+.dt-live-payment h1 {font-size:27px;margin:0}
+.dt-live-payment p {font-size:14px;color:#596b7a;line-height:1.5}
+.dt-live-payment-icon {width:65px;height:65px;border-radius:50%;display:grid;place-items:center;background:#e2f9ea;color:#009b64}
+.dt-live-payment .dt-checkout-phone {display:grid;gap:8px}
+.dt-live-payment .dt-checkout-phone input {max-width:100%}
+.dt-live-payment small {font-size:11px;color:#6e7d90;line-height:1.5}
+.dt-live-auth,.dt-live-location-dialog {position:fixed;inset:0;width:100%;height:100%;max-width:none;max-height:none;display:grid;place-items:center;border:0;padding:20px;background:#091f20a6;z-index:1000;overflow:auto}
+.dt-live-auth::backdrop,.dt-live-location-dialog::backdrop {background:#091f20a6}
+.dt-live-auth-card,.dt-live-location-card {background:#fff;border-radius:20px;padding:28px;width:min(460px,100%);box-shadow:0 24px 80px #001e242e;max-height:90vh;overflow:auto}
+.dt-live-auth-card header,.dt-live-location-card header {display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:14px}
+.dt-live-auth-card h2,.dt-live-location-card h2 {font-size:21px;margin:0;color:#122621}
+.dt-live-auth-card p,.dt-live-location-card p {font-size:13px;color:#617482;line-height:1.55}
+.dt-live-auth-card form,.dt-live-address-form {display:grid;gap:15px;margin:21px 0}
+.dt-live-auth-card form label,.dt-live-address-form label {display:flex;flex-direction:column;gap:7px;font-size:12px;font-weight:750;color:#364e56}
+.dt-live-auth-card input,.dt-live-address-form input {border:1px solid #ccdeda;border-radius:10px;padding:13px 14px;font-size:14px;width:100%;color:#18342d;background:#fff}
+.dt-live-auth-card :is(input,button):focus-visible,.dt-live-location-card :is(input,button):focus-visible{outline:3px solid #2bcc91;outline-offset:2px}
+.dt-live-auth-switch {padding:8px 0;background:transparent;border:0;font-size:12px;color:#008250;cursor:pointer}
+.dt-live-address-list {display:grid;gap:10px;margin:18px 0}
+.dt-live-address-list button {display:flex;gap:12px;align-items:center;text-align:left;width:100%;padding:14px;border:1px solid #dce8e4;border-radius:12px;background:#fff;cursor:pointer;color:#334a45}
+.dt-live-address-list button.dt-live-address-on {border-color:#00a86b;background:#f2fcf6}
+.dt-live-address-list button span {display:flex;flex-direction:column;gap:5px;flex:1}
+.dt-live-address-list strong {font-size:14px}
+.dt-live-address-list small {font-size:12px;color:#68778b}
+.dt-live-location-card>header p{margin:3px 0 0}
+.dt-live-address-form>button:not(.dt-btn){border:0;background:transparent;color:#007f51;text-align:left;font-weight:700;cursor:pointer}
+@media (max-width:880px){.dt-live-discovery .dt-restaurant-image-button {height:150px}.dt-live-payment{padding:16px 5px}}
+@media(prefers-reduced-motion:reduce){.dt-live-spinner{animation:none}.dt-live-discovery *{scroll-behavior:auto}}
