@@ -30,7 +30,7 @@ The deployment operator must provision and confirm the following **outside Git**
 
 ## Certification sequence
 
-1. **Before user-facing traffic:** deploy staging build to **staging** only. Keep old production Customer static assets and its routing target. Configure `APP_ENV=staging`, `DEETOO_STORAGE_MODE=postgres`, `DEETOO_FIXTURES=false`, `DEETOO_LOCAL_WORKFLOW=false`; strict CORS and callback ingress secret.
+1. **Before user-facing traffic:** build and deploy the staging-connected customer bundle from **the exact reviewed Git SHA** (set `GITHUB_SHA` to the full 40-character commit before `pnpm build:customer-next`). The build emits `/.well-known/deetoo-customer-release.json` reporting `sourceSha`, `channel: staging`, and `connected: true`. The protected workflow refuses to certify an older, preview or different-SHA deployment. Keep old production Customer static assets and its routing target. Configure `APP_ENV=staging`, `DEETOO_STORAGE_MODE=postgres`, `DEETOO_FIXTURES=false`, `DEETOO_LOCAL_WORKFLOW=false`; strict CORS and callback ingress secret.
 2. Verify API and worker readiness, run migrations backed up under change control, verify location/merchant/rider end-to-end from a test account and live merchant/rider devices.
 3. Make one explicitly approved low-value **Safaricom sandbox** transaction; verify actual STK prompt, authenticated callback, async QUERY result, immutable capture evidence, order release, balanced ledger, merchant fulfilment, dispatch, rider arrival/pickup OTP, delivery OTP, completed order and posted earnings.
 4. Test **negative provider conditions** separately and retain evidence: STK user denial, provider timeout, duplicate callback, replay mismatch, wrong amount/receiver, missing callback, offline worker recovery, refresh/session expiration, refunds. Admin/Finance must sign off no duplicate capture or ledger. Do not mark as passed solely because a tester typed approval.
@@ -49,11 +49,11 @@ pnpm build:customer-next
 # Real staging ONLY; requires secure env injected by the staging infrastructure:
 APP_ENV=staging DEETOO_STORAGE_MODE=postgres DEETOO_FIXTURES=false DEETOO_LOCAL_WORKFLOW=false \
  pnpm certify:customer-next-staging
-pnpm test:customer-next-staging
+GITHUB_SHA=<FULL_REVIEWED_40_CHAR_COMMIT> pnpm test:customer-next-staging
 
 # Verified staging connected artifact (protected environment step):
 VITE_CUSTOMER_NEXT_BACKEND_MODE=connected DEETOO_CUSTOMER_RELEASE_CHANNEL=staging \
- DEETOO_CUSTOMER_RELEASE_APPROVED=true pnpm build:customer-next
+ DEETOO_CUSTOMER_RELEASE_APPROVED=true GITHUB_SHA=<FULL_REVIEWED_40_CHAR_COMMIT> pnpm build:customer-next
 
 # Production artifact must additionally set GitHub SHA and matching staging-cert SHA,
 # after protected production reviewer approvals. Never run without actual certificate.
