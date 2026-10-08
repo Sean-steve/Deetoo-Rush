@@ -3,7 +3,7 @@
  * Reuse DeeToo's cookie/CSRF/refresh-aware shared API client.
  * Unverified response shapes remain unknown until screen-specific mapping.
  */
-import type { ApiResponse, CustomerProfile, CustomerAddress, Order, PublicRestaurantBranch, PublicRestaurantDetail, PublicRestaurantMenu, RestaurantCategory, RestaurantDiscoveryQuery, ServiceabilityCheckResult, EnrichedCart, CheckoutQuote, GenerateQuoteInput, CreateOrderInput, AddToCartInput, UpdateCartItemInput, AuthUser, Payment, CustomerTrackingResponse } from "@deetoo/types";
+import type { ApiResponse, CustomerProfile, CustomerAddress, Order, PublicRestaurantBranch, PublicRestaurantDetail, PublicRestaurantMenu, RestaurantCategory, RestaurantDiscoveryQuery, ServiceabilityCheckResult, EnrichedCart, CheckoutQuote, GenerateQuoteInput, CreateOrderInput, AddToCartInput, UpdateCartItemInput, AuthUser, Payment, CustomerTrackingResponse, SupportCase, SupportCaseNote, SupportCaseAttachment, SupportCaseConfirmation, NotificationRecord } from "@deetoo/types";
 import type { DeetooApiClient } from "@deetoo/api-client";
 
 export class ContractMismatchError extends Error {
@@ -99,19 +99,19 @@ export function createCustomerGateway(client:DeetooApiClient){
         responseData(client.setDefaultCustomerAddress(safeResourceId(id)),"/customer/addresses/:id/default"),
     },
     notifications:{
-      list:():Promise<unknown>=>request("/customer/support/notifications"),
-      markRead:(id:string):Promise<unknown>=>request("/customer/support/notifications/"+safeResourceId(id)+"/read",{method:"POST"}),
+      list:():Promise<NotificationRecord[]>=>request("/customer/support/notifications"),
+      markRead:(id:string):Promise<NotificationRecord>=>request("/customer/support/notifications/"+safeResourceId(id)+"/read",{method:"POST"}),
       preferences:():never=>{throw new IntegrationUnavailableError("Notification preferences");},
       markAllRead:():never=>{throw new IntegrationUnavailableError("Bulk notification read");},
     },
     support:{
-      list:():Promise<unknown>=>request("/customer/support/cases"),
-      detail:(id:string):Promise<unknown>=>request("/customer/support/cases/"+safeResourceId(id)),
-      create:(input:SupportRequest):Promise<unknown>=>
+      list:():Promise<{cases:SupportCase[];total:number}>=>request("/customer/support/cases"),
+      detail:(id:string):Promise<{case:SupportCase;notes:SupportCaseNote[];attachments:SupportCaseAttachment[];confirmations:SupportCaseConfirmation[]}>=>request("/customer/support/cases/"+safeResourceId(id)),
+      create:(input:SupportRequest):Promise<SupportCase>=>
         request("/customer/support/cases",{method:"POST",body:JSON.stringify(input)}),
-      message:(id:string,input:SupportMessageInput):Promise<unknown>=>
+      message:(id:string,input:SupportMessageInput):Promise<SupportCaseNote>=>
         request("/customer/support/cases/"+safeResourceId(id)+"/notes",{method:"POST",body:JSON.stringify(input)}),
-      resolutionResponse:(id:string,decision:ResolutionDecision,comment?:string):Promise<unknown>=>
+      resolutionResponse:(id:string,decision:ResolutionDecision,comment?:string):Promise<SupportCase>=>
         request("/customer/support/cases/"+safeResourceId(id)+"/resolution-response",
           {method:"POST",body:JSON.stringify({decision,comment})}),
       attachmentUrl:(id:string,mediaId:string):Promise<{url:string}>=>
