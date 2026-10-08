@@ -69,7 +69,7 @@ function Header({query,onQueryChange,goTo,bagCount,notice}:{
           <span className="dt-avatar">T</span><strong>Test User</strong><ChevronDown size={17}/>
         </button>
         <Button className="dt-header-cart" onClick={()=>goTo("bag")} startIcon={<ShoppingBag size={23}/>} >
-          <span className="dt-cart-count" aria-label={`${bagCount} items in preview bag`}>{bagCount}</span>
+          <span key={bagCount} className="dt-cart-count" aria-label={`${bagCount} items in preview bag`}>{bagCount}</span>
           Cart
         </Button>
       </div>
