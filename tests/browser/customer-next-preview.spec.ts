@@ -392,3 +392,17 @@ test("Screens 14–15 mobile support layouts have no horizontal overflow",async 
   expect(overflow,"No horizontal overflow for "+route).toBe(false);
  }
 });
+
+
+test("Stage B1: approved preview never calls customer backend without explicit DEV opt-in",async({page})=>{
+  const unexpected:string[]=[];
+  await page.route("**/api/v1/**",route=>{
+    unexpected.push(route.request().url());
+    return route.abort();
+  });
+  for(const url of ["/","/orders","/profile","/security","/notifications","/support"]){
+    await page.goto(url);
+    await expect(page.locator(".dt-main")).toBeVisible();
+  }
+  expect(unexpected,"Preview must never query actual accounts/orders or send mutations").toEqual([]);
+});
