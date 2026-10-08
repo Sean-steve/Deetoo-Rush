@@ -25,7 +25,13 @@ const routes: Array<{id:Route; label:string; icon:typeof House; path:string}> = 
   {id:"notifications", label:"Notifications", icon:Bell, path:"/notifications"},
   {id:"support", label:"Support", icon:LifeBuoy, path:"/support"},
 ];
-const routeFromPath = (path:string):Route => path === "/restaurant" ? "restaurant" : path === "/checkout" ? "checkout" : path === "/orders/tracking" ? "tracking" : path === "/orders/delivered" ? "delivered" : routes.find(item => item.path === path)?.id || "discover";
+const orderIdFromPath=(path:string)=>/^\/orders\/(DT-[A-Z0-9]+)\/(?:tracking|delivered)$/.exec(path)?.[1]||"";
+const routeFromPath = (path:string):Route =>
+  path === "/restaurant"?"restaurant":path === "/checkout"?"checkout":
+  /\/tracking$/.test(path)&&path.startsWith("/orders/")?"tracking":
+  /\/delivered$/.test(path)&&path.startsWith("/orders/")?"delivered":
+  path === "/orders/tracking"?"tracking":path === "/orders/delivered"?"delivered":
+  routes.find(item=>item.path===path)?.id||"discover";
 
 function BrandLogo() {
   return (
@@ -320,11 +326,11 @@ export function App() {
   const [notice,setNotice]=useState<string|null>(null);
   const [mobileOpen,setMobileOpen]=useState(false);
   const [restaurantId,setRestaurantId]=useState("smash");
-  const [selectedOrderId,setSelectedOrderId]=useState<string>("");
+  const [selectedOrderId,setSelectedOrderId]=useState<string>(()=>orderIdFromPath(window.location.pathname));
   const [cart,setCart]=useState<CartLine[]>([]);
   const bagCount=cart.reduce((total,line)=>total+line.quantity,0);
   useEffect(()=>{
-    const onPop=()=>setRoute(routeFromPath(window.location.pathname));
+    const onPop=()=>{setRoute(routeFromPath(window.location.pathname));setSelectedOrderId(orderIdFromPath(window.location.pathname));};
     window.addEventListener("popstate",onPop);
     return ()=>window.removeEventListener("popstate",onPop);
   },[]);
@@ -335,7 +341,7 @@ export function App() {
   },[notice]);
   const goTo=(next:Route)=>{
     setRoute(next);
-    const url=next==="restaurant"?"/restaurant":next==="checkout"?"/checkout":next==="tracking"?"/orders/tracking":next==="delivered"?"/orders/delivered":routes.find(item=>item.id===next)?.path || "/";
+    const url=next==="restaurant"?"/restaurant":next==="checkout"?"/checkout":next==="tracking"?"/orders/"+(selectedOrderId||"DT-E2ZG5")+"/tracking":next==="delivered"?"/orders/"+(selectedOrderId||"DT-6Z6X6")+"/delivered":routes.find(item=>item.id===next)?.path || "/";
     if(window.location.pathname!==url)window.history.pushState({},"",url);
     window.scrollTo({top:0,behavior:window.matchMedia("(prefers-reduced-motion: reduce)").matches?"auto":"smooth"});
   };
@@ -348,7 +354,11 @@ export function App() {
     setNotice("Added to your demo bag. Review it whenever you're ready.");
   };
   const updateCart=(key:string,quantity:number)=>setCart(current=>current.map(item=>item.key===key?{...item,quantity}:item).filter(item=>item.quantity>0));
-  const openOrder=(id:string,screen:"tracking"|"delivered")=>{setSelectedOrderId(id);goTo(screen);};
+  const openOrder=(id:string,screen:"tracking"|"delivered")=>{
+    setSelectedOrderId(id);setRoute(screen);
+    window.history.pushState({orderId:id},"","/orders/"+id+"/"+screen);
+    window.scrollTo({top:0,behavior:window.matchMedia("(prefers-reduced-motion: reduce)").matches?"auto":"smooth"});
+  };
   return (
     <div className="dt-app">
       <Header query={query} onQueryChange={setQuery} goTo={goTo} bagCount={bagCount} notice={setNotice}/>
