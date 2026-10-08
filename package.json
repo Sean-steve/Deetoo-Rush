@@ -52,7 +52,8 @@
     "prebuild:rider-android": "pnpm --filter @deetoo/rider-android prebuild:android",
     "test:phase3": "NODE_ENV=test DEETOO_STORAGE_MODE=memory DEETOO_FIXTURES=true tsx --test tests/unit/phase3_operations_moneyout.test.ts tests/unit/phase3_trust_rider_wallet.test.ts",
     "dev:customer-next": "vite --config apps/customer-web-next/vite.config.ts",
-    "build:customer-next": "vite build --config apps/customer-web-next/vite.config.ts"
+    "build:customer-next": "vite build --config apps/customer-web-next/vite.config.ts",
+    "test:customer-next-visual": "playwright test --config playwright.customer-next.config.ts"
   },
   "dependencies": {
     "@google/genai": "^2.4.0",
