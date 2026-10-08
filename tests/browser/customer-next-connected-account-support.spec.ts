@@ -22,6 +22,7 @@ async function setup(page:any){
   if(path==="/auth/me")return ok({id:"customer-1",name:"Test Customer",email:"test@example.test",roles:["customer"],permissions:[],status:"ACTIVE"});
   if(path==="/cart")return ok(null);
   if(path==="/customer/addresses"&&method==="GET")return ok([savedAddress]);
+  if(path==="/serviceability")return ok({serviceable:true,eligible_branch_count:1,reason_code:"SERVICEABLE"});
   if(path==="/customer/addresses/address-1"&&method==="PATCH"){savedAddress={...savedAddress,...route.request().postDataJSON()};return ok(savedAddress);}
   if(path==="/customer/profile"&&method==="GET")return ok(savedProfile);
   if(path==="/customer/profile"&&method==="PATCH"){savedProfile={...savedProfile,...route.request().postDataJSON()};return ok(savedProfile);}
@@ -53,9 +54,14 @@ test("11 account uses backend profile, edits are persisted, preview fixtures not
  await page.getByRole("button",{name:"Save changes"}).click();
  await expect(page.getByText("Updated Customer")).toBeVisible();
  expect(hits).toContain("PATCH /customer/profile");
+ await page.context().grantPermissions(["geolocation"]);
+ await page.context().setGeolocation({latitude:-1.105,longitude:37.014});
  await page.getByRole("button",{name:"Edit",exact:true}).click();
  const addressDialog=page.getByRole("dialog",{name:"Edit delivery address"});
  await addressDialog.getByRole("textbox",{name:"Street, building or landmark"}).fill("Updated Juja Road");
+ await expect(addressDialog.getByRole("button",{name:"Save address"})).toBeDisabled();
+ await addressDialog.getByRole("button",{name:"Reverify location"}).click();
+ await expect(addressDialog.getByText("Verified coordinates:")).toBeVisible();
  await addressDialog.getByRole("button",{name:"Save address"}).click();
  await expect(page.getByText(/Updated Juja Road/)).toBeVisible();
  expect(hits).toContain("PATCH /customer/addresses/address-1");
