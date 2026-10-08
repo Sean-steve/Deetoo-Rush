@@ -82,7 +82,7 @@ function Sidebar({active,goTo,open,onClose}:{
     <>
       {open && <button aria-label="Close navigation menu" className="dt-sidebar-scrim" onClick={onClose}/>}
       <aside className={classNames("dt-sidebar",open&&"dt-sidebar--open")} aria-label="Main navigation">
-        <nav className="dt-sidebar-links">
+        <nav className="dt-sidebar-links" aria-label="Main navigation">
           {routes.map(({id,label,icon:Icon})=>(
             <button key={id} className={classNames("dt-nav-link",active===id&&"dt-nav-link--active")}
               type="button" aria-current={active===id?"page":undefined}
@@ -326,7 +326,7 @@ export function App() {
     setRoute(next);
     const url=routes.find(item=>item.id===next)?.path || "/";
     if(window.location.pathname!==url)window.history.pushState({},"",url);
-    window.scrollTo({top:0,behavior:window.matchMedia("(prefers-reduced-motion: reduce)").matches?"instant":"smooth"});
+    window.scrollTo({top:0,behavior:window.matchMedia("(prefers-reduced-motion: reduce)").matches?"auto":"smooth"});
   };
   return (
     <div className="dt-app">
