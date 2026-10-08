@@ -67,3 +67,57 @@ test("Mobile navigation remains usable without sideways overflow", async ({ page
   const overflow=await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth);
   expect(overflow).toBe(false);
 });
+
+
+test("Screens 03–07: storefront, product customization, empty bag, populated bag and checkout", async ({ page }) => {
+  await fs.mkdir("visual-output/customer-next",{recursive:true});
+  await page.goto("/bag");
+  await expect(page.getByRole("heading",{name:"Your bag is empty"})).toBeVisible();
+  await page.screenshot({path:"visual-output/customer-next/05-empty-bag-1672x941.png",animations:"disabled"});
+
+  await page.getByRole("button",{name:"Explore restaurants"}).click();
+  await page.locator(".dt-restaurant-image-button").first().click();
+  await expect(page).toHaveURL(/\/restaurant$/);
+  await expect(page.getByRole("heading",{name:"Deetoo Test Merchant"})).toBeVisible();
+  await expect(page.locator(".dt-product-card")).toHaveCount(6);
+  await page.screenshot({path:"visual-output/customer-next/03-storefront-1672x941.png",animations:"disabled"});
+
+  await page.getByRole("button",{name:"Customize Smash Burger"}).click();
+  const dialog=page.getByRole("dialog");
+  await expect(dialog).toBeVisible();
+  await expect(dialog.getByRole("heading",{name:"Smash Burger"})).toBeVisible();
+  await dialog.getByRole("button",{name:/Double Beef/}).click();
+  await dialog.getByLabel("Extra cheese").check();
+  await page.screenshot({path:"visual-output/customer-next/04-customization-1672x941.png",animations:"disabled"});
+  await dialog.getByRole("button",{name:/Add to cart/}).click();
+  await expect(dialog).not.toBeVisible();
+  await expect(page.locator(".dt-cart-count")).toHaveText("1");
+
+  await page.locator(".dt-header-cart").click();
+  await expect(page).toHaveURL(/\/bag$/);
+  await expect(page.getByRole("heading",{name:"Your bag"})).toBeVisible();
+  await expect(page.getByText("Smash Burger").first()).toBeVisible();
+  await expect(page.getByText("Ksh 1,150.00").first()).toBeVisible();
+  await page.screenshot({path:"visual-output/customer-next/06-bag-1672x941.png",animations:"disabled"});
+
+  await page.getByRole("button",{name:/Proceed to checkout/}).click();
+  await expect(page).toHaveURL(/\/checkout$/);
+  await expect(page.getByRole("heading",{name:"Checkout"})).toBeVisible();
+  await expect(page.getByText("No actual payment or order will be created.")).toBeVisible();
+  await page.screenshot({path:"visual-output/customer-next/07-checkout-1672x941.png",animations:"disabled"});
+  await page.getByRole("button",{name:/Preview place order/}).click();
+  await expect(page.getByRole("status")).toContainText("no order or payment has been created");
+});
+
+test("Shopping flow remains usable on mobile and honors reduced motion", async ({ page }) => {
+  await page.setViewportSize({width:390,height:844});
+  await page.goto("/restaurant");
+  await expect(page.getByRole("heading",{name:"Deetoo Test Merchant"})).toBeVisible();
+  await page.getByRole("button",{name:"Customize Smash Burger"}).click();
+  await expect(page.getByRole("dialog")).toBeVisible();
+  await page.screenshot({path:"visual-output/customer-next/04-customization-mobile-390x844.png",animations:"disabled"});
+  await page.getByRole("button",{name:"Close product customization"}).click();
+  await expect(page.getByRole("dialog")).not.toBeVisible();
+  const overflow=await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth);
+  expect(overflow).toBe(false);
+});
