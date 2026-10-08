@@ -55,7 +55,10 @@
     "build:customer-next": "vite build --config apps/customer-web-next/vite.config.ts",
     "test:customer-next-visual": "playwright test --config playwright.customer-next.config.ts",
     "test:customer-next-connected": "playwright test --config playwright.customer-next-connected.config.ts",
-    "test:customer-next-real-services": "NODE_ENV=test DEETOO_STORAGE_MODE=postgres DEETOO_FIXTURES=false tsx --test tests/staging/customer-shopping-real-services.test.ts"
+    "test:customer-next-real-services": "NODE_ENV=test DEETOO_STORAGE_MODE=postgres DEETOO_FIXTURES=false tsx --test tests/staging/customer-shopping-real-services.test.ts",
+    "test:customer-next-staging": "playwright test --config playwright.customer-next-staging.config.ts",
+    "certify:customer-next-staging": "tsx scripts/customer-staging-certify.ts",
+    "build:customer-legacy-rollback": "pnpm build:customer"
   },
   "dependencies": {
     "@google/genai": "^2.4.0",
