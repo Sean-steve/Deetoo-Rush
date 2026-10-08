@@ -110,7 +110,7 @@ function notificationText(n:NotificationRecord){
 function Notifications({gateway,onNavigate}:{gateway:CustomerGateway;onNavigate:(path:string)=>void}){
  const resource=useBackendResource(()=>gateway.notifications.list(),true,[]);
  const [filter,setFilter]=useState("all"),[busy,setBusy]=useState(""),[error,setError]=useState(""),[query,setQuery]=useState("");
- const rows=resource.state.status==="ready"?resource.state.data:[];
+ const rows=resource.state.status==="ready"?resource.state.data.notifications:[];
  const categories=[["all","All"],["orders","Orders"],["payments","Payments"],["delivery","Delivery"],["support","Support"]] as const;
  const tag=(n:NotificationRecord)=>n.template_code.includes("PAYMENT")||n.template_code.includes("REFUND")?"payments":n.template_code.includes("RIDER")||n.template_code.includes("DELIVERY")?"delivery":n.template_code.includes("SUPPORT")?"support":"orders";
  const matching=rows.filter(n=>(filter==="all"||tag(n)===filter)&&(!query||notificationText(n).title.toLowerCase().includes(query.toLowerCase())));
