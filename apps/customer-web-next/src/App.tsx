@@ -293,7 +293,7 @@ function Discovery({isSearch,query,onQueryChange,goTo,notice,onSelectRestaurant}
   );
 }
 
-const upcoming:Record<Exclude<Route,"discover"|"search">,{title:string;body:string;stage:string}> = {
+const upcoming:Record<Exclude<Route,"discover"|"search"|"restaurant"|"checkout">,{title:string;body:string;stage:string}> = {
   bag:{title:"Your bag",body:"A separate shopping bag, empty state and checkout are scheduled for the Shopping wave.",stage:"Screens 05–07"},
   orders:{title:"Orders & tracking",body:"Order history, rider tracking and completed delivery interfaces follow in the Delivery wave.",stage:"Screens 08–10"},
   profile:{title:"My profile",body:"Profile, saved addresses and preferences will be reconstructed after the shopping and delivery screens.",stage:"Screen 11"},
@@ -302,7 +302,7 @@ const upcoming:Record<Exclude<Route,"discover"|"search">,{title:string;body:stri
   support:{title:"Help & Support",body:"The dedicated ticket dashboard and conversation views come in the Support wave.",stage:"Screens 14–15"},
 };
 
-function UpcomingScreen({route,goTo}: {route:Exclude<Route,"discover"|"search">;goTo:(route:Route)=>void}) {
+function UpcomingScreen({route,goTo}: {route:Exclude<Route,"discover"|"search"|"restaurant"|"checkout">;goTo:(route:Route)=>void}) {
   const item=upcoming[route];
   return (
     <section className="dt-upcoming">
