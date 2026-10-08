@@ -82,6 +82,8 @@ jobs:
       DEETOO_CUSTOMER_RELEASE_CERTIFIED_SHA: ${{ github.sha }}
       DEETOO_CUSTOMER_RELEASE_APPROVED: 'true'
       PRODUCTION_RELEASE_APPROVED: ${{ secrets.CUSTOMER_PRODUCTION_RELEASE_APPROVED }}
+      PRODUCTION_NEGATIVE_MATRIX_APPROVED: ${{ secrets.CUSTOMER_PRODUCTION_NEGATIVE_MATRIX_APPROVED }}
+      PRODUCTION_ROLLBACK_DRILL_APPROVED: ${{ secrets.CUSTOMER_PRODUCTION_ROLLBACK_DRILL_APPROVED }}
     steps:
       - name: Require separate owner confirmation for production candidate
         if: ${{ inputs.target == 'production' }}
@@ -91,6 +93,8 @@ jobs:
           set -eu
           test "$DECLARATION" = "I_AUTHORIZE_REVIEWED_CANDIDATE" || { echo "::error::Owner declaration missing"; exit 1; }
           test "$PRODUCTION_RELEASE_APPROVED" = "true" || { echo "::error::Protected production approval secret missing"; exit 1; }
+          test "$PRODUCTION_NEGATIVE_MATRIX_APPROVED" = "true" || { echo "::error::Negative STK/callback matrix not signed off"; exit 1; }
+          test "$PRODUCTION_ROLLBACK_DRILL_APPROVED" = "true" || { echo "::error::Rollback drill not signed off"; exit 1; }
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
         with:
