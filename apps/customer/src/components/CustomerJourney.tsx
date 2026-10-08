@@ -33,6 +33,7 @@ import {
   CheckoutQuote,
   Order,
   Payment,
+  PublicRestaurantBranch,
 } from "@deetoo/types";
 import { PaymentInitiateSchema } from "@deetoo/validation";
 import {
@@ -67,12 +68,16 @@ export function CustomerJourney({
   onBrowse,
   onAddress,
   onCartChange,
+  suggestedRestaurants = [],
+  onSelectRestaurant,
 }: {
   view: "cart" | "orders";
   addresses: CustomerAddress[];
   onBrowse: () => void;
   onAddress: () => void;
   onCartChange: () => void;
+  suggestedRestaurants?: PublicRestaurantBranch[];
+  onSelectRestaurant?: (branchId: string) => void;
 }) {
   const { apiClient, user } = useAuth();
   const cart = useResource<EnrichedCart>("/cart");
@@ -227,6 +232,30 @@ export function CustomerJourney({
             <h2>Your bag is empty</h2>
             <p>Looks like you haven't added any delicious items yet. Explore nearby restaurants to start your order.</p>
             <Button onClick={onBrowse}><ArrowRight size={17} className="mr-2"/> Explore restaurants</Button>
+            {suggestedRestaurants.length > 0 && (
+              <section className="customer-empty-suggestions" aria-label="Restaurants near your delivery area">
+                <header><h3>Popular near you</h3><button type="button" onClick={onBrowse}>View all <ArrowRight size={14}/></button></header>
+                <p>Restaurants currently available around your selected delivery location.</p>
+                <div className="customer-empty-suggestion-grid">
+                  {suggestedRestaurants.slice(0,4).map(restaurant => (
+                    <button
+                      key={restaurant.branch_id}
+                      type="button"
+                      onClick={() => onSelectRestaurant?.(restaurant.branch_id)}
+                      className="customer-empty-suggestion"
+                    >
+                      <div className="customer-empty-suggestion-image">
+                        {(restaurant.cover_url || restaurant.logo_url)
+                          ? <img src={restaurant.cover_url || restaurant.logo_url} alt="" />
+                          : <ShoppingBag size={33} strokeWidth={1.4}/>}
+                        <span>{restaurant.is_open_now ? "Open" : "Closed"}</span>
+                      </div>
+                      <div><strong>{restaurant.merchant_name}</strong><small>{restaurant.categories.slice(0,3).join(" · ")}</small><small>{restaurant.branch_name}{restaurant.distance_km != null ? ` · ${restaurant.distance_km.toFixed(1)} km` : ""}</small></div>
+                    </button>
+                  ))}
+                </div>
+              </section>
+            )}
           </div>
         ) : (
           cart.data && (
