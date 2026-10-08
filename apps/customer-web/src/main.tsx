@@ -4,6 +4,7 @@ import { createRoot } from 'react-dom/client';
 import { CustomerApp } from '../../customer/src/CustomerApp';
 import { PublicSite } from '../../customer/src/PublicSite';
 import '../../../src/index.css';
+import '../../customer/src/customer-redesign.css';
 import { installTheme } from '../../../packages/ui/src/theme';
 
 installTheme(document.documentElement);
