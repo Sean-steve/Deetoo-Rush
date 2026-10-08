@@ -36,7 +36,7 @@ function ProductDialog({item,onCancel,onAdd}:{item:PublicMenuItem;onCancel:()=>v
     <div className="dt-product-editor"><div className="dt-product-editor-head"><div><h2>{item.name}</h2><p>Freshly prepared by this restaurant</p></div><IconButton label="Close product customization" disabled={busy} onClick={onCancel}><X size={20}/></IconButton></div>
      <div className="dt-product-options"><p className="dt-product-description">{item.description}</p><strong className="dt-product-main-price">{money(item.price_minor)}</strong>
      {item.modifier_groups.map(group=><section key={group.id}><div className="dt-product-group-title"><h3>{group.name}</h3>{group.min_selections>0?<Badge variant="red">Select at least {group.min_selections}</Badge>:<Badge>Optional</Badge>}</div><div className="dt-product-extra-list">{group.options.map(option=><label key={option.id} className={!option.is_available?"dt-live-disabled":""}>
-       <input disabled={!option.is_available||busy} type={group.max_selections===1?"radio":"checkbox"} name={"modifier-"+group.id} checked={(choices[group.id]||[]).includes(option.id)} onChange={()=>toggle(group,option.id)}/>
+       <input disabled={!option.is_available||busy} type={group.max_selections===1?"radio":"checkbox"} name={"modifier-"+group.id} aria-label={option.name} checked={(choices[group.id]||[]).includes(option.id)} onChange={()=>toggle(group,option.id)}/>
        <strong>{option.name}{!option.is_available?" · Unavailable":""}</strong><em>{option.price_delta_minor>0?"+ "+money(option.price_delta_minor):option.price_delta_minor<0?money(option.price_delta_minor):"Included"}</em></label>)}
       </div><p className="dt-live-option-help">Choose {group.min_selections}–{group.max_selections} options.</p></section>)}
      </div>
