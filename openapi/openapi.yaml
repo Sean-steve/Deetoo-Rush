@@ -6570,6 +6570,29 @@ paths:
       operationId: admin_get_support_attachment_read_url
       security: [{ bearerAuth: [] }]
 
+  /admin/support/cases/{id}/finalize:
+    post:
+      summary: Administrator confirms closure after every required participant accepted
+      description: Admin or Super Admin only. Requires RESOLVED case and all linked confirmations ACCEPTED; unlike the audited Super Admin force-close override.
+      tags: [Operations (Admin/Ops)]
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema: { type: string }
+      responses:
+        '200':
+          description: Case now CLOSED with participant-visible administrator decision
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseGeneric'
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409': { $ref: '#/components/responses/Conflict' }
+      operationId: admin_post_support_case_finalize
+      security: [{ bearerAuth: [] }]
+
   /admin/support/cases/{id}/force-close:
     post:
       summary: Super Admin override to close a support case
