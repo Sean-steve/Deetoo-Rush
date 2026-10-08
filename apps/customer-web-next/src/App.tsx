@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 import { Badge, Button, IconButton, Panel, classNames } from "../../../packages/customer-ui/src/index";
 import { categories, heroBurger, previewLocation, previewRestaurants, type Cuisine, type PreviewRestaurant } from "./data/preview";
+import { FoodArt } from "./components/FoodArt";
 
 type Route = "discover" | "search" | "bag" | "orders" | "profile" | "security" | "notifications" | "support";
 type Sort = "recommended" | "rating" | "fastest" | "nearest";
@@ -114,7 +115,7 @@ function HeroBanner({notice}: {notice:(value:string)=>void}) {
         <p>{current.description}</p>
         <Button variant="outline" className="dt-hero-cta" endIcon={<ArrowRight size={17}/>} onClick={()=>notice("Offer is for the visual prototype. Live promotions are mapped in Phase 2.")}>{current.cta}</Button>
       </div>
-      <div className="dt-hero-photo" aria-hidden="true" style={{backgroundImage:`url("${heroBurger}")`}}/>
+      <div className="dt-hero-photo" aria-hidden="true"><FoodArt kind="Burgers" hero /><img src={heroBurger} alt="" onError={event => {event.currentTarget.style.display="none";}} /></div>
       <div className="dt-hero-decoration" aria-hidden="true"><span className="dt-hero-flash">✦</span><span className="dt-hero-flash">✦</span></div>
       <div className="dt-hero-offer" aria-hidden="true"><strong>Free<br/>delivery</strong><small>on selected<br/>restaurants</small></div>
       <div className="dt-carousel-dots" aria-label="Promotional slides">
@@ -169,7 +170,8 @@ function RestaurantCard({restaurant,favourite,onToggleFavourite,onSelect,index}:
   return (
     <article className="dt-restaurant-card" style={{animationDelay:`${index*45}ms`}}>
       <button type="button" className="dt-restaurant-image-button" onClick={onSelect} aria-label={`Preview ${restaurant.name}`}>
-        <img src={restaurant.image} alt={restaurant.imageAlt} loading={index<4?"eager":"lazy"}/>
+        <span className="dt-photo-fallback"><FoodArt kind={restaurant.cuisines[0]} /></span>
+        <img src={restaurant.image} alt={restaurant.imageAlt} loading={index<4?"eager":"lazy"} onError={event => {event.currentTarget.style.display="none";}}/>
         {restaurant.badge&&<span className={classNames("dt-restaurant-badge",restaurant.badgeColor==="mint"?"dt-restaurant-badge--mint":"dt-restaurant-badge--red")}>{restaurant.badge}</span>}
         <div className="dt-image-chips">
           <span><Clock3 size={13} aria-hidden="true"/> {restaurant.time[0]}–{restaurant.time[1]} min</span>
@@ -221,7 +223,7 @@ function RightRail({goTo,notice}: {goTo:(route:Route)=>void;notice:(value:string
       <Panel className="dt-top-picks">
         <div className="dt-panel-heading"><h3>Top picks for you</h3><button type="button" onClick={()=>goTo("search")}>See all <ArrowRight size={16}/></button></div>
         {previewRestaurants.slice(0,3).map(r=><button type="button" className="dt-pick" key={r.id} onClick={()=>notice(`${r.name} storefront belongs to the next visual implementation wave.`)}>
-          <img src={r.image} alt="" loading="lazy"/><div><strong>{r.name}</strong><small>{r.cuisines[0]} · Ksh {r.feeKsh}</small></div><span><Star size={13} fill="currentColor"/>{r.rating.toFixed(1)}</span>
+          <span className="dt-pick-photo"><FoodArt kind={r.cuisines[0]}/><img src={r.image} alt="" loading="lazy" onError={event => {event.currentTarget.style.display="none";}} /></span><div><strong>{r.name}</strong><small>{r.cuisines[0]} · Ksh {r.feeKsh}</small></div><span><Star size={13} fill="currentColor"/>{r.rating.toFixed(1)}</span>
         </button>)}
       </Panel>
       <Panel className="dt-hungry">
@@ -264,7 +266,7 @@ function Discovery({isSearch,query,onQueryChange,goTo,notice}:{
           </div>
         </div>
         {isSearch ? (
-          <section className="dt-search-hero"><span>SEARCH DEETOO</span><h2>Find exactly what<br/><em>you’re craving</em></h2><p>Search for restaurants, dishes or cuisines across Juja and nearby areas.</p><div aria-hidden="true" className="dt-search-hero-food" style={{backgroundImage:`url("${heroBurger}")`}}/></section>
+          <section className="dt-search-hero"><span>SEARCH DEETOO</span><h2>Find exactly what<br/><em>you’re craving</em></h2><p>Search for restaurants, dishes or cuisines across Juja and nearby areas.</p><div aria-hidden="true" className="dt-search-hero-food"><FoodArt kind="Burgers" hero /><img src={heroBurger} alt="" onError={event => {event.currentTarget.style.display="none";}}/></div></section>
         ) : <HeroBanner notice={notice}/>}
         <CategoryStrip active={selectedCategory} onSelect={setSelectedCategory}/>
         <Filters sort={sort} onSortChange={setSort} onlyOpen={onlyOpen} onOpenChange={setOnlyOpen} active={selectedCategory} notice={notice}/>
