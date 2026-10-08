@@ -369,9 +369,9 @@ test("Screen 15: responding to a proposed resolution cannot independently close 
  await page.goto("/support/cases/case-refund");
  await expect(page.getByRole("region",{name:"Proposed resolution"})).toBeVisible();
  await page.getByRole("region",{name:"Proposed resolution"}).getByRole("button",{name:"I need more help"}).click();
- await expect(page.getByText("An administrator must confirm the final case status.")).toBeVisible();
+ await expect(page.getByText("The final case status is controlled by the server workflow.")).toBeVisible();
  await expect(page.locator(".dt-support-chat-panel").getByText("Waiting")).toBeVisible();
- await expect(page.getByRole("status")).toContainText("only authorized staff");
+ await expect(page.getByRole("status")).toContainText("no real case status was changed");
  await page.reload();
  await expect(page.getByRole("region",{name:"Proposed resolution"}).getByRole("button",{name:"I agree"})).toBeVisible();
 });
