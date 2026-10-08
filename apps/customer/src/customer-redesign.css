@@ -325,3 +325,51 @@
   .customer-shell .customer-mobile-nav { display:none!important; }
   .customer-shell > .bg-emerald-600.text-white { position:fixed;top:75px;left:0;right:0;z-index:61; }
 }
+
+/* Desktop discovery composition: 12-column left grid + genuine nearby metadata rail. */
+.customer-discovery-layout { display:grid;grid-template-columns:minmax(0,2.8fr) minmax(270px,1fr);gap:1.2rem;align-items:start; }
+.customer-discovery-primary { min-width:0; }
+.customer-discovery-rail { display:flex;flex-direction:column;gap:1.1rem;min-width:0; }
+.customer-nearby-map,.customer-top-picks { border:1px solid var(--customer-line);border-radius:18px;background:#fff;box-shadow:0 10px 26px rgb(22 81 50 / .04);overflow:hidden; }
+.customer-nearby-map > h2 { font-size:1rem;font-weight:850;padding:.95rem 1rem .35rem; }
+.customer-nearby-map > p { padding:1rem; }
+.customer-nearby-map .location-map { border:0;border-radius:0;min-height:0!important;box-shadow:none;background:#f6faf8; }
+.customer-nearby-map .location-map > div:first-child { padding:.5rem .9rem;font-size:.65rem; }
+.customer-nearby-map .location-map svg { width:100%;height:auto;max-height:230px; }
+.customer-nearby-map .location-map > p { padding:.6rem .9rem;font-size:.66rem;color:#566d60; }
+.customer-side-card-heading { display:flex;justify-content:space-between;align-items:center;gap:.5rem;padding:1.05rem 1rem .55rem; }
+.customer-side-card-heading h2 { font-size:1.03rem;font-weight:850; }
+.customer-side-card-heading span { color:var(--customer-green);font-size:.75rem; }
+.customer-pick-row { display:flex;width:calc(100% - 1.6rem);margin:0 .8rem;padding:.7rem .15rem;gap:.65rem;align-items:center;border-bottom:1px solid var(--customer-line);text-align:left;background:#fff;min-width:0; }
+.customer-pick-row:last-child { border:0; }
+.customer-pick-row:hover { background:#f5fcf8; }
+.customer-pick-photo { flex:0 0 58px;height:58px;border-radius:11px;display:grid;place-items:center;color:var(--customer-green);background:#ecf8f2;overflow:hidden; }
+.customer-pick-photo img { width:100%;height:100%;object-fit:cover; }
+.customer-pick-row > span { min-width:0;flex:1; }
+.customer-pick-row strong { display:block;font-size:.83rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap; }
+.customer-pick-row small { display:block;font-size:.71rem;color:#65748a;margin-top:.3rem;line-height:1.35; }
+.customer-pick-row > svg { color:#08764b;flex-shrink:0; }
+.customer-discovery-assurance { background:linear-gradient(120deg,#e8f9ef,#fafffc);border-radius:17px;padding:1.1rem;display:flex;align-items:center;gap:.8rem;border:1px solid #ccecdc;color:#0a7c4e; }
+.customer-discovery-assurance svg { flex-shrink:0; }
+.customer-discovery-assurance strong { font-size:.9rem;color:#1b4030; }
+.customer-discovery-assurance p { color:#557267;font-size:.76rem;line-height:1.45;margin-top:.25rem; }
+.customer-discovery-layout .customer-restaurant-grid { grid-template-columns:repeat(3,minmax(0,1fr));gap:.8rem; }
+.customer-discovery-layout .customer-restaurant-content { padding:.8rem!important; }
+.customer-discovery-layout .customer-restaurant-media { aspect-ratio:1.65 / 1; }
+.customer-discovery-layout .customer-hero { min-height:240px; }
+.customer-discovery-layout .customer-hero h1 { font-size:clamp(2rem,3vw,3.5rem)!important; }
+.customer-discovery-layout .customer-hero-copy { width:75%; }
+@media (max-width:1350px) {
+ .customer-discovery-layout { grid-template-columns:minmax(0,1fr) 260px; }
+ .customer-discovery-layout .customer-restaurant-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
+}
+@media (max-width:1100px) {
+ .customer-discovery-layout { grid-template-columns:1fr; }
+ .customer-discovery-rail { display:grid;grid-template-columns:1fr 1fr; }
+ .customer-discovery-layout .customer-restaurant-grid { grid-template-columns:repeat(3,minmax(0,1fr)); }
+}
+@media (max-width:700px) {
+ .customer-discovery-rail { grid-template-columns:1fr; }
+ .customer-discovery-layout .customer-restaurant-grid { grid-template-columns:1fr; }
+ .customer-discovery-layout .customer-hero-copy { width:100%; }
+}
