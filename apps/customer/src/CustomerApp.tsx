@@ -946,6 +946,11 @@ function CustomerAppInner() {
                 onBrowse={() => setActiveTab("discovery")}
                 onAddress={() => setIsAddressModalOpen(true)}
                 onCartChange={cartSummary.refresh}
+                suggestedRestaurants={restaurants}
+                onSelectRestaurant={(branchId) => {
+                  setSelectedBranchId(branchId);
+                  setActiveTab("discovery");
+                }}
               />
             ) : (
               <EmptyState
