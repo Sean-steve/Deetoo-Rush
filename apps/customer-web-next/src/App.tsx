@@ -10,6 +10,7 @@ import { categories, heroBurger, previewLocation, previewRestaurants, type Cuisi
 import { FoodArt } from "./components/FoodArt";
 import { ShoppingPreview, type CartLine } from "./components/ShoppingPreview";
 import { OrdersPreview } from "./components/OrdersPreview";
+import { AccountPreview } from "./components/AccountPreview";
 
 type Route = "discover" | "search" | "restaurant" | "bag" | "checkout" | "orders" | "tracking" | "delivered" | "profile" | "security" | "notifications" | "support";
 type Sort = "recommended" | "rating" | "fastest" | "nearest";
@@ -300,15 +301,12 @@ function Discovery({isSearch,query,onQueryChange,goTo,notice,onSelectRestaurant}
   );
 }
 
-const upcoming:Record<Exclude<Route,"discover"|"search"|"restaurant"|"checkout"|"orders"|"tracking"|"delivered">,{title:string;body:string;stage:string}> = {
+const upcoming:Record<Exclude<Route,"discover"|"search"|"restaurant"|"checkout"|"orders"|"tracking"|"delivered"|"profile"|"security"|"notifications">,{title:string;body:string;stage:string}> = {
   bag:{title:"Your bag",body:"A separate shopping bag, empty state and checkout are scheduled for the Shopping wave.",stage:"Screens 05–07"},
-  profile:{title:"My profile",body:"Profile, saved addresses and preferences will be reconstructed after the shopping and delivery screens.",stage:"Screen 11"},
-  security:{title:"Security & devices",body:"The visual preview will show real security state only after the auth adapter is connected.",stage:"Screen 12"},
-  notifications:{title:"Notifications Center",body:"Notification types and preferences will be reconstructed and mapped to their respective APIs.",stage:"Screen 13"},
   support:{title:"Help & Support",body:"The dedicated ticket dashboard and conversation views come in the Support wave.",stage:"Screens 14–15"},
 };
 
-function UpcomingScreen({route,goTo}: {route:Exclude<Route,"discover"|"search"|"restaurant"|"checkout"|"orders"|"tracking"|"delivered">;goTo:(route:Route)=>void}) {
+function UpcomingScreen({route,goTo}: {route:Exclude<Route,"discover"|"search"|"restaurant"|"checkout"|"orders"|"tracking"|"delivered"|"profile"|"security"|"notifications">;goTo:(route:Route)=>void}) {
   const item=upcoming[route];
   return (
     <section className="dt-upcoming">
@@ -365,7 +363,7 @@ export function App() {
       <Sidebar active={route==="restaurant"?"discover":route==="checkout"?"bag":route==="tracking"||route==="delivered"?"orders":route} goTo={goTo} open={mobileOpen} onClose={()=>setMobileOpen(false)} bagCount={bagCount}/>
       <main className="dt-main" id="main-content">
         <button className="dt-mobile-menu" aria-label="Open navigation menu" onClick={()=>setMobileOpen(true)} type="button"><Menu size={21}/> Menu</button>
-        {route==="discover"||route==="search" ? <Discovery isSearch={route==="search"} query={query} onQueryChange={setQuery} goTo={goTo} notice={setNotice} onSelectRestaurant={selectRestaurant}/> : route==="restaurant"||route==="bag"||route==="checkout" ? <ShoppingPreview screen={route} restaurantId={restaurantId} cart={cart} onAdd={addToCart} onUpdate={updateCart} onClear={()=>setCart([])} onNavigate={goTo} onNotice={setNotice}/> : route==="orders"||route==="tracking"||route==="delivered" ? <OrdersPreview screen={route} orderId={selectedOrderId} onOpen={openOrder} onBack={()=>goTo("orders")} onRestaurant={selectRestaurant} onSupport={()=>goTo("support")} onNotice={setNotice}/> : <UpcomingScreen route={route} goTo={goTo}/>}
+        {route==="discover"||route==="search" ? <Discovery isSearch={route==="search"} query={query} onQueryChange={setQuery} goTo={goTo} notice={setNotice} onSelectRestaurant={selectRestaurant}/> : route==="restaurant"||route==="bag"||route==="checkout" ? <ShoppingPreview screen={route} restaurantId={restaurantId} cart={cart} onAdd={addToCart} onUpdate={updateCart} onClear={()=>setCart([])} onNavigate={goTo} onNotice={setNotice}/> : route==="orders"||route==="tracking"||route==="delivered" ? <OrdersPreview screen={route} orderId={selectedOrderId} onOpen={openOrder} onBack={()=>goTo("orders")} onRestaurant={selectRestaurant} onSupport={()=>goTo("support")} onNotice={setNotice}/> : route==="profile"||route==="security"||route==="notifications" ? <AccountPreview screen={route} onNavigate={goTo} onNotice={setNotice}/> : <UpcomingScreen route={route} goTo={goTo}/>}
       </main>
       {notice&&<div className="dt-notice" role="status" aria-live="polite"><span className="dt-notice-dot"><Check size={16}/></span><span>{notice}</span><IconButton label="Dismiss message" onClick={()=>setNotice(null)}><X size={17}/></IconButton></div>}
     </div>
