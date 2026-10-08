@@ -16,6 +16,7 @@ import {authService} from "../../apps/api/src/modules/auth/auth.service";
 import {merchantRepository} from "../../apps/api/src/modules/merchant/merchant.repository";
 import {customerRepository} from "../../apps/api/src/modules/customer/customer.repository";
 import {processPaymentCommand} from "../../apps/api/src/modules/payment/payment-worker";
+import {notificationService} from "../../apps/api/src/modules/operations/notification.service";
 import {MerchantStatus,MerchantApprovalStatus,BranchAdminStatus,BranchOperationalStatus} from "@deetoo/types";
 import {config} from "@deetoo/config";
 
@@ -179,5 +180,57 @@ test("01–07 full HTTP customer journey uses genuine PostgreSQL, Redis, and pay
  const foreignTracking=await fetch(base+prefix+"/customer/orders/"+first.json.data.id+"/track",{headers:{Authorization:"Bearer "+stranger.accessToken}});
  eq(foreignTracking.status,403,"09 foreign tracking forbidden");
  record("08-09-orders-and-privacy",{historyCount:history.json.data.length,trackingStatus:tracking.status,foreignDenied:true});
+ // Phase B4: real customer profile/address/sessions and privacy protection.
+ const customerProfile=await http("/customer/profile");
+ eq(customerProfile.status,200,"11 customer profile");
+ assert.equal(customerProfile.json.data.user_id,customerId);
+ const profileUpdated=await http("/customer/profile",{method:"PATCH",body:JSON.stringify({display_name:"Real Service Customer"})});
+ eq(profileUpdated.status,200,"11 update profile");assert.equal(profileUpdated.json.data.display_name,"Real Service Customer");
+ const originalSessions=await http("/auth/sessions");
+ eq(originalSessions.status,200,"12 authenticated security sessions");
+ assert(Array.isArray(originalSessions.json.data));
+ record("11-12-account",{savedAddresses:addresses.json.data.length,sessions:originalSessions.json.data.length});
+
+ // 13: actual persisted customer notification, scoped unread and read handling.
+ const sent=await notificationService.sendNotification({recipientType:"CUSTOMER",recipientId:customerId,
+  channel:"IN_APP",templateCode:"SUPPORT_CASE_UPDATED",subject:"Your DeeToo support request",payload:{message:"We are reviewing your request."},
+  referenceId:randomUUID()});
+ const inbox=await http("/customer/support/notifications");
+ eq(inbox.status,200,"13 customer inbox");
+ assert(Array.isArray(inbox.json.data.notifications),"notification envelope includes a collection");
+ assert(inbox.json.data.notifications.some((n:any)=>n.id===sent.id));
+ const read=await post("/customer/support/notifications/"+sent.id+"/read",{});
+ eq(read.status,200,"13 customer mark-read");
+ assert(read.json.data.read_at,"read timestamp persisted");
+ const foreignRead=await fetch(base+prefix+"/customer/support/notifications/"+sent.id+"/read",
+  {method:"POST",headers:{Authorization:"Bearer "+stranger.accessToken,"Content-Type":"application/json"},body:"{}"});
+ assert([403,404].includes(foreignRead.status),"notifications may only be marked read by their recipient");
+ record("13-notifications",{readPersisted:true,foreignDenied:true});
+
+ // 14–15: customer-owned persisted conversation with scoped case attachment/read boundary.
+ const createdCase=await post("/customer/support/cases",{category:"ORDER_ISSUE",order_id:first.json.data.id,
+  subject:"Question about paid order",description:"Please help with the actual paid order status."});
+ eq(createdCase.status,201,"14 create scoped support request");
+ const caseId=createdCase.json.data.id;
+ const caseList=await http("/customer/support/cases");
+ eq(caseList.status,200,"14 customer support listing");
+ assert(caseList.json.data.cases.some((c:any)=>c.id===caseId));
+ const firstRead=await http("/customer/support/cases/"+caseId);
+ eq(firstRead.status,200,"15 case detail");
+ assert.equal(firstRead.json.data.case.customer_id,customerId);
+ const posted=await post("/customer/support/cases/"+caseId+"/notes",{body:"I want to understand the delivery status.",media_ids:[]});
+ eq(posted.status,201,"15 message persisted");
+ const thread=await http("/customer/support/cases/"+caseId);
+ eq(thread.status,200,"15 conversation reread");
+ assert(thread.json.data.notes.some((n:any)=>n.body==="I want to understand the delivery status."));
+ const foreignCase=await fetch(base+prefix+"/customer/support/cases/"+caseId,
+  {headers:{Authorization:"Bearer "+stranger.accessToken}});
+ eq(foreignCase.status,403,"15 other customer's conversation blocked");
+ const foreignPost=await fetch(base+prefix+"/customer/support/cases/"+caseId+"/notes",
+  {method:"POST",headers:{Authorization:"Bearer "+stranger.accessToken,"Content-Type":"application/json"},
+   body:JSON.stringify({body:"Should never be posted"})});
+ eq(foreignPost.status,403,"15 other customer's messages blocked");
+ record("14-15-support",{casePersisted:true,conversationPersisted:true,foreignDenied:true});
+
 
 });
