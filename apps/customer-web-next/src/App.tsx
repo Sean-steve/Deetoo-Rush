@@ -139,9 +139,9 @@ function CategoryStrip({active,onSelect}: {active:"All"|Cuisine;onSelect:(value:
   );
 }
 
-function Filters({sort,onSortChange,onlyOpen,onOpenChange,active,notice}:{
+function Filters({sort,onSortChange,onlyOpen,onOpenChange,active,isSearch,onReset,notice}:{
   sort:Sort;onSortChange:(sort:Sort)=>void;onlyOpen:boolean;onOpenChange:(value:boolean)=>void;
-  active:"All"|Cuisine;notice:(value:string)=>void;
+  active:"All"|Cuisine;isSearch:boolean;onReset:()=>void;notice:(value:string)=>void;
 }) {
   const selectId=useId();
   return (
@@ -157,9 +157,13 @@ function Filters({sort,onSortChange,onlyOpen,onOpenChange,active,notice}:{
       <button type="button" className="dt-filter-pill" onClick={()=>notice("Price-range filtering requires the restaurant search contract in Phase 2.")}><Tag size={17}/> Price range <ChevronDown size={15}/></button>
       <button type="button" className="dt-filter-pill" onClick={()=>notice("Promotions shown here are visual fixtures; backend eligibility is integrated later.")}><Tag size={17}/> Offers <ChevronDown size={15}/></button>
       <button type="button" className="dt-filter-pill" onClick={()=>onSortChange("rating")}><Star size={17}/> Rating <ChevronDown size={15}/></button>
-      <button type="button" className={classNames("dt-filter-pill dt-open-toggle",onlyOpen&&"dt-open-toggle--on")} aria-pressed={onlyOpen} onClick={()=>onOpenChange(!onlyOpen)}>
-        <span className="dt-switch"><span/></span> Open now
-      </button>
+      {isSearch ? (
+        <button type="button" className={classNames("dt-filter-pill dt-open-toggle",onlyOpen&&"dt-open-toggle--on")} aria-pressed={onlyOpen} onClick={()=>onOpenChange(!onlyOpen)}>
+          <span className="dt-switch"><span/></span> Open now
+        </button>
+      ) : (
+        <button type="button" className="dt-filter-reset" onClick={onReset}>Reset</button>
+      )}
     </div>
   );
 }
@@ -269,8 +273,8 @@ function Discovery({isSearch,query,onQueryChange,goTo,notice}:{
           <section className="dt-search-hero"><span>SEARCH DEETOO</span><h2>Find exactly what<br/><em>you’re craving</em></h2><p>Search for restaurants, dishes or cuisines across Juja and nearby areas.</p><div aria-hidden="true" className="dt-search-hero-food"><FoodArt kind="Burgers" hero /><img src={heroBurger} alt="" onError={event => {event.currentTarget.style.display="none";}}/></div></section>
         ) : <HeroBanner notice={notice}/>}
         <CategoryStrip active={selectedCategory} onSelect={setSelectedCategory}/>
-        <Filters sort={sort} onSortChange={setSort} onlyOpen={onlyOpen} onOpenChange={setOnlyOpen} active={selectedCategory} notice={notice}/>
-        <div className="dt-results-label"><strong>{isSearch ? `${restaurants.length} restaurants found${query ? ` for “${query}”` : ""}` : "Restaurants near you"}</strong><span>Preview listings · Juja</span></div>
+        <Filters sort={sort} onSortChange={setSort} onlyOpen={onlyOpen} onOpenChange={setOnlyOpen} active={selectedCategory} isSearch={isSearch} onReset={()=>{setSelectedCategory("All");setSort("recommended");setOnlyOpen(false);onQueryChange("");}} notice={notice}/>
+        {isSearch && <div className="dt-results-label"><strong>{`${restaurants.length} restaurants found${query ? ` for “${query}”` : ""}`}</strong><span>Preview listings · Juja</span></div>}
         {view==="map"&&<div className="dt-main-map"><MapPreview notice={notice}/></div>}
         {restaurants.length>0 ? (
           <div className="dt-restaurants">
