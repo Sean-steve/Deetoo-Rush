@@ -17,6 +17,7 @@ async function certify(){
  const parsed=new URL(url);
  check(["postgres:","postgresql:"].includes(parsed.protocol),"staging database URL must be Postgres");
  check(!/foundation|shopping|delivery|test_only|localhost|127\.0\.0\.1/i.test(parsed.pathname),"cannot certify local ephemeral CI database");
+ check(!["localhost","127.0.0.1","::1","[::1]"].includes(parsed.hostname),"staging certificate cannot target a local database host");
  const orderId=need("STAGING_CERT_ORDER_ID"),caseId=need("STAGING_CERT_SUPPORT_CASE_ID"),receipt=need("STAGING_CERT_MPESA_RECEIPT");
  check(uuid.test(orderId)&&uuid.test(caseId),"real staging order and case UUIDs required");
  check(/^[0-9A-Z]{8,24}$/.test(receipt),"real Daraja receipt required");
