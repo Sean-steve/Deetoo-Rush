@@ -92,7 +92,7 @@ function Profile({gateway,onNavigate,onAddressesChanged}:{gateway:CustomerGatewa
   <Panel className="dt-live-account-card"><div className="dt-account-section-head"><span className="dt-account-icon"><MapPin/></span><div><h2>Saved addresses</h2><p>Delivery locations verified by DeeToo.</p></div>
    <Button size="sm" onClick={()=>setEditor("new")}><Plus size={16}/> Add address</Button></div>
    <ResourceView resource={addresses.state} empty="No saved addresses yet" onRetry={addresses.refresh}>{(list:CustomerAddress[])=><div className="dt-live-account-addresses">{list.map(a=><article key={a.id}>
-    <span className="dt-account-icon"><House size={21}/></span><div><h3>{a.label} {a.is_default&&<Badge variant="mint">Default</Badge>}</h3><p>{a.address_text||a.address_line1}, {a.city}, {a.region}</p><small>{a.delivery_instructions||"Delivery address"}</small></div>
+    <span className="dt-account-icon"><House size={21}/></span><div><h3>{a.label} {a.is_default&&<Badge variant="mint">Default</Badge>}</h3><p>{a.address_line1}{a.address_line2?", "+a.address_line2:""}, {a.city}, {a.region}</p><small>{a.delivery_instructions||"Delivery address"}</small></div>
     <div>{!a.is_default&&<Button variant="outline" size="sm" disabled={addressBusy===a.id} onClick={()=>void changeAddress(a.id,"default")}>Set default</Button>}
      <Button variant="outline" size="sm" onClick={()=>setEditor(a)}>Edit</Button><Button variant="outline" size="sm" onClick={()=>setConfirmRemove(a)} disabled={addressBusy===a.id} aria-label={"Remove "+a.label}><Trash2 size={16}/></Button></div>
    </article>)}</div>}</ResourceView>
