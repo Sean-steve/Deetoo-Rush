@@ -24,7 +24,7 @@ if(config.storage.mode!=="postgres"||config.storage.fixtures||
  !config.localWorkflow||["staging","production"].includes(config.environment))
  throw new Error("Run ONLY in isolated local/test PostgreSQL with explicit synthetic provider; never in deployed staging/production.");
 
-let server:Server,base="",token="",customerId="",branchId="",itemId="",addressId="",merchantId="";
+let server:Server,base="",token="",customerId="",branchId="",itemId="",addressId="",merchantId="",modifierId="",unavailableOptionId="",soldoutItemId="";
 const prefix="/api/v1";
 async function http(path:string,init:RequestInit={}){
  const response=await fetch(base+prefix+path,{...init,headers:{
@@ -67,6 +67,12 @@ before(async()=>{
  await db.query("INSERT INTO menus(id,branch_id,merchant_id,name,status) VALUES($1,$2,$3,'Acceptance Menu','ACTIVE')",[menuId,branchId,merchantId]);
  await db.query("INSERT INTO menu_categories(id,menu_id,name) VALUES($1,$2,'Acceptance Burgers')",[categoryId,menuId]);
  await db.query("INSERT INTO menu_items(id,menu_id,category_id,name,price_minor) VALUES($1,$2,$3,$4,85000)",[itemId,menuId,categoryId,"Acceptance Smash "+merchantId.slice(0,8)]);
+ // Real menu modifier group: one required, one available, one unavailable.
+ const modifierGroupId=randomUUID();modifierId=randomUUID();unavailableOptionId=randomUUID();soldoutItemId=randomUUID();
+ await db.query("INSERT INTO modifier_groups(id,merchant_id,name,min_selections,max_selections,is_required) VALUES($1,$2,'Choose patty',1,1,true)",[modifierGroupId,merchantId]);
+ await db.query("INSERT INTO modifier_options(id,modifier_group_id,name,price_delta_minor,is_available) VALUES($1,$2,'Beef patty',5000,true),($3,$2,'Unavailable patty',5000,false)",[modifierId,modifierGroupId,unavailableOptionId]);
+ await db.query("INSERT INTO item_modifier_groups(item_id,modifier_group_id) VALUES($1,$2)",[itemId,modifierGroupId]);
+ await db.query("INSERT INTO menu_items(id,menu_id,category_id,name,price_minor,is_available) VALUES($1,$2,$3,'Sold Out Test',10000,false)",[soldoutItemId,menuId,categoryId]);
  await db.query("INSERT INTO delivery_pricing_rules(id,base_fee_minor,included_distance_meters,per_km_fee_minor,minimum_fee_minor,maximum_fee_minor,max_delivery_distance_meters,status,effective_from) VALUES($1,10000,5000,0,10000,10000,100000,'ACTIVE',now())",[randomUUID()]);
  await db.query("INSERT INTO service_fee_rules(id,fee_type,percentage_basis_points,fixed_fee_minor,minimum_fee_minor,maximum_fee_minor,status,effective_from) VALUES($1,'FIXED',0,2500,2500,2500,'ACTIVE',now())",[randomUUID()]);
  await db.query("INSERT INTO merchant_commission_rules(id,merchant_id,percentage_rate,fixed_fee_minor,effective_from,status) VALUES($1,$2,0.2,0,now(),'ACTIVE')",[randomUUID(),merchantId]);
@@ -101,20 +107,27 @@ test("01–07 full HTTP customer journey uses genuine PostgreSQL, Redis, and pay
  assert.equal(detail.json.data.branch.branch_id,branchId);
  const menu=await http("/public/branches/"+branchId+"/menu");
  eq(menu.status,200,"03 public menu");
- assert(menu.json.data.categories.some((c:any)=>c.items.some((x:any)=>x.id===itemId)));
+ assert(menu.json.data.categories.some((c:any)=>c.items.some((x:any)=>x.id===itemId&&x.modifier_groups?.[0]?.min_selections===1)));
  record("03-menu");
  // 04/05/06: actual authenticated cart, price in minor units, quantity updates
  const noAuth=await fetch(base+prefix+"/cart");
  eq(noAuth.status,401,"05 authorization");
  const initial=await http("/cart");eq(initial.status,200,"05 empty cart");assert.equal(initial.json.data,null);
- const add=await post("/cart/items",{branch_id:branchId,menu_item_id:itemId,quantity:1,modifier_option_ids:[]});
- eq(add.status,200,"04 add menu item");assert.equal(add.json.data.total_quantity,1);
+ const missing=await post("/cart/items",{branch_id:branchId,menu_item_id:itemId,quantity:1,modifier_option_ids:[]});
+ assert(missing.status>=400,"04 required modifier must be rejected");
+ const unavailable=await post("/cart/items",{branch_id:branchId,menu_item_id:itemId,quantity:1,modifier_option_ids:[unavailableOptionId]});
+ assert(unavailable.status>=400,"04 unavailable modifier must be rejected");
+ const soldout=await post("/cart/items",{branch_id:branchId,menu_item_id:soldoutItemId,quantity:1,modifier_option_ids:[]});
+ assert(soldout.status>=400,"04 sold-out item must be rejected");
+ const add=await post("/cart/items",{branch_id:branchId,menu_item_id:itemId,quantity:1,modifier_option_ids:[modifierId]});
+ eq(add.status,200,"04 add menu item with required option");assert.equal(add.json.data.total_quantity,1);
+ record("04-modifiers",{requiredDenied:true,unavailableDenied:true,soldOutDenied:true});
  const cartItemId=add.json.data.items[0].id;
- eq((await http("/cart")).json.data.items[0].line_total_minor,85000,"06 persisted cart pricing");
+ eq((await http("/cart")).json.data.items[0].line_total_minor,90000,"06 persisted price includes modifier");
  const update=await http("/cart/items/"+cartItemId,{method:"PATCH",body:JSON.stringify({quantity:2})});
  eq(update.status,200,"06 quantity update");eq(update.json.data.total_quantity,2,"06 updated cart quantity");
  const reloaded=await http("/cart");
- eq(reloaded.json.data.pricing.items_subtotal_minor,170000,"06 server price");
+ eq(reloaded.json.data.pricing.items_subtotal_minor,180000,"06 server price with modifiers");
  record("04-06-cart",{subtotalMinor:reloaded.json.data.pricing.items_subtotal_minor});
  // 07: saved address, immutable server quote, idempotent pending order
  const addresses=await http("/customer/addresses");
@@ -123,7 +136,7 @@ test("01–07 full HTTP customer journey uses genuine PostgreSQL, Redis, and pay
  const quoted=await post("/checkout/quote",{address_id:addressId,payment_method:"MPESA"});
  eq(quoted.status,200,"07 authoritative quote");
  const quote=quoted.json.data;
- assert.equal(quote.gross_subtotal_minor,170000);
+ assert.equal(quote.gross_subtotal_minor,180000);
  assert.equal(quote.total_minor,quote.net_subtotal_minor+quote.delivery_fee_minor+quote.service_fee_minor+quote.tax_minor);
  const key=randomUUID();
  const first=await post("/orders",{quote_id:quote.id},key);
