@@ -62,6 +62,47 @@ export function customerProgressStage(orderStatus?: string, deliveryStatus?: str
   return "confirmed";
 }
 
+function CustomerEmptyBagIllustration() {
+  return (
+    <svg viewBox="0 0 430 260" role="img" aria-label="Illustration of an empty DeeToo shopping bag with fresh produce">
+      <defs>
+        <linearGradient id="empty-bag-paper" x1="0" x2="1" y1="0" y2="1">
+          <stop offset="0" stopColor="#FFD6A2" />
+          <stop offset="1" stopColor="#E69C60" />
+        </linearGradient>
+        <linearGradient id="empty-bag-avocado" x1="0" x2="1" y1="0" y2="1">
+          <stop offset="0" stopColor="#B1DB49" />
+          <stop offset="1" stopColor="#4F8B27" />
+        </linearGradient>
+        <linearGradient id="empty-bag-logo" x1="0" x2="0" y1="0" y2="1">
+          <stop offset="0" stopColor="#00B974" />
+          <stop offset="1" stopColor="#007D4C" />
+        </linearGradient>
+      </defs>
+      <ellipse cx="228" cy="240" rx="165" ry="13" fill="#194A32" opacity=".12"/>
+      <path d="M47 183 Q11 154 22 129 Q54 120 72 173Z" fill="#86BE36"/>
+      <path d="M354 152 Q376 125 409 126 Q399 165 359 177Z" fill="#87C641"/>
+      <path d="M127 53 Q193 0 271 42 Q332 26 364 99 Q386 172 343 219 L96 224 Q42 186 68 118Z" fill="#E6F8EF" opacity=".76"/>
+      <path d="M173 65 L312 64 L340 222 L162 224Z" fill="url(#empty-bag-paper)"/>
+      <path d="M312 64 L327 83 L351 223 L340 222Z" fill="#BF794A"/>
+      <path d="M172 65 L186 86 L177 223 L160 224Z" fill="#F2AD74"/>
+      <path d="M178 48 Q215 15 254 49" fill="none" stroke="#D9925F" strokeWidth="11" strokeLinecap="round"/>
+      <path d="M196 60 Q213 35 239 60" fill="none" stroke="#FFDFBB" strokeWidth="8" strokeLinecap="round"/>
+      <path d="M171 63 L311 65 L309 88 L178 86Z" fill="#FFD2A4"/>
+      <circle cx="243" cy="140" r="39" fill="url(#empty-bag-logo)"/>
+      <path d="M218 157 L241 120 L269 156 Q250 145 241 142 Q232 148 218 157Z" fill="#fff"/>
+      <path d="M93 185 Q74 156 91 135 Q115 119 133 140 Q145 171 119 201Z" fill="url(#empty-bag-avocado)" stroke="#568E2F" strokeWidth="6"/>
+      <path d="M104 189 Q89 157 108 145 Q126 143 130 164 Q128 182 111 193Z" fill="#EFEAA1"/>
+      <ellipse cx="111" cy="172" rx="11" ry="15" fill="#A66A33"/>
+      <circle cx="152" cy="202" r="28" fill="#E94131"/>
+      <path d="M151 170 Q156 182 158 186 M142 175 Q147 180 152 185 M167 175 Q161 179 155 186" fill="none" stroke="#23834A" strokeWidth="6" strokeLinecap="round"/>
+      <path d="M69 66 L64 42 M359 50 L374 24 M328 38 L333 13" stroke="#007C4B" strokeWidth="7" strokeLinecap="round"/>
+      <circle cx="88" cy="84" r="6" fill="#C9EDA0"/>
+      <circle cx="382" cy="194" r="5" fill="#BDE6A9"/>
+    </svg>
+  );
+}
+
 export function CustomerJourney({
   view,
   addresses,
@@ -228,7 +269,7 @@ export function CustomerJourney({
       <ResourceState resource={cart}>
         {!cart.error && !cart.loading && !cart.data?.items?.length ? (
           <div className="customer-empty-bag" role="status">
-            <div className="customer-empty-bag-art"><ShoppingBag strokeWidth={1.4} aria-hidden="true" /></div>
+            <div className="customer-empty-bag-art"><CustomerEmptyBagIllustration /></div>
             <h2>Your bag is empty</h2>
             <p>Looks like you haven't added any delicious items yet. Explore nearby restaurants to start your order.</p>
             <Button onClick={onBrowse}><ArrowRight size={17} className="mr-2"/> Explore restaurants</Button>
