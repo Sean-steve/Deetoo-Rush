@@ -427,3 +427,19 @@
 .customer-profile-view .customer-profile-primary > .space-y-6 > .grid { display:grid;grid-template-columns:1fr 1fr; }
 @media (max-width:1280px){.customer-profile-grid { grid-template-columns:1fr; }.customer-profile-actions { display:grid;grid-template-columns:repeat(2,minmax(0,1fr)); }.customer-profile-signout { grid-column:1/-1; }}
 @media (max-width:800px){.customer-profile-view .customer-profile-primary > .space-y-6 > .grid,.customer-profile-actions { grid-template-columns:1fr; }.customer-profile-avatar { width:70px;height:70px;font-size:1.8rem; }}
+
+/* Reference geometry corrections measured against the supplied 1672 × 941 desktop canvas. */
+.customer-shell .customer-page { padding-top:1rem; }
+.customer-discovery-page { min-width:0; }
+.customer-discover-intro { min-height:69px;display:flex;justify-content:space-between;gap:1rem;align-items:flex-start; }
+.customer-discover-intro h1 { font-size:clamp(1.5rem,2.1vw,2.05rem);font-weight:900;line-height:1.15;letter-spacing:-.045em; }
+.customer-discover-intro p { color:#63748f;font-size:.87rem;margin-top:.3rem; }
+.customer-discover-intro button { display:flex;align-items:center;gap:.45rem;min-height:43px;border:1px solid var(--customer-line);border-radius:12px;padding:.55rem .8rem;color:var(--customer-deep);font-size:.8rem;font-weight:750;background:#fff;white-space:nowrap; }
+.customer-discover-intro button:hover { background:#e9f9f1; }
+.customer-shell .customer-discovery-layout .customer-hero { padding:1.65rem 2rem!important;min-height:214px; }
+.customer-shell .customer-discovery-layout .customer-hero h1 { font-size:clamp(2rem,2.6vw,2.8rem)!important;margin:.35rem 0 .5rem;line-height:1.08!important; }
+.customer-shell .customer-discovery-layout .customer-hero p:first-child { font-size:.69rem; }
+.customer-shell .customer-discovery-layout .customer-hero p { font-size:.88rem!important; }
+.customer-shell .customer-discovery-layout .customer-hero-copy>button { margin-top:.7rem;padding:.58rem 1rem; }
+@media (min-width:900px) { .customer-shell { grid-template-columns:255px minmax(0,1fr); } .customer-shell .customer-page { padding-left:1rem;padding-right:2rem; } }
+@media (max-width:710px) { .customer-discover-intro { display:block;min-height:0;margin-bottom:1rem; } .customer-discover-intro button { margin-top:.85rem; } }
