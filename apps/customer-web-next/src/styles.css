@@ -347,3 +347,16 @@ h1,h2,h3,p { margin:0; }
 .dt-pick-photo { width:58px;height:58px;position:relative;display:block;overflow:hidden;border-radius:9px;flex-shrink:0; }
 .dt-pick-photo .dt-food-art { width:100%;height:100%; }
 .dt-pick-photo > img { position:absolute;inset:0;width:100%;height:100%;object-fit:cover; }
+
+/* Screen 01 measured alignment, 1672 × 941 reference:
+   left content x=269, map x=1267, hero y=166, cards after filters. */
+.dt-header-actions { flex:0 0 auto; }
+.dt-filter-reset { margin-left:auto;align-self:center;padding:9px 16px;background:transparent;border:0;color:#008e55;font-size:12px;font-weight:850; }
+.dt-filter-reset:hover { text-decoration:underline; }
+@media(min-width:1531px){
+  .dt-main { padding-left:27px; padding-right:50px; }
+  .dt-search-wrap { flex-grow:1; }
+}
+@media(max-width:630px){
+  .dt-filter-reset { margin:0; }
+}
