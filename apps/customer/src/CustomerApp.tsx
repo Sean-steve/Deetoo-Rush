@@ -702,6 +702,7 @@ function CustomerAppInner() {
                   onBackToBranches={() => setSelectedBranchId(null)}
                   onCartChanged={cartSummary.refresh}
                   onSignIn={() => setAuthModalMode("login")}
+                  onGoToCart={() => { setSelectedBranchId(null); setActiveTab("cart"); }}
                 />
               ) : (
                 <div className="customer-discovery-page">
