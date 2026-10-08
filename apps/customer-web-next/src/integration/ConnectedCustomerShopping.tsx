@@ -8,6 +8,7 @@ import {createCustomerGateway} from "./customer-gateway";
 import {backendError,useBackendResource} from "./resource";
 import {LiveDiscovery} from "./LiveDiscovery";
 import {LiveShopping} from "./LiveShopping";
+import {LiveOrders} from "./LiveOrders";
 import {StatusPanel} from "./LiveUtilities";
 
 const pathFor=(route:Route)=>({
@@ -18,6 +19,8 @@ const classify=(pathname:string):{screen:Route|"payment";branchId:string;orderId
  const segments=pathname.split("/").filter(Boolean);
  if(segments[0]==="restaurant"&&segments[1])return {screen:"restaurant",branchId:segments[1],orderId:""};
  if(segments[0]==="payment"&&segments[1])return {screen:"payment",branchId:"",orderId:segments[1]};
+ if(segments[0]==="orders"&&segments[1]&&/^[a-zA-Z0-9_-]{1,128}$/.test(segments[1]))
+   return {screen:segments[2]==="completed"?"delivered":"tracking",branchId:"",orderId:segments[1]};
  const screen=(["search","bag","checkout","orders","profile","security","notifications","support"].includes(segments[0]||"")?segments[0]:"discover") as Route;
  return {screen,branchId:"",orderId:""};
 };
@@ -111,7 +114,7 @@ function ConnectedInner(){
  const branchId=route.branchId;
  const remembered=useRef("");
  if(branchId)remembered.current=branchId;
- const routeId=(route.screen==="payment"?"checkout":route.screen) as Route;
+ const routeId=(route.screen==="payment"?"checkout":route.screen==="tracking"||route.screen==="delivered"?"orders":route.screen) as Route;
  const bagCount=cart.state.status==="ready"?cart.state.data?.total_quantity||0:0;
  if(isLoading)return <StatusPanel loading title="Checking DeeToo session…"/>;
  if(isAuthenticated&&!isCustomer)return <StatusPanel title="Customer access required" description="This account does not have the customer role. DeeToo keeps merchant, rider and admin access separate."><Button onClick={()=>void logout()}>Sign out</Button></StatusPanel>;
@@ -124,7 +127,10 @@ function ConnectedInner(){
      <LiveShopping gateway={gateway} screen={route.screen} branchId={branchId} orderId={route.orderId}
       cartState={cart.state} refreshCart={cart.refresh} addresses={list} addressId={chosen?.id||""}
       onAddress={()=>setLocationOpen(true)} onNavigate={navigate} isAuthenticated={isAuthenticated} requestSignIn={()=>setAuthOpen(true)}/>:
-     <StatusPanel title="This section is coming in the next integration stage" description="The approved screen is retained in the visual preview. Real account, tracking and support data will be connected in a later phase."><Button onClick={()=>navigate("/")}>Back to live discovery <ChevronRight size={17}/></Button></StatusPanel>}
+     route.screen==="orders"||route.screen==="tracking"||route.screen==="delivered"?
+     <LiveOrders gateway={gateway} screen={route.screen==="orders"?"history":route.screen==="delivered"?"completed":"tracking"} orderId={route.orderId}
+       onNavigate={navigate} authenticated={isCustomer} requestSignIn={()=>setAuthOpen(true)}/>:
+     <StatusPanel title="This section is coming in the next integration stage" description="The approved account and support screens remain in the visual preview; real account, notification and support data will be connected in Phase B4."><Button onClick={()=>navigate("/")}>Back to live discovery <ChevronRight size={17}/></Button></StatusPanel>}
   </main>
   {notice&&<div className="dt-notice" role="status"><Check size={16}/>{notice}<IconButton label="Dismiss notification" onClick={()=>setNotice(null)}><X size={16}/></IconButton></div>}
   {authOpen&&<LoginPanel onDismiss={()=>{setAuthOpen(false);addresses.refresh();cart.refresh();}}/>}
