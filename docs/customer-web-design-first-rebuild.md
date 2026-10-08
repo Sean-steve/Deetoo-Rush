@@ -34,6 +34,31 @@ packages/
 - Presentation components accept typed view models; no direct network calls in visual components. Backend mapping switches the adapter, not the design.
 - Real customer address, ETA, fees, offers, ratings, security and case data must remain server-authoritative in production.
 
+
+### Exact reference file register
+
+Each file was uploaded with the approved customer UI request on **2026-10-08** at **1672 × 941 px**. The images remain conversation-provided reference assets; they are **not embedded into the frontend** or copied to this Git tree at this stage. Source-original retention should be addressed before final visual sign-off.
+
+| Screen | Approved PNG filename |
+|---|---|
+| 01 | `Discover Restaurants Food Delivery Dashboard.png` |
+| 02 | `DeeToo Burger Search Dashboard.png` |
+| 03 | `DeeToo Burger Delivery Dashboard.png` |
+| 04 | `Smash Burger Customization Modal.png` |
+| 05 | `DeeToo Empty Bag Dashboard.png` |
+| 06 | `DeeToo Food Delivery Cart Interface.png` |
+| 07 | `DeeToo Checkout Experience.png` |
+| 08 | `DeeToo Orders and Tracking Dashboard.png` |
+| 09 | `DeeToo Food Delivery Tracking Dashboard.png` |
+| 10 | `DeeToo Order Delivered Dashboard.png` |
+| 11 | `DeeToo Profile Dashboard Interface.png` |
+| 12 | `DeeToo Security & Devices Dashboard.png` |
+| 13 | `DeeToo Notifications Center Dashboard.png` |
+| 14 | `DeeToo Help & Support Dashboard.png` |
+| 15 | `DeeToo Support Conversation Dashboard.png` |
+
+Screenshots should be evaluated in numbered order against the matching file above. For each, record **pending / inspected / approved** and compare the actual browser screenshot at the reference viewport. The generated interface must be HTML/CSS/interactive components, never a full-screen screenshot pasted behind transparent buttons.
+
 ## Design assets and fidelity
 
 The 15 user-provided PNGs are the **source of truth** for composition; source files are supplied in the project conversation. Images are reference designs, not screenshots to paste as the user interface. Recreate the layout with semantic HTML/CSS and replace image placeholders with licensed, owned, merchant-supplied, or appropriately authored media.
