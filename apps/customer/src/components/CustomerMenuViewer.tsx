@@ -231,11 +231,18 @@ export function CustomerMenuViewer({
       : menuData.categories.filter((c) => c.id === activeCategory);
 
   return (
-    <div className="flex flex-col gap-6 font-sans">
+    <div className="customer-menu-storefront flex flex-col gap-6 font-sans">
       {/* Restaurant Header Banner */}
       <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
         {/* Cover / Brand Bar */}
-        <div className="h-28 bg-gradient-to-r from-slate-900 via-emerald-950 to-slate-900 p-6 flex items-start justify-between">
+        <div className="customer-merchant-cover h-28 bg-gradient-to-r from-slate-900 via-emerald-950 to-slate-900 p-6 flex items-start justify-between">
+          {menuData.categories.flatMap((category) => category.items).find((item) => item.image_url) && (
+            <img
+              src={menuData.categories.flatMap((category) => category.items).find((item) => item.image_url)?.image_url}
+              alt=""
+              className="customer-merchant-cover-photo"
+            />
+          )}
           <Button
             variant="outline"
             size="sm"
@@ -298,8 +305,9 @@ export function CustomerMenuViewer({
         </div>
       </div>
 
+      <div className="customer-menu-browse">
       {/* Category Navigation Pills */}
-      <div className="sticky top-0 z-10 bg-white/95 backdrop-blur-md p-2 rounded-xl border border-slate-200 shadow-xs flex items-center gap-1.5 overflow-x-auto no-scrollbar">
+      <div className="customer-menu-categories sticky top-0 z-10 bg-white/95 backdrop-blur-md p-2 rounded-xl border border-slate-200 shadow-xs flex items-center gap-1.5 overflow-x-auto no-scrollbar">
         <FilterChip
           selected={activeCategory === "ALL"}
           count={menuData.categories.reduce((sum, category) => sum + category.items.length, 0)}
@@ -321,7 +329,7 @@ export function CustomerMenuViewer({
       </div>
 
       {/* Categories & Food Dishes Grid */}
-      <div className="space-y-8">
+      <div className="customer-menu-items space-y-8">
         {displayedCategories.map((category) => (
           <div key={category.id} className="space-y-3">
             <div>
@@ -441,6 +449,7 @@ export function CustomerMenuViewer({
         ))}
       </div>
 
+      </div>{/* customer-menu-browse */}
       {/* ==========================================
           MODAL: Item Customization & Modifier Selections
       ========================================== */}
