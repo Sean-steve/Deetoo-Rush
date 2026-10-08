@@ -41,6 +41,7 @@ export function AccountSupport({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [caseId, setCaseId] = useState<string | null>(null);
+  const [caseFilter, setCaseFilter] = useState<"all" | "open" | "waiting" | "resolved">("all");
   const [reply, setReply] = useState("");
   const [files, setFiles] = useState<File[]>([]);
   const detail = useResource<any>(
@@ -196,30 +197,29 @@ export function AccountSupport({
     : notifications.data?.notifications || [];
   return (
     <>
-      <PageHeading title="Support & notifications" />
+      <PageHeading title={mode === "customer" ? "Help & Support" : "Support & notifications"} subtitle={mode === "customer" ? "We’re here to help with your orders, payments and account." : undefined} />
       {error && <ErrorState message={error} />}
       {actionMessage && (
         <InlineBanner kind="success" className="mb-4">
           {actionMessage}
         </InlineBanner>
       )}
-      <div className="workflow-grid">
-        <section className="space-y-4">
+      <div className={mode === "customer" ? "workflow-grid customer-support-workspace" : "workflow-grid"}>
+        <section className={mode === "customer" ? "customer-support-case-column" : "space-y-4"}>
+          {mode === "customer" && <div className="customer-support-tools"><strong>Your support cases</strong><Button size="sm" onClick={() => document.getElementById("customer-support-create")?.scrollIntoView({ behavior: "smooth" })}>+ New request</Button></div>}
+          <div className="customer-support-list">
+          {mode === "customer" && <div className="customer-support-filters" aria-label="Filter support cases">{(["all", "open", "waiting", "resolved"] as const).map(filter => <button type="button" key={filter} onClick={() => setCaseFilter(filter)} aria-pressed={caseFilter === filter}>{filter === "all" ? "All" : filter[0].toUpperCase() + filter.slice(1)}</button>)}</div>}
           <ResourceState resource={cases}>
-            {cases.data?.cases?.map((item: any) => (
-              <Card key={item.id}>
-                <StatusBadge status={item.status} />
-                <h2 className="font-bold mt-3">{item.subject}</h2>
-                <div className="mt-3">
-                  <FileInput
-                    multiple
-                    files={files}
-                    label="Attach evidence"
-                    accept="image/jpeg,image/png,image/webp,video/mp4,video/quicktime,application/pdf"
-                    onFilesChange={setFiles}
-                    hint="JPEG, PNG, WebP, MP4, QuickTime or PDF."
-                  />
-                </div>
+            {cases.data?.cases?.filter((item: any) => {
+              if (caseFilter === "all") return true;
+              const state = String(item.status || "").toUpperCase();
+              if (caseFilter === "resolved") return ["RESOLVED", "CLOSED"].includes(state);
+              if (caseFilter === "waiting") return ["PARTY_CONFIRMATION", "RESOLUTION_PROPOSED", "PENDING_CUSTOMER", "WAITING"].includes(state);
+              return !["RESOLVED", "CLOSED", "PARTY_CONFIRMATION", "RESOLUTION_PROPOSED", "PENDING_CUSTOMER", "WAITING"].includes(state);
+            }).map((item: any) => (
+              <Card key={item.id} className="customer-support-case" aria-current={caseId === item.id ? "true" : undefined}>
+                <div className="customer-support-case-head"><strong>{item.subject}</strong><StatusBadge status={item.status} /></div>
+                <p className="text-xs text-slate-500 mt-2">Case {String(item.id).slice(0,8)} · {item.created_at ? new Date(item.created_at).toLocaleDateString() : "Support"}</p>
                 <Button
                   className="mt-3"
                   variant="outline"
@@ -236,14 +236,16 @@ export function AccountSupport({
               />
             )}
           </ResourceState>
+          </div>
           {caseId && (
-            <Card>
+            <Card className="customer-support-thread">
               <ResourceState resource={detail}>
-                <h2 className="font-bold mb-3">Conversation</h2>
-                {(detail.data?.notes || []).map((note: any) => (
+                <h2 className="font-bold mb-3 text-lg">Support conversation</h2>
+                <p className="text-xs text-slate-500 mb-4">The conversation stays open until the case is resolved through the supported review process.</p>
+                {(detail.data?.notes || []).filter((note: any) => mode !== "customer" || note.visibility !== "INTERNAL").map((note: any) => (
                   <div
                     className={
-                      "p-3 rounded-xl mb-2 border " +
+                      "customer-support-note p-3 rounded-xl mb-2 border " +
                       (note.visibility === "INTERNAL"
                         ? "bg-amber-50 border-amber-200"
                         : note.message_type === "RESOLUTION"
@@ -251,6 +253,7 @@ export function AccountSupport({
                           : "bg-stone-50 border-stone-100")
                     }
                     key={note.id}
+                    data-author={note.visibility === "INTERNAL" ? "internal" : String(note.author_role || "").toUpperCase().includes("CUSTOMER") ? "customer" : "support"}
                   >
                     <div className="text-[11px] font-semibold text-slate-500 mb-1">
                       {note.author_name || note.author_role || "Support"} ·{" "}
@@ -260,7 +263,7 @@ export function AccountSupport({
                   </div>
                 ))}
                 {(detail.data?.attachments || []).length > 0 && (
-                  <div className="mb-4">
+                  <div className="customer-support-evidence mb-4">
                     <p className="text-xs font-semibold text-slate-500 mb-2">Evidence</p>
                     <div className="flex flex-wrap gap-2">
                       {(detail.data.attachments || []).map((attachment: any, index: number) => (
@@ -417,8 +420,8 @@ export function AccountSupport({
             </>
           )}
         </section>
-        <Card className="h-fit">
-          <h2 className="text-xl font-bold mb-4">How can we help?</h2>
+        <Card className="customer-support-form h-fit" >
+          <h2 className="text-xl font-bold mb-4" id="customer-support-create">How can we help?</h2>
           <form onSubmit={create} className="space-y-4">
             <FormField label="Case type" required>
               <Select
