@@ -58,12 +58,12 @@ test("Mobile navigation remains usable without sideways overflow", async ({ page
   await page.setViewportSize({width:390,height:844});
   await page.goto("/");
   await expect(page.getByRole("heading",{name:"Discover restaurants"})).toBeVisible();
+  await fs.mkdir("visual-output/customer-next",{recursive:true});
+  await page.screenshot({path:"visual-output/customer-next/01-discover-mobile-390x844.png",animations:"disabled"});
   await page.getByRole("button",{name:"Open navigation menu"}).click();
   await expect(page.getByRole("navigation",{name:"Main navigation"})).toBeVisible();
   await page.getByRole("button",{name:"Search",exact:true}).first().click();
   await expect(page).toHaveURL(/\/search$/);
   const overflow=await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth);
   expect(overflow).toBe(false);
-  await fs.mkdir("visual-output/customer-next",{recursive:true});
-  await page.screenshot({path:"visual-output/customer-next/01-discover-mobile-390x844.png",animations:"disabled"});
 });
