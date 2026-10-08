@@ -172,6 +172,9 @@ jobs:
       - name: Verify design-first customer preview and capture reference viewport
         run: pnpm test:customer-next-visual
 
+      - name: Verify Phase B2 API-connected customer shopping with mocked backend contracts
+        run: pnpm test:customer-next-connected
+
       - name: Upload design-first customer screenshots and geometry
         if: always()
         uses: actions/upload-artifact@v4
