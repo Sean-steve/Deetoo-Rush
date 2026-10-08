@@ -83,6 +83,9 @@ jobs:
       - name: Build Customer Web independently
         run: pnpm build:customer
 
+      - name: Build design-first Customer Web preview independently
+        run: pnpm build:customer-next
+
       - name: Build Merchant Web independently
         run: pnpm build:merchant
 
@@ -165,3 +168,15 @@ jobs:
 
       - name: Verify independent web auth and role isolation
         run: pnpm test:phase1-browser
+
+      - name: Verify design-first customer preview and capture reference viewport
+        run: pnpm test:customer-next-visual
+
+      - name: Upload design-first customer screenshots and geometry
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: customer-next-visual-preview
+          path: visual-output/customer-next/
+          if-no-files-found: warn
+          retention-days: 10
