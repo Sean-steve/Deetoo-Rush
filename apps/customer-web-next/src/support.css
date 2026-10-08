@@ -239,3 +239,19 @@
  .dt-support-modal,.dt-support-modal-backdrop {animation:none!important}
  .dt-support-case,.dt-support-topics>button {transition:none!important}
 }
+
+
+/* Desktop usability: keep the conversation composer visible while long threads scroll. */
+@media(min-width:861px){
+  .dt-support-chat-panel {height:568px;min-height:0;}
+  .dt-support-page--conversation .dt-support-chat-panel {height:min(710px,calc(100dvh - 238px));min-height:570px;}
+  .dt-support-messages,.dt-support-page--conversation .dt-support-messages {min-height:0;max-height:none;overflow-y:auto;flex:1 1 0;}
+  .dt-support-page--conversation .dt-support-cases-panel {min-height:0;height:min(710px,calc(100dvh - 238px));}
+}
+@media(max-width:860px){
+  .dt-support-chat-panel,.dt-support-page--conversation .dt-support-chat-panel {height:580px;min-height:0;}
+  .dt-support-messages,.dt-support-page--conversation .dt-support-messages {min-height:0;max-height:none;overflow-y:auto;flex:1 1 0;}
+}
+@media(max-width:480px){
+  .dt-support-chat-panel,.dt-support-page--conversation .dt-support-chat-panel {height:560px;}
+}
