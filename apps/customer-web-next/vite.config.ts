@@ -20,7 +20,22 @@ export default defineConfig(({command})=>{
   }
   return {
   root: dir,
-  plugins: [react()],
+  plugins: [react(), {
+    name: "deetoo-customer-release-identity",
+    generateBundle() {
+      // Staging acceptance must verify that the HTTPS deployment is built
+      // from the exact commit under test — never certify a stale site.
+      this.emitFile({
+        type: "asset",
+        fileName: ".well-known/deetoo-customer-release.json",
+        source: JSON.stringify({
+          sourceSha: process.env.GITHUB_SHA || "local-unversioned",
+          channel: command === "build" ? (process.env.DEETOO_CUSTOMER_RELEASE_CHANNEL || "preview") : "development",
+          connected: command === "build" && target === "connected",
+        }),
+      });
+    },
+  }],
   define: {__DEETOO_CUSTOMER_RELEASE_CONNECTED__:JSON.stringify(command==="build"&&target==="connected")},
   resolve: {alias: {
     "@deetoo/types":path.resolve(root,"packages/types/src/index.ts"),
