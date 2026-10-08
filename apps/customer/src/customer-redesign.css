@@ -483,3 +483,54 @@
 @media(max-width:640px) {
  .customer-menu-storefront .customer-menu-items .grid { grid-template-columns:1fr; }
 }
+
+/* Screen 04 — center product customization on desktop; preserve a true bottom sheet on mobile. */
+@media (min-width:900px) {
+ .customer-shell dialog.deetoo-bottom-sheet.customer-product-modal {
+   position:fixed;left:50%;top:50%;bottom:auto;right:auto;margin:0;
+   transform:translate(-50%,-50%);animation:none;
+   width:min(930px,calc(100vw - 40px));height:min(760px,calc(100dvh - 60px));max-height:none;
+   border-radius:24px;display:block;overflow:hidden;box-shadow:0 30px 100px rgb(0 0 0 / .22);
+ }
+ .customer-shell dialog.customer-product-modal > header {
+   position:absolute;top:0;left:47%;right:0;z-index:2;min-height:96px;
+   border:0;background:#fff;padding:1.25rem 1.3rem;align-items:flex-start;
+ }
+ .customer-shell dialog.customer-product-modal > header h2 { font-size:1.55rem;line-height:1.1; }
+ .customer-shell dialog.customer-product-modal > header p { font-size:.8rem;margin-top:.35rem; }
+ .customer-shell dialog.customer-product-modal > .deetoo-drawer-body {
+   height:100%;width:100%;padding:0;overflow:hidden;
+ }
+ .customer-shell dialog.customer-product-modal .deetoo-drawer-body > .space-y-6 {
+   display:grid;grid-template-columns:47% 53%;grid-template-rows:minmax(0,1fr) auto auto;
+   width:100%;height:100%;gap:0;
+ }
+ .customer-shell dialog.customer-product-modal .customer-item-sheet-hero {
+   grid-column:1;grid-row:1 / 4;padding:.85rem;background:#fff;display:flex;
+   flex-direction:column;align-items:stretch;min-height:0;border-right:1px solid var(--customer-line);
+ }
+ .customer-shell dialog.customer-product-modal .customer-item-sheet-image,
+ .customer-shell dialog.customer-product-modal .customer-item-sheet-placeholder {
+   width:100%;height: min(570px,calc(100% - 105px));min-height:0;max-height:none;object-fit:cover;border-radius:15px;
+ }
+ .customer-shell dialog.customer-product-modal .customer-item-sheet-hero > div:last-child {
+   padding:.9rem .35rem;min-height:80px;
+ }
+ .customer-shell dialog.customer-product-modal .customer-item-sheet-description { margin-top:.45rem; }
+ .customer-shell dialog.customer-product-modal .deetoo-drawer-body > .space-y-6 > div:nth-child(2) {
+   grid-column:2;grid-row:1;padding:6.7rem 1.3rem .6rem;min-height:0;max-height:none;overflow-y:auto;
+ }
+ .customer-shell dialog.customer-product-modal .deetoo-drawer-body > .space-y-6 > div:nth-child(2) > div {
+   border-color:var(--customer-line);box-shadow:none;padding:.7rem;margin-bottom:.65rem;
+ }
+ .customer-shell dialog.customer-product-modal .deetoo-drawer-body > .space-y-6 > .customer-item-quantity {
+   grid-column:2;grid-row:2;display:flex;align-items:center;justify-content:space-between;
+   margin:0 1.3rem .5rem;padding:.5rem .7rem;border:1px solid var(--customer-line);background:#fff;
+ }
+ .customer-shell dialog.customer-product-modal .deetoo-drawer-body > .space-y-6 > .deetoo-sticky-action-bar {
+   grid-column:2;grid-row:3;position:static;margin:0;padding:.6rem 1.3rem 1.2rem;background:#fff;border-top:1px solid var(--customer-line);
+ }
+ .customer-shell dialog.customer-product-modal .deetoo-drawer-body > .space-y-6 > .deetoo-sticky-action-bar > div { width:100%; }
+ .customer-shell dialog.customer-product-modal .deetoo-drawer-body > .space-y-6 > .deetoo-sticky-action-bar button { min-height:50px; }
+ .customer-shell dialog.customer-product-modal .deetoo-drawer-body > .space-y-6 > .customer-item-quantity ~ div:last-child { display:none; }
+}
