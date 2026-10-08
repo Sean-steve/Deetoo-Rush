@@ -258,10 +258,10 @@ function CustomerAppInner() {
   }, [isAuthenticated]);
 
   useEffect(() => {
-    if (!isAuthenticated && ["profile", "security", "support"].includes(activeTab)) {
+    if (!isLoading && !isAuthenticated && ["profile", "security", "support", "notifications"].includes(activeTab)) {
       setActiveTab("discovery");
     }
-  }, [isAuthenticated, activeTab, setActiveTab]);
+  }, [isAuthenticated, isLoading, activeTab, setActiveTab]);
 
   // 2. Load serviceability whenever location coordinates change
   useEffect(() => {
