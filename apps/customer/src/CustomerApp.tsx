@@ -9,7 +9,6 @@ import { CustomerJourney } from "./components/CustomerJourney";
 import {
   errorMessage,
   Navigation,
-  NotificationInbox,
   useResource,
 } from "../../../packages/ui/src/workflows";
 import React, { useState, useEffect, useCallback, useRef } from "react";
@@ -66,6 +65,7 @@ import {
 } from "@deetoo/types";
 
 import { CustomerMenuViewer } from "./components/CustomerMenuViewer";
+import { CustomerNotificationCenter } from "./components/CustomerNotificationCenter";
 import { CustomerLocationSelector } from "./components/CustomerLocationSelector";
 import { CustomerAddressModal } from "./components/CustomerAddressModal";
 import { CustomerProfileManager } from "./components/CustomerProfileManager";
@@ -933,7 +933,7 @@ function CustomerAppInner() {
             ))}
 
           {activeTab === "notifications" && isAuthenticated && (
-            <section className="customer-notifications-view"><NotificationInbox /></section>
+            <section className="customer-notifications-view"><CustomerNotificationCenter onOpenOrders={() => setActiveTab("orders")} /></section>
           )}
           {activeTab === "support" && isAuthenticated && (
             <section className="customer-support-view"><AccountSupport /></section>
