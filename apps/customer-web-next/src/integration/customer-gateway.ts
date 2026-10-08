@@ -103,7 +103,7 @@ export function createCustomerGateway(client:DeetooApiClient){
         responseData(client.setDefaultCustomerAddress(safeResourceId(id)),"/customer/addresses/:id/default"),
     },
     notifications:{
-      list:():Promise<NotificationRecord[]>=>request("/customer/support/notifications"),
+      list:():Promise<{notifications:NotificationRecord[];total:number}>=>request("/customer/support/notifications"),
       markRead:(id:string):Promise<NotificationRecord>=>request("/customer/support/notifications/"+safeResourceId(id)+"/read",{method:"POST"}),
       preferences:():never=>{throw new IntegrationUnavailableError("Notification preferences");},
       markAllRead:():never=>{throw new IntegrationUnavailableError("Bulk notification read");},
