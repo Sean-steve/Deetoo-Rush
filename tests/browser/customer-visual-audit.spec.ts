@@ -14,7 +14,19 @@ test("customer visual geometry audit", async ({ page }) => {
     ["14-support", "/customer/support"],
   ] as const;
   const metrics: Record<string, unknown> = {};
+  let authenticated = false;
+  async function signIn() {
+    await page.goto("http://127.0.0.1:5173/customer");
+    await page.getByRole("button", { name: "Sign In", exact: true }).first().click();
+    const form = page.locator("form").filter({ has: page.getByPlaceholder("customer@deetoo.ke or +254712345678") });
+    await form.getByPlaceholder("customer@deetoo.ke or +254712345678").fill("customer@deetoo.ke");
+    await form.locator("input[type=password]").fill(process.env.VISUAL_CUSTOMER_PASSWORD || "");
+    await form.getByRole("button", { name: "Sign In", exact: true }).click();
+    await expect(page.getByTitle("Sign Out")).toBeVisible();
+    authenticated = true;
+  }
   for (const [name, path] of targets) {
+    if (!authenticated && name === "05-empty-bag") await signIn();
     await page.goto("http://127.0.0.1:5173" + path);
     await expect(page.locator(".customer-shell")).toBeVisible();
     await page.waitForTimeout(600);
