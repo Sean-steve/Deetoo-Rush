@@ -80,7 +80,7 @@ test("all 15 deployed connected customer screens use real backend endpoints",asy
  const checkout=page.getByRole("button",{name:/Proceed to checkout/});
  await expect(checkout).toBeEnabled();
  await checkout.click();
- await expect(page).toHaveURL(/\\/checkout$/);
+ await expect(page).toHaveURL(new RegExp("/checkout$"));
  await expect(page.locator(".dt-checkout-line")).not.toHaveCount(0);
  await expect(page.getByText("sample conversations")).toHaveCount(0);
  expect(failures,"no server-side errors during real customer journey").toEqual([]);
