@@ -24,6 +24,15 @@ async function login(page:any,identity:{email:string;password:string}){
 test("all 15 deployed connected customer screens use real backend endpoints",async({page,request})=>{
  const failures:string[]=[];
  page.on("response",response=>{if(new URL(response.url()).pathname.startsWith("/api/v1")&&response.status()>=500)failures.push(response.status()+" "+response.url().split("?")[0]);});
+ const expectedSha=required("GITHUB_SHA");
+ const releaseResponse=await request.get("/.well-known/deetoo-customer-release.json",{
+   headers:{"Cache-Control":"no-cache"}
+ });
+ expect(releaseResponse.ok(),"staging must serve the built customer release identity").toBeTruthy();
+ const release=await releaseResponse.json() as {sourceSha?:string;channel?:string;connected?:boolean};
+ expect(release.sourceSha,"staging release must match this exact Git SHA").toBe(expectedSha);
+ expect(release.channel).toBe("staging");
+ expect(release.connected).toBe(true);
  const health=await request.get("/health");
  expect(health.ok(),"staging API health endpoint should be accessible via same-origin proxy").toBeTruthy();
  await page.goto("/");
