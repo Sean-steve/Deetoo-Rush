@@ -122,6 +122,8 @@ importers:
 
   apps/customer-web: {}
 
+  apps/customer-web-next: {}
+
   apps/merchant: {}
 
   apps/merchant-web: {}
@@ -182,6 +184,8 @@ importers:
   packages/auth-web: {}
 
   packages/config: {}
+
+  packages/customer-ui: {}
 
   packages/design-tokens: {}
 
