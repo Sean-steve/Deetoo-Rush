@@ -9,7 +9,6 @@ import { CustomerJourney } from "./components/CustomerJourney";
 import {
   errorMessage,
   Navigation,
-  NotificationInbox,
   useResource,
 } from "../../../packages/ui/src/workflows";
 import React, { useState, useEffect, useCallback, useRef } from "react";
@@ -66,15 +65,18 @@ import {
 } from "@deetoo/types";
 
 import { CustomerMenuViewer } from "./components/CustomerMenuViewer";
+import { LocationMap } from "../../../packages/ui/src/LocationMap";
+import { CustomerNotificationCenter } from "./components/CustomerNotificationCenter";
 import { CustomerLocationSelector } from "./components/CustomerLocationSelector";
 import { CustomerAddressModal } from "./components/CustomerAddressModal";
 import { CustomerProfileManager } from "./components/CustomerProfileManager";
 import { RestaurantCard } from "./components/RestaurantCard";
 import { getBrowserCurrentLocation } from "../../../packages/ui-web/src/geolocation";
 
-type CustomerTab = "discovery" | "cart" | "orders" | "profile" | "security" | "notifications" | "support";
+type CustomerTab = "discovery" | "search" | "cart" | "orders" | "profile" | "security" | "notifications" | "support";
 const customerTabPath:Record<CustomerTab,string>={
   discovery:"/customer",
+  search:"/customer/search",
   cart:"/customer/cart",
   orders:"/customer/orders",
   profile:"/customer/profile",
@@ -84,6 +86,7 @@ const customerTabPath:Record<CustomerTab,string>={
 };
 function customerTabFromPath():CustomerTab{
   const path=window.location.pathname.replace(/\/+$/,"");
+  if(path.endsWith("/search"))return "search";
   if(path.endsWith("/cart"))return "cart";
   if(path.endsWith("/orders"))return "orders";
   if(path.endsWith("/profile"))return "profile";
@@ -255,10 +258,10 @@ function CustomerAppInner() {
   }, [isAuthenticated]);
 
   useEffect(() => {
-    if (!isAuthenticated && ["profile", "security", "support"].includes(activeTab)) {
+    if (!isLoading && !isAuthenticated && ["profile", "security", "support", "notifications"].includes(activeTab)) {
       setActiveTab("discovery");
     }
-  }, [isAuthenticated, activeTab, setActiveTab]);
+  }, [isAuthenticated, isLoading, activeTab, setActiveTab]);
 
   // 2. Load serviceability whenever location coordinates change
   useEffect(() => {
@@ -535,9 +538,9 @@ function CustomerAppInner() {
       <div className="customer-shell min-h-screen bg-canvas text-ink flex flex-col font-sans">
         {/* Top Navbar */}
         <header className="customer-topbar sticky top-0 z-30 border-b border-slate-200 bg-white/95 backdrop-blur-xs px-4 py-3 sm:px-6">
-          <div className="max-w-6xl mx-auto flex flex-wrap items-center justify-between gap-4">
+          <div className="customer-topbar-inner flex flex-wrap items-center justify-between gap-4">
             <div className="flex items-center gap-3">
-              <DeetooLogo className="h-7" />
+              <DeetooLogo className="h-10" />
             </div>
 
             {/* Address bar with PostGIS Location Selector */}
@@ -560,6 +563,19 @@ function CustomerAppInner() {
               isLocating={isLocatingCustomer}
               locationError={locationError}
             />
+
+            <div className="customer-global-search">
+              <SearchInput
+                aria-label="Search restaurants, dishes or cuisines"
+                value={searchQuery}
+                onChange={(event) => {
+                  setSearchQuery(event.target.value);
+                  if (event.target.value.trim()) setActiveTab("search");
+                }}
+                onClear={() => setSearchQuery("")}
+                placeholder="Search for restaurants, dishes or cuisines..."
+              />
+            </div>
 
             {/* Authentication Bar & Navigation */}
             <div className="flex items-center gap-2">
@@ -617,13 +633,24 @@ function CustomerAppInner() {
                 </div>
               )}
 
+              {isAuthenticated && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  aria-label="Open notifications"
+                  title="Notifications"
+                  onClick={() => setActiveTab("notifications")}
+                >
+                  <Bell size={19} />
+                </Button>
+              )}
               <Button
                 variant={activeTab === "cart" ? "primary" : "outline"}
                 size="sm"
                 onClick={() =>
                   setActiveTab(activeTab === "cart" ? "discovery" : "cart")
                 }
-                className="relative"
+                className="relative customer-cart-action"
               >
                 <ShoppingBag size={15} className="mr-1.5" />
                 Cart
@@ -642,12 +669,13 @@ function CustomerAppInner() {
           </div>
         )}
 
-        <div className="hidden sm:block max-w-6xl mx-auto w-full px-4 py-3">
+        <aside className="customer-side-nav hidden sm:block">
           <Navigation
             active={activeTab}
             onChange={(id) => setActiveTab(id as typeof activeTab)}
             items={[
-              { id: "discovery", label: "Discover", icon: <Search size={15}/> },
+              { id: "discovery", label: "Discover", icon: <Compass size={18}/> },
+              { id: "search", label: "Search", icon: <Search size={18}/> },
               { id: "cart", label: "Your bag", icon: <ShoppingBag size={15}/> },
               { id: "orders", label: "Orders & tracking", icon: <History size={15}/> },
               ...(isAuthenticated
@@ -660,12 +688,12 @@ function CustomerAppInner() {
                 : []),
             ]}
           />
-        </div>
+        </aside>
 
         {/* Main Content Area */}
-        <main className="max-w-6xl mx-auto w-full p-4 sm:p-6 flex-1 flex flex-col gap-6">
+        <main className="customer-page w-full p-4 sm:p-6 flex-1 flex flex-col gap-6">
           {/* TAB 1: Discovery */}
-          {activeTab === "discovery" && (
+          {(activeTab === "discovery" || activeTab === "search") && (
             <>
               {/* If user has clicked into a restaurant, show the menu viewer with back button */}
               {selectedBranchId ? (
@@ -674,18 +702,42 @@ function CustomerAppInner() {
                   onBackToBranches={() => setSelectedBranchId(null)}
                   onCartChanged={cartSummary.refresh}
                   onSignIn={() => setAuthModalMode("login")}
+                  onGoToCart={() => { setSelectedBranchId(null); setActiveTab("cart"); }}
                 />
               ) : (
-                <div className="space-y-5">
-                  <section className="customer-hero">
-                    <p className="uppercase text-xs tracking-wider">
-                      DeeToo · nearby kitchens
-                    </p>
-                    <h1>Good food. At your door.</h1>
-                    <p>
-                      Explore nearby kitchens, find your next craving, and make
-                      it yours.
-                    </p>
+                <div className="customer-discovery-page">
+                  {activeTab === "discovery" && (
+                    <header className="customer-discover-intro">
+                      <div><h1>Discover restaurants</h1><p>Delicious food from the best restaurants near you.</p></div>
+                      <button type="button" onClick={() => setActiveTab("search")}><Search size={16}/> Search restaurants <ChevronRight size={16}/></button>
+                    </header>
+                  )}
+                <div className="customer-discovery-layout">
+                <div className="customer-discovery-primary space-y-5">
+                  <section className={`customer-hero ${activeTab === "search" ? "customer-search-hero" : ""}`}>
+                    <div className="customer-hero-copy">
+                      <p className="uppercase text-xs tracking-wider">DEETOO RUSH · NEARBY KITCHENS</p>
+                      <h1>{activeTab === "search" ? <>Find exactly what <em>you’re craving.</em></> : <>Good food. <em>At your door.</em></>}</h1>
+                      <p>{activeTab === "search"
+                        ? "Search restaurants and cuisines around your delivery location."
+                        : "Explore nearby kitchens, find your next craving, and make it yours."}</p>
+                      <Button
+                        variant="primary"
+                        size="sm"
+                        onClick={() => {
+                          setActiveTab("search");
+                          document.querySelector<HTMLInputElement>(".customer-global-search input")?.focus();
+                        }}
+                      ><Search size={16}/> Search restaurants</Button>
+                    </div>
+                    {restaurants.find((restaurant) => restaurant.cover_url || restaurant.logo_url) && (
+                      <img
+                        className="customer-hero-food"
+                        src={restaurants.find((restaurant) => restaurant.cover_url || restaurant.logo_url)?.cover_url ||
+                          restaurants.find((restaurant) => restaurant.cover_url || restaurant.logo_url)?.logo_url || ""}
+                        alt=""
+                      />
+                    )}
                   </section>
                   {discoveryError && (
                     <ErrorState
@@ -712,6 +764,10 @@ function CustomerAppInner() {
 
                   {/* Search and Filter Controls */}
                   <div className="customer-discovery-controls">
+                    <div className="customer-discovery-label">
+                      <h2>{activeTab === "search" ? "Search & filters" : "What are you craving?"}</h2>
+                      <span>Explore the cuisines available from nearby kitchens</span>
+                    </div>
                     <div className="customer-discovery-search-row">
                       <SearchInput
                         aria-label="Search DeeToo restaurants"
@@ -774,7 +830,7 @@ function CustomerAppInner() {
                   <div className="flex items-center justify-between">
                     <div>
                       <h2 className="text-base font-extrabold text-slate-900 tracking-tight flex items-center gap-2">
-                        <span>Restaurants Delivering Near You</span>
+                        <span>{activeTab === "search" ? "Search results near you" : "Restaurants delivering near you"}</span>
                         <Badge
                           variant="default"
                           className="text-[11px] font-bold"
@@ -844,21 +900,47 @@ function CustomerAppInner() {
                     </Card>
                   ) : (
                     <div className="customer-restaurant-grid">
-                      {restaurants.map((restaurant, index) => (
+                      {restaurants.map((restaurant) => (
                         <RestaurantCard
                           key={restaurant.branch_id}
                           restaurant={restaurant}
-                          featured={
-                            index === 0 &&
-                            !searchQuery &&
-                            !selectedCategory &&
-                            sortOption === "recommended"
-                          }
                           onSelect={(branchId) => setSelectedBranchId(branchId)}
                         />
                       ))}
                     </div>
                   )}
+                </div>
+                <aside className="customer-discovery-rail" aria-label="Nearby delivery information">
+                  <section className="customer-nearby-map">
+                    <h2>Restaurants near you</h2>
+                    {restaurants.length ? (
+                      <LocationMap points={restaurants
+                        .filter(restaurant => Number.isFinite(restaurant.latitude) && Number.isFinite(restaurant.longitude))
+                        .slice(0,9)
+                        .map(restaurant => ({
+                          id:restaurant.branch_id,
+                          label:restaurant.merchant_name,
+                          latitude:restaurant.latitude,
+                          longitude:restaurant.longitude,
+                          kind:"pickup" as const
+                        }))} />
+                    ) : <p className="text-sm text-slate-500">Choose a delivery area to see restaurants near you.</p>}
+                  </section>
+                  <section className="customer-top-picks">
+                    <div className="customer-side-card-heading"><h2>Available kitchens</h2><span>{restaurants.length} nearby</span></div>
+                    {restaurants.slice(0,4).map(restaurant => (
+                      <button type="button" key={restaurant.branch_id} onClick={() => setSelectedBranchId(restaurant.branch_id)} className="customer-pick-row">
+                        <div className="customer-pick-photo">
+                          {(restaurant.logo_url || restaurant.cover_url) ? <img src={restaurant.logo_url || restaurant.cover_url} alt="" /> : <UtensilsCrossed size={22}/>}
+                        </div>
+                        <span><strong>{restaurant.merchant_name}</strong><small>{restaurant.branch_name} · {restaurant.prep_default_min} min preparation</small></span>
+                        <ChevronRight size={16} aria-hidden="true"/>
+                      </button>
+                    ))}
+                  </section>
+                  <div className="customer-discovery-assurance"><ShoppingBag size={24}/><div><strong>Food made for you</strong><p>Delivery availability and checkout pricing are confirmed for your address.</p></div></div>
+                </aside>
+                </div>
                 </div>
               )}
             </>
@@ -873,6 +955,11 @@ function CustomerAppInner() {
                 onBrowse={() => setActiveTab("discovery")}
                 onAddress={() => setIsAddressModalOpen(true)}
                 onCartChange={cartSummary.refresh}
+                suggestedRestaurants={restaurants}
+                onSelectRestaurant={(branchId) => {
+                  setSelectedBranchId(branchId);
+                  setActiveTab("discovery");
+                }}
               />
             ) : (
               <EmptyState
@@ -886,19 +973,58 @@ function CustomerAppInner() {
               />
             ))}
 
-          {activeTab === "notifications" && isAuthenticated && <NotificationInbox />}
-          {activeTab === "support" && isAuthenticated && <AccountSupport />}
+          {activeTab === "notifications" && isAuthenticated && (
+            <section className="customer-notifications-view"><CustomerNotificationCenter onOpenOrders={() => setActiveTab("orders")} /></section>
+          )}
+          {activeTab === "support" && isAuthenticated && (
+            <section className="customer-support-view"><AccountSupport /></section>
+          )}
           {/* TAB 3: Customer Profile & Addresses (Sprint 5) */}
           {activeTab === "profile" && isAuthenticated && (
-            <CustomerProfileManager
-              apiClient={apiClient}
-              onAddressListChanged={loadSavedAddresses}
-            />
+            <section className="customer-profile-view">
+              <header className="customer-section-intro"><h1>My profile</h1><p>Manage your account, addresses and preferences.</p></header>
+              <div className="customer-profile-grid">
+                <div className="customer-profile-primary">
+                  <section className="customer-profile-identity">
+                    <div className="customer-profile-avatar" aria-hidden="true">{(user?.name || user?.email || "C").charAt(0).toUpperCase()}</div>
+                    <div className="customer-profile-person"><h2>{user?.name || user?.email?.split("@")[0] || "Customer"}</h2><p>{user?.email || "Your DeeToo account"}</p></div>
+                    <div className="customer-profile-identity-icon"><User size={24} /></div>
+                  </section>
+                  <CustomerProfileManager
+                    apiClient={apiClient}
+                    onAddressListChanged={loadSavedAddresses}
+                  />
+                </div>
+                <aside className="customer-profile-actions" aria-label="Account links">
+                  <section className="customer-profile-plus">
+                    <div className="customer-profile-plus-symbol">✦</div>
+                    <div><h2>DeeToo Plus</h2><p>Membership benefits are being prepared.</p></div>
+                    <span>Coming soon</span>
+                  </section>
+                  <section className="customer-profile-shortcuts">
+                    <h2>Quick actions</h2>
+                    <button onClick={() => setActiveTab("notifications")}><Bell size={21}/><span><strong>Manage notifications</strong><small>See your latest updates</small></span><ChevronRight size={18}/></button>
+                    <button onClick={() => setActiveTab("security")}><ShieldCheck size={21}/><span><strong>Security & devices</strong><small>Review active sessions</small></span><ChevronRight size={18}/></button>
+                    <button onClick={() => setActiveTab("support")}><Mail size={21}/><span><strong>Help & support</strong><small>Get help with orders and payments</small></span><ChevronRight size={18}/></button>
+                  </section>
+                  <button className="customer-profile-signout" onClick={logout}><LogOut size={20}/> Log out <ChevronRight size={16}/></button>
+                </aside>
+              </div>
+            </section>
           )}
 
           {/* TAB 4: Active Sessions & Security */}
           {activeTab === "security" && isAuthenticated && (
-            <Card className="bg-white">
+            <section className="customer-security-view">
+              <header className="customer-section-intro"><h1>Security & devices</h1><p>Keep your account safe and manage where you’re signed in.</p></header>
+              <div className="customer-security-grid">
+                <div className="customer-security-info">
+                  <ShieldCheck size={32} />
+                  <h2>Your security matters</h2>
+                  <p>Review device sessions below. You can revoke other sessions at any time.</p>
+                  <Button variant="outline" onClick={() => setAuthModalMode("forgot")}>Reset password</Button>
+                </div>
+                <Card className="customer-security-sessions bg-white">
               <div className="flex items-center justify-between mb-4 pb-2 border-b border-slate-100">
                 <div>
                   <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
@@ -997,7 +1123,9 @@ function CustomerAppInner() {
                   ))
                 )}
               </div>
-            </Card>
+                </Card>
+              </div>
+            </section>
           )}
         </main>
 
