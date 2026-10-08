@@ -101,11 +101,11 @@ function EmptyBag({gateway,onBrowse,onRestaurant}:{gateway:CustomerGateway;onBro
   </div></section>}
  </section>;
 }
-function Bag({gateway,cart,refresh,onBrowse,onCheckout}:{gateway:CustomerGateway;cart:EnrichedCart|null;refresh:()=>void;onBrowse:()=>void;onCheckout:()=>void}){
+function Bag({gateway,cart,refresh,onBrowse,onCheckout,onRestaurant}:{gateway:CustomerGateway;cart:EnrichedCart|null;refresh:()=>void;onBrowse:()=>void;onCheckout:()=>void;onRestaurant:(id:string)=>void}){
  const [busy,setBusy]=useState(false),[error,setError]=useState(""),[promo,setPromo]=useState("");
  const [confirmClear,setConfirmClear]=useState(false);
  const action=async(fn:()=>Promise<unknown>)=>{setBusy(true);setError("");try{await fn();refresh();}catch(e){setError(backendError(e).message);}finally{setBusy(false);}};
- if(!cart||!cart.items.length)return <EmptyBag onBrowse={onBrowse}/>;
+ if(!cart||!cart.items.length)return <EmptyBag gateway={gateway} onBrowse={onBrowse} onRestaurant={onRestaurant}/>;
  return <section className="dt-bag-page dt-screen-enter"><div className="dt-bag-content"><div className="dt-bag-heading"><div><h1>Your bag</h1><p>{cart.total_quantity} items from {cart.branch.merchant_name}</p></div><button onClick={()=>setConfirmClear(true)} disabled={busy}><Trash2 size={16}/> Clear bag</button></div>
  {confirmClear&&<Panel className="dt-live-conflict" role="alertdialog" aria-label="Clear bag confirmation"><h3>Clear all items?</h3><p>This cannot be undone.</p><div><Button variant="outline" onClick={()=>setConfirmClear(false)}>Keep items</Button><Button onClick={()=>void action(()=>gateway.cart.clear()).then(()=>setConfirmClear(false))}>Clear bag</Button></div></Panel>}
  <Panel className="dt-bag-items"><header><div className="dt-store-logo">{cart.branch.merchant_name.slice(0,1)}</div><div><h2>{cart.branch.merchant_name}</h2><p>{cart.branch.name} · {cart.branch.address_text}</p></div></header>
@@ -195,7 +195,7 @@ export function LiveShopping({gateway,screen,branchId,orderId,cartState,refreshC
  if(cartState.status==="loading"||cartState.status==="idle")return <StatusPanel loading title="Loading your bag…"/>;
  if(cartState.status==="error")return <StatusPanel title="Bag unavailable" description={cartState.message} onRetry={refreshCart}/>;
  const cart=cartState.data;
- if(screen==="bag")return <Bag gateway={gateway} cart={cart} refresh={refreshCart} onBrowse={()=>onNavigate(cart?"/restaurant/"+cart.branch_id:"/")} onCheckout={()=>onNavigate("/checkout")}/>;
+ if(screen==="bag")return <Bag gateway={gateway} cart={cart} refresh={refreshCart} onBrowse={()=>onNavigate(cart?"/restaurant/"+cart.branch_id:"/")} onCheckout={()=>onNavigate("/checkout")} onRestaurant={id=>onNavigate("/restaurant/"+id)}/>;
  if(!cart||!cart.items.length)return <EmptyBag gateway={gateway} onBrowse={()=>onNavigate("/")} onRestaurant={id=>onNavigate("/restaurant/"+id)}/>;
  return <Checkout gateway={gateway} cart={cart} addresses={addresses} addressId={addressId} onAddress={onAddress} onBack={()=>onNavigate("/bag")} onPayment={id=>{refreshCart();onNavigate("/payment/"+id);}}/>;
 }
