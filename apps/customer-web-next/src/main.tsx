@@ -4,6 +4,7 @@ import { App } from "./App";
 import { ConnectedCustomerShopping } from "./integration/ConnectedCustomerShopping";
 import { resolveCustomerBackendMode } from "./integration/mode";
 import "./integration/foundation.css";
+import "./integration/live-shopping.css";
 import "./styles.css";
 import "./shopping.css";
 import "./orders.css";
