@@ -1,0 +1,81 @@
+/* Connected shopping screens reuse approved DeeToo shell, cards, typography and spacing. */
+.dt-live-app {min-height:100dvh;color:#10241d;background:#f5fbf7}
+.dt-live-app .dt-brand-symbol span{display:grid;place-items:center;height:100%;color:white;font-size:28px}
+.dt-live-app button{cursor:pointer}
+.dt-live-app button:disabled{cursor:not-allowed;opacity:.55}
+.dt-live-app :is(button,input,select,textarea):focus-visible{outline:3px solid #00aa70;outline-offset:2px}
+.dt-live-app .dt-sidebar-footer{font-size:12px}
+.dt-live-app .dt-header-cart{display:flex;align-items:center;gap:8px;border:0;border-radius:12px;padding:12px 24px}
+.dt-live-app .dt-location{min-width:175px}
+.dt-live-app .dt-search-wrap{max-width:640px}
+.dt-live-app .dt-profile-trigger{white-space:nowrap}
+.dt-live-main{padding:26px 28px 80px}
+.dt-live-main h1{font-size:31px;letter-spacing:-1px;margin:0 0 10px}
+.dt-live-main h2{font-size:21px;letter-spacing:-.4px}
+.dt-live-main p{line-height:1.5;color:#50647c}
+.dt-live-primary{background:linear-gradient(120deg,#00aa68,#008c57);color:white;border:0;border-radius:11px;padding:13px 18px;font-weight:760;display:inline-flex;justify-content:center;align-items:center;gap:10px;min-height:43px}
+.dt-live-secondary,.dt-live-back,.dt-live-logout{background:white;color:#00683e;border:1px solid #d9e6e1;border-radius:12px;padding:10px 16px;display:inline-flex;align-items:center;gap:8px;font-weight:680}
+.dt-live-back{margin:0 0 22px}
+.dt-live-filters{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin:18px 0}
+.dt-live-filters button{padding:11px 18px;border-radius:11px;background:white;border:1px solid #dbeae3;color:#244b3c}
+.dt-live-filters .dt-live-selected{background:#dbf9e9;border-color:#00b76a;color:#00804e}
+.dt-live-filters label{display:flex;align-items:center;gap:8px;margin-left:10px}
+.dt-live-filters input{accent-color:#009d68}
+.dt-live-discover .dt-hero{min-height:210px;margin-top:14px}
+.dt-live-discover .dt-hero-copy{position:relative;max-width:670px;z-index:1}
+.dt-live-restaurant-body{border:0;background:white;display:grid;gap:7px;padding:15px;width:100%;text-align:left;color:#172b24}
+.dt-live-restaurant-body strong{font-size:16px}
+.dt-live-restaurant-body span{color:#65787b;font-size:13px}
+.dt-live-no-photo{height:200px;display:grid;place-items:center;background:#e2f5eb;color:#007945}
+.dt-live-app .dt-restaurant-image-button{min-height:160px}
+.dt-live-app .dt-restaurant-image-button img{width:100%;height:190px;object-fit:cover}
+.dt-live-restaurant-hero{padding:32px;background:linear-gradient(105deg,#103c2e,#00774b);color:white;border-radius:18px;margin:0 0 28px}
+.dt-live-restaurant-hero :is(h1,p){color:white}
+.dt-live-menu-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px;margin-bottom:30px}
+.dt-live-menu-item{background:white;border:1px solid #e1ede7;border-radius:15px;overflow:hidden;display:flex;flex-direction:column}
+.dt-live-menu-item img{width:100%;height:176px;object-fit:cover}
+.dt-live-menu-item div{padding:15px;flex:1}
+.dt-live-menu-item h3{font-size:16px;margin:0}
+.dt-live-menu-item p{font-size:13px}
+.dt-live-menu-item button{background:#008e5e;color:white;border:0;border-radius:8px;padding:10px;margin:10px 14px;font-weight:700}
+.dt-live-two{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(290px,1fr);gap:24px;align-items:start}
+.dt-live-summary,.dt-live-bag-line,.dt-live-guest{background:white;border:1px solid #e1ece5;border-radius:17px;padding:22px;box-shadow:0 8px 20px #123f2110}
+.dt-live-summary h2{margin-top:0}
+.dt-live-summary>p{display:flex;justify-content:space-between;gap:12px}
+.dt-live-summary>h3{background:#e6f8ef;display:flex;justify-content:space-between;gap:12px;padding:13px;border-radius:10px}
+.dt-live-summary>.dt-live-primary{width:100%;margin-top:10px}
+.dt-live-summary small{display:block;margin-top:10px;color:#6a7c83}
+.dt-live-bag-line{display:flex;gap:16px;align-items:center;margin:12px 0}
+.dt-live-bag-line img{width:92px;height:92px;object-fit:cover;border-radius:12px}
+.dt-live-bag-line>div:nth-child(2){flex:1;display:grid;gap:5px}
+.dt-live-bag-line small{color:#71827a}
+.dt-live-bag-line p{margin:0;color:#172d22}
+.dt-live-qty{display:inline-flex;gap:8px;align-items:center}
+.dt-live-qty button{background:#eef8f2;color:#007b4c;border:0;border-radius:9px;padding:7px}
+.dt-live-promo{display:flex;gap:10px;margin-top:22px}
+.dt-live-app :is(input[type=text],input[type=password],input:not([type]),textarea){padding:12px 14px;border:1px solid #d6e7df;border-radius:9px;max-width:100%;font:inherit}
+.dt-live-promo input{flex:1}
+.dt-live-promo button{background:#009c61;color:white;border:0;border-radius:10px;padding:10px 20px}
+.dt-live-state,.dt-live-empty{padding:25px;margin:15px 0;border:1px dashed #b5d6c7;background:#eff9f4;border-radius:13px;color:#335748}
+.dt-live-state button,.dt-live-empty button{background:#008a5b;color:white;border:0;border-radius:8px;padding:10px 14px;margin:10px}
+.dt-live-empty{display:grid;justify-items:center;text-align:center;padding:80px 20px}
+.dt-live-guest{margin-bottom:18px;padding:14px;display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap;font-size:13px}
+.dt-live-guest form{display:flex;gap:8px;flex-wrap:wrap}
+.dt-live-guest input{max-width:180px}
+.dt-live-guest button{border:0;background:#008e5e;color:white;border-radius:9px;padding:10px 16px}
+.dt-live-address{border:1px solid #e1ece7;border-radius:12px;padding:15px;display:flex;align-items:center;gap:12px;margin:10px 0}
+.dt-live-address input{accent-color:#00a364}
+.dt-live-address p{margin:5px 0}
+.dt-live-warning{background:#fff6eb;color:#925500!important;padding:10px;border-radius:8px}
+.dt-live-modal-backdrop{position:fixed;inset:0;background:#071c1588;display:grid;place-items:center;z-index:90;padding:25px}
+.dt-live-modal{background:white;border-radius:20px;padding:25px;width:min(580px,100%);max-height:90dvh;overflow-y:auto;position:relative;box-shadow:0 30px 60px #0004}
+.dt-live-close{position:absolute;top:17px;right:17px;background:#f1f6f4;border:0;border-radius:50%;padding:7px;display:grid;place-items:center}
+.dt-live-modal-image{width:100%;height:210px;object-fit:cover;border-radius:12px}
+.dt-live-modal fieldset{border:0;border-top:1px solid #e7efe9;margin:15px 0;padding:15px 0}
+.dt-live-modal legend{font-weight:750}
+.dt-live-modal>.dt-live-primary{margin-top:16px;width:100%}
+.dt-live-app .dt-notice{position:fixed;bottom:24px;right:24px;z-index:120;background:#153b2d;color:white;border-radius:12px;padding:14px 18px;display:flex;align-items:center;gap:18px;max-width:400px;box-shadow:0 14px 28px #092a1b44}
+.dt-live-app .dt-notice button{color:white;border:0;background:transparent}
+@media(max-width:1050px){.dt-live-menu-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.dt-live-two{grid-template-columns:1fr}}
+@media(max-width:700px){.dt-live-menu-grid{grid-template-columns:1fr}.dt-live-main{padding:18px 14px 80px}.dt-live-app .dt-header{flex-wrap:wrap}.dt-live-app .dt-sidebar{display:none}.dt-live-app .dt-main{margin-left:0}.dt-live-guest form{width:100%}.dt-live-guest input{flex:1;min-width:110px}}
+@media(prefers-reduced-motion:reduce){.dt-live-app *{animation:none!important;transition:none!important}}
