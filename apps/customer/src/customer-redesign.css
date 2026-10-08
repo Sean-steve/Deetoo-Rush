@@ -314,3 +314,14 @@
 .customer-notification-info p { font-size:.84rem;color:#4e675c;line-height:1.55; }
 @media (max-width:1100px) { .customer-notification-layout { grid-template-columns:1fr; } .customer-notification-info { position:static; } }
 @media (max-width:639px) { .customer-notification-item { flex-wrap:wrap; } .customer-notification-actions { width:100%;padding-left:60px; } .customer-notification-head { flex-direction:column; } }
+
+/* Layout guards: intermediate tablets must retain navigation, and toast banners must not become grid items. */
+@media (min-width:640px) and (max-width:899px) {
+  .customer-shell .customer-mobile-nav { display:block!important;position:fixed;inset:auto 0 0;z-index:45; }
+  .customer-shell .customer-mobile-nav .bottom-navigation { position:static;background:rgb(255 255 255 / .97); }
+  .customer-shell .customer-page { padding-bottom:108px!important; }
+}
+@media (min-width:900px) {
+  .customer-shell .customer-mobile-nav { display:none!important; }
+  .customer-shell > .bg-emerald-600.text-white { position:fixed;top:75px;left:0;right:0;z-index:61; }
+}
