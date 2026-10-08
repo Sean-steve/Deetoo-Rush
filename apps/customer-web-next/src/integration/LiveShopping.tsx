@@ -85,7 +85,7 @@ function MerchantStore({gateway,branchId,cart,onCartChanged,onBrowse,requestSign
   {error&&<p className="dt-live-error" role="alert">{error}</p>}
   {conflict&&<Panel className="dt-live-conflict" role="alertdialog" aria-label="Replace bag confirmation"><h3>Replace your existing bag?</h3><p>DeeToo permits one restaurant per bag. Continuing clears the previous restaurant's items.</p><div><Button variant="outline" onClick={()=>setConflict(null)}>Keep my bag</Button><Button onClick={()=>void add(conflict.qty,conflict.options,true,conflict.item).catch(e=>setError(backendError(e).message))}>Replace bag and add</Button></div></Panel>}
   {active&&<ProductDialog item={active} onCancel={()=>setActive(null)} onAdd={(qty,ids)=>add(qty,ids)}/>}
- </>;}}
+ </>;}}</ResourceView>
  </div>;
 }
 function EmptyBag({onBrowse}:{onBrowse:()=>void}){return <section className="dt-bag-empty dt-screen-enter"><div className="dt-empty-bag-picture" aria-hidden="true"><ShoppingBag size={125} strokeWidth={1} color="#009f68"/></div><h1>Your bag is empty</h1><p>Choose a restaurant and add something delicious to get started.</p><Button onClick={onBrowse} startIcon={<UtensilsCrossed size={18}/>}>Explore restaurants</Button></section>;}
