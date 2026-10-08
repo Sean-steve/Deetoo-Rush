@@ -1,4 +1,4 @@
-import {useEffect,useMemo,useRef,useState} from "react";
+import {useEffect,useMemo,useRef,useState,type FormEvent} from "react";
 import {Check,ChevronRight,House,LocateFixed,MapPin,Menu,Plus,ShoppingBag,X} from "lucide-react";
 import type {CustomerAddress} from "@deetoo/types";
 import {AuthProvider,useAuth} from "@deetoo/auth-web";
@@ -26,7 +26,7 @@ function LoginPanel({onDismiss}:{onDismiss:()=>void}){
  const [mode,setMode]=useState<"login"|"register">("login");
  const [identifier,setIdentifier]=useState(""),[password,setPassword]=useState(""),[name,setName]=useState("");
  const [busy,setBusy]=useState(false),[message,setMessage]=useState("");
- const submit=async(e:React.FormEvent)=>{
+ const submit=async(e:FormEvent)=>{
   e.preventDefault();if(busy)return;setBusy(true);setMessage("");
   try{const user=mode==="login"?await login(identifier,password):await registerCustomer({
    name,email:identifier.includes("@")?identifier:undefined,phone_e164:identifier.includes("@")?undefined:identifier,password
