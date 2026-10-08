@@ -125,7 +125,41 @@ function Completed({order,onBack,onRestaurant,onSupport,onNotice}:{order:DemoOrd
   const ready=ratings.food>0&&ratings.delivery>0&&ratings.restaurant>0;
   return <section className="dt-completed-page dt-screen-enter"><div className="dt-completed-content">
     <button className="dt-orders-back" onClick={onBack}><ArrowLeft size={16}/> Back to orders</button>
-    <div className="dt-delivered-banner"><div className="dt-delivered-check"><Check size={41} strokeWidth={3}/></div><div><DemoTag short/><h1>Order delivered!</h1><p>Your delicious food has been delivered. Enjoy!</p><strong>Oct 6, 2026 at 4:45 PM</strong></div><div className="dt-delivered-art" aria-hidden="true"><span>✦</span><span>🍜</span><span>🛍️</span><span>✦</span></div></div>
+    <div className="dt-delivered-banner"><div className="dt-delivered-check"><Check size={41} strokeWidth={3}/></div><div><DemoTag short/><h1>Order delivered!</h1><p>Your delicious food has been delivered. Enjoy!</p><strong>Oct 6, 2026 at 4:45 PM</strong></div><div className="dt-delivered-art" aria-hidden="true"><svg viewBox="0 0 330 175" focusable="false">
+  <defs>
+    <linearGradient id="dt-bag-green" x1="0" y1="0" x2="1" y2="1"><stop stopColor="#00C979"/><stop offset="1" stopColor="#007F4B"/></linearGradient>
+    <linearGradient id="dt-food-amber" x1="0" y1="0" x2="1" y2="1"><stop stopColor="#FFD17B"/><stop offset="1" stopColor="#F29F45"/></linearGradient>
+  </defs>
+  <path d="M56 131Q48 73 97 50Q144 23 188 39Q245 7 292 65Q317 119 273 149Z" fill="#CDF5DE" opacity=".78"/>
+  <g transform="translate(165 20)">
+    <path d="M28 27L23 130Q55 146 112 131L105 26Z" fill="url(#dt-bag-green)"/>
+    <path d="M101 27L119 37L124 124L112 131Z" fill="#006E46"/>
+    <path d="M43 30Q39-2 70-3Q96-4 94 30" fill="none" stroke="#008451" strokeWidth="10" strokeLinecap="round"/>
+    <path d="M48 30Q47 10 67 10Q85 9 86 31" fill="none" stroke="#B5F1CE" strokeWidth="4"/>
+    <circle cx="68" cy="82" r="27" fill="#fff"/>
+    <path d="M48 94L67 62L89 94Q66 80 48 94Z" fill="#00A363"/>
+    <path d="M18 41L117 41" stroke="#80D5A5" strokeWidth="3" opacity=".65"/>
+  </g>
+  <g transform="translate(27 98)">
+    <path d="M0 25Q3 58 53 58Q96 56 99 25Z" fill="url(#dt-food-amber)"/>
+    <ellipse cx="50" cy="25" rx="49" ry="18" fill="#FFE2AD"/>
+    <ellipse cx="50" cy="23" rx="42" ry="14" fill="#FCA654"/>
+    <path d="M22 17Q31 29 40 17T59 19T79 17" stroke="#2E9352" strokeWidth="6" fill="none" strokeLinecap="round"/>
+    <path d="M17 25Q31 36 41 24Q53 14 67 25T87 23" stroke="#E76531" strokeWidth="5" fill="none" strokeLinecap="round"/>
+    <path d="M34 17L43 8M62 20L69 9" stroke="#FFD76F" strokeWidth="4" strokeLinecap="round"/>
+  </g>
+  <g transform="translate(282 71)">
+    <path d="M-5 0H32L26 86H1Z" fill="#FFC682" opacity=".8" stroke="#E9A159" strokeWidth="2"/>
+    <ellipse cx="13" cy="1" rx="19" ry="6" fill="#FFF3D0"/>
+    <path d="M15 0L27-30" stroke="#7AB969" strokeWidth="5" strokeLinecap="round"/>
+    <path d="M24-30L31-37" stroke="#00A66D" strokeWidth="4" strokeLinecap="round"/>
+    <ellipse cx="13" cy="42" rx="12" ry="22" fill="#F49A4A" opacity=".35"/>
+  </g>
+  <path d="M44 57L49 42M42 47L55 52" stroke="#00A56B" strokeWidth="5" strokeLinecap="round"/>
+  <path d="M124 28l9-18m-2 14l-16-9" stroke="#F9B43B" strokeWidth="5" strokeLinecap="round"/>
+  <path d="M315 49l8-13m-17 2l18 8" stroke="#00A66B" strokeWidth="4" strokeLinecap="round"/>
+  <circle cx="147" cy="46" r="4" fill="#F5B833"/><circle cx="17" cy="117" r="4" fill="#FE6F64"/>
+</svg></div></div>
     <Panel className="dt-delivered-receipt"><header><h2>Order details</h2><Status status="delivered"/><strong>#{order.id}</strong><Button variant="outline" size="sm" onClick={onRestaurant}><RefreshCw size={15}/> Reorder menu</Button></header><div className="dt-delivered-merchant"><Photo src={order.lines[0].image} alt={order.restaurant}/><div><h3>{order.restaurant}</h3><p>{order.branch} · {order.placedTime}</p></div></div>
       <div className="dt-receipt-lines">{order.lines.map(line=><div key={line.id}><Photo src={line.image} alt={line.name}/><span><strong>{line.name}</strong><small>{line.description}</small></span><b>{line.quantity}</b><em>{fmt(line.quantity*line.unitPrice)}</em></div>)}</div>
       <dl className="dt-receipt-total"><div><dt>Items total</dt><dd>{fmt(orderItemsTotal(order))}</dd></div><div><dt>Delivery fee</dt><dd>{fmt(order.deliveryFee)}</dd></div><div><dt>Service fee</dt><dd>{fmt(order.serviceFee)}</dd></div><div className="dt-receipt-grand"><dt>Total paid (demo)</dt><dd>{fmt(orderTotal(order))}</dd></div></dl>
