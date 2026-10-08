@@ -48,9 +48,9 @@ function BrandLogo() {
   );
 }
 
-export function Header({query,onQueryChange,goTo,bagCount,notice,userLabel="Test User",locationLabel=previewLocation.shortLabel,locationDistrict=previewLocation.district,onLocationClick}:{
+export function Header({query,onQueryChange,goTo,bagCount,notice,userLabel="Test User",locationLabel=previewLocation.shortLabel,locationDistrict=previewLocation.district,onLocationClick,onProfileClick}:{
   query:string;onQueryChange:(value:string)=>void;goTo:(route:Route)=>void;bagCount:number;notice:(value:string)=>void;
-  userLabel?:string;locationLabel?:string;locationDistrict?:string;onLocationClick?:()=>void;
+  userLabel?:string;locationLabel?:string;locationDistrict?:string;onLocationClick?:()=>void;onProfileClick?:()=>void;
 }) {
   const searchRef=useRef<HTMLInputElement>(null);
   return (
@@ -77,7 +77,7 @@ export function Header({query,onQueryChange,goTo,bagCount,notice,userLabel="Test
         <button className="dt-bell" aria-label="Notifications" type="button" onClick={()=>goTo("notifications")}>
           <Bell size={23}/><span className="dt-unread-dot"/>
         </button>
-        <button className="dt-profile-trigger" type="button" onClick={()=>goTo("profile")}>
+        <button className="dt-profile-trigger" type="button" onClick={()=>onProfileClick?onProfileClick():goTo("profile")}>
           <span className="dt-avatar">{userLabel.slice(0,1).toUpperCase()}</span><strong>{userLabel}</strong><ChevronDown size={17}/>
         </button>
         <Button className="dt-header-cart" onClick={()=>goTo("bag")} startIcon={<ShoppingBag size={23}/>} >
