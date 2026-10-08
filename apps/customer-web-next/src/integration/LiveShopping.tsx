@@ -7,7 +7,7 @@ import {backendError,useBackendResource,type ResourceState} from "./resource";
 import {money,SafePhoto,StatusPanel,ResourceView} from "./LiveUtilities";
 
 type Screen="restaurant"|"bag"|"checkout"|"payment";
-const paid=new Set(["CAPTURED","AUTHORIZED"]);
+const paid=new Set(["CAPTURED"]);
 const failed=new Set(["FAILED","CANCELLED","EXPIRED"]);
 function Quantity({value,onChange,busy,min=0}:{value:number;onChange:(v:number)=>void;busy?:boolean;min?:number}){
  return <div className="dt-shop-quantity" aria-label="Quantity">
@@ -62,7 +62,7 @@ function MerchantStore({gateway,branchId,cart,onCartChanged,onBrowse,requestSign
   try {await gateway.cart.add({branch_id:branchId,menu_item_id:item.id,quantity:qty,modifier_option_ids:options,force_clear_existing:force});setError("");setConflict(null);onCartChanged();}
   catch(err){
    const code=err&&typeof err==="object"&&"error" in err?(err as {error?:{code?:string}}).error?.code:"";
-   if(!force&&cart&&cart.branch_id!==branchId||!force&&/BRANCH|CART.*MERCHANT/i.test(code||"")){setConflict({item,qty,options});throw new Error("Your bag contains items from another restaurant. Confirm replacement below.");}
+   if(!force&&cart&&cart.branch_id!==branchId||!force&&/BRANCH|CART.*MERCHANT/i.test(code||"")){setConflict({item,qty,options});setActive(null);throw new Error("Your bag contains items from another restaurant. Confirm replacement below.");}
    throw err;
   }
  };
@@ -152,12 +152,13 @@ function PaymentPending({gateway,orderId,onBrowse}:{gateway:CustomerGateway;orde
  const [error,setError]=useState("");
  const attemptKey=useRef<string>(crypto.randomUUID());
  const list=payments.state.status==="ready"?payments.state.data:[];
- const latest=list[list.length-1] as Payment|undefined;
+ const latest=[...list].sort((a,b)=>Date.parse(a.created_at||"")-Date.parse(b.created_at||"")).at(-1) as Payment|undefined;
  const confirmed=latest&&paid.has(latest.status);
  const needsRetry=!latest||failed.has(latest.status);
  useEffect(()=>{if(!latest||confirmed||failed.has(latest.status))return;const t=setInterval(payments.refresh,6000);return()=>clearInterval(t);},[latest?.id,latest?.status,confirmed,payments.refresh]);
  const initiate=async()=>{if(busy)return;setBusy(true);setError("");try{
   if(!/^(?:\+?254|0)?[17]\d{8}$/.test(phone.replace(/\s/g,"")))throw new Error("Enter a valid Kenyan mobile number.");
+  if(latest&&failed.has(latest.status))attemptKey.current=crypto.randomUUID();
   await gateway.payments.initiate(orderId,"MPESA",attemptKey.current,phone.trim());
   payments.refresh();
  }catch(e){setError(backendError(e).code==="UNKNOWN"&&e instanceof Error?e.message:backendError(e).message);}finally{setBusy(false);}};
@@ -169,7 +170,7 @@ function PaymentPending({gateway,orderId,onBrowse}:{gateway:CustomerGateway;orde
   <p>{latest&&!needsRetry?"Waiting for payment confirmation from Safaricom. Approve the prompt on your phone; updates will refresh automatically.":"Enter your M-PESA number to receive a secure STK push."}</p>
   {needsRetry&&<label className="dt-checkout-phone">M-PESA mobile number<input aria-label="M-PESA mobile number" autoComplete="tel" type="tel" value={phone} placeholder="2547XXXXXXXX" onChange={e=>{setPhone(e.target.value);setError("");}}/></label>}
   {error&&<p className="dt-live-error" role="alert">{error}</p>}
-  {needsRetry?<Button disabled={busy} onClick={()=>void initiate()}>{busy?"Sending request…":"Send M-PESA prompt"}</Button>:<Button variant="outline" onClick={payments.refresh}><RefreshCw size={16}/> Check payment status</Button>}
+  {needsRetry?<Button disabled={busy||order.state.status!=="ready"||order.state.data.status!=="PENDING_PAYMENT"} onClick={()=>void initiate()}>{busy?"Sending request…":"Send M-PESA prompt"}</Button>:<Button variant="outline" onClick={payments.refresh}><RefreshCw size={16}/> Check payment status</Button>}
   </>}
   <Button variant="outline" onClick={onBrowse}>Back to restaurants <ArrowRight size={16}/></Button>
   <small>Your order and payment status are verified by DeeToo. Do not pay cash to the rider for an already paid order.</small>
