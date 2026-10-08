@@ -291,10 +291,7 @@
 
 
 /* Reference refinement: show the preview attribution without pushing the 4-panel profile below the 941px desktop fold. */
-@media(min-width:641px) {
+@media(min-width:1500px) {
   .dt-profile-main { position:relative; }
-  .dt-profile-main>.dt-account-demo { position:absolute;top:71px;right:3px;margin:0;z-index:1; }
-}
-@media(min-width:641px) and (max-width:990px) {
-  .dt-profile-main>.dt-account-demo { top:65px;right:0; }
+  .dt-profile-main>.dt-account-demo { position:absolute;top:38px;right:165px;margin:0;z-index:1; }
 }
