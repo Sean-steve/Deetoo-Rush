@@ -18,16 +18,18 @@ function AddressEditor({gateway,original,onClose,onSaved}:{gateway:CustomerGatew
  const [label,setLabel]=useState(original?.label||"Home"),[line,setLine]=useState(original?.address_line1||""),[city,setCity]=useState(original?.city||""),[region,setRegion]=useState(original?.region||""),[instructions,setInstructions]=useState(original?.delivery_instructions||"");
  const [location,setLocation]=useState<{latitude:number;longitude:number}|null>(original?{latitude:original.latitude,longitude:original.longitude}:null);
  const [serviceable,setServiceable]=useState(Boolean(original)),[locating,setLocating]=useState(false),[busy,setBusy]=useState(false),[error,setError]=useState("");
+ const [reverified,setReverified]=useState(false);
+ const moved=Boolean(original&&(line.trim()!==original.address_line1||city.trim()!==original.city||region.trim()!==original.region));
  const locate=()=>{if(!navigator.geolocation){setError("Geolocation is unavailable. Your saved coordinates remain unchanged.");return;}
   setLocating(true);setError("");navigator.geolocation.getCurrentPosition(async p=>{const latitude=p.coords.latitude,longitude=p.coords.longitude;
    try{if(!Number.isFinite(latitude)||!Number.isFinite(longitude)||Math.abs(latitude)>90||Math.abs(longitude)>180)throw new Error("Invalid location");
     const available=await gateway.discovery.serviceability(latitude,longitude);setServiceable(available.serviceable);
-    setLocation(available.serviceable?{latitude,longitude}:null);
+    setLocation(available.serviceable?{latitude,longitude}:null);setReverified(available.serviceable);
     if(!available.serviceable)setError("This location is outside DeeToo's active delivery zones.");
    }catch(e){setError(backendError(e).message);setLocation(null);setServiceable(false);}finally{setLocating(false);}
   },()=>{setLocating(false);setError("Location permission is required to verify a new delivery location.");},{enableHighAccuracy:true,timeout:12000,maximumAge:30000});
  };
- const save=async(e:React.FormEvent)=>{e.preventDefault();if(!location||!serviceable||busy)return;setBusy(true);setError("");
+ const save=async(e:React.FormEvent)=>{e.preventDefault();if(!location||!serviceable||(moved&&!reverified)||busy)return;setBusy(true);setError("");
   const payload={label:label.trim(),address_line1:line.trim(),city:city.trim(),region:region.trim(),country_code:"KE",
     latitude:location.latitude,longitude:location.longitude,delivery_instructions:instructions.trim()};
   try{if(original)await gateway.account.updateAddress(original.id,payload);else await gateway.account.addAddress(payload);
@@ -44,8 +46,9 @@ function AddressEditor({gateway,original,onClose,onSaved}:{gateway:CustomerGatew
     <label>Delivery instructions<textarea value={instructions} maxLength={500} rows={2} onChange={e=>setInstructions(e.target.value)}/></label>
     <Button variant="outline" type="button" disabled={locating} onClick={locate}><MapPin size={17}/>{locating?"Verifying location…":original?"Reverify location":"Use and verify my GPS location"}</Button>
     {location&&serviceable&&<p role="status" className="dt-live-success"><Check size={15}/> Verified coordinates: {location.latitude.toFixed(5)}, {location.longitude.toFixed(5)}</p>}
+    {moved&&!reverified&&<p role="status" className="dt-live-account-note">The delivery location has changed. Reverify GPS coordinates before saving the new address.</p>}
     {error&&<p role="alert" className="dt-live-error">{error}</p>}
-    <footer><Button variant="outline" type="button" onClick={onClose}>Cancel</Button><Button type="submit" disabled={busy||!serviceable||!location||!line.trim()||!city.trim()||!region.trim()}>{busy?"Saving…":"Save address"}</Button></footer>
+    <footer><Button variant="outline" type="button" onClick={onClose}>Cancel</Button><Button type="submit" disabled={busy||!serviceable||!location||(moved&&!reverified)||!line.trim()||!city.trim()||!region.trim()}>{busy?"Saving…":"Save address"}</Button></footer>
   </form>
  </section></div>;
 }
