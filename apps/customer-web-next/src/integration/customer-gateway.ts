@@ -3,7 +3,7 @@
  * Reuse DeeToo's cookie/CSRF/refresh-aware shared API client.
  * Unverified response shapes remain unknown until screen-specific mapping.
  */
-import type { ApiResponse, CustomerProfile, CustomerAddress, Order, PublicRestaurantBranch, PublicRestaurantDetail, PublicRestaurantMenu, RestaurantCategory, RestaurantDiscoveryQuery, ServiceabilityCheckResult, EnrichedCart, CheckoutQuote, GenerateQuoteInput, CreateOrderInput, AddToCartInput, UpdateCartItemInput, AuthUser, Payment, CustomerTrackingResponse, SupportCase, SupportCaseNote, SupportCaseAttachment, SupportCaseConfirmation, NotificationRecord } from "@deetoo/types";
+import type { ApiResponse, CustomerProfile, CustomerAddress, Order, PublicRestaurantBranch, PublicRestaurantDetail, PublicRestaurantMenu, RestaurantCategory, RestaurantDiscoveryQuery, ServiceabilityCheckResult, EnrichedCart, CheckoutQuote, GenerateQuoteInput, CreateOrderInput, AddToCartInput, UpdateCartItemInput, AuthUser, Payment, CustomerTrackingResponse, SupportCase, SupportCaseNote, SupportCaseAttachment, SupportCaseConfirmation, NotificationRecord, SupportCaseCategory } from "@deetoo/types";
 import type { DeetooApiClient } from "@deetoo/api-client";
 
 export class ContractMismatchError extends Error {
@@ -23,7 +23,7 @@ export async function responseData<T>(promise:Promise<ApiResponse<T>>,route:stri
   return result.data;
 }
 export type CustomerDeviceSession={id:string;current:boolean;ip_address?:string|null;device_info?:string|null;last_used_at?:string|null;created_at?:string|null;is_active:boolean};
-export type CustomerSupportCategory="ORDER_ISSUE"|"PAYMENT_ISSUE"|"ACCOUNT_ISSUE"|"MERCHANT_ISSUE"|"RIDER_ISSUE"|"OTHER";
+export type CustomerSupportCategory=SupportCaseCategory;
 export type SupportRequest={category:CustomerSupportCategory;subject:string;description:string;order_id?:string;delivery_id?:string;payment_id?:string};
 export type SupportMessageInput={body:string;media_ids?:string[]};
 export type ResolutionDecision="ACCEPTED"|"DISPUTED";
