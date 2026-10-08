@@ -540,7 +540,7 @@ function CustomerAppInner() {
         <header className="customer-topbar sticky top-0 z-30 border-b border-slate-200 bg-white/95 backdrop-blur-xs px-4 py-3 sm:px-6">
           <div className="customer-topbar-inner flex flex-wrap items-center justify-between gap-4">
             <div className="flex items-center gap-3">
-              <DeetooLogo className="h-7" />
+              <DeetooLogo className="h-10" />
             </div>
 
             {/* Address bar with PostGIS Location Selector */}
@@ -973,11 +973,34 @@ function CustomerAppInner() {
           {/* TAB 3: Customer Profile & Addresses (Sprint 5) */}
           {activeTab === "profile" && isAuthenticated && (
             <section className="customer-profile-view">
-              <header className="customer-section-intro"><h1>My profile</h1><p>Manage your account and saved delivery addresses.</p></header>
-              <CustomerProfileManager
-                apiClient={apiClient}
-                onAddressListChanged={loadSavedAddresses}
-              />
+              <header className="customer-section-intro"><h1>My profile</h1><p>Manage your account, addresses and preferences.</p></header>
+              <div className="customer-profile-grid">
+                <div className="customer-profile-primary">
+                  <section className="customer-profile-identity">
+                    <div className="customer-profile-avatar" aria-hidden="true">{(user?.name || user?.email || "C").charAt(0).toUpperCase()}</div>
+                    <div className="customer-profile-person"><h2>{user?.name || user?.email?.split("@")[0] || "Customer"}</h2><p>{user?.email || "Your DeeToo account"}</p></div>
+                    <div className="customer-profile-identity-icon"><User size={24} /></div>
+                  </section>
+                  <CustomerProfileManager
+                    apiClient={apiClient}
+                    onAddressListChanged={loadSavedAddresses}
+                  />
+                </div>
+                <aside className="customer-profile-actions" aria-label="Account links">
+                  <section className="customer-profile-plus">
+                    <div className="customer-profile-plus-symbol">✦</div>
+                    <div><h2>DeeToo Plus</h2><p>Membership benefits are being prepared.</p></div>
+                    <span>Coming soon</span>
+                  </section>
+                  <section className="customer-profile-shortcuts">
+                    <h2>Quick actions</h2>
+                    <button onClick={() => setActiveTab("notifications")}><Bell size={21}/><span><strong>Manage notifications</strong><small>See your latest updates</small></span><ChevronRight size={18}/></button>
+                    <button onClick={() => setActiveTab("security")}><ShieldCheck size={21}/><span><strong>Security & devices</strong><small>Review active sessions</small></span><ChevronRight size={18}/></button>
+                    <button onClick={() => setActiveTab("support")}><Mail size={21}/><span><strong>Help & support</strong><small>Get help with orders and payments</small></span><ChevronRight size={18}/></button>
+                  </section>
+                  <button className="customer-profile-signout" onClick={logout}><LogOut size={20}/> Log out <ChevronRight size={16}/></button>
+                </aside>
+              </div>
             </section>
           )}
 
