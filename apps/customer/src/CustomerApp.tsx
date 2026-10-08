@@ -65,6 +65,7 @@ import {
 } from "@deetoo/types";
 
 import { CustomerMenuViewer } from "./components/CustomerMenuViewer";
+import { LocationMap } from "../../../packages/ui/src/LocationMap";
 import { CustomerNotificationCenter } from "./components/CustomerNotificationCenter";
 import { CustomerLocationSelector } from "./components/CustomerLocationSelector";
 import { CustomerAddressModal } from "./components/CustomerAddressModal";
@@ -703,7 +704,8 @@ function CustomerAppInner() {
                   onSignIn={() => setAuthModalMode("login")}
                 />
               ) : (
-                <div className="space-y-5">
+                <div className="customer-discovery-layout">
+                <div className="customer-discovery-primary space-y-5">
                   <section className={`customer-hero ${activeTab === "search" ? "customer-search-hero" : ""}`}>
                     <div className="customer-hero-copy">
                       <p className="uppercase text-xs tracking-wider">DEETOO RUSH · NEARBY KITCHENS</p>
@@ -890,21 +892,46 @@ function CustomerAppInner() {
                     </Card>
                   ) : (
                     <div className="customer-restaurant-grid">
-                      {restaurants.map((restaurant, index) => (
+                      {restaurants.map((restaurant) => (
                         <RestaurantCard
                           key={restaurant.branch_id}
                           restaurant={restaurant}
-                          featured={
-                            false && index === 0 &&
-                            !searchQuery &&
-                            !selectedCategory &&
-                            sortOption === "recommended"
-                          }
                           onSelect={(branchId) => setSelectedBranchId(branchId)}
                         />
                       ))}
                     </div>
                   )}
+                </div>
+                <aside className="customer-discovery-rail" aria-label="Nearby delivery information">
+                  <section className="customer-nearby-map">
+                    <h2>Restaurants near you</h2>
+                    {restaurants.length ? (
+                      <LocationMap points={restaurants
+                        .filter(restaurant => Number.isFinite(restaurant.latitude) && Number.isFinite(restaurant.longitude))
+                        .slice(0,9)
+                        .map(restaurant => ({
+                          id:restaurant.branch_id,
+                          label:restaurant.merchant_name,
+                          latitude:restaurant.latitude,
+                          longitude:restaurant.longitude,
+                          kind:"pickup" as const
+                        }))} />
+                    ) : <p className="text-sm text-slate-500">Choose a delivery area to see restaurants near you.</p>}
+                  </section>
+                  <section className="customer-top-picks">
+                    <div className="customer-side-card-heading"><h2>Available kitchens</h2><span>{restaurants.length} nearby</span></div>
+                    {restaurants.slice(0,4).map(restaurant => (
+                      <button type="button" key={restaurant.branch_id} onClick={() => setSelectedBranchId(restaurant.branch_id)} className="customer-pick-row">
+                        <div className="customer-pick-photo">
+                          {(restaurant.logo_url || restaurant.cover_url) ? <img src={restaurant.logo_url || restaurant.cover_url} alt="" /> : <UtensilsCrossed size={22}/>}
+                        </div>
+                        <span><strong>{restaurant.merchant_name}</strong><small>{restaurant.branch_name} · {restaurant.prep_default_min} min preparation</small></span>
+                        <ChevronRight size={16} aria-hidden="true"/>
+                      </button>
+                    ))}
+                  </section>
+                  <div className="customer-discovery-assurance"><ShoppingBag size={24}/><div><strong>Food made for you</strong><p>Delivery availability and checkout pricing are confirmed for your address.</p></div></div>
+                </aside>
                 </div>
               )}
             </>
