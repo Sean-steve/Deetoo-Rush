@@ -704,6 +704,13 @@ function CustomerAppInner() {
                   onSignIn={() => setAuthModalMode("login")}
                 />
               ) : (
+                <div className="customer-discovery-page">
+                  {activeTab === "discovery" && (
+                    <header className="customer-discover-intro">
+                      <div><h1>Discover restaurants</h1><p>Delicious food from the best restaurants near you.</p></div>
+                      <button type="button" onClick={() => setActiveTab("search")}><Search size={16}/> Search restaurants <ChevronRight size={16}/></button>
+                    </header>
+                  )}
                 <div className="customer-discovery-layout">
                 <div className="customer-discovery-primary space-y-5">
                   <section className={`customer-hero ${activeTab === "search" ? "customer-search-hero" : ""}`}>
@@ -932,6 +939,7 @@ function CustomerAppInner() {
                   </section>
                   <div className="customer-discovery-assurance"><ShoppingBag size={24}/><div><strong>Food made for you</strong><p>Delivery availability and checkout pricing are confirmed for your address.</p></div></div>
                 </aside>
+                </div>
                 </div>
               )}
             </>
