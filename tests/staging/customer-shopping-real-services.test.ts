@@ -127,7 +127,9 @@ test("01–07 full HTTP customer journey uses genuine PostgreSQL, Redis, and pay
  const update=await http("/cart/items/"+cartItemId,{method:"PATCH",body:JSON.stringify({quantity:2})});
  eq(update.status,200,"06 quantity update");eq(update.json.data.total_quantity,2,"06 updated cart quantity");
  const reloaded=await http("/cart");
- eq(reloaded.json.data.pricing.items_subtotal_minor,180000,"06 server price with modifiers");
+ eq(reloaded.json.data.pricing.items_subtotal_minor,170000,"06 base item subtotal");
+ eq(reloaded.json.data.pricing.modifiers_subtotal_minor,10000,"06 modifier subtotal");
+ eq(reloaded.json.data.pricing.subtotal_minor,180000,"06 combined priced subtotal");
  record("04-06-cart",{subtotalMinor:reloaded.json.data.pricing.items_subtotal_minor});
  // 07: saved address, immutable server quote, idempotent pending order
  const addresses=await http("/customer/addresses");
