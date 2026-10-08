@@ -6,6 +6,7 @@ import { resolveCustomerBackendMode } from "./integration/mode";
 import "./integration/foundation.css";
 import "./integration/live-shopping.css";
 import "./integration/live-orders.css";
+import "./integration/live-account-support.css";
 import "./styles.css";
 import "./shopping.css";
 import "./orders.css";
