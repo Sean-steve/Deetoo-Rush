@@ -1,0 +1,68 @@
+/* Phase B3: additive connected Orders UI. Approved preview styles remain untouched. */
+.dt-live-order-photo {width:85px;height:85px;border-radius:12px;flex-shrink:0}
+.dt-live-order-mini-items {display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-top:9px}
+.dt-live-order-mini-items small {font-size:10px;color:#375c4d;background:#f0f9f2;border-radius:7px;padding:4px 7px}
+.dt-live-order-stages li small{font-size:10px}
+.dt-live-order-back {display:flex;align-items:center;gap:7px;padding:0 0 12px;border:0;background:none;color:#007948;font-size:12px;font-weight:750;cursor:pointer}
+.dt-live-order-detail-head{align-items:flex-end}
+.dt-live-order-detail-grid{display:grid;grid-template-columns:minmax(0,1.65fr) minmax(285px,.88fr);gap:17px}
+.dt-live-order-detail-primary,.dt-live-order-detail-aside{display:flex;flex-direction:column;gap:15px;min-width:0}
+.dt-live-order-detail-grid .dt-panel{padding:20px;min-width:0}
+.dt-live-order-detail-grid h2{font-size:17px;letter-spacing:-.3px;margin:0}
+.dt-live-order-overview>div:first-child{display:flex;align-items:center;flex-wrap:wrap;justify-content:space-between;gap:10px}
+.dt-live-order-overview>p{font-size:12px;color:#5d768d;margin:10px 0 22px}
+.dt-live-order-overview .dt-order-stages{margin-top:17px}
+.dt-live-order-confirmed{display:flex;align-items:center;gap:8px;padding:12px;background:#e9fff2;color:#057748;border-radius:10px;font-size:12px;margin:16px 0 0}
+.dt-live-order-alert,.dt-live-order-info{display:flex;align-items:center;flex-wrap:wrap;gap:11px;background:#fff7e9;border:1px solid #f9e5bd;padding:12px;color:#836014;border-radius:10px;margin:14px 0;font-size:12px}
+.dt-live-order-alert .dt-button{min-height:37px}
+.dt-live-order-info{background:#f5faf7;border-color:#ddeee4;color:#52677a}
+.dt-live-order-info button{background:none;border:0;color:#007c51;font-weight:800;text-decoration:underline}
+.dt-live-order-topline{display:flex;justify-content:space-between;align-items:flex-start;gap:15px}
+.dt-live-order-topline>div{min-width:0}
+.dt-live-order-topline p{margin-top:8px;font-size:12px;color:#52687b}
+.dt-live-order-map{margin:18px 0}
+.dt-live-order-map-canvas{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:10px;min-height:210px;background:repeating-linear-gradient(40deg,#eaf9f0 0,#eaf9f0 19px,#f1f9f4 19px,#f1f9f4 39px);border:1px solid #d5ece0;border-radius:13px;padding:26px}
+.dt-live-order-map-canvas>svg{color:#05a465}
+.dt-live-order-map-canvas strong{font-size:15px}
+.dt-live-order-map-canvas p{font-size:11px;color:#587384;line-height:1.5;max-width:330px}
+.dt-live-order-map-canvas>a{font-size:12px;font-weight:800;color:#007f52;display:flex;align-items:center;gap:8px}
+.dt-live-order-map>small{display:block;font-size:10px;color:#7c8e99;margin-top:8px}
+.dt-live-order-rider{display:flex;gap:13px;align-items:center;padding:14px;border:1px solid #e4efe9;border-radius:13px}
+.dt-live-order-rider>svg{box-sizing:content-box;padding:13px;width:22px;height:22px;background:#e4fbec;border-radius:12px;color:#008953}
+.dt-live-order-rider strong{font-size:13px}
+.dt-live-order-rider p{font-size:11px;color:#526e81;margin:5px 0}
+.dt-live-order-rider small{font-size:10px;color:#697e91}
+.dt-live-order-otp{padding:12px;border:1px solid #b9eacb;border-radius:10px;background:#f1fff6;color:#24674b;font-size:12px}
+.dt-live-order-otp strong{font-size:19px;letter-spacing:2px;margin-left:5px}
+.dt-live-order-otp small{display:block;margin-top:6px;font-size:10px}
+.dt-live-order-items{display:flex;flex-direction:column;gap:14px}
+.dt-live-order-item{display:flex;align-items:center;gap:12px;border-bottom:1px solid #eef3ef;padding-bottom:11px}
+.dt-live-order-item>div:nth-child(2){flex:1;display:flex;flex-direction:column;gap:6px;min-width:0}
+.dt-live-order-item strong{font-size:13px}
+.dt-live-order-item small{font-size:11px;color:#6b7b8f}
+.dt-live-order-item b{font-size:12px;white-space:nowrap}
+.dt-live-order-money dl,.dt-live-order-meta{display:grid;margin:12px 0}
+.dt-live-order-money dl>div,.dt-live-order-meta>div{display:flex;justify-content:space-between;gap:12px;border-bottom:1px solid #eff4f0;padding:12px 0;font-size:12px}
+.dt-live-order-money dt,.dt-live-order-meta dt{color:#5c7387}
+.dt-live-order-money dd,.dt-live-order-meta dd{margin:0;color:#11283b;font-weight:800;text-align:right}
+.dt-live-order-money-total{background:#e6f9ed;padding:14px!important;border-radius:8px;margin-top:8px}
+.dt-live-order-money-total dt,.dt-live-order-money-total dd{font-size:15px!important;color:#064b36!important}
+.dt-live-order-money>p{font-size:10px;color:#70869b;line-height:1.5}
+.dt-live-order-actions .dt-button{margin-top:10px;display:flex;width:100%;justify-content:center;min-height:40px}
+.dt-live-order-actions>p{font-size:11px;color:#5f7a91;line-height:1.5;margin:12px 0}
+.dt-live-order-rating>p{font-size:12px;color:#547083;margin-top:10px}
+.dt-live-order-stars{display:flex;gap:8px;margin:17px 0}
+.dt-live-order-stars button{background:#f0f9f4;border:0;color:#e2a500;border-radius:10px;width:43px;height:43px;display:grid;place-items:center;cursor:pointer}
+.dt-live-order-stars button:focus-visible{outline:3px solid #00a668;outline-offset:2px}
+.dt-live-order-rating label{display:flex;flex-direction:column;gap:7px;font-size:12px;color:#43546b;margin-bottom:14px}
+.dt-live-order-rating textarea{width:100%;resize:vertical;min-height:80px;border:1px solid #d9e9e1;border-radius:11px;padding:11px;font:inherit}
+.dt-live-order-modal-backdrop{position:fixed;inset:0;z-index:110;background:#142b238a;display:grid;place-items:center;padding:17px}
+.dt-live-order-modal{max-width:480px;width:100%;background:#fff;border-radius:18px;padding:25px;box-shadow:0 16px 56px #061e1750}
+.dt-live-order-modal h2{margin-bottom:12px}
+.dt-live-order-modal p{font-size:12px;color:#5d7485;line-height:1.6;margin-bottom:20px}
+.dt-live-order-modal>div:last-child{display:flex;justify-content:flex-end;gap:10px}
+.dt-orders-page .dt-history-card .dt-order-stages{min-height:0}
+.dt-orders-page .dt-history-card .dt-order-stages small{font-size:10px}
+@media(max-width:1190px){.dt-live-order-detail-grid{grid-template-columns:1fr}.dt-live-order-detail-aside{display:grid;grid-template-columns:1fr 1fr;align-items:start}.dt-live-order-detail-aside>.dt-panel:last-child{grid-column:1/-1}}
+@media(max-width:760px){.dt-live-order-detail-aside{display:flex}.dt-live-order-detail-grid .dt-panel{padding:15px}.dt-orders-page .dt-orders-controls{flex-wrap:wrap}.dt-orders-page .dt-orders-search{min-width:0;width:100%}.dt-orders-page .dt-orders-header{align-items:stretch;flex-direction:column}.dt-live-order-detail-head{align-items:stretch}.dt-orders-page .dt-orders-tabsbar{align-items:flex-start;flex-wrap:wrap}.dt-orders-page .dt-history-body{flex-direction:column}.dt-live-order-stages strong{font-size:10px}.dt-live-order-item .dt-live-order-photo{height:65px;width:65px}}
+@media(prefers-reduced-motion:reduce){.dt-live-order-stages *, .dt-live-order-map *{animation:none!important;transition:none!important}}

@@ -159,4 +159,25 @@ test("01–07 full HTTP customer journey uses genuine PostgreSQL, Redis, and pay
  const customerPayments=await http("/payments/order/"+first.json.data.id);
  eq(customerPayments.status,200,"07 authorized payment history");
  record("07-durable-local-payment",{orderStatus:order.json.data.status,provider:"SYNTHETIC_LOCAL_ONLY"});
+ // Phase B3: order list/details are customer-scoped; tracking has a safe no-delivery state.
+ const history=await http("/customer/orders?limit=50");
+ eq(history.status,200,"08 authenticated history");
+ assert((history.json.data as any[]).some(x=>x.id===first.json.data.id),"persisted customer history must include released order");
+ const owned=await http("/customer/orders/"+first.json.data.id);
+ eq(owned.status,200,"08 order detail");
+ assert.equal(owned.json.data.customer_id,customerId);
+ const delivery=await http("/customer/orders/"+first.json.data.id+"/delivery");
+ eq(delivery.status,200,"09 scoped delivery");
+ // A rider need not be assigned immediately after payment; never require invented coordinates.
+ assert(delivery.json.data===null||"delivery" in delivery.json.data);
+ const tracking=await http("/customer/orders/"+first.json.data.id+"/track");
+ assert(tracking.status===200||tracking.status===404,"09 no delivery may be 404; no fake tracking");
+ if(tracking.status===200)assert.equal(tracking.json.data.orderId,first.json.data.id);
+ const stranger=await authService.registerCustomer({name:"Unrelated Customer",email:randomUUID()+"@example.test",password:"Isolation-ONLY-893!"});
+ const foreign=await fetch(base+prefix+"/customer/orders/"+first.json.data.id,{headers:{Authorization:"Bearer "+stranger.accessToken}});
+ eq(foreign.status,403,"08 foreign customer forbidden");
+ const foreignTracking=await fetch(base+prefix+"/customer/orders/"+first.json.data.id+"/track",{headers:{Authorization:"Bearer "+stranger.accessToken}});
+ eq(foreignTracking.status,403,"09 foreign tracking forbidden");
+ record("08-09-orders-and-privacy",{historyCount:history.json.data.length,trackingStatus:tracking.status,foreignDenied:true});
+
 });
