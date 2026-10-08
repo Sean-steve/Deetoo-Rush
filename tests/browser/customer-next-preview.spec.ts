@@ -248,6 +248,10 @@ test("Screen 12: security and devices are informative only, no fake revocation",
   await expect(page.getByRole("heading",{name:"Your devices"})).toBeVisible();
   await expect(page.locator(".dt-device-entry")).toHaveCount(3);
   await page.screenshot({path:"visual-output/customer-next/12-security-1672x941.png",animations:"disabled"});
+  await page.getByRole("button",{name:"View all"}).click();
+  await expect(page.locator(".dt-login-event")).toHaveCount(6);
+  await page.getByRole("button",{name:"Show less"}).click();
+  await expect(page.locator(".dt-login-event")).toHaveCount(4);
   await page.getByRole("button",{name:"Options for Android · DeeToo App"}).click();
   await expect(page.getByRole("button",{name:"Preview revoke action"})).toBeVisible();
   await page.getByRole("button",{name:"Preview revoke action"}).click();
