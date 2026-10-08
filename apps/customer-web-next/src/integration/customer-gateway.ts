@@ -3,7 +3,7 @@
  * Reuse DeeToo's cookie/CSRF/refresh-aware shared API client.
  * Unverified response shapes remain unknown until screen-specific mapping.
  */
-import type { ApiResponse, CustomerProfile, CustomerAddress, Order, PublicRestaurantBranch, PublicRestaurantDetail, PublicRestaurantMenu, RestaurantCategory, RestaurantDiscoveryQuery, ServiceabilityCheckResult, EnrichedCart, CheckoutQuote, GenerateQuoteInput, CreateOrderInput, AddToCartInput, UpdateCartItemInput, AuthUser, Payment } from "@deetoo/types";
+import type { ApiResponse, CustomerProfile, CustomerAddress, Order, PublicRestaurantBranch, PublicRestaurantDetail, PublicRestaurantMenu, RestaurantCategory, RestaurantDiscoveryQuery, ServiceabilityCheckResult, EnrichedCart, CheckoutQuote, GenerateQuoteInput, CreateOrderInput, AddToCartInput, UpdateCartItemInput, AuthUser, Payment, CustomerTrackingResponse } from "@deetoo/types";
 import type { DeetooApiClient } from "@deetoo/api-client";
 
 export class ContractMismatchError extends Error {
@@ -68,8 +68,12 @@ export function createCustomerGateway(client:DeetooApiClient){
       },
       list:(params?:{status?:string;limit?:number}):Promise<Order[]>=>responseData(client.getCustomerOrders(params),"/customer/orders"),
       detail:(id:string):Promise<Order>=>responseData(client.getCustomerOrderDetail(safeResourceId(id)),"/customer/orders/:id"),
-      tracking:(id:string):Promise<unknown>=>request("/customer/orders/"+safeResourceId(id)+"/track"),
+      tracking:(id:string):Promise<CustomerTrackingResponse>=>request("/customer/orders/"+safeResourceId(id)+"/track"),
       delivery:(id:string):Promise<unknown|null>=>request("/customer/orders/"+safeResourceId(id)+"/delivery"),
+      rateDelivery:(id:string,rating:number,comment?:string):Promise<unknown>=>{
+        if(!Number.isInteger(rating)||rating<1||rating>5)throw new TypeError("Rating must be 1–5");
+        return request("/trust/ratings",{method:"POST",body:JSON.stringify({order_id:safeResourceId(id),rating,...(comment?.trim()?{comment:comment.trim()}:{} )})});
+      },
       cancel:(id:string,reason:string,note?:string):Promise<Order>=>
         responseData(client.cancelCustomerOrder(safeResourceId(id),reason,note),"/customer/orders/:id/cancel"),
     },
