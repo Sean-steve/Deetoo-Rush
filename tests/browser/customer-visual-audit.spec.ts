@@ -85,8 +85,8 @@ test("compare all fifteen customer surfaces at reference dimensions", async ({ p
   }
   await open("/cart");
   await capture("06-cart");
-  const review=page.getByRole("button",{name:/Review checkout|Refresh confirmed price/}).first();
-  if(await review.count())await review.click().catch(()=>{});
+  const proceed=page.getByRole("button",{name:/Proceed to checkout/}).first();
+  if(await proceed.count()) await proceed.click().catch(()=>{});
   await capture("07-checkout");
 
   await open("/orders");
