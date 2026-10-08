@@ -9,6 +9,7 @@ import { externalNotificationProvider } from './external-notification.provider';
 
 import { randomUUID } from 'crypto';
 import { logger } from '@deetoo/utils';
+import { AppError } from '../../middleware/error-handler';
 import {
   NotificationRecord,
   NotificationChannel,
@@ -257,7 +258,7 @@ export class NotificationService {
   public async markAsRead(notificationId: string, recipientId: string): Promise<NotificationRecord> {
     const record = await operationsRepository.getNotificationById(notificationId);
     if (!record || record.recipient_id !== recipientId) {
-      throw new Error('Notification not found or unauthorized');
+      throw new AppError(404, 'NOTIFICATION_NOT_FOUND', 'Notification not found');
     }
 
     const updated = await operationsRepository.updateNotification(notificationId, {
