@@ -1,0 +1,125 @@
+name: Customer Release Candidate — External Staging Certificate
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: "Package a staging candidate or a protected production candidate (does NOT deploy)"
+        required: true
+        type: choice
+        options: [staging, production]
+      approve_production:
+        description: "For production only: enter I_AUTHORIZE_REVIEWED_CANDIDATE after release sign-off"
+        required: false
+        type: string
+permissions:
+  contents: read
+
+jobs:
+  staging-certificate:
+    name: Verify deployed staging, Daraja, ledger, Merchant, Rider and Support
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    environment: customer-staging
+    env:
+      APP_ENV: staging
+      DEETOO_STORAGE_MODE: postgres
+      DEETOO_FIXTURES: 'false'
+      DEETOO_LOCAL_WORKFLOW: 'false'
+      MPESA_ENVIRONMENT: sandbox
+      STAGING_CUSTOMER_BASE_URL: ${{ vars.CUSTOMER_STAGING_URL }}
+      STAGING_CERT_BRANCH_ID: ${{ vars.CUSTOMER_STAGING_BRANCH_ID }}
+      STAGING_CERT_ORDER_ID: ${{ secrets.CUSTOMER_STAGING_CERT_ORDER_ID }}
+      STAGING_CERT_SUPPORT_CASE_ID: ${{ secrets.CUSTOMER_STAGING_CERT_CASE_ID }}
+      STAGING_CERT_MPESA_RECEIPT: ${{ secrets.CUSTOMER_STAGING_CERT_MPESA_RECEIPT }}
+      STAGING_DATABASE_URL: ${{ secrets.CUSTOMER_STAGING_DATABASE_URL }}
+      STAGING_CUSTOMER_EMAIL: ${{ secrets.CUSTOMER_STAGING_EMAIL }}
+      STAGING_CUSTOMER_PASSWORD: ${{ secrets.CUSTOMER_STAGING_PASSWORD }}
+      STAGING_OTHER_CUSTOMER_EMAIL: ${{ secrets.CUSTOMER_STAGING_OTHER_EMAIL }}
+      STAGING_OTHER_CUSTOMER_PASSWORD: ${{ secrets.CUSTOMER_STAGING_OTHER_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.17.1
+          run_install: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: pnpm install --frozen-lockfile
+      - name: Fail closed when the external staging environment is missing
+        run: |
+          set -eu
+          for key in STAGING_CUSTOMER_BASE_URL STAGING_CERT_BRANCH_ID STAGING_CERT_ORDER_ID STAGING_CERT_SUPPORT_CASE_ID STAGING_CERT_MPESA_RECEIPT STAGING_DATABASE_URL STAGING_CUSTOMER_EMAIL STAGING_CUSTOMER_PASSWORD STAGING_OTHER_CUSTOMER_EMAIL STAGING_OTHER_CUSTOMER_PASSWORD; do
+            if [ -z "$(printenv "$key")" ]; then echo "::error::Missing required protected staging configuration: $key"; exit 1; fi
+          done
+          case "$STAGING_CUSTOMER_BASE_URL" in https://*) ;; *) echo "::error::HTTPS staging URL required"; exit 1;; esac
+      - name: Certify real Daraja callback, ledger, delivery and admin support closure (read-only DB)
+        run: pnpm certify:customer-next-staging
+      - name: Install Chromium
+        run: pnpm exec playwright install --with-deps chromium
+      - name: Exercise deployed 15-screen customer journey (no mocked API)
+        run: pnpm test:customer-next-staging
+      - name: Record sanitized staging certification
+        run: |
+          mkdir -p release-evidence
+          node -e 'const fs=require("node:fs");fs.writeFileSync("release-evidence/customer-staging.json",JSON.stringify({result:"PASSED",commit:process.env.GITHUB_SHA,runId:process.env.GITHUB_RUN_ID,scope:"staging-real-provider-db-and-browser",verifiedAt:new Date().toISOString()},null,2)+"\n");'
+      - uses: actions/upload-artifact@v4
+        with:
+          name: customer-staging-certification
+          path: release-evidence/
+          retention-days: 30
+
+  package-candidate:
+    name: Produce reversible Customer candidate — NOT deployment
+    needs: staging-certificate
+    if: ${{ needs.staging-certificate.result == 'success' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: ${{ inputs.target == 'production' && 'customer-production' || 'customer-staging' }}
+    env:
+      VITE_CUSTOMER_NEXT_BACKEND_MODE: connected
+      DEETOO_CUSTOMER_RELEASE_CHANNEL: ${{ inputs.target }}
+      DEETOO_CUSTOMER_RELEASE_CERTIFIED_SHA: ${{ github.sha }}
+      DEETOO_CUSTOMER_RELEASE_APPROVED: 'true'
+      PRODUCTION_RELEASE_APPROVED: ${{ secrets.CUSTOMER_PRODUCTION_RELEASE_APPROVED }}
+    steps:
+      - name: Require separate owner confirmation for production candidate
+        if: ${{ inputs.target == 'production' }}
+        env:
+          DECLARATION: ${{ inputs.approve_production }}
+        run: |
+          set -eu
+          test "$DECLARATION" = "I_AUTHORIZE_REVIEWED_CANDIDATE" || { echo "::error::Owner declaration missing"; exit 1; }
+          test "$PRODUCTION_RELEASE_APPROVED" = "true" || { echo "::error::Protected production approval secret missing"; exit 1; }
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.17.1
+          run_install: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: pnpm install --frozen-lockfile
+      - name: Build connected candidate pinned to certified SHA
+        run: pnpm build:customer-next
+      - name: Build original Customer frontend rollback
+        run: pnpm build:customer-legacy-rollback
+      - name: Record artifact source and rollback instruction
+        run: |
+          mkdir -p release-evidence
+          node -e 'require("node:fs").writeFileSync("release-evidence/RELEASE.json",JSON.stringify({sha:process.env.GITHUB_SHA,runId:process.env.GITHUB_RUN_ID,channel:process.env.DEETOO_CUSTOMER_RELEASE_CHANNEL,approved:true,cutoverPerformed:false,rollbackArtifact:"customer-legacy-rollback"},null,2)+"\n")'
+      - uses: actions/upload-artifact@v4
+        with:
+          name: customer-connected-${{ inputs.target }}-${{ github.sha }}
+          path: dist/customer-web-next/
+          retention-days: 30
+      - uses: actions/upload-artifact@v4
+        with:
+          name: customer-legacy-rollback-${{ github.sha }}
+          path: dist/customer-web/
+          retention-days: 30
+      - uses: actions/upload-artifact@v4
+        with:
+          name: customer-release-manifest-${{ github.sha }}
+          path: release-evidence/RELEASE.json
+          retention-days: 30
