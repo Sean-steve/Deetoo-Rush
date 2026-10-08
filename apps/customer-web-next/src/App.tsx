@@ -8,8 +8,9 @@ import {
 import { Badge, Button, IconButton, Panel, classNames } from "../../../packages/customer-ui/src/index";
 import { categories, heroBurger, previewLocation, previewRestaurants, type Cuisine, type PreviewRestaurant } from "./data/preview";
 import { FoodArt } from "./components/FoodArt";
+import { ShoppingPreview, type CartLine } from "./components/ShoppingPreview";
 
-type Route = "discover" | "search" | "bag" | "orders" | "profile" | "security" | "notifications" | "support";
+type Route = "discover" | "search" | "restaurant" | "bag" | "checkout" | "orders" | "profile" | "security" | "notifications" | "support";
 type Sort = "recommended" | "rating" | "fastest" | "nearest";
 type View = "grid" | "map";
 
@@ -23,7 +24,7 @@ const routes: Array<{id:Route; label:string; icon:typeof House; path:string}> = 
   {id:"notifications", label:"Notifications", icon:Bell, path:"/notifications"},
   {id:"support", label:"Support", icon:LifeBuoy, path:"/support"},
 ];
-const routeFromPath = (path:string):Route => routes.find(item => item.path === path)?.id || "discover";
+const routeFromPath = (path:string):Route => path === "/restaurant" ? "restaurant" : path === "/checkout" ? "checkout" : routes.find(item => item.path === path)?.id || "discover";
 
 function BrandLogo() {
   return (
@@ -76,8 +77,8 @@ function Header({query,onQueryChange,goTo,bagCount,notice}:{
   );
 }
 
-function Sidebar({active,goTo,open,onClose}:{
-  active:Route;goTo:(route:Route)=>void;open:boolean;onClose:()=>void;
+function Sidebar({active,goTo,open,onClose,bagCount}:{
+  active:Route;goTo:(route:Route)=>void;open:boolean;onClose:()=>void;bagCount:number;
 }) {
   return (
     <>
@@ -89,7 +90,7 @@ function Sidebar({active,goTo,open,onClose}:{
               type="button" aria-current={active===id?"page":undefined}
               onClick={()=>{goTo(id);onClose();}}>
               <Icon size={22} strokeWidth={2} aria-hidden="true"/><span>{label}</span>
-              {id==="bag"&&<span className="dt-nav-count">3</span>}
+              {id==="bag"&&bagCount>0&&<span className="dt-nav-count">{bagCount}</span>}
             </button>
           ))}
         </nav>
@@ -215,7 +216,7 @@ function MapPreview({notice}: {notice:(value:string)=>void}) {
   );
 }
 
-function RightRail({goTo,notice}: {goTo:(route:Route)=>void;notice:(value:string)=>void}) {
+function RightRail({goTo,notice,onSelectRestaurant}: {goTo:(route:Route)=>void;notice:(value:string)=>void;onSelectRestaurant:(id:string)=>void}) {
   return (
     <aside className="dt-right-rail" aria-label="Nearby restaurants and suggestions">
       <Panel className="dt-rail-map"><MapPreview notice={notice}/></Panel>
@@ -226,7 +227,7 @@ function RightRail({goTo,notice}: {goTo:(route:Route)=>void;notice:(value:string
       </Panel>
       <Panel className="dt-top-picks">
         <div className="dt-panel-heading"><h3>Top picks for you</h3><button type="button" onClick={()=>goTo("search")}>See all <ArrowRight size={16}/></button></div>
-        {previewRestaurants.slice(0,3).map(r=><button type="button" className="dt-pick" key={r.id} onClick={()=>notice(`${r.name} storefront belongs to the next visual implementation wave.`)}>
+        {previewRestaurants.slice(0,3).map(r=><button type="button" className="dt-pick" key={r.id} onClick={()=>onSelectRestaurant(r.id)}>
           <span className="dt-pick-photo"><FoodArt kind={r.cuisines[0]}/><img src={r.image} alt="" loading="lazy" onError={event => {event.currentTarget.style.display="none";}} /></span><div><strong>{r.name}</strong><small>{r.cuisines[0]} · Ksh {r.feeKsh}</small></div><span><Star size={13} fill="currentColor"/>{r.rating.toFixed(1)}</span>
         </button>)}
       </Panel>
@@ -239,8 +240,8 @@ function RightRail({goTo,notice}: {goTo:(route:Route)=>void;notice:(value:string
   );
 }
 
-function Discovery({isSearch,query,onQueryChange,goTo,notice}:{
-  isSearch:boolean;query:string;onQueryChange:(value:string)=>void;goTo:(route:Route)=>void;notice:(value:string)=>void;
+function Discovery({isSearch,query,onQueryChange,goTo,notice,onSelectRestaurant}:{
+  isSearch:boolean;query:string;onQueryChange:(value:string)=>void;goTo:(route:Route)=>void;notice:(value:string)=>void;onSelectRestaurant:(id:string)=>void;
 }) {
   const [selectedCategory,setSelectedCategory]=useState<"All"|Cuisine>("All");
   const [sort,setSort]=useState<Sort>("recommended");
@@ -281,13 +282,13 @@ function Discovery({isSearch,query,onQueryChange,goTo,notice}:{
             {restaurants.map((restaurant,index)=><RestaurantCard key={restaurant.id} restaurant={restaurant} index={index}
               favourite={favourites.includes(restaurant.id)}
               onToggleFavourite={()=>setFavourites(prev=>prev.includes(restaurant.id)?prev.filter(id=>id!==restaurant.id):[...prev,restaurant.id])}
-              onSelect={()=>notice(`${restaurant.name}: restaurant storefront is the next screen to reconstruct from the approved image.`)}/>)}
+              onSelect={()=>onSelectRestaurant(restaurant.id)}/>)}
           </div>
         ) : (
           <div className="dt-no-results"><Search size={32}/><h2>No matching restaurants</h2><p>Try another dish or cuisine, or clear your filters.</p><Button onClick={()=>{setSelectedCategory("All");onQueryChange("");}}>Clear filters</Button></div>
         )}
       </div>
-      <RightRail goTo={goTo} notice={notice}/>
+      <RightRail goTo={goTo} notice={notice} onSelectRestaurant={onSelectRestaurant}/>
     </div>
   );
 }
@@ -318,6 +319,9 @@ export function App() {
   const [query,setQuery]=useState("");
   const [notice,setNotice]=useState<string|null>(null);
   const [mobileOpen,setMobileOpen]=useState(false);
+  const [restaurantId,setRestaurantId]=useState("smash");
+  const [cart,setCart]=useState<CartLine[]>([]);
+  const bagCount=cart.reduce((total,line)=>total+line.quantity,0);
   useEffect(()=>{
     const onPop=()=>setRoute(routeFromPath(window.location.pathname));
     window.addEventListener("popstate",onPop);
@@ -330,17 +334,26 @@ export function App() {
   },[notice]);
   const goTo=(next:Route)=>{
     setRoute(next);
-    const url=routes.find(item=>item.id===next)?.path || "/";
+    const url=next==="restaurant"?"/restaurant":next==="checkout"?"/checkout":routes.find(item=>item.id===next)?.path || "/";
     if(window.location.pathname!==url)window.history.pushState({},"",url);
     window.scrollTo({top:0,behavior:window.matchMedia("(prefers-reduced-motion: reduce)").matches?"auto":"smooth"});
   };
+  const selectRestaurant=(id:string)=>{setRestaurantId(id);goTo("restaurant");};
+  const addToCart=(line:CartLine)=>{
+    setCart(current=>{
+      const exists=current.find(item=>item.key===line.key);
+      return exists?current.map(item=>item.key===line.key?{...item,quantity:item.quantity+line.quantity}:item):[...current,line];
+    });
+    setNotice("Added to your demo bag. Review it whenever you're ready.");
+  };
+  const updateCart=(key:string,quantity:number)=>setCart(current=>current.map(item=>item.key===key?{...item,quantity}:item).filter(item=>item.quantity>0));
   return (
     <div className="dt-app">
-      <Header query={query} onQueryChange={setQuery} goTo={goTo} bagCount={3} notice={setNotice}/>
-      <Sidebar active={route} goTo={goTo} open={mobileOpen} onClose={()=>setMobileOpen(false)}/>
+      <Header query={query} onQueryChange={setQuery} goTo={goTo} bagCount={bagCount} notice={setNotice}/>
+      <Sidebar active={route==="restaurant"?"discover":route==="checkout"?"bag":route} goTo={goTo} open={mobileOpen} onClose={()=>setMobileOpen(false)} bagCount={bagCount}/>
       <main className="dt-main" id="main-content">
         <button className="dt-mobile-menu" aria-label="Open navigation menu" onClick={()=>setMobileOpen(true)} type="button"><Menu size={21}/> Menu</button>
-        {route==="discover"||route==="search" ? <Discovery isSearch={route==="search"} query={query} onQueryChange={setQuery} goTo={goTo} notice={setNotice}/> : <UpcomingScreen route={route} goTo={goTo}/>}
+        {route==="discover"||route==="search" ? <Discovery isSearch={route==="search"} query={query} onQueryChange={setQuery} goTo={goTo} notice={setNotice} onSelectRestaurant={selectRestaurant}/> : route==="restaurant"||route==="bag"||route==="checkout" ? <ShoppingPreview screen={route} restaurantId={restaurantId} cart={cart} onAdd={addToCart} onUpdate={updateCart} onClear={()=>setCart([])} onNavigate={goTo} onNotice={setNotice}/> : <UpcomingScreen route={route} goTo={goTo}/>}
       </main>
       {notice&&<div className="dt-notice" role="status" aria-live="polite"><span className="dt-notice-dot"><Check size={16}/></span><span>{notice}</span><IconButton label="Dismiss message" onClick={()=>setNotice(null)}><X size={17}/></IconButton></div>}
     </div>
