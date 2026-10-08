@@ -20,7 +20,7 @@ test("customer visual geometry audit", async ({ page }) => {
     await page.getByRole("button", { name: "Sign In", exact: true }).first().click();
     const form = page.locator("form").filter({ has: page.getByPlaceholder("customer@deetoo.ke or +254712345678") });
     await form.getByPlaceholder("customer@deetoo.ke or +254712345678").fill("customer@deetoo.ke");
-    await form.locator("input[type=password]").fill(process.env.VISUAL_CUSTOMER_PASSWORD || "");
+    await form.locator("input[type=password]").fill(process.env.VISUAL_CUSTOMER_PASSWORD || "CustomerPass123!");
     await form.getByRole("button", { name: "Sign In", exact: true }).click();
     await expect(page.getByTitle("Sign Out")).toBeVisible();
     authenticated = true;
