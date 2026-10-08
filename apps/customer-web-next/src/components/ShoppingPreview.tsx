@@ -189,7 +189,7 @@ function Storefront({restaurantId,cart,onAdd,onGo,onNotice}:{restaurantId:string
   </div>;
 }
 
-function EmptyBagArt() {
+export function EmptyBagArt() {
   return <div className="dt-empty-bag-picture" aria-hidden="true">
     <svg viewBox="0 0 380 270">
       <ellipse cx="204" cy="244" rx="145" ry="14" fill="#8DBDA5" opacity=".18"/>
