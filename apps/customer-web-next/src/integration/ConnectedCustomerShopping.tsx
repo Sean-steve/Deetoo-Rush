@@ -138,7 +138,7 @@ function ConnectedInner(){
       <LiveAccount gateway={gateway} screen={route.screen} authenticated={isCustomer} requestSignIn={()=>setAuthOpen(true)} onNavigate={navigate} logout={logout} userId={user?.id||""}/>:
      route.screen==="support"||route.screen==="conversation"?
       <LiveSupport gateway={gateway} screen={route.screen==="conversation"?"conversation":"support"} caseId={route.caseId||""} onNavigate={navigate} authenticated={isCustomer} requestSignIn={()=>setAuthOpen(true)}/>:
-      <StatusPanel title="Page unavailable" description="The requested customer page is not available." onRetry={()=>navigate("/")}/>
+      <StatusPanel title="Page unavailable" description="The requested customer page is not available." onRetry={()=>navigate("/")}/>}
   </main>
   {notice&&<div className="dt-notice" role="status"><Check size={16}/>{notice}<IconButton label="Dismiss notification" onClick={()=>setNotice(null)}><X size={16}/></IconButton></div>}
   {authOpen&&<LoginPanel onDismiss={()=>{setAuthOpen(false);addresses.refresh();cart.refresh();}}/>}
