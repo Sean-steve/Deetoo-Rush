@@ -13,7 +13,7 @@ const alert={id:"alert-1",recipient_type:"CUSTOMER",recipient_id:"customer-1",ch
  status:"DELIVERED",subject:"Order accepted",payload:{message:"Your order is being prepared."},provider:"IN_APP",
  retry_count:0,max_retries:3,idempotency_key:"notify-1",read_at:null,created_at:now};
 async function setup(page:any){
- const hits:string[]=[];let savedProfile={...profile},notifications=[{...alert}],cases=[{...supportCase}],notes=[{...note}],sessions=[{...session}];
+ const hits:string[]=[];let savedAddress={...address},savedProfile={...profile},notifications=[{...alert}],cases=[{...supportCase}],notes=[{...note}],sessions=[{...session}];
  await page.route("**/api/v1/**",async(route:any)=>{
   const url=new URL(route.request().url()),path=url.pathname.replace("/api/v1",""),method=route.request().method();
   hits.push(method+" "+path);
@@ -21,7 +21,8 @@ async function setup(page:any){
   const err=(status:number,code:string)=>route.fulfill({status,contentType:"application/json",body:JSON.stringify({error:{code,message:"Denied"}})});
   if(path==="/auth/me")return ok({id:"customer-1",name:"Test Customer",email:"test@example.test",roles:["customer"],permissions:[],status:"ACTIVE"});
   if(path==="/cart")return ok(null);
-  if(path==="/customer/addresses"&&method==="GET")return ok([address]);
+  if(path==="/customer/addresses"&&method==="GET")return ok([savedAddress]);
+  if(path==="/customer/addresses/address-1"&&method==="PATCH"){savedAddress={...savedAddress,...route.request().postDataJSON()};return ok(savedAddress);}
   if(path==="/customer/profile"&&method==="GET")return ok(savedProfile);
   if(path==="/customer/profile"&&method==="PATCH"){savedProfile={...savedProfile,...route.request().postDataJSON()};return ok(savedProfile);}
   if(path==="/auth/sessions")return ok(sessions);
@@ -52,6 +53,12 @@ test("11 account uses backend profile, edits are persisted, preview fixtures not
  await page.getByRole("button",{name:"Save changes"}).click();
  await expect(page.getByText("Updated Customer")).toBeVisible();
  expect(hits).toContain("PATCH /customer/profile");
+ await page.getByRole("button",{name:"Edit",exact:true}).click();
+ const addressDialog=page.getByRole("dialog",{name:"Edit delivery address"});
+ await addressDialog.getByRole("textbox",{name:"Street, building or landmark"}).fill("Updated Juja Road");
+ await addressDialog.getByRole("button",{name:"Save address"}).click();
+ await expect(page.getByText(/Updated Juja Road/)).toBeVisible();
+ expect(hits).toContain("PATCH /customer/addresses/address-1");
  await expect(page.getByText(/Saved payment cards.*do not have a verified/)).toBeVisible();
 });
 test("12 sessions are server-owned and revocation requires explicit confirmation",async({page})=>{
