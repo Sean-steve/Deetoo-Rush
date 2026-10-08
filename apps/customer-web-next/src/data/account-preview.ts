@@ -32,6 +32,8 @@ export const demoLogins:DemoLogin[]=[
   {id:"login2",label:"Successful login",device:"Android · DeeToo App",location:"Nairobi, Kenya",time:"Oct 7, 2026 at 8:22 PM",success:true},
   {id:"login3",label:"Password changed",device:"Windows · Chrome",location:"Juja, Kiambu County",time:"Oct 1, 2026 at 2:10 PM",success:true},
   {id:"login4",label:"Failed login attempt",device:"Unknown device",location:"Nairobi, Kenya",time:"Sep 28, 2026 at 11:43 PM",success:false},
+  {id:"login5",label:"Successful login",device:"Android · DeeToo App",location:"Nairobi, Kenya",time:"Sep 25, 2026 at 8:14 AM",success:true},
+  {id:"login6",label:"Successful login",device:"Windows · Chrome",location:"Juja, Kiambu County",time:"Sep 20, 2026 at 1:05 PM",success:true},
 ];
 export const demoNotifications:DemoNotification[]=[
   {id:"n1",category:"orders",title:"Your order is on the way!",description:"Your rider John is 5 minutes away with your order from Juja Grill House. (Sample event)",when:"2 min ago",day:"Today",read:false,target:"orders"},
