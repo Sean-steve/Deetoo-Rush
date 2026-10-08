@@ -45,6 +45,7 @@ test("compare all fifteen customer surfaces at reference dimensions", async ({ p
   async function selectRestaurant() {
     await open();
     const first = page.locator(".customer-restaurant-card").first();
+    await first.waitFor({state:"visible",timeout:12000}).catch(()=>{});
     if (await first.count()) {
       await first.click();
       await page.waitForTimeout(850);
