@@ -6589,7 +6589,7 @@ paths:
                 $ref: '#/components/schemas/ApiResponseGeneric'
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
-        '409': { $ref: '#/components/responses/Conflict' }
+        '409': { description: Case status or participant confirmation conflict }
       operationId: admin_post_support_case_finalize
       security: [{ bearerAuth: [] }]
 
