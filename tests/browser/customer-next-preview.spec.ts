@@ -121,3 +121,82 @@ test("Shopping flow remains usable on mobile and honors reduced motion", async (
   const overflow=await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth);
   expect(overflow).toBe(false);
 });
+
+
+test("Screen 08: order history matches reference structure, filters and navigates", async ({page})=>{
+  await fs.mkdir("visual-output/customer-next",{recursive:true});
+  await page.goto("/orders");
+  await expect(page.getByRole("heading",{name:"Your orders"})).toBeVisible();
+  await expect(page.locator(".dt-history-card")).toHaveCount(4);
+  await expect(page.locator('.dt-history-card[data-order-id="DT-E2ZG5"]')).toBeVisible();
+  await page.screenshot({path:"visual-output/customer-next/08-orders-1672x941.png",animations:"disabled"});
+  await page.getByRole("tab",{name:/Active/}).click();
+  await expect(page.locator(".dt-history-card")).toHaveCount(2);
+  await page.getByRole("tab",{name:"Past orders"}).click();
+  await expect(page.locator(".dt-history-card")).toHaveCount(1);
+  await page.getByRole("tab",{name:"Cancelled"}).click();
+  await expect(page.locator(".dt-history-card")).toHaveCount(1);
+  await page.getByRole("tab",{name:"All orders"}).click();
+  await page.getByRole("searchbox",{name:"Search orders by restaurant or item"}).fill("pizza");
+  await expect(page.locator(".dt-history-card")).toHaveCount(1);
+  await page.getByRole("searchbox",{name:"Search orders by restaurant or item"}).fill("zzzzz");
+  await expect(page.getByRole("heading",{name:"No matching orders"})).toBeVisible();
+  await page.getByRole("button",{name:"Clear filters"}).click();
+  await expect(page.locator(".dt-history-card")).toHaveCount(4);
+});
+
+test("Screen 09: active tracking map stays explicitly illustrative", async ({page})=>{
+  await fs.mkdir("visual-output/customer-next",{recursive:true});
+  await page.goto("/orders");
+  await page.locator('.dt-history-card[data-order-id="DT-E2ZG5"]').getByRole("button",{name:/View details/}).click();
+  await expect(page).toHaveURL(/\/orders\/tracking$/);
+  await expect(page.getByRole("heading",{name:"Your order is on the way"})).toBeVisible();
+  await expect(page.locator(".dt-tracking-map")).toBeVisible();
+  await expect(page.getByText("Illustrative route · NOT LIVE GPS")).toBeVisible();
+  await expect(page.getByText("Ksh 1,535.00").first()).toBeVisible();
+  await page.screenshot({path:"visual-output/customer-next/09-tracking-1672x941.png",animations:"disabled"});
+  await page.getByRole("button",{name:"Terrain preview"}).click();
+  await expect(page.locator(".dt-tracking-map")).toHaveClass(/terrain/);
+  await page.getByRole("button",{name:"Zoom in"}).click();
+  await page.getByRole("button",{name:"Reset example map zoom"}).click();
+  await page.getByRole("button",{name:"Call sample rider"}).first().click();
+  await expect(page.getByRole("status")).toContainText("no phone call");
+  await page.getByRole("button",{name:"Back to orders"}).click();
+  await page.locator('.dt-history-card[data-order-id="DT-XRSEP"]').getByRole("button",{name:/View details/}).click();
+  await expect(page.getByRole("heading",{name:"Your order is being prepared"})).toBeVisible();
+  await expect(page.locator(".dt-tracking-map")).toHaveCount(0);
+  await expect(page.getByText("Courier assignment pending")).toBeVisible();
+});
+
+test("Screen 10: completed order, accurate demo receipt and three rating controls", async ({page})=>{
+  await fs.mkdir("visual-output/customer-next",{recursive:true});
+  await page.goto("/orders");
+  await page.locator('.dt-history-card[data-order-id="DT-6Z6X6"]').getByRole("button",{name:/View details/}).click();
+  await expect(page).toHaveURL(/\/orders\/delivered$/);
+  await expect(page.getByRole("heading",{name:"Order delivered!"})).toBeVisible();
+  await expect(page.getByText("Total paid (demo)")).toBeVisible();
+  await expect(page.locator(".dt-receipt-grand")).toContainText("Ksh 1,535.00");
+  await page.screenshot({path:"visual-output/customer-next/10-delivered-1672x941.png",animations:"disabled"});
+  await expect(page.getByRole("button",{name:"Preview feedback submission"})).toBeDisabled();
+  for(const label of ["Food quality","Delivery experience","Restaurant service"]){
+    await page.getByRole("button",{name:"5 stars for "+label}).click();
+  }
+  await page.getByRole("textbox",{name:"Additional feedback (optional)"}).fill("Fantastic demo order");
+  await page.getByRole("button",{name:"Preview feedback submission"}).click();
+  await expect(page.locator(".dt-rating-success")).toContainText("Nothing was submitted");
+  await page.getByRole("button",{name:"Reorder menu"}).click();
+  await expect(page).toHaveURL(/\/restaurant$/);
+  await expect(page.getByRole("heading",{name:"Juja Grill House"})).toBeVisible();
+});
+
+test("Delivery screens are responsive and do not pretend to connect to GPS", async ({page})=>{
+  await fs.mkdir("visual-output/customer-next",{recursive:true});
+  await page.setViewportSize({width:390,height:844});
+  for(const [path,name] of [["/orders","08-orders-mobile"],["/orders/tracking","09-tracking-mobile"],["/orders/delivered","10-delivered-mobile"]]){
+    await page.goto(path);
+    await expect(page.locator(".dt-main")).toBeVisible();
+    await page.screenshot({path:"visual-output/customer-next/"+name+"-390x844.png",animations:"disabled"});
+    const pageOverflows=await page.evaluate(()=>document.documentElement.scrollWidth>window.innerWidth);
+    expect(pageOverflows,"No horizontal overflow for "+name).toBe(false);
+  }
+});
