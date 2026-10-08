@@ -11,7 +11,7 @@
 
 | Screen | Real backend contract | Delivered interface and restrictions |
 | --- | --- | --- |
-| 11 Profile & Addresses | GET/PATCH /customer/profile; GET /customer/addresses; POST /customer/addresses/:id/default; DELETE /customer/addresses/:id | Saved customer profile, validated server update, real addresses, default selection and deletion with confirmation. Address creation remains available through the verified GPS and serviceability picker in connected checkout. No fabricated wallet, saved card, rewards or membership benefits. |
+| 11 Profile & Addresses | GET/PATCH /customer/profile; GET /customer/addresses; POST /customer/addresses/:id/default; DELETE /customer/addresses/:id | Saved customer profile, validated server update, real addresses, default selection and deletion with confirmation. Add/edit address dialogs are available directly in the profile: new addresses require verified GPS and serviceability, and changing an existing street, town or region requires fresh GPS verification; the connected checkout address picker remains available. No fabricated wallet, saved card, rewards or membership benefits. |
 | 12 Security & Devices | GET /auth/sessions; POST /auth/sessions/:id/revoke; POST /auth/sessions/revoke-all; POST /auth/password/forgot | Real active session devices, current-session indicator, per-session and all-device revocation only after confirmation, and account recovery request. No local credential handling. MFA enrollment requires the secure step-up/QR recovery experience and is **not** falsely presented as enabled. |
 | 13 Notifications Center | GET /customer/support/notifications (response {notifications,total}); POST /customer/support/notifications/:id/read | Live recipient-scoped inbox, unread count, category tabs, search, read state and server-confirmed individual mark-read. No invented channel preferences, device tokens or bulk read. |
 | 14 Help & Support | GET/POST /customer/support/cases | Real cases, categories, active/waiting/resolved filters, request creation and authenticated order-association verification, empty/error/loading and retry states. |
@@ -20,7 +20,7 @@
 ## Screens / states added during integration
 
 - Explicit revocation confirmation, session sign-out, password recovery request.
-- Profile edit and protected address delete confirmation; verified location creation remains in the connected shopping app.
+- Profile edit, GPS/serviceability-backed add/edit address dialog, protected address delete confirmation, and connected shopping address selection.
 - Notification read/empty/error/recipient-owned views.
 - Case creation dialog with optional scoped order, persisted conversation, case state timeline, resolution review and dispute.
 - Missing delivery/case, missing GPS/ETA and payment-pending states retained from Phase B3.
