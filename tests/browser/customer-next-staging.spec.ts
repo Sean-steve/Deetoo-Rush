@@ -52,7 +52,36 @@ test("all 15 deployed connected customer screens use real backend endpoints",asy
   await page.goto(route);
   await expect(page.getByRole("heading",{name:heading,exact:true})).toBeVisible();
  }
- for(const route of ["/bag","/checkout"]){await page.goto(route);await expect(page.locator(".dt-app")).toBeVisible();}
+ // 04–07: the staging merchant must have a live, open test item. Cart state
+ // can be safely modified on this dedicated staging test identity; no charge is initiated.
+ await page.goto("/bag");
+ const clear=page.getByRole("button",{name:"Clear bag",exact:true});
+ if(await clear.isVisible()){
+   await clear.click();
+   await page.getByRole("alertdialog",{name:"Clear bag confirmation"}).getByRole("button",{name:"Clear bag"}).click();
+ }
+ await expect(page.getByRole("heading",{name:"Your bag is empty"})).toBeVisible();
+ await page.goto("/restaurant/"+encoded(branchId));
+ const customize=page.getByRole("button",{name:"Customize",exact:true}).first();
+ await expect(customize,"staging test merchant must be open with an available item").toBeEnabled();
+ await customize.click();
+ const dialog=page.locator(".dt-product-dialog");
+ await expect(dialog).toBeVisible();
+ for(const group of await dialog.locator(".dt-product-extra-list").all()){
+   const option=group.locator("input:not([disabled])").first();
+   if(await option.count())await option.check();
+ }
+ const add=dialog.getByRole("button",{name:/Add to bag/});
+ await expect(add).toBeEnabled();
+ await add.click();
+ await expect(dialog).toBeHidden();
+ await page.goto("/bag");
+ await expect(page.locator(".dt-bag-line")).not.toHaveCount(0);
+ const checkout=page.getByRole("button",{name:/Proceed to checkout/});
+ await expect(checkout).toBeEnabled();
+ await checkout.click();
+ await expect(page).toHaveURL(/\\/checkout$/);
+ await expect(page.locator(".dt-checkout-line")).not.toHaveCount(0);
  await expect(page.getByText("sample conversations")).toHaveCount(0);
  expect(failures,"no server-side errors during real customer journey").toEqual([]);
 });
