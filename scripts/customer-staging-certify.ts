@@ -30,6 +30,7 @@ async function certify(){
   check(o.status==="COMPLETED","certified order must be delivered, not merely paid or dispatched");
   check(o.currency==="KES"&&Number(o.total_minor)>0,"invalid order economics");
   const payments=await client.query("SELECT id,status,provider,method,captured_minor,mpesa_receipt_number,checkout_request_id,merchant_request_id,provider_receiver FROM payments WHERE order_id=$1 ORDER BY created_at DESC",[orderId]);
+  check(payments.rows.filter(p=>p.status==="CAPTURED").length===1,"duplicate captured payment(s) for one order");
   const matching=payments.rows.filter(p=>p.mpesa_receipt_number===receipt&&p.provider==="MPESA"&&p.method==="MPESA"&&p.status==="CAPTURED");
   check(matching.length===1,"missing unique real CAPTURED M-PESA receipt");const payment=matching[0];
   check(Number(payment.captured_minor)===Number(o.total_minor),"captured payment must match immutable order total");
