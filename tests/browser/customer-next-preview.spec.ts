@@ -311,6 +311,7 @@ test("Screen 14: help dashboard topic and status filters, sample ticket threads"
  await expect(page.getByRole("heading",{name:"Your support tickets"})).toBeVisible();
  await expect(page.getByRole("heading",{name:"Missing item in my order"}).first()).toBeVisible();
  await expect(page.getByText("Sample conversations · no messages are sent")).toBeVisible();
+ await expect(page.locator(".dt-support-composer")).toBeInViewport();
  await page.screenshot({path:"visual-output/customer-next/14-support-1672x941.png",animations:"disabled"});
  await page.getByRole("button",{name:/Payments Refunds/}).click();
  await expect(page.locator(".dt-support-case")).toHaveCount(1);
@@ -350,6 +351,7 @@ test("Screen 15: conversation deep link, local messaging, attachment validation 
  await expect(page.getByRole("heading",{name:"Support Conversation"})).toBeVisible();
  await expect(page.getByRole("heading",{name:"Order #DT12893"})).toBeVisible();
  await expect(page.getByText("not verified",{exact:false}).first()).toBeVisible();
+ await expect(page.locator(".dt-support-composer")).toBeInViewport();
  await page.screenshot({path:"visual-output/customer-next/15-support-conversation-1672x941.png",animations:"disabled"});
  const conversation=page.locator(".dt-support-chat-panel");
  await expect(conversation.locator(".dt-support-message")).toHaveCount(5);
