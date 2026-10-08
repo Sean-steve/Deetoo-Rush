@@ -280,3 +280,37 @@
  .customer-support-case-column:has(.customer-support-thread) { grid-template-columns:1fr; }
  .customer-merchant-cover { height:170px; }
 }
+
+/* Screen 13 — categories, unread indicators and notification actions */
+.customer-notification-head { display:flex;align-items:flex-start;justify-content:space-between;gap:1rem; }
+.customer-notification-tabs { display:flex;gap:.45rem;flex-wrap:wrap;margin-bottom:1.25rem; }
+.customer-notification-tabs button { background:#fff;border:1px solid var(--customer-line);border-radius:12px;min-height:45px;display:flex;align-items:center;gap:.6rem;padding:.55rem .8rem;font-weight:750;font-size:.8rem; }
+.customer-notification-tabs button span { border-radius:999px;background:#e8f5ee;color:#08794b;padding:.1rem .43rem;font-size:.72rem; }
+.customer-notification-tabs button[aria-pressed="true"] { border-color:#00a566;background:var(--customer-green);color:#fff; }
+.customer-notification-tabs button[aria-pressed="true"] span { background:#fff;color:#006b45; }
+.customer-notification-layout { display:grid;grid-template-columns:minmax(0,1fr) 310px;gap:1.2rem;align-items:start; }
+.customer-notification-feed { min-width:0; }
+.customer-notification-feed-heading { display:flex;align-items:center;justify-content:space-between;gap:.7rem;margin-bottom:.65rem;font-size:1.1rem; }
+.customer-notification-feed-heading label { display:flex;align-items:center;gap:.35rem;font-weight:550;font-size:.8rem;color:var(--customer-muted); }
+.customer-notification-feed-heading input { accent-color:var(--customer-green);width:16px;height:16px; }
+.customer-notification-item { display:flex;align-items:flex-start;gap:1rem;padding:1.25rem!important;margin-bottom:.65rem; }
+.customer-notification-unread { background:linear-gradient(95deg,#ecfaf2,#fff 30%)!important;border-color:#b5e9d0!important; }
+.customer-notification-icon { background:#e6f8ec;color:#078c51;width:46px;height:46px;min-width:46px;border-radius:14px;display:grid;place-items:center; }
+.customer-notification-payments { background:#e8f0ff;color:#2864c5; }
+.customer-notification-offers { background:#fff3d8;color:#a76900; }
+.customer-notification-security { background:#edeaff;color:#6b3dc2; }
+.customer-notification-support { background:#fff0ec;color:#c44c20; }
+.customer-notification-system { background:#f0f2f5;color:#525f71; }
+.customer-notification-copy { flex:1;min-width:0; }
+.customer-notification-title { display:flex;align-items:center;gap:.7rem;flex-wrap:wrap; }
+.customer-notification-title strong { font-size:.94rem; }
+.customer-notification-title span { color:#007c4d;background:#d9f8e7;padding:.1rem .42rem;border-radius:99px;font-weight:800;font-size:.65rem; }
+.customer-notification-copy p { color:#4c5e72;margin:.35rem 0 .5rem;line-height:1.5;font-size:.82rem; }
+.customer-notification-copy time { font-size:.72rem;color:#8493a4; }
+.customer-notification-actions { display:flex;align-items:center;gap:.4rem;flex-wrap:wrap; }
+.customer-notification-info { padding:1.4rem;display:flex;flex-direction:column;align-items:flex-start;gap:.8rem;background:linear-gradient(150deg,#e9faef,#fff);border:1px solid #cceedd;border-radius:19px;position:sticky;top:94px; }
+.customer-notification-info-icon { color:#008952;background:#c8f1da;padding:.8rem;border-radius:50%; }
+.customer-notification-info h2 { font-size:1.2rem;font-weight:850; }
+.customer-notification-info p { font-size:.84rem;color:#4e675c;line-height:1.55; }
+@media (max-width:1100px) { .customer-notification-layout { grid-template-columns:1fr; } .customer-notification-info { position:static; } }
+@media (max-width:639px) { .customer-notification-item { flex-wrap:wrap; } .customer-notification-actions { width:100%;padding-left:60px; } .customer-notification-head { flex-direction:column; } }
