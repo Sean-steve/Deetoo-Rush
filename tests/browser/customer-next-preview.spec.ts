@@ -166,6 +166,10 @@ test("Screen 09: active tracking map stays explicitly illustrative", async ({pag
   await expect(page.getByRole("heading",{name:"Your order is being prepared"})).toBeVisible();
   await expect(page.locator(".dt-tracking-map")).toHaveCount(0);
   await expect(page.getByText("Courier assignment pending")).toBeVisible();
+  await page.getByRole("button",{name:"Back to orders"}).click();
+  await page.locator('.dt-history-card[data-order-id="DT-K4HR9"]').getByRole("button",{name:/View details/}).click();
+  await expect(page.getByRole("heading",{name:"This order was cancelled"})).toBeVisible();
+  await expect(page.getByText("No courier dispatched")).toBeVisible();
 });
 
 test("Screen 10: completed order, accurate demo receipt and three rating controls", async ({page})=>{
