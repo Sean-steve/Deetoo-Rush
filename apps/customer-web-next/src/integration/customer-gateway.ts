@@ -36,6 +36,10 @@ export function createCustomerGateway(client:DeetooApiClient){
     auth:{
       me:():Promise<AuthUser>=>responseData(client.getMe(),"/auth/me"),
       sessions:():Promise<CustomerDeviceSession[]>=>request("/auth/sessions"),
+      requestPasswordReset:(identifier:string):Promise<unknown>=>{
+        if(!identifier.trim())throw new TypeError("An account identifier is required");
+        return request("/auth/password/forgot",{method:"POST",body:JSON.stringify({identifier:identifier.trim()})});
+      },
       revokeSession:(id:string)=>request<{message:string}>("/auth/sessions/"+safeResourceId(id)+"/revoke",{method:"POST"}),
       revokeAllSessions:()=>request<{message:string}>("/auth/sessions/revoke-all",{method:"POST"}),
     },
