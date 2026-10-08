@@ -5,6 +5,7 @@ import {Badge,Button,IconButton,Panel,classNames} from "../../../../packages/cus
 import type {CustomerGateway} from "./customer-gateway";
 import {backendError,useBackendResource,type ResourceState} from "./resource";
 import {money,SafePhoto,StatusPanel,ResourceView} from "./LiveUtilities";
+import {EmptyBagArt} from "../components/ShoppingPreview";
 
 type Screen="restaurant"|"bag"|"checkout"|"payment";
 const paid=new Set(["CAPTURED"]);
@@ -59,6 +60,7 @@ function MerchantStore({gateway,branchId,cart,onCartChanged,onBrowse,requestSign
  const add=async(qty:number,options:string[],force=false,item=active)=>{
   if(!item)return;
   if(!isAuthenticated){requestSignIn();throw new Error("Please sign in to add this item to your bag.");}
+  if(detail?.branch.is_open_now===false)throw new Error("This restaurant is currently closed.");
   try {await gateway.cart.add({branch_id:branchId,menu_item_id:item.id,quantity:qty,modifier_option_ids:options,force_clear_existing:force});setError("");setConflict(null);onCartChanged();}
   catch(err){
    const code=err&&typeof err==="object"&&"error" in err?(err as {error?:{code?:string}}).error?.code:"";
@@ -78,7 +80,7 @@ function MerchantStore({gateway,branchId,cart,onCartChanged,onBrowse,requestSign
   {detail?.serviceability&&!detail.serviceability.serviceable&&<Panel className="dt-live-alert" role="status">This branch may not deliver to your current address. Change your address before ordering.</Panel>}
   <div className="dt-store-tabs"><div role="tablist" aria-label="Restaurant information">{["Menu","About","Location"].map(t=><button role="tab" key={t} aria-selected={tab===t} onClick={()=>setTab(t)}>{t}</button>)}</div><div className="dt-store-menu-search"><Search size={17}/><input aria-label="Search menu items" placeholder="Search menu items…" value={search} onChange={e=>{setSearch(e.target.value);setTab("Menu");}}/></div></div>
   {tab==="Menu"?<div className="dt-store-body"><nav className="dt-store-categories" aria-label="Menu categories"><button aria-pressed={category==="all"} onClick={()=>setCategory("all")}><span>🍽️</span><strong>All items</strong><small>{entries.length}</small></button>{data.categories.map(c=><button key={c.id} aria-pressed={category===c.id} onClick={()=>setCategory(c.id)}><span>🍴</span><strong>{c.name}</strong><small>{c.items.length}</small></button>)}</nav>
-    <section className="dt-store-products"><h2>{category==="all"?"All items":data.categories.find(c=>c.id===category)?.name}</h2><p>Live menu · items and prices verified by this restaurant.</p><div className="dt-store-product-grid">{visible.map(item=><article className="dt-product-card" key={item.id}><button type="button" className="dt-product-photo-button" disabled={!item.is_available} onClick={()=>setActive(item)} aria-label={"Customize "+item.name}><SafePhoto src={item.image_url} alt={item.name}/>{!item.is_available&&<Badge>Unavailable</Badge>}</button><div><h3>{item.name}</h3><p>{item.description}</p><footer><strong>{money(item.price_minor)}</strong><Button size="sm" disabled={!item.is_available||!detail?.branch.is_open_now} onClick={()=>setActive(item)} startIcon={<Plus size={15}/>}>Customize</Button></footer></div></article>)}</div>{!visible.length&&<Panel className="dt-store-no-items">No available menu items match your search.</Panel>}
+    <section className="dt-store-products"><h2>{category==="all"?"All items":data.categories.find(c=>c.id===category)?.name}</h2><p>Live menu · items and prices verified by this restaurant.</p><div className="dt-store-product-grid">{visible.map(item=><article className="dt-product-card" key={item.id}><button type="button" className="dt-product-photo-button" disabled={!item.is_available||!detail?.branch.is_open_now} onClick={()=>setActive(item)} aria-label={"Customize "+item.name}><SafePhoto src={item.image_url} alt={item.name}/>{!item.is_available&&<Badge>Unavailable</Badge>}</button><div><h3>{item.name}</h3><p>{item.description}</p><footer><strong>{money(item.price_minor)}</strong><Button size="sm" disabled={!item.is_available||!detail?.branch.is_open_now} onClick={()=>setActive(item)} startIcon={<Plus size={15}/>}>Customize</Button></footer></div></article>)}</div>{!visible.length&&<Panel className="dt-store-no-items">No available menu items match your search.</Panel>}
     </section>
     <aside className="dt-shop-rail"><Panel className="dt-shop-cart-summary"><header><ShoppingBag size={20}/><h2>Your bag</h2><Badge>{cart?.total_quantity||0} items</Badge></header>{cart?.branch_id===branchId&&cart.items.map(i=><div className="dt-mini-cart-line" key={i.id}><SafePhoto src={i.item_image_url} className="dt-mini-cart-photo"/><div><strong>{i.item_name}</strong><small>{i.quantity} × {money(i.unit_total_price_minor)}</small></div></div>)}<dl className="dt-shop-fees"><div><dt>Items subtotal</dt><dd>{cart&&cart.branch_id===branchId?money(cart.pricing.subtotal_minor):"—"}</dd></div><div><dt>Delivery and service</dt><dd>Estimate in bag</dd></div></dl><div className="dt-shop-total"><span>Estimated total</span><strong>{cart&&cart.branch_id===branchId?money(cartTotal||0):"—"}</strong></div><Button className="dt-full-button" onClick={()=>window.location.assign("/bag")}>View bag <ArrowRight size={17}/></Button></Panel></aside>
    </div>:<Panel className="dt-store-tab-placeholder"><h2>{tab}</h2><p>{tab==="About"?data.merchant.description||"No additional restaurant description provided.":data.branch.address_text}</p><Button onClick={()=>setTab("Menu")}>Back to menu</Button></Panel>}
@@ -88,7 +90,17 @@ function MerchantStore({gateway,branchId,cart,onCartChanged,onBrowse,requestSign
  </>;}}</ResourceView>
  </div>;
 }
-function EmptyBag({onBrowse}:{onBrowse:()=>void}){return <section className="dt-bag-empty dt-screen-enter"><div className="dt-empty-bag-picture" aria-hidden="true"><ShoppingBag size={125} strokeWidth={1} color="#009f68"/></div><h1>Your bag is empty</h1><p>Choose a restaurant and add something delicious to get started.</p><Button onClick={onBrowse} startIcon={<UtensilsCrossed size={18}/>}>Explore restaurants</Button></section>;}
+function EmptyBag({gateway,onBrowse,onRestaurant}:{gateway:CustomerGateway;onBrowse:()=>void;onRestaurant:(id:string)=>void}){
+ const nearby=useBackendResource(()=>gateway.discovery.restaurants({page:1,limit:4}),true,[]);
+ return <section className="dt-bag-empty dt-screen-enter">
+  <EmptyBagArt/><h1>Your bag is empty</h1>
+  <p>Looks like you haven’t added any delicious items yet.<br/>Explore amazing restaurants and start your order.</p>
+  <Button onClick={onBrowse} startIcon={<UtensilsCrossed size={19}/>}>Explore restaurants</Button>
+  {nearby.state.status==="ready"&&nearby.state.data.length>0&&<section className="dt-empty-suggestions"><header><div><h2>Popular near you</h2><p>Browse available DeeToo restaurants.</p></div><button onClick={onBrowse}>View all <ArrowRight size={16}/></button></header><div>
+   {nearby.state.data.map(r=><button onClick={()=>onRestaurant(r.branch_id)} key={r.branch_id} className="dt-empty-restaurant"><SafePhoto src={r.cover_url} alt={r.merchant_name}/><div><strong>{r.merchant_name}</strong><small>{r.categories.join(" · ")}</small><small><MapPin size={13}/> {r.branch_name}</small></div></button>)}
+  </div></section>}
+ </section>;
+}
 function Bag({gateway,cart,refresh,onBrowse,onCheckout}:{gateway:CustomerGateway;cart:EnrichedCart|null;refresh:()=>void;onBrowse:()=>void;onCheckout:()=>void}){
  const [busy,setBusy]=useState(false),[error,setError]=useState(""),[promo,setPromo]=useState("");
  const [confirmClear,setConfirmClear]=useState(false);
@@ -184,6 +196,6 @@ export function LiveShopping({gateway,screen,branchId,orderId,cartState,refreshC
  if(cartState.status==="error")return <StatusPanel title="Bag unavailable" description={cartState.message} onRetry={refreshCart}/>;
  const cart=cartState.data;
  if(screen==="bag")return <Bag gateway={gateway} cart={cart} refresh={refreshCart} onBrowse={()=>onNavigate(cart?"/restaurant/"+cart.branch_id:"/")} onCheckout={()=>onNavigate("/checkout")}/>;
- if(!cart||!cart.items.length)return <EmptyBag onBrowse={()=>onNavigate("/")}/>;
+ if(!cart||!cart.items.length)return <EmptyBag gateway={gateway} onBrowse={()=>onNavigate("/")} onRestaurant={id=>onNavigate("/restaurant/"+id)}/>;
  return <Checkout gateway={gateway} cart={cart} addresses={addresses} addressId={addressId} onAddress={onAddress} onBack={()=>onNavigate("/bag")} onPayment={id=>{refreshCart();onNavigate("/payment/"+id);}}/>;
 }
