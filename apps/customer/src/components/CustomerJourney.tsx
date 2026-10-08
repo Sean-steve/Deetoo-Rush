@@ -41,6 +41,8 @@ import {
   MapPin,
   ShieldCheck,
   Store,
+  ShoppingBag,
+  ArrowRight,
 } from "lucide-react";
 
 const deliveryProgressSteps = [
@@ -88,6 +90,7 @@ export function CustomerJourney({
   const [error, setError] = useState<string | null>(null);
   const key = useRef<string | null>(null);
   const [quoteExpired, setQuoteExpired] = useState(false);
+  const [orderFilter, setOrderFilter] = useState<"all" | "active" | "completed" | "cancelled">("all");
   const action = async (fn: () => Promise<void>) => {
     setBusy(true);
     setError(null);
@@ -131,24 +134,36 @@ export function CustomerJourney({
             </Button>
           }
         />
+        <div className="customer-order-filters" aria-label="Filter your orders">
+          {(["all", "active", "completed", "cancelled"] as const).map((filter) => (
+            <button key={filter} type="button" aria-pressed={orderFilter === filter} onClick={() => setOrderFilter(filter)}>
+              {filter === "all" ? "All orders" : filter === "active" ? "Active" : filter === "completed" ? "Past orders" : "Cancelled"}
+            </button>
+          ))}
+        </div>
         <ResourceState resource={orders}>
-          <div className="grid gap-4">
-            {orders.data?.map((order) => (
-              <Card key={order.id}>
-                <div className="flex justify-between gap-4">
+          <div className="customer-order-list">
+            {orders.data?.filter((order) => {
+              if (orderFilter === "all") return true;
+              if (orderFilter === "completed") return order.status === "COMPLETED";
+              if (orderFilter === "cancelled") return ["CANCELLED", "REJECTED"].includes(order.status);
+              return !["COMPLETED", "CANCELLED", "REJECTED"].includes(order.status);
+            }).map((order) => (
+              <Card key={order.id} className="customer-order-card">
+                <div className="customer-order-line">
                   <div>
                     <h2 className="font-bold">{order.order_number}</h2>
-                    <p>{order.branch_name}</p>
-                    <StatusBadge status={order.status} />
+                    <p className="text-sm text-slate-500 mt-1">{order.branch_name}</p>
+                    <div className="mt-2"><StatusBadge status={order.status} /></div>
                   </div>
                   <div className="text-right">
-                    <Price minor={order.total_minor} />
+                    <strong className="block text-lg"><Price minor={order.total_minor} /></strong>
                     <Button
                       variant="outline"
                       className="mt-3"
                       onClick={() => setOrderId(order.id)}
                     >
-                      View & track
+                      View details <ArrowRight size={15} className="ml-1" />
                     </Button>
                   </div>
                 </div>
@@ -202,25 +217,26 @@ export function CustomerJourney({
       : Promise.resolve();
 
   return (
-    <>
-      <PageHeading title="Your bag" eyebrow="Made for your cravings" />
+    <section className={`customer-cart-view ${quote ? "customer-cart-review" : ""}`}>
+      <PageHeading title={quote ? "Checkout · Review & place order" : "Your bag"} eyebrow="Made for your cravings" />
       {error && <ErrorState message={error} />}
       <ResourceState resource={cart}>
         {!cart.error && !cart.loading && !cart.data?.items?.length ? (
-          <EmptyState
-            title="Your bag is empty"
-            description="Choose a kitchen and add something delicious."
-            action={<Button onClick={onBrowse}>Explore kitchens</Button>}
-          />
+          <div className="customer-empty-bag" role="status">
+            <div className="customer-empty-bag-art"><ShoppingBag strokeWidth={1.4} aria-hidden="true" /></div>
+            <h2>Your bag is empty</h2>
+            <p>Looks like you haven't added any delicious items yet. Explore nearby restaurants to start your order.</p>
+            <Button onClick={onBrowse}><ArrowRight size={17} className="mr-2"/> Explore restaurants</Button>
+          </div>
         ) : (
           cart.data && (
             <div className="workflow-grid">
-              <section className="space-y-4">
+              <section className="space-y-4 customer-cart-items">
                 <h2 className="text-xl font-bold">
                   {cart.data.branch.merchant_name} · {cart.data.branch.name}
                 </h2>
                 {cart.data.items.map((item) => (
-                  <Card key={item.id}>
+                  <Card key={item.id} className="customer-cart-item">
                     <div className="flex gap-4">
                       {item.item_image_url && (
                         <img
@@ -281,6 +297,9 @@ export function CustomerJourney({
                     </div>
                   </Card>
                 ))}
+                <Button variant="outline" onClick={onBrowse} className="customer-continue-shopping">
+                  <ArrowRight size={17} className="mr-2" /> Browse more items
+                </Button>
                 {cart.data.warnings.map((warning, i) => (
                   <p
                     role="status"
@@ -513,7 +532,7 @@ export function CustomerJourney({
           )
         )}
       </ResourceState>
-    </>
+    </section>
   );
 }
 
@@ -648,6 +667,12 @@ export function CustomerOrder({
               action={<StatusBadge status={order.data.status} />}
             />
             {error && <ErrorState message={error} />}
+            {order.data.status === "COMPLETED" && (
+              <div className="customer-order-success">
+                <CheckCircle2 size={32} />
+                <div><h2>Order delivered!</h2><p>Your food has arrived. Enjoy your meal!</p></div>
+              </div>
+            )}
             <div className="workflow-grid">
               <div className="space-y-5">
                 <Card className="customer-tracking-hero">
