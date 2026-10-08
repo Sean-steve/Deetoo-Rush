@@ -302,3 +302,91 @@ test("Screens 11–13 remain usable at mobile width with no horizontal overflow"
     expect(overflow,"No horizontal overflow on "+path).toBe(false);
   }
 });
+
+
+test("Screen 14: help dashboard topic and status filters, sample ticket threads",async ({page})=>{
+ await fs.mkdir("visual-output/customer-next",{recursive:true});
+ await page.goto("/support");
+ await expect(page.getByRole("heading",{name:"Help & Support"})).toBeVisible();
+ await expect(page.getByRole("heading",{name:"Your support tickets"})).toBeVisible();
+ await expect(page.getByRole("heading",{name:"Missing item in my order"}).first()).toBeVisible();
+ await expect(page.getByText("Sample conversations · no messages are sent")).toBeVisible();
+ await page.screenshot({path:"visual-output/customer-next/14-support-1672x941.png",animations:"disabled"});
+ await page.getByRole("button",{name:/Payments Refunds/}).click();
+ await expect(page.locator(".dt-support-case")).toHaveCount(1);
+ await expect(page.getByRole("heading",{name:"Refund for cancelled order"})).toBeVisible();
+ await page.getByRole("button",{name:/All topics View all support/}).click();
+ await page.getByRole("tab",{name:/Resolved/}).click();
+ await expect(page.locator(".dt-support-case")).toHaveCount(2);
+ await page.getByRole("tab",{name:/All/}).click();
+ await expect(page.locator(".dt-support-case")).toHaveCount(6);
+ await page.getByRole("button",{name:"Open conversation",exact:true}).click();
+ await expect(page).toHaveURL(/\/support\/cases\/case-missing$/);
+ await page.getByRole("button",{name:"Back to Support"}).click();
+ await expect(page).toHaveURL(/\/support$/);
+});
+
+test("Screen 14: create sample request locally and preserve case state without contacting backend",async ({page})=>{
+ await page.goto("/support");
+ await page.getByRole("button",{name:"New request"}).click();
+ const dialog=page.getByRole("dialog",{name:"New support request"});
+ await expect(dialog).toBeVisible();
+ await dialog.getByRole("combobox",{name:"Support topic"}).selectOption("merchants");
+ await dialog.getByRole("textbox",{name:"Request subject"}).fill("Demo case: missing utensils");
+ await dialog.getByRole("textbox",{name:"Request description"}).fill("A sample case for missing utensils with the delivery.");
+ await dialog.getByRole("button",{name:"Create sample request"}).click();
+ await expect(dialog).toHaveCount(0);
+ await expect(page.getByRole("heading",{name:"Demo case: missing utensils"})).toBeVisible();
+ await expect(page.locator(".dt-support-case")).toHaveCount(7);
+ await expect(page.getByRole("status")).toContainText("No real support case");
+ await page.reload();
+ await expect(page.locator(".dt-support-case")).toHaveCount(6);
+ await expect(page.getByText("Demo case: missing utensils")).toHaveCount(0);
+});
+
+test("Screen 15: conversation deep link, local messaging, attachment validation and Back",async ({page})=>{
+ await fs.mkdir("visual-output/customer-next",{recursive:true});
+ await page.goto("/support/cases/case-arrival");
+ await expect(page.getByRole("heading",{name:"Support Conversation"})).toBeVisible();
+ await expect(page.getByRole("heading",{name:"Order #DT12893"})).toBeVisible();
+ await expect(page.getByText("not verified",{exact:false}).first()).toBeVisible();
+ await page.screenshot({path:"visual-output/customer-next/15-support-conversation-1672x941.png",animations:"disabled"});
+ const conversation=page.locator(".dt-support-chat-panel");
+ await expect(conversation.locator(".dt-support-message")).toHaveCount(5);
+ await page.getByRole("textbox",{name:"Type a support message"}).fill("Please send me an update once verified.");
+ await page.getByRole("button",{name:"Send preview message"}).click();
+ await expect(conversation.locator(".dt-support-message")).toHaveCount(6);
+ await expect(conversation.getByText("Please send me an update once verified.")).toBeVisible();
+ await expect(page.getByRole("status")).toContainText("Nothing was sent");
+ await page.reload();
+ await expect(conversation.locator(".dt-support-message")).toHaveCount(5);
+ await expect(page).toHaveURL(/\/support\/cases\/case-arrival$/);
+ await page.getByRole("button",{name:"Back to Support"}).click();
+ await expect(page).toHaveURL(/\/support$/);
+});
+
+test("Screen 15: responding to a proposed resolution cannot independently close a case",async ({page})=>{
+ await page.goto("/support/cases/case-refund");
+ await expect(page.getByRole("region",{name:"Proposed resolution"})).toBeVisible();
+ await page.getByRole("region",{name:"Proposed resolution"}).getByRole("button",{name:"I need more help"}).click();
+ await expect(page.getByText("An administrator must confirm the final case status.")).toBeVisible();
+ await expect(page.locator(".dt-support-chat-panel").getByText("Waiting")).toBeVisible();
+ await expect(page.getByRole("status")).toContainText("only authorized staff");
+ await page.reload();
+ await expect(page.getByRole("region",{name:"Proposed resolution"}).getByRole("button",{name:"I agree"})).toBeVisible();
+});
+
+test("Screens 14–15 mobile support layouts have no horizontal overflow",async ({page})=>{
+ await fs.mkdir("visual-output/customer-next",{recursive:true});
+ await page.setViewportSize({width:390,height:844});
+ for(const [route,name,heading] of [
+ ["/support","14-support-mobile","Help & Support"],
+ ["/support/cases/case-arrival","15-support-conversation-mobile","Support Conversation"]
+ ]){
+  await page.goto(route);
+  await expect(page.getByRole("heading",{name:heading})).toBeVisible();
+  await page.screenshot({path:"visual-output/customer-next/"+name+"-390x844.png",animations:"disabled"});
+  const overflow=await page.evaluate(()=>document.documentElement.scrollWidth>window.innerWidth);
+  expect(overflow,"No horizontal overflow for "+route).toBe(false);
+ }
+});
