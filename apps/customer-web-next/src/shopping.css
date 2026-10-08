@@ -245,3 +245,13 @@
 @media(max-width:400px){ .dt-store-product-grid { grid-template-columns:1fr; } .dt-store-facts>div { flex:1 1 100%;border:0; } }
 @keyframes dt-mobile-sheet-enter { from { transform:translateY(22px);opacity:.8;} to {transform:none;opacity:1;} }
 @media(prefers-reduced-motion:reduce) { .dt-product-dialog,.dt-product-dialog::backdrop,.dt-screen-enter { animation:none!important; } .dt-product-card,.dt-shop-photo img { transition:none!important; } }
+
+
+/* Motion: price/cart feedback without layout shift. */
+.dt-cart-count { animation:dt-bag-bounce .26s cubic-bezier(.2,.75,.4,1.28); }
+@keyframes dt-bag-bounce { from {transform:scale(.72);opacity:.45} 62% {transform:scale(1.13);opacity:1} to {transform:scale(1)} }
+.dt-shop-quantity button:focus-visible,.dt-product-extra-list input:focus-visible,.dt-checkout-choice:focus-within { outline:3px solid #80e2b5;outline-offset:2px; }
+.dt-bag-browse em,.dt-bag-browse>span:first-child { transition:background-color .17s,transform .17s; }
+.dt-bag-browse:hover em { color:#006c41; }
+.dt-bag-browse:hover>span:first-child { transform:rotate(90deg); }
+@media(prefers-reduced-motion:reduce) { .dt-cart-count {animation:none!important} .dt-bag-browse em,.dt-bag-browse>span:first-child {transition:none!important} }
