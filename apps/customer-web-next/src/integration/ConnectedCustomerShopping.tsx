@@ -92,14 +92,15 @@ function LocationPicker({gateway,addresses,currentId,onChoose,onSaved,onClose}:{
   </div></dialog>;
 }
 function ConnectedInner(){
- const {apiClient,user,isLoading,isAuthenticated}=useAuth();
+ const {apiClient,user,isLoading,isAuthenticated,logout}=useAuth();
+ const isCustomer=isAuthenticated&&Boolean(user?.roles.some(role=>String(role).toLowerCase()==="customer"));
  const gateway=useMemo(()=>createCustomerGateway(apiClient),[apiClient]);
  const [path,setPath]=useState(window.location.pathname),[query,setQuery]=useState(""),[notice,setNotice]=useState<string|null>(null);
  const [mobile,setMobile]=useState(false),[authOpen,setAuthOpen]=useState(false),[locationOpen,setLocationOpen]=useState(false);
  const [addressId,setAddressId]=useState("");
  const route=classify(path);
- const addresses=useBackendResource(()=>gateway.account.addresses(),isAuthenticated,[user?.id]);
- const cart=useBackendResource(()=>gateway.cart.read(),isAuthenticated,[user?.id]);
+ const addresses=useBackendResource(()=>gateway.account.addresses(),isCustomer,[user?.id]);
+ const cart=useBackendResource(()=>gateway.cart.read(),isCustomer,[user?.id]);
  const list=addresses.state.status==="ready"?addresses.state.data:addresses.state.status==="empty"?addresses.state.data:[];
  const chosen=list.find(a=>a.id===addressId)||list.find(a=>a.is_default)||list[0]||null;
  useEffect(()=>{if(!addressId&&chosen)setAddressId(chosen.id);},[chosen?.id,addressId]);
@@ -113,8 +114,9 @@ function ConnectedInner(){
  const routeId=(route.screen==="payment"?"checkout":route.screen) as Route;
  const bagCount=cart.state.status==="ready"?cart.state.data?.total_quantity||0:0;
  if(isLoading)return <StatusPanel loading title="Checking DeeToo session…"/>;
+ if(isAuthenticated&&!isCustomer)return <StatusPanel title="Customer access required" description="This account does not have the customer role. DeeToo keeps merchant, rider and admin access separate."><Button onClick={()=>void logout()}>Sign out</Button></StatusPanel>;
  return <div className="dt-app">
-  <Header goTo={goTo} bagCount={bagCount} query={query} onQueryChange={setQuery} notice={setNotice} userLabel={user?.name||"Sign in"} locationLabel={chosen?.label||"Choose address"} locationDistrict={chosen?.city||"Select delivery location"} onLocationClick={()=>{if(!isAuthenticated)setAuthOpen(true);else setLocationOpen(true);}}/>
+  <Header goTo={goTo} bagCount={bagCount} query={query} onQueryChange={setQuery} notice={setNotice} userLabel={user?.name||"Sign in"} locationLabel={chosen?.label||"Choose address"} locationDistrict={chosen?.city||"Select delivery location"} onLocationClick={()=>{if(!isAuthenticated)setAuthOpen(true);else setLocationOpen(true);}} onProfileClick={()=>{if(!isAuthenticated)setAuthOpen(true);else goTo("profile");}}/>
   <Sidebar active={routeId} goTo={goTo} bagCount={bagCount} live open={mobile} onClose={()=>setMobile(false)}/>
   <main className="dt-main" id="main-content"><button className="dt-mobile-menu" onClick={()=>setMobile(true)}><Menu size={20}/> Menu</button>
    {route.screen==="discover"||route.screen==="search"?<LiveDiscovery key="discovery" gateway={gateway} screen={route.screen} query={query} selectedAddress={chosen} onRestaurant={id=>navigate("/restaurant/"+id)} onAddress={()=>{if(!isAuthenticated)setAuthOpen(true);else setLocationOpen(true);}}/>:
