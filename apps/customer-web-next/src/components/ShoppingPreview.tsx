@@ -251,6 +251,7 @@ export function ShoppingPreview({screen,restaurantId,cart,onAdd,onUpdate,onClear
   onNavigate:(route:"restaurant"|"discover"|"bag"|"checkout")=>void;onNotice:(text:string)=>void;
 }) {
   if(screen==="restaurant")return <Storefront restaurantId={restaurantId} cart={cart} onAdd={onAdd} onGo={onNavigate} onNotice={onNotice}/>;
+  if(screen==="bag" && !cart.length)return <EmptyBag onBrowse={()=>onNavigate("discover")}/>;
   if(screen==="bag")return <Cart cart={cart} onUpdate={onUpdate} onClear={onClear} onBrowse={()=>onNavigate("restaurant")} onCheckout={()=>onNavigate("checkout")}/>;
   if(!cart.length)return <EmptyBag onBrowse={()=>onNavigate("restaurant")}/>;
   return <Checkout cart={cart} onBack={()=>onNavigate("bag")} onPlace={()=>onNotice("Design preview only — no order or payment has been created.")}/>;
