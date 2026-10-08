@@ -136,6 +136,7 @@ export function CustomerJourney({
   const [error, setError] = useState<string | null>(null);
   const key = useRef<string | null>(null);
   const [quoteExpired, setQuoteExpired] = useState(false);
+  const [checkoutVisible, setCheckoutVisible] = useState(false);
   const [orderFilter, setOrderFilter] = useState<"all" | "active" | "completed" | "cancelled">("all");
   const action = async (fn: () => Promise<void>) => {
     setBusy(true);
@@ -261,6 +262,88 @@ export function CustomerJourney({
           onCartChange();
         })
       : Promise.resolve();
+
+  if (checkoutVisible && cart.data?.items?.length) return (
+    <section className="customer-checkout-view">
+      <button type="button" className="customer-checkout-back" onClick={() => setCheckoutVisible(false)}>← Back to bag</button>
+      <header className="customer-checkout-title"><h1>Checkout</h1><p>Almost there! Confirm your details and place your order.</p></header>
+      <div className="customer-checkout-stepper" aria-label="Checkout progress"><span>1 <strong>Details</strong></span><span>2 <strong>Payment</strong></span><span>3 <strong>Review & place order</strong></span></div>
+      {error && <ErrorState message={error}/>}
+      <div className="customer-checkout-layout">
+        <div className="customer-checkout-sections">
+          <Card className="customer-checkout-section">
+            <h2><MapPin size={19}/> Delivery address</h2>
+            {addresses.length ? (
+              <div className="customer-address-options">
+                {addresses.map(address => (
+                  <label key={address.id} className={addressId === address.id ? "customer-address-selected" : ""}>
+                    <input type="radio" name="delivery-address" checked={addressId === address.id}
+                      onChange={() => { setAddressId(address.id); setQuote(null); setQuoteExpired(false); key.current = null; }} />
+                    <span><strong>{address.label}</strong><small>{address.address_line1}{address.address_line2 ? `, ${address.address_line2}` : ""}</small></span>
+                    {address.is_default && <em>Default</em>}
+                  </label>
+                ))}
+              </div>
+            ) : <p className="text-sm text-slate-600">Add a delivery address to continue.</p>}
+            <Button variant="outline" onClick={onAddress}>+ Add new address</Button>
+          </Card>
+          <Card className="customer-checkout-section">
+            <h2><Bike size={19}/> Delivery options</h2>
+            <div className="customer-delivery-options">
+              <label className="customer-address-selected"><input type="radio" name="delivery-speed" checked readOnly/><span><strong>Standard delivery</strong><small>Fee confirmed with your checkout quote</small></span></label>
+              <div className="customer-delivery-soon"><span><strong>Priority delivery</strong><small>Not available yet</small></span></div>
+            </div>
+          </Card>
+          <Card className="customer-checkout-section">
+            <h2><ShieldCheck size={19}/> Payment method</h2>
+            <div className="customer-payment-choices">
+              {(["MPESA","CARD"] as const).map(method => (
+                <label key={method} className={paymentMethod === method ? "customer-address-selected" : ""}>
+                  <input type="radio" name="payment-method" checked={paymentMethod === method}
+                    onChange={() => { setPaymentMethod(method);setQuote(null);setQuoteExpired(false);key.current=null; }} />
+                  <span><strong>{method === "MPESA" ? "M-PESA" : "Card payment"}</strong><small>{method === "MPESA" ? "Approve payment on your mobile phone" : "Secure hosted card checkout"}</small></span>
+                </label>
+              ))}
+            </div>
+            <FormField label="Delivery instructions (optional)">
+              <Input value={notes} placeholder="Gate code, landmark or special instructions…"
+                onChange={event => {setNotes(event.target.value);setQuote(null);setQuoteExpired(false);key.current=null;}}/>
+            </FormField>
+          </Card>
+        </div>
+        <Card className="customer-checkout-order-summary">
+          <h2><ShoppingBag size={20}/> Order summary</h2>
+          <div className="customer-checkout-merchant"><strong>{cart.data.branch.merchant_name}</strong><small>{cart.data.branch.name}</small></div>
+          {cart.data.items.map(item => (
+            <div key={item.id} className="customer-checkout-item">
+              {item.item_image_url ? <img src={item.item_image_url} alt="" /> : <div className="customer-checkout-image"><ShoppingBag size={20}/></div>}
+              <div><strong>{item.item_name}</strong><small>{item.quantity} × {item.modifiers.map(modifier => modifier.option_name).join(", ") || "Standard"}</small></div>
+              <Price minor={item.line_total_minor}/>
+            </div>
+          ))}
+          <div className="customer-checkout-total">
+            {quote ? <PriceBreakdown rows={[
+              ["Items",quote.gross_subtotal_minor],["Discount",-quote.discount_minor],
+              ["Delivery",quote.delivery_fee_minor],["Service fee",quote.service_fee_minor],
+              ["Tax",quote.tax_minor],["Total to pay",quote.total_minor],
+            ]}/> : <PriceBreakdown rows={[
+              ["Items",cart.data.pricing.subtotal_minor],["Discount",-cart.data.pricing.discount_minor],
+              ["Estimated delivery",cart.data.pricing.estimated_delivery_fee_minor],
+              ["Service fee",cart.data.pricing.estimated_service_fee_minor],
+              ["Estimated total",cart.data.pricing.estimated_total_minor],
+            ]}/>}
+          </div>
+          {quote && !expired && <div className="customer-quote-valid">Confirmed price valid for <Countdown expiresAt={quote.expires_at} warningAtSeconds={60} onExpire={() => setQuoteExpired(true)}/></div>}
+          {expired && <InlineBanner kind="warning">Your quote has expired. Please refresh the price.</InlineBanner>}
+          <Button fullWidth isLoading={busy} disabled={busy || !addressId}
+            onClick={() => quote && !expired ? void placeOrder() : void reviewCheckout()}>
+            {quote && !expired ? <>Place order · <Price minor={quote.total_minor}/></> : "Review confirmed price"}
+          </Button>
+          <p className="customer-checkout-disclaimer">Payments and delivery fees are confirmed by DeeToo before your order is placed.</p>
+        </Card>
+      </div>
+    </section>
+  );
 
   return (
     <section className={`customer-cart-view ${quote ? "customer-cart-review" : ""}`}>
@@ -412,11 +495,12 @@ export function CustomerJourney({
                 <div className="customer-checkout-heading">
                   <div>
                     <p className="eyebrow">Checkout</p>
-                    <h2>Confirm the important details</h2>
+                    <h2>Order summary</h2>
                   </div>
                   <ShieldCheck size={22} aria-hidden="true" />
                 </div>
 
+                <Button fullWidth className="customer-proceed-to-checkout" onClick={() => setCheckoutVisible(true)}>Proceed to checkout <ArrowRight size={16}/></Button>
                 <div className="customer-checkout-decisions">
                   <section className="customer-checkout-decision">
                     <div className="customer-checkout-decision-icon">
