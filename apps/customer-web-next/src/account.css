@@ -288,3 +288,13 @@
 @media(prefers-reduced-motion:reduce) {
  .dt-account-toggle,.dt-account-toggle span,.dt-account-info-row:is(button),.dt-notification-item,.dt-profile-tabs>button {transition:none!important}
 }
+
+
+/* Reference refinement: show the preview attribution without pushing the 4-panel profile below the 941px desktop fold. */
+@media(min-width:641px) {
+  .dt-profile-main { position:relative; }
+  .dt-profile-main>.dt-account-demo { position:absolute;top:71px;right:3px;margin:0;z-index:1; }
+}
+@media(min-width:641px) and (max-width:990px) {
+  .dt-profile-main>.dt-account-demo { top:65px;right:0; }
+}
