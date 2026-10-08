@@ -47,6 +47,7 @@ export function createCustomerGateway(client:DeetooApiClient){
       categories:():Promise<RestaurantCategory[]>=>responseData(client.getRestaurantCategories(),"/restaurant-categories"),
       serviceability:(lat:number,lng:number):Promise<ServiceabilityCheckResult>=>
         responseData(client.checkServiceability(lat,lng),"/serviceability"),
+      reverseGeocode:(lat:number,lng:number)=>responseData(client.reverseGeocode(lat,lng),"/maps/reverse-geocode"),
     },
     cart:{
       read:():Promise<EnrichedCart|null>=>responseData(client.getActiveCart(),"/cart"),
