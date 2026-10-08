@@ -89,8 +89,8 @@ export function Header({query,onQueryChange,goTo,bagCount,notice,userLabel="Test
   );
 }
 
-export function Sidebar({active,goTo,open,onClose,bagCount}:{
-  active:Route;goTo:(route:Route)=>void;open:boolean;onClose:()=>void;bagCount:number;
+export function Sidebar({active,goTo,open,onClose,bagCount,live=false}:{
+  active:Route;goTo:(route:Route)=>void;open:boolean;onClose:()=>void;bagCount:number;live?:boolean;
 }) {
   return (
     <>
@@ -106,7 +106,7 @@ export function Sidebar({active,goTo,open,onClose,bagCount}:{
             </button>
           ))}
         </nav>
-        <div className="dt-sidebar-footer"><span className="dt-preview-light"/> Design preview <small>Backend not connected</small></div>
+        <div className="dt-sidebar-footer"><span className="dt-preview-light"/> {live?"Live shopping":"Design preview"} <small>{live?"Other areas coming in later stages":"Backend not connected"}</small></div>
       </aside>
     </>
   );
