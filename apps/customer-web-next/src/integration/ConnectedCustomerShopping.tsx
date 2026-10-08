@@ -9,16 +9,20 @@ import {backendError,useBackendResource} from "./resource";
 import {LiveDiscovery} from "./LiveDiscovery";
 import {LiveShopping} from "./LiveShopping";
 import {LiveOrders} from "./LiveOrders";
+import {LiveAccount} from "./LiveAccount";
+import {LiveSupport} from "./LiveSupport";
 import {StatusPanel} from "./LiveUtilities";
 
 const pathFor=(route:Route)=>({
  discover:"/",search:"/search",restaurant:"/restaurant",bag:"/bag",checkout:"/checkout",orders:"/orders",
  tracking:"/orders",delivered:"/orders",profile:"/profile",security:"/security",notifications:"/notifications",support:"/support",conversation:"/support"
 })[route];
-const classify=(pathname:string):{screen:Route|"payment";branchId:string;orderId:string}=>{
+const classify=(pathname:string):{screen:Route|"payment";branchId:string;orderId:string;caseId?:string}=>{
  const segments=pathname.split("/").filter(Boolean);
  if(segments[0]==="restaurant"&&segments[1])return {screen:"restaurant",branchId:segments[1],orderId:""};
  if(segments[0]==="payment"&&segments[1])return {screen:"payment",branchId:"",orderId:segments[1]};
+ if(segments[0]==="support"&&segments[1]==="cases"&&segments[2]&&/^[a-zA-Z0-9_-]{1,128}$/.test(segments[2]))
+   return {screen:"conversation",branchId:"",orderId:"",caseId:segments[2]};
  if(segments[0]==="orders"&&segments[1]&&/^[a-zA-Z0-9_-]{1,128}$/.test(segments[1]))
    return {screen:segments[2]==="completed"?"delivered":"tracking",branchId:"",orderId:segments[1]};
  const screen=(["search","bag","checkout","orders","profile","security","notifications","support"].includes(segments[0]||"")?segments[0]:"discover") as Route;
@@ -114,7 +118,7 @@ function ConnectedInner(){
  const branchId=route.branchId;
  const remembered=useRef("");
  if(branchId)remembered.current=branchId;
- const routeId=(route.screen==="payment"?"checkout":route.screen==="tracking"||route.screen==="delivered"?"orders":route.screen) as Route;
+ const routeId=(route.screen==="payment"?"checkout":route.screen==="tracking"||route.screen==="delivered"?"orders":route.screen==="conversation"?"support":route.screen) as Route;
  const bagCount=cart.state.status==="ready"?cart.state.data?.total_quantity||0:0;
  if(isLoading)return <StatusPanel loading title="Checking DeeToo session…"/>;
  if(isAuthenticated&&!isCustomer)return <StatusPanel title="Customer access required" description="This account does not have the customer role. DeeToo keeps merchant, rider and admin access separate."><Button onClick={()=>void logout()}>Sign out</Button></StatusPanel>;
@@ -130,7 +134,11 @@ function ConnectedInner(){
      route.screen==="orders"||route.screen==="tracking"||route.screen==="delivered"?
      <LiveOrders gateway={gateway} screen={route.screen==="orders"?"history":route.screen==="delivered"?"completed":"tracking"} orderId={route.orderId}
        onNavigate={navigate} authenticated={isCustomer} requestSignIn={()=>setAuthOpen(true)}/>:
-     <StatusPanel title="This section is coming in the next integration stage" description="The approved account and support screens remain in the visual preview; real account, notification and support data will be connected in Phase B4."><Button onClick={()=>navigate("/")}>Back to live discovery <ChevronRight size={17}/></Button></StatusPanel>}
+     route.screen==="profile"||route.screen==="security"||route.screen==="notifications"?
+      <LiveAccount gateway={gateway} screen={route.screen} authenticated={isCustomer} requestSignIn={()=>setAuthOpen(true)} onNavigate={navigate} logout={logout} userId={user?.id||""}/>:
+     route.screen==="support"||route.screen==="conversation"?
+      <LiveSupport gateway={gateway} screen={route.screen==="conversation"?"conversation":"support"} caseId={route.caseId||""} onNavigate={navigate} authenticated={isCustomer} requestSignIn={()=>setAuthOpen(true)}/>:
+      <StatusPanel title="Page unavailable" description="The requested customer page is not available." onRetry={()=>navigate("/")}/>
   </main>
   {notice&&<div className="dt-notice" role="status"><Check size={16}/>{notice}<IconButton label="Dismiss notification" onClick={()=>setNotice(null)}><X size={16}/></IconButton></div>}
   {authOpen&&<LoginPanel onDismiss={()=>{setAuthOpen(false);addresses.refresh();cart.refresh();}}/>}
