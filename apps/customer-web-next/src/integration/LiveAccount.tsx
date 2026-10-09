@@ -1,8 +1,8 @@
 /* Screens 11–13 — customer-owned profile, sessions and notification inbox. */
 import {useEffect,useState} from "react";
-import {ArrowRight,Bell,Check,CheckCircle2,ChevronRight,CreditCard,House,KeyRound,Laptop,LockKeyhole,MapPin,Plus,RefreshCw,ShieldCheck,Smartphone,Trash2,UserRound,X} from "lucide-react";
+import {ArrowRight,Bell,Check,CheckCircle2,ChevronRight,Clock3,CreditCard,Heart,House,KeyRound,Laptop,LockKeyhole,MapPin,Plus,RefreshCw,Settings,ShieldCheck,ShoppingBag,Smartphone,Star,Trash2,UserRound,X} from "lucide-react";
 import type {CustomerAddress,CustomerProfile,NotificationRecord} from "@deetoo/types";
-import {Badge,Button,Panel} from "../../../../packages/customer-ui/src/index";
+import {Badge,Button,Panel,classNames} from "../../../../packages/customer-ui/src/index";
 import type {CustomerGateway,CustomerDeviceSession} from "./customer-gateway";
 import {backendError,useBackendResource} from "./resource";
 import {ResourceView,StatusPanel} from "./LiveUtilities";
@@ -75,7 +75,10 @@ function Profile({gateway,onNavigate,onAddressesChanged}:{gateway:CustomerGatewa
   <div className="dt-profile-main"><header className="dt-account-pagehead"><div><h1>My profile</h1><p>Manage your account, saved delivery addresses and preferences.</p></div>
    <Button variant="outline" onClick={()=>onNavigate("/security")}><ShieldCheck size={16}/> Security</Button></header>
   {done&&<p role="status" className="dt-live-success"><Check size={17}/>{done}</p>}{inlineError(error)}
-  <Panel className="dt-live-account-card"><div className="dt-account-section-head"><span className="dt-account-icon"><UserRound/></span><div><h2>Personal information</h2><p>Information stored in your customer account.</p></div>
+  <Panel className="dt-profile-summary"><div className="dt-profile-avatar" aria-hidden="true">{(initial?.display_name||initial?.first_name||"D").slice(0,1).toUpperCase()}</div><div className="dt-profile-identity"><h2>{initial?.display_name||[initial?.first_name,initial?.last_name].filter(Boolean).join(" ")||"Your DeeToo profile"}</h2><p>{initial?.email||"Email not provided"} <Badge variant="mint"><ShieldCheck size={14}/> Your account</Badge></p><span>{initial?.phone||"Phone not provided"}</span></div><div className="dt-profile-stats"><div><ShoppingBag size={25}/><strong>—</strong><small>See order history</small></div><div><Heart size={25}/><strong>—</strong><small>Favourites unavailable</small></div><div><Star size={25}/><strong>—</strong><small>Ratings unavailable</small></div></div></Panel>
+  <nav className="dt-profile-tabs" aria-label="Profile sections">{[["personal","Personal"],["addresses","Addresses"],["payments","Payments"],["preferences","Preferences"]].map(([id,label])=><button key={id} type="button" onClick={()=>document.getElementById("dt-profile-"+id)?.scrollIntoView({behavior:"smooth",block:"start"})}>{label}</button>)}</nav>
+  <div className="dt-profile-card-grid">
+  <Panel id="dt-profile-personal" className="dt-live-account-card dt-profile-card"><div className="dt-account-section-head"><span className="dt-account-icon"><UserRound/></span><div><h2>Personal information</h2><p>Information stored in your customer account.</p></div>
   {!editing&&<Button variant="outline" size="sm" onClick={start}>Edit profile</Button>}</div>
   <ResourceView resource={profile.state} empty="Customer profile unavailable" onRetry={profile.refresh}>{(customer:CustomerProfile)=>
    editing?<form onSubmit={e=>void update(e)} className="dt-live-account-form">
@@ -89,7 +92,7 @@ function Profile({gateway,onNavigate,onAddressesChanged}:{gateway:CustomerGatewa
     <div><dt>Display name</dt><dd>{customer.display_name||"Not provided"}</dd></div><div><dt>First / last name</dt><dd>{[customer.first_name,customer.last_name].filter(Boolean).join(" ")||"Not provided"}</dd></div>
     <div><dt>Email address</dt><dd>{customer.email||"Not provided"}</dd></div><div><dt>Phone number</dt><dd>{customer.phone||"Not provided"}</dd></div>
    </dl>}</ResourceView></Panel>
-  <Panel className="dt-live-account-card"><div className="dt-account-section-head"><span className="dt-account-icon"><MapPin/></span><div><h2>Saved addresses</h2><p>Delivery locations verified by DeeToo.</p></div>
+  <Panel id="dt-profile-addresses" className="dt-live-account-card dt-profile-card"><div className="dt-account-section-head"><span className="dt-account-icon"><MapPin/></span><div><h2>Saved addresses</h2><p>Delivery locations verified by DeeToo.</p></div>
    <Button size="sm" onClick={()=>setEditor("new")}><Plus size={16}/> Add address</Button></div>
    <ResourceView resource={addresses.state} empty="No saved addresses yet" onRetry={addresses.refresh}>{(list:CustomerAddress[])=><div className="dt-live-account-addresses">{list.map(a=><article key={a.id}>
     <span className="dt-account-icon"><House size={21}/></span><div><h3>{a.label} {a.is_default&&<Badge variant="mint">Default</Badge>}</h3><p>{a.address_line1}{a.address_line2?", "+a.address_line2:""}, {a.city}, {a.region}</p><small>{a.delivery_instructions||"Delivery address"}</small></div>
@@ -97,12 +100,12 @@ function Profile({gateway,onNavigate,onAddressesChanged}:{gateway:CustomerGatewa
      <Button variant="outline" size="sm" onClick={()=>setEditor(a)}>Edit</Button><Button variant="outline" size="sm" onClick={()=>setConfirmRemove(a)} disabled={addressBusy===a.id} aria-label={"Remove "+a.label}><Trash2 size={16}/></Button></div>
    </article>)}</div>}</ResourceView>
    <ResourceError message="New or edited address coordinates must be verified against active service zones. Use the existing checkout location picker; location fields are never guessed."/></Panel>
-  <Panel className="dt-live-account-card"><div className="dt-account-section-head"><span className="dt-account-icon"><CreditCard/></span><div><h2>Payment methods & membership</h2><p>Secure payment, rewards and Plus information</p></div></div>
+  <Panel id="dt-profile-payments" className="dt-live-account-card dt-profile-card"><div className="dt-account-section-head"><span className="dt-account-icon"><CreditCard/></span><div><h2>Payment methods & membership</h2><p>Secure payment, rewards and Plus information</p></div></div>
    <ResourceError message="Saved payment cards, DeeToo Plus and rewards do not have a verified customer backend contract. No payment instrument is shown or stored here."/></Panel>
-  <Panel className="dt-live-account-card"><div className="dt-account-section-head"><span className="dt-account-icon"><Bell/></span><div><h2>Preferences</h2><p>Notification delivery settings and privacy.</p></div></div>
+  <Panel id="dt-profile-preferences" className="dt-live-account-card dt-profile-card"><div className="dt-account-section-head"><span className="dt-account-icon"><Bell/></span><div><h2>Preferences</h2><p>Notification delivery settings and privacy.</p></div></div>
    <ResourceError message="Notification channel preferences are awaiting a consent-aware backend endpoint. Existing read settings are not persisted by this screen."/>
-   <Button variant="outline" onClick={()=>onNavigate("/notifications")}>View notifications <ArrowRight size={16}/></Button></Panel></div>
-  <aside className="dt-live-account-side"><Panel><h2>Quick links</h2>{[["Orders & tracking","/orders"],["Security & devices","/security"],["Notifications","/notifications"],["Help & support","/support"]].map(([label,path])=><button key={path} onClick={()=>onNavigate(path)}>{label}<ChevronRight size={16}/></button>)}</Panel></aside>
+   <Button variant="outline" onClick={()=>onNavigate("/notifications")}>View notifications <ArrowRight size={16}/></Button></Panel></div></div>
+  <aside className="dt-live-account-side dt-profile-rail"><Panel className="dt-quick-actions"><h2>Quick links</h2>{[["Orders & tracking","/orders"],["Security & devices","/security"],["Notifications","/notifications"],["Help & support","/support"]].map(([label,path])=><button key={path} onClick={()=>onNavigate(path)}>{label}<ChevronRight size={16}/></button>)}</Panel><Panel className="dt-plus-card"><div className="dt-plus-crown"><Star size={26}/></div><h2>DeeToo Plus</h2><p>Membership benefits require an approved customer contract before activation.</p><Badge variant="neutral">Coming soon</Badge></Panel></aside>
   {editor&&<AddressEditor gateway={gateway} original={editor==="new"?null:editor} onClose={()=>setEditor(null)} onSaved={()=>{addresses.refresh();profile.refresh();onAddressesChanged();setDone("Address saved to DeeToo.");}}/>}
   {confirmRemove&&<div className="dt-live-account-overlay"><section role="dialog" aria-modal="true" aria-label="Confirm address deletion" className="dt-live-account-modal"><h2>Remove saved address?</h2><p>This will delete the saved delivery address "{confirmRemove.label}" from DeeToo. Existing order snapshots remain unchanged.</p>
   <div><Button variant="outline" onClick={()=>setConfirmRemove(null)}>Keep address</Button><Button disabled={!!addressBusy} onClick={()=>void changeAddress(confirmRemove.id,"remove")}>Remove address</Button></div></section></div>}
@@ -123,21 +126,24 @@ function Security({gateway,logout}:{gateway:CustomerGateway;logout:()=>Promise<u
   if(!email){setError("A verified email is required to request a password reset.");return;}
   setResetBusy(true);setError("");try{await gateway.auth.requestPasswordReset(email);setNotice("If this email is eligible, password reset instructions will be sent.");}
   catch(e){setError(backendError(e).message);}finally{setResetBusy(false);}};
- return <section className="dt-security-page dt-screen-enter dt-live-account"><header className="dt-account-pagehead"><div><h1>Security & Devices</h1><p>Protect your DeeToo account and manage authenticated sessions.</p></div><Badge variant="mint"><ShieldCheck size={14}/> Secure account</Badge></header>
+ return <section className="dt-security-page dt-screen-enter dt-live-account"><header className="dt-account-pagehead dt-security-banner"><div><h1>Security & Devices</h1><p>Protect your DeeToo account and manage authenticated sessions.</p></div><div className="dt-security-banner-aside"><span><ShieldCheck size={42}/></span><div><h2>Your security matters</h2><p>Control verified sessions and account recovery.</p></div></div></header>
   {notice&&<p className="dt-live-success" role="status"><CheckCircle2 size={17}/>{notice}</p>}{inlineError(error)}
-  <div className="dt-live-security-grid"><Panel className="dt-live-account-card"><div className="dt-account-section-head"><span className="dt-account-icon"><KeyRound/></span><div><h2>Password & recovery</h2><p>Reset your password using DeeToo's verified recovery process.</p></div></div>
+  <div className="dt-live-security-grid dt-security-grid"><Panel className="dt-live-account-card dt-security-card"><div className="dt-account-section-head"><span className="dt-account-icon"><KeyRound/></span><div><h2>Password & recovery</h2><p>Reset your password using DeeToo's verified recovery process.</p></div></div>
     <Button variant="outline" disabled={resetBusy} onClick={()=>void forgot()}>{resetBusy?"Requesting…":"Send password reset instructions"}</Button>
     <p className="dt-live-account-note">We never display, store or ask for your current password here. Verification occurs through the dedicated recovery service.</p>
     <div className="dt-account-section-head"><span className="dt-account-icon"><LockKeyhole/></span><div><h2>Two-factor authentication</h2><p>Enrollment and verification require a separate secure step-up experience.</p></div></div>
     <p className="dt-live-account-note">MFA enrollment status is not reported by the authenticated sessions endpoint. This screen does not claim that MFA is enabled.</p></Panel>
-   <Panel className="dt-live-account-card"><div className="dt-account-section-head"><span className="dt-account-icon"><Smartphone/></span><div><h2>Active sessions</h2><p>Only live sessions from DeeToo's authentication system.</p></div></div>
-    <ResourceView resource={sessions.state} onRetry={sessions.refresh} empty="No sessions found">{()=>active.length?<div className="dt-live-sessions">
-    {active.map(s=><div key={s.id}><span className="dt-account-icon">{s.device_info?.toLowerCase().includes("mobile")?<Smartphone size={20}/>:<Laptop size={20}/>}</span>
+   <Panel className="dt-live-account-card dt-security-card"><div className="dt-account-section-head"><span className="dt-account-icon"><Smartphone/></span><div><h2>Active sessions</h2><p>Only live sessions from DeeToo's authentication system.</p></div></div>
+    <ResourceView resource={sessions.state} onRetry={sessions.refresh} empty="No sessions found">{()=>active.length?<div className="dt-live-sessions dt-device-list">
+    {active.map(s=><div key={s.id} className="dt-device-entry"><span className="dt-account-device-icon">{s.device_info?.toLowerCase().includes("mobile")?<Smartphone size={20}/>:<Laptop size={20}/>}</span>
       <div><h3>{s.device_info||"Unidentified device"} {s.current&&<Badge variant="mint">This session</Badge>}</h3>
       <p>Last active: {prettyDate(s.last_used_at||s.created_at)}</p><small>{s.ip_address?"IP "+s.ip_address:"IP unavailable"}</small></div>
       <Button variant="outline" size="sm" onClick={()=>setTarget(s)}>Revoke</Button></div>)}</div>:<p className="dt-live-account-note">No active sessions are reported.</p>}</ResourceView>
-    <Button variant="outline" disabled={active.length===0} onClick={()=>setTarget("all")}>Sign out all devices</Button></Panel></div>
-   <Panel className="dt-live-account-card"><div className="dt-account-section-head"><span className="dt-account-icon"><ShieldCheck/></span><div><h2>Privacy controls</h2><p>Account information and deletion permissions</p></div></div>
+    <Button variant="outline" disabled={active.length===0} onClick={()=>setTarget("all")}>Sign out all devices</Button></Panel>
+    <Panel className="dt-live-account-card dt-security-card"><div className="dt-account-section-head"><span className="dt-account-icon"><Clock3 size={20}/></span><div><h2>Login activity</h2><p>Most recent activity reported by each verified account session.</p></div></div>
+      <div className="dt-login-list">{active.length?active.slice(0,5).map(item=><div key={item.id} className="dt-login-event"><span className="dt-account-device-icon"><Laptop size={20}/></span><div><strong>{item.device_info||"Authenticated session"}</strong><small>{prettyDate(item.last_used_at||item.created_at)}</small></div></div>):<p className="dt-live-account-note">No sessions with verified activity are available.</p>}</div></Panel>
+   </div>
+   <Panel className="dt-live-account-card dt-security-card"><div className="dt-account-section-head"><span className="dt-account-icon"><ShieldCheck/></span><div><h2>Privacy controls</h2><p>Account information and deletion permissions</p></div></div>
    <p className="dt-live-account-note">Account deletion and downloadable data exports require a dedicated verified policy and API. No irreversible action is simulated.</p></Panel>
   {target&&<div className="dt-live-account-overlay"><section role="dialog" aria-modal="true" className="dt-live-account-modal" aria-label="Confirm session revocation"><h2>{target==="all"?"Sign out every device?":"Revoke this session?"}</h2><p>{target==="all"?"You will be signed out here too.":"This will immediately invalidate the selected DeeToo session. If this is your current device, you will be signed out."}</p>
   <div><Button variant="outline" onClick={()=>setTarget(null)}>Cancel</Button><Button disabled={busy} onClick={()=>void revoke()}>{busy?"Revoking…":"Confirm sign out"}</Button></div></section></div>}
@@ -159,18 +165,46 @@ function Notifications({gateway,onNavigate}:{gateway:CustomerGateway;onNavigate:
  const unread=rows.filter(n=>!n.read_at).length;
  const read=async(n:NotificationRecord)=>{if(n.read_at||busy)return;setBusy(n.id);setError("");try{await gateway.notifications.markRead(n.id);resource.refresh();}catch(e){setError(backendError(e).message);}finally{setBusy("");}};
  useEffect(()=>{const t=setInterval(()=>{if(document.visibilityState==="visible")resource.refresh();},30000);return()=>clearInterval(t);},[resource.refresh]);
- return <section className="dt-notify-page dt-screen-enter dt-live-account"><header className="dt-account-pagehead"><div><h1>Notifications</h1><p>Updates about your real orders, payments, deliveries and support cases.</p></div>
-   <Badge variant="mint">{unread} unread</Badge></header>{inlineError(error)}
-   <Panel className="dt-live-account-card"><div className="dt-live-notify-tools"><div role="tablist" aria-label="Notification filters">{categories.map(([id,label])=><button key={id} role="tab" aria-selected={filter===id} onClick={()=>setFilter(id)}>{label}</button>)}</div>
-    <input aria-label="Search notifications" placeholder="Search notifications" value={query} onChange={e=>setQuery(e.target.value)}/><Button variant="outline" onClick={resource.refresh}><RefreshCw size={16}/> Refresh</Button></div>
-    <ResourceView resource={resource.state} onRetry={resource.refresh} empty="No notifications yet">{()=>matching.length?<div className="dt-live-notification-list">
-      {matching.map(n=>{const {title,body}=notificationText(n);return <article key={n.id} className={!n.read_at?"dt-live-notification-unread":""}>
-       <span className="dt-account-icon"><Bell size={21}/></span><div><h3>{title}</h3>{body&&<p>{body}</p>}<small>{prettyDate(n.created_at)} · {n.channel.toLowerCase()}</small></div>
-       {!n.read_at?<Button variant="outline" size="sm" disabled={busy===n.id} onClick={()=>void read(n)}>Mark read</Button>:<span className="dt-live-muted"><Check size={15}/> Read</span>}
-      </article>})}</div>:<p className="dt-live-account-note">No notifications match the selected filters.</p>}</ResourceView></Panel>
-   <div className="dt-live-security-grid"><Panel className="dt-live-account-card"><h2>Delivery preferences</h2><ResourceError message="Per-channel email, SMS and push preferences need a customer consent API. No toggles are displayed as saved before that API exists."/></Panel>
-   <Panel className="dt-live-account-card"><h2>Notification actions</h2><ResourceError message="Bulk mark-read is not supported by the current API. Read individual notifications above."/>
-   <Button variant="outline" onClick={()=>onNavigate("/orders")}>View orders <ArrowRight size={16}/></Button></Panel></div>
+ return <section className="dt-notifications-page dt-screen-enter dt-live-account">
+   <header className="dt-notify-banner">
+    <div><h1>Notifications Center</h1><p>Stay informed about real orders, payments, delivery and support updates.</p><Badge variant="mint">{unread} unread</Badge></div>
+    <div className="dt-notify-banner-art" aria-hidden="true"><Bell size={69} fill="#00aa62" strokeWidth={1.5}/><span>✦</span><span>✦</span></div>
+    <Panel className="dt-notification-push-cta"><span className="dt-push-icon"><Bell size={22}/></span><div><h2>Never miss an update</h2><p>View your DeeToo notifications here. Channel delivery settings require consent support.</p></div><Button size="sm" disabled title="Push channel management is not connected">Push settings unavailable</Button></Panel>
+   </header>
+   {inlineError(error)}
+   <div className="dt-notify-toolbar dt-live-notify-tools"><div role="tablist" aria-label="Notification filters">{categories.map(([id,label])=><button key={id} type="button" role="tab" aria-selected={filter===id} className={filter===id?"active":""} onClick={()=>setFilter(id)}>{label} <span>{id==="all"?rows.length:rows.filter(n=>tag(n)===id).length}</span></button>)}</div>
+    <input aria-label="Search notifications" placeholder="Search notifications" value={query} onChange={e=>setQuery(e.target.value)}/>
+    <Button variant="outline" size="sm" onClick={resource.refresh}><RefreshCw size={16}/> Refresh</Button>
+    <Button variant="outline" size="sm" disabled title="Bulk notification read requires a verified API"><Check size={16}/> Mark all as read</Button>
+   </div>
+   <div className="dt-notification-columns">
+    <div className="dt-notification-feed" aria-live="polite">
+     <ResourceView resource={resource.state} onRetry={resource.refresh} empty="No notifications yet">{()=>matching.length?
+      (["Today","Earlier"] as const).map(day=>{
+       const group=matching.filter(n=>(day==="Today")===(
+        new Intl.DateTimeFormat("en-KE",{timeZone:"Africa/Nairobi",day:"2-digit",month:"2-digit",year:"numeric"}).format(new Date(n.created_at))===
+        new Intl.DateTimeFormat("en-KE",{timeZone:"Africa/Nairobi",day:"2-digit",month:"2-digit",year:"numeric"}).format(new Date())
+       ));
+       return group.length?<div className="dt-notification-day" key={day}><h2>{day}</h2><Panel className="dt-notification-list dt-live-notification-list">{group.map(n=>{
+        const {title,body}=notificationText(n);
+        return <article className={classNames("dt-notification-item",!n.read_at&&"is-unread",!n.read_at&&"dt-live-notification-unread")} key={n.id}>
+         <span className={"dt-notification-icon dt-notification-icon--"+(tag(n)==="payments"?"payments":tag(n)==="delivery"?"delivery":tag(n)==="support"?"support":"orders")}><Bell size={22}/></span>
+         <div className="dt-notification-main"><strong>{title}</strong>{body&&<small>{body}</small>}<small>{n.channel.toLowerCase()}</small></div>
+         <span className="dt-notification-time">{prettyDate(n.created_at)}{!n.read_at&&<span className="dt-notification-dot"/>}</span>
+         {!n.read_at?<Button variant="outline" size="sm" disabled={busy===n.id} onClick={()=>void read(n)}>Mark read</Button>:<span className="dt-live-muted"><Check size={15}/> Read</span>}
+        </article>;})}</Panel></div>:null;
+      }):<Panel className="dt-notifications-empty"><Bell size={29}/><h2>No notifications here</h2><p>Try another category or search for different messages.</p></Panel>}</ResourceView>
+    </div>
+    <aside className="dt-notification-rail">
+     <Panel className="dt-notify-settings"><div className="dt-account-section-head"><span className="dt-account-icon"><Settings size={21}/></span><div><h2>Notification preferences</h2><p>Choose how DeeToo contacts you.</p></div></div>
+      <ResourceError message="Email, SMS and push preferences need a consent-aware customer API before these switches can be enabled."/>
+      <div className="dt-notify-preference-row"><span className="dt-preference-symbol"><ShoppingBag size={19}/></span><span><strong>Order updates</strong><small>Preferences unavailable</small></span><button type="button" disabled role="switch" aria-checked="false" aria-label="Order notification preference unavailable" className="dt-account-toggle"><span/></button></div>
+      <div className="dt-notify-preference-row"><span className="dt-preference-symbol"><Bell size={19}/></span><span><strong>Promotions</strong><small>Not configured</small></span><button type="button" disabled role="switch" aria-checked="false" aria-label="Promotion preference unavailable" className="dt-account-toggle"><span/></button></div>
+     </Panel>
+     <Panel className="dt-notify-settings"><div className="dt-account-section-head"><span className="dt-account-icon"><Bell size={20}/></span><div><h2>Notification channels</h2><p>Channel delivery is not configured here yet.</p></div></div><ResourceError message="Bulk read and delivery-channel controls are unavailable. Individual message read status is saved above."/><Button variant="outline" onClick={()=>onNavigate("/orders")}>View orders <ArrowRight size={16}/></Button></Panel>
+     <p className="dt-notifications-disclaimer"><ShieldCheck size={16}/> DeeToo only displays notifications from your account.</p>
+    </aside>
+   </div>
  </section>;
 }
 export function LiveAccount({screen,gateway,authenticated,requestSignIn,onNavigate,logout,userId,onAddressesChanged}:Props){

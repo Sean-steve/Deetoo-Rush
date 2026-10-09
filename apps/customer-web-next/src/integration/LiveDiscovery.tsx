@@ -1,5 +1,5 @@
 import {useEffect,useMemo,useState} from "react";
-import {ArrowRight,Clock3,LocateFixed,MapPin,Search,Star,Store,Tag,Truck,UtensilsCrossed} from "lucide-react";
+import {ArrowRight,ChevronDown,Clock3,LocateFixed,MapPin,Search,Star,Store,Tag,Truck,UtensilsCrossed} from "lucide-react";
 import {Badge,Button,Panel,classNames} from "../../../../packages/customer-ui/src/index";
 import {FoodArt} from "../components/FoodArt";
 import {heroBurger} from "../data/preview";
@@ -29,14 +29,19 @@ export function LiveDiscovery({gateway,screen,query,selectedAddress,onRestaurant
    <div className="dt-page-heading"><div><h1>{screen==="search"?"Find your next craving":"Discover restaurants"}</h1><p>Browse real restaurants {selectedAddress?"delivering near "+selectedAddress.city:"— choose a delivery address for accurate nearby results"}.</p></div>
     <Button size="sm" variant="outline" onClick={onAddress}><MapPin size={16}/> {selectedAddress?"Change location":"Choose location"}</Button></div>
    {screen==="search"?<section className="dt-search-hero"><span>SEARCH DEETOO</span><h2>Find exactly what<br/><em>you’re craving</em></h2><p>Search live restaurants and cuisines in your serviceable area.</p><div aria-hidden="true" className="dt-search-hero-food"><FoodArt kind="Burgers" hero/><img src={heroBurger} alt=""/></div></section>:
-    <section className="dt-hero" aria-label="Discover food near you"><div className="dt-hero-copy"><span className="dt-hero-eyebrow">DISCOVER DEETOO</span><h2>Tasty meals,<br/>made for you</h2><p>Browse available kitchens and see real menus before ordering.</p><Button className="dt-hero-cta" variant="outline" onClick={onAddress}>Choose delivery location <ArrowRight size={17}/></Button></div><div className="dt-hero-photo" aria-hidden="true"><FoodArt kind="Burgers" hero/><img src={heroBurger} alt=""/></div></section>}
+    <section className="dt-hero" aria-label="Discover food near you"><div className="dt-hero-copy"><span className="dt-hero-eyebrow">DISCOVER DEETOO</span><h2>Tasty meals,<br/>made for you</h2><p>Browse available kitchens and see real menus before ordering.</p><Button className="dt-hero-cta" variant="outline" onClick={onAddress}>Choose delivery location <ArrowRight size={17}/></Button></div><div className="dt-hero-photo" aria-hidden="true"><FoodArt kind="Burgers" hero/><img src={heroBurger} alt=""/></div><div className="dt-hero-offer" aria-hidden="true"><strong>Fresh<br/>food</strong><small>from nearby<br/>kitchens</small></div><div className="dt-carousel-dots" aria-label="One featured discovery banner"><span aria-current="true"/></div></section>}
    <div className="dt-category-list" role="group" aria-label="Cuisine categories">
     <button type="button" className={classNames("dt-category",!category&&"dt-category--selected")} aria-pressed={!category} onClick={()=>setCategory("")}><span className="dt-category-icon">🍽️</span>All</button>
     {categories.state.status==="ready"&&categories.state.data.filter(c=>c.is_active).map((c:RestaurantCategory)=><button type="button" key={c.id} className={classNames("dt-category",category===c.id&&"dt-category--selected")} aria-pressed={category===c.id} onClick={()=>setCategory(c.id)}><span className="dt-category-icon">{iconFor(c.name)}</span>{c.name}</button>)}
    </div>
    <div className="dt-filter-list" aria-label="Verified restaurant filters">
     <label className="dt-filter-select"><span>Sort by</span><select aria-label="Sort restaurants" value={sort} onChange={e=>setSort(e.target.value as typeof sort)}><option value="recommended">Recommended</option><option value="distance" disabled={!selectedAddress}>Nearest</option><option value="open_now">Open first</option></select></label>
-    <button className={classNames("dt-filter-pill dt-open-toggle",onlyOpen&&"dt-open-toggle--on")} aria-pressed={onlyOpen} onClick={()=>setOnlyOpen(!onlyOpen)} type="button"><span className="dt-switch"><span/></span> Open now</button>
+    <button className="dt-filter-pill" type="button" disabled title="Verified delivery ETA filtering is not available"><Clock3 size={17}/> Delivery time <ChevronDown size={15}/></button>
+     <button className="dt-filter-pill" type="button" onClick={()=>document.querySelector<HTMLElement>('.dt-category-list')?.scrollIntoView({behavior:'smooth',block:'nearest'})}><UtensilsCrossed size={17}/> Cuisine <ChevronDown size={15}/></button>
+     <button className="dt-filter-pill" type="button" disabled title="Price range search is not supported yet"><Tag size={17}/> Price range <ChevronDown size={15}/></button>
+     <button className="dt-filter-pill" type="button" disabled title="Promotional offer eligibility is verified at checkout"><Tag size={17}/> Offers <ChevronDown size={15}/></button>
+     <button className="dt-filter-pill" type="button" disabled title="Verified ratings cannot yet be used for sorting"><Star size={17}/> Rating <ChevronDown size={15}/></button>
+     <button className={classNames("dt-filter-pill dt-open-toggle",onlyOpen&&"dt-open-toggle--on")} aria-pressed={onlyOpen} onClick={()=>setOnlyOpen(!onlyOpen)} type="button"><span className="dt-switch"><span/></span> Open now</button>
     <button className="dt-filter-reset" onClick={()=>{setSort("recommended");setOnlyOpen(false);setCategory("");}} type="button">Reset</button>
    </div>
    {selectedAddress&&service.state.status==="ready"&&!service.state.data.serviceable&&<Panel className="dt-live-alert" role="status"><MapPin size={21}/><p>Delivery is not available at this address ({service.state.data.reason_code}). You can browse, but checkout will require a serviceable address.</p><Button variant="outline" size="sm" onClick={onAddress}>Change address</Button></Panel>}
@@ -53,7 +58,11 @@ export function LiveDiscovery({gateway,screen,query,selectedAddress,onRestaurant
    </ResourceView>
   </div>
   <aside className="dt-right-rail" aria-label="Delivery information">
-    <Panel className="dt-rail-map"><div className="dt-live-map-placeholder"><MapPin size={38}/><strong>{selectedAddress?selectedAddress.label:"Your delivery location"}</strong><p>{selectedAddress?selectedAddress.address_text:"Choose a saved address to search your delivery zone."}</p><Button size="sm" variant="outline" onClick={onAddress}><LocateFixed size={15}/> {selectedAddress?"Change address":"Choose address"}</Button></div></Panel>
+    <Panel className="dt-rail-map"><div className="dt-map dt-live-fidelity-map" role="region" aria-label="Delivery coverage map, position not shown">
+      <div className="dt-map-roads" aria-hidden="true"/>
+      <div className="dt-live-map-placeholder"><MapPin size={38}/><strong>{selectedAddress?selectedAddress.label:"Your delivery location"}</strong><p>{selectedAddress?selectedAddress.address_text:"Choose a saved address to search your delivery zone."}</p><p className="dt-fidelity-hint">Live map pins and route geometry require verified geospatial data.</p><Button size="sm" variant="outline" onClick={onAddress}><LocateFixed size={15}/> {selectedAddress?"Change address":"Choose address"}</Button></div>
+      </div></Panel>
+     <Panel className="dt-referral dt-referral--unavailable"><div className="dt-gift"><Tag size={25}/></div><div><strong>DeeToo rewards</strong><p>Verified promotions will appear here when available.</p></div><Badge variant="neutral">Coming soon</Badge></Panel>
     <Panel className="dt-top-picks"><div className="dt-panel-heading"><h3>Available nearby</h3><span>Live catalogue</span></div>{results.slice(0,3).map(r=><button className="dt-pick" key={r.branch_id} onClick={()=>onRestaurant(r.branch_id)}><span className="dt-pick-photo"><FoodArt kind="Burgers"/>{r.cover_url&&<img src={r.cover_url} alt="" loading="lazy" onError={e=>{e.currentTarget.style.display="none";}}/>}</span><div><strong>{r.merchant_name}</strong><small>{r.branch_name}</small></div><span><ArrowRight size={16}/></span></button>)}
      {!results.length&&<p>Verified nearby restaurants will appear after the discovery request succeeds.</p>}</Panel>
     <Panel className="dt-hungry"><div className="dt-hungry-icon"><Truck size={25}/></div><div><strong>Delivery you can trust</strong><p>Prices, availability and delivery costs are confirmed by DeeToo at checkout.</p></div></Panel>

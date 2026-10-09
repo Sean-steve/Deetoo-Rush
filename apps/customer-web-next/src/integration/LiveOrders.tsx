@@ -61,19 +61,21 @@ function Items({order}:{order:Order}) {
 }
 function EntryCard({order,onOpen,onReorder}:{order:Order;onOpen:()=>void;onReorder:()=>void}){
  const complete=order.status==="COMPLETED";
+  const thumbs=(order.items||[]).slice(0,3);
  return <article className={classNames("dt-history-card",!terminal.has(order.status)&&"dt-history-card--active")} data-order-id={order.id}>
   <header className="dt-history-head"><div><strong>#{idOf(order)}</strong> <Status order={order}/><p>{order.merchant_name||order.branch_name||"DeeToo restaurant"} · {when(order.placed_at||order.created_at)}</p></div>
   <div><Button variant="outline" size="sm" onClick={onOpen}>View details <ArrowRight size={15}/></Button>
    {complete&&<Button size="sm" onClick={onReorder}><RefreshCw size={15}/> View menu</Button>}</div></header>
   <div className="dt-history-body"><div className="dt-history-merchant">
-    <SafePhoto className="dt-live-order-photo" src={order.items?.[0]?.item_snapshot?.image_url} alt=""/>
+    <div className="dt-history-thumbs" aria-label="Order items">{thumbs.length?thumbs.map(item=><SafePhoto key={item.id} className="dt-order-photo" src={item.item_snapshot?.image_url} alt={item.item_name}/>):<Package size={26} aria-label="Item photos unavailable"/>}</div>
     <div><h3>{order.merchant_name||order.branch_name||"Restaurant"}</h3><p>{itemCount(order)} items · {money(order.total_minor)}</p>
-      <div className="dt-live-order-mini-items">{(order.items||[]).slice(0,4).map(i=><small key={i.id}>{i.quantity}× {i.item_name}</small>)}</div></div>
+      <div className="dt-live-order-mini-items">{(order.items||[]).slice(0,4).map(i=><small key={i.id}>{i.quantity}× {i.item_name}</small>)}</div><div className="dt-history-rider"><Bike size={15}/><span>{complete?"Delivery confirmed":terminal.has(order.status)?"No active delivery":"Open details for rider updates"}</span></div></div>
   </div><div className="dt-history-progress"><PhaseTimeline order={order}/>
-  <p className="dt-history-caption">{order.status==="PENDING_PAYMENT"?"Payment confirmation is required before preparation begins.":
+  <p className={classNames("dt-history-caption",complete&&"dt-history-caption--done",["CANCELLED","REJECTED"].includes(order.status)&&"dt-history-caption--cancelled")}>{order.status==="PENDING_PAYMENT"?"Payment confirmation is required before preparation begins.":
     order.status==="COMPLETED"?"Delivery confirmed by DeeToo. Open your order to review the receipt.":
     order.status==="CANCELLED"?"This order was cancelled.":"Status is updated by DeeToo when the merchant or rider completes each step."}</p>
   </div></div>
+  {!terminal.has(order.status)&&<button type="button" className="dt-history-track" onClick={onOpen}><Bike size={18}/> Track this order <ArrowRight size={16}/></button>}
  </article>;
 }
 function History({gateway,onNavigate}:{gateway:CustomerGateway;onNavigate:(path:string)=>void}){
@@ -112,7 +114,7 @@ function History({gateway,onNavigate}:{gateway:CustomerGateway;onNavigate:(path:
 function NoLocation({tracking}:{tracking:CustomerTrackingResponse|null}){
  const loc=tracking?.riderLiveLocation;
  const fresh=Boolean(loc&&!loc.isStale&&Date.now()-new Date(loc.recordedAt).getTime()<180000&&Date.now()-new Date(loc.recordedAt).getTime()>=-30000&&validCoordinate(loc.latitude,loc.longitude));
- return <div className="dt-live-order-map"><div className="dt-live-order-map-canvas"><MapPin size={42}/>
+ return <div className="dt-live-order-map dt-tracking-map-panel"><div className="dt-map-inner dt-fidelity-tracking-map"><div className="dt-map-roads" aria-hidden="true"/></div><div className="dt-live-order-map-canvas"><MapPin size={42}/>
   <strong>{fresh?"Verified rider location available":"Live map unavailable"}</strong>
   <p>{fresh?"DeeToo has received a recent rider location. Open the verified point in a map. Live route geometry is not yet available here.":
     loc?"The latest rider position is old or cannot be verified. No marker or arrival estimate is shown.":
@@ -122,9 +124,9 @@ function NoLocation({tracking}:{tracking:CustomerTrackingResponse|null}){
   </div><small>{fresh&&loc?"Last updated "+when(loc.recordedAt):"Rider location is provided only after authorized assignment and valid GPS."}</small></div>;
 }
 function Rider({tracking}:{tracking:CustomerTrackingResponse|null}){
- if(!tracking?.rider)return <div className="dt-live-order-rider"><Bike size={22}/><div><strong>Finding your rider</strong><p>Assignment is confirmed by DeeToo dispatch. No rider is assigned in this view yet.</p></div></div>;
- return <div className="dt-live-order-rider"><Bike size={24}/><div><strong>{tracking.rider.firstName}</strong>
-  <p>{tracking.rider.vehicleType}{tracking.rider.vehicleRegistrationMasked?" · "+tracking.rider.vehicleRegistrationMasked:""}</p>
+ if(!tracking?.rider)return <div className="dt-live-order-rider dt-rider-card"><span className="dt-rider-avatar dt-rider-avatar--big"><Bike size={22}/></span><div><strong>Finding your rider</strong><p>Assignment is confirmed by DeeToo dispatch. No rider is assigned in this view yet.</p></div></div>;
+ return <div className="dt-live-order-rider dt-rider-card"><span className="dt-rider-avatar dt-rider-avatar--big"><Bike size={24}/></span><div><strong>{tracking.rider.firstName}</strong>
+  <p className="dt-rider-plate">{tracking.rider.vehicleType}{tracking.rider.vehicleRegistrationMasked?" · "+tracking.rider.vehicleRegistrationMasked:""}</p>
   <small>Identity and vehicle details are provided by DeeToo.</small></div></div>;
 }
 function LiveOrderDetail({gateway,orderId,onNavigate,completed}:{gateway:CustomerGateway;orderId:string;onNavigate:(path:string)=>void;completed:boolean}){
@@ -151,13 +153,15 @@ function LiveOrderDetail({gateway,orderId,onNavigate,completed}:{gateway:Custome
  const verifiedEta=tracking?.riderLiveLocation&&!tracking.riderLiveLocation.isStale&&tracking.estimatedEtaMinutes!=null
   &&arrival.has(tracking.deliveryStatus)&&Date.now()-new Date(tracking.riderLiveLocation.recordedAt).getTime()<180000
   &&Date.now()-new Date(tracking.riderLiveLocation.recordedAt).getTime()>=-30000;
- return <section className="dt-orders-page dt-screen-enter">
+ return <section className={classNames("dt-orders-page","dt-screen-enter","dt-connected-order-detail",completed?"dt-completed-page":"dt-tracking-page")}>
   <header className="dt-orders-header dt-live-order-detail-head"><div><button className="dt-live-order-back" onClick={()=>onNavigate("/orders")}><ArrowLeft size={16}/> Back to your orders</button>
   <h1>{completed?"Order complete":"Track your delivery"}</h1>
   <p>Real order updates from DeeToo. Delivery information refreshes while this page is open.</p></div><Button variant="outline" onClick={()=>{order.refresh();track.refresh();}}><RefreshCw size={17}/> Refresh</Button></header>
   <ResourceView resource={order.state} onRetry={order.refresh} empty="Order unavailable">{o=>
    completed&&o.status!=="COMPLETED"?<StatusPanel title="Order not yet completed" description="Only completed orders have a final delivery summary. You can follow the latest verified status instead."><Button onClick={()=>onNavigate("/orders/"+orderId+"/track")}>Open order tracking</Button></StatusPanel>:
-   <div className="dt-live-order-detail-grid"><div className="dt-live-order-detail-primary">
+   <div className="dt-live-order-detail-grid">
+    {completed&&<div className="dt-delivered-banner" role="status"><span className="dt-delivered-check"><CheckCircle2 size={38}/></span><div><h2>Order delivered!</h2><p>Your delivery was confirmed by DeeToo{ o.completed_at?" on "+when(o.completed_at):""}. Thank you for ordering.</p></div><span className="dt-delivered-art" aria-hidden="true"><Package size={66}/></span></div>}
+    <div className="dt-live-order-detail-primary">
     <Panel className="dt-live-order-overview"><div><h2>Order #{idOf(o)}</h2><Status order={o}/></div>
      <p>{o.merchant_name||o.branch_name||"DeeToo restaurant"} · Ordered {when(o.placed_at||o.created_at)}</p>
      <PhaseTimeline order={o} tracking={tracking}/>
@@ -174,18 +178,30 @@ function LiveOrderDetail({gateway,orderId,onNavigate,completed}:{gateway:Custome
       {tracking?.deliveryStatus==="ARRIVED_DROPOFF"&&tracking.deliveryOtp&&<p className="dt-live-order-otp">Delivery handover code: <strong>{tracking.deliveryOtp}</strong><small>Share only with your assigned rider at the delivery point.</small></p>}
     </Panel>}
     <Panel className="dt-live-order-products"><Items order={o}/></Panel>
-    {completed&&<Panel className="dt-live-order-rating"><h2>Rate your delivery</h2>
+    {completed&&<Panel className="dt-delivered-receipt">
+     <h2><ShoppingBag size={20}/> Order receipt</h2><div className="dt-delivered-merchant"><strong>{o.merchant_name||o.branch_name||"DeeToo restaurant"}</strong><small>Order #{idOf(o)} · {when(o.completed_at)}</small></div>
+     <div className="dt-receipt-lines">{(o.items||[]).map(item=><div key={item.id}><span>{item.quantity} × {item.item_name}</span><strong>{typeof item.line_total_minor==="number"?money(item.line_total_minor):"—"}</strong></div>)}</div>
+     <div className="dt-receipt-total"><strong>Total on order snapshot</strong><b>{money(o.total_minor)}</b></div>
+    </Panel>}
+    {completed&&<Panel className="dt-live-order-rating dt-delivered-feedback"><h2>How was your delivery?</h2>
       {rated?<p role="status"><CheckCircle2 size={18}/> Your rating has been received by DeeToo.</p>:<>
       <p>Your rating is sent to the verified rider-performance service. Restaurant ratings are not yet available here.</p>
       <div className="dt-live-order-stars" role="group" aria-label="Rate the rider">{[1,2,3,4,5].map(n=><button key={n} aria-label={n+" stars"} aria-pressed={rating===n} onClick={()=>setRating(n)} disabled={ratingBusy}><Star size={23} fill={n<=rating?"currentColor":"none"}/></button>)}</div>
       <label>Optional feedback<textarea value={comment} maxLength={500} onChange={e=>setComment(e.target.value)} rows={3}/></label>
       <Button disabled={!rating||ratingBusy} onClick={()=>void submitRating()}>{ratingBusy?"Submitting…":"Submit delivery rating"}</Button></>}</Panel>}
-   </div><aside className="dt-live-order-detail-aside"><Panel><h2>Delivery details</h2>
+   </div><aside className="dt-live-order-detail-aside">
+    <Panel className="dt-delivery-checklist"><h2>Delivery progress</h2><div className="dt-delivery-checkpoints">{[
+      {label:"Order placed",done:o.status!=="PENDING_PAYMENT"},
+      {label:"Preparing",done:["PREPARING","READY","COMPLETED"].includes(o.status)},
+      {label:"Rider assigned",done:Boolean(tracking?.rider)},
+      {label:"Delivered",done:o.status==="COMPLETED"}
+     ].map((stage,i)=><div className={classNames("dt-delivery-checkpoint",stage.done&&"dt-delivery-checkdone")} key={stage.label}><span className="dt-delivery-checkicon">{stage.done?<Check size={16}/>:i+1}</span><strong>{stage.label}</strong><small>{stage.done?"Confirmed":"Awaiting verification"}</small></div>)}</div></Panel>
+    <Panel><h2>Delivery details</h2>
     <dl className="dt-live-order-meta"><div><dt>Order number</dt><dd>{idOf(o)}</dd></div><div><dt>Restaurant</dt><dd>{o.branch_name||o.merchant_name||"Unavailable"}</dd></div>
     <div><dt>Deliver to</dt><dd>{o.delivery_address_snapshot?.address_text||"Address details unavailable"}</dd></div><div><dt>Last updated</dt><dd>{when(o.updated_at)}</dd></div></dl>
     {o.status==="PLACED"&&!completed&&<Button variant="outline" onClick={()=>setCancelOpen(true)}><XCircle size={17}/> Request cancellation</Button>}
    </Panel><Panel><MoneySummary order={o}/></Panel>
-   <Panel className="dt-live-order-actions"><h2>Need help?</h2><p>Customer support case conversations will be connected in Phase B4. Do not use this page for emergency assistance.</p>
+   <Panel className="dt-live-order-actions"><h2>Need help?</h2><p>For order problems, open a verified DeeToo support case. Your conversation remains visible while the case is reviewed.</p>
     <Button variant="outline" onClick={()=>onNavigate("/support")}><Headphones size={16}/> Support status</Button>
     <Button variant="outline" onClick={()=>onNavigate("/restaurant/"+encodeURIComponent(o.branch_id))}><ShoppingBag size={16}/> View restaurant menu</Button>
    </Panel>
