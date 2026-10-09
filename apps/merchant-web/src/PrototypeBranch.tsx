@@ -12,8 +12,8 @@ export function DemoCard({children,className=""}:{children:React.ReactNode;class
 export function BranchBanner({store,onAction,action="View on map"}:{store:string;onAction:()=>void;action?:string}){return <div className="mp-branch-banner"><div className="mp-restaurant-photo" aria-hidden="true">🏮</div><span><b>Juja Branch</b><small>Kalimoni, Juja</small></span><DemoBadge>{store}</DemoBadge><button className="mp-outline" onClick={onAction}><MapPin size={15}/>{action}</button></div>;}
 export function DemoHeading({eyebrow,title,description,action}:{eyebrow:string;title:string;description:string;action?:React.ReactNode}){return <div className="mp-head"><div><span className="mp-eyebrow">{eyebrow}</span><h1>{title}</h1><p>{description}</p></div>{action}</div>;}
 export function PrototypeBranch({store,setStore,notify,live}:{store:"Open"|"Paused"|"Closed";setStore:(v:"Open"|"Paused"|"Closed")=>void;notify:(s:string)=>void;live?:MerchantLiveBridge}){
- const [branch,setBranch]=useState<BranchData>(()=>readJson("mp-demo-branch",defaultBranch));
- const [hours,setHours]=useState<Hours[]>(()=>readJson("mp-demo-hours",initialHours));
+ const [branch,setBranch]=useState<BranchData>(()=>live?{...defaultBranch,name:"",display:"",description:"",street:"",city:"",phone:"",email:"",latitude:"",longitude:"",minOrder:"0",image:""}:readJson("mp-demo-branch",defaultBranch));
+ const [hours,setHours]=useState<Hours[]>(()=>live?[]:readJson("mp-demo-hours",initialHours));
  const [tab,setTab]=useState("General");
  const [dialog,setDialog]=useState<"location"|"advanced"|"rules"|"upload"|"image-preview"|null>(null);
  const [pickup,setPickup]=useState(true),[delivery,setDelivery]=useState(true),[tableService,setTableService]=useState(false);
