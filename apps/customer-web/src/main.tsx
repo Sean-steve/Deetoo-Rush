@@ -15,6 +15,7 @@ import '../../customer-web-next/src/shopping.css';
 import '../../customer-web-next/src/orders.css';
 import '../../customer-web-next/src/account.css';
 import '../../customer-web-next/src/support.css';
+import '../../customer-web-next/src/integration/phase2-parity.css';
 import { installTheme } from '../../../packages/ui/src/theme';
 
 installTheme(document.documentElement);
