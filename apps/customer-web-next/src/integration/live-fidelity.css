@@ -79,3 +79,101 @@
     transition-duration: .01ms !important;
   }
 }
+
+/* Approved shopping dialog: all option names and prices remain server-driven. */
+.dt-product-option-grid .dt-product-option {
+  cursor: pointer;
+  align-items: center;
+}
+.dt-product-option-grid .dt-product-option input {position: absolute;opacity: 0;inset: 0;cursor: pointer;}
+.dt-product-option-grid .dt-product-option input:focus-visible {outline: 3px solid #30c990;outline-offset: 3px;}
+.dt-product-option-grid .dt-product-option:focus-within {outline: 3px solid #30c990;outline-offset: 2px;}
+.dt-product-option-grid .dt-product-option svg {position: absolute;top: 7px;right: 7px;color: #008e54;}
+.dt-product-instructions--unavailable input {background: #f4f7f5;color: #60778b;}
+.dt-product-instructions--unavailable small {font-size: 10px;color: #5e7787;line-height: 1.4;}
+.dt-bag-upsell .dt-shop-photo {height: 90px;width: 72px;object-fit: cover;flex-shrink: 0;}
+
+/* Verified orders within the original delivery-card geometry. */
+.dt-history-card > .dt-history-track {margin: 0 14px 13px auto;}
+.dt-history-merchant .dt-history-thumbs {margin: 0;}
+.dt-fidelity-tracking-map {
+  background: linear-gradient(135deg,#dce9dd,#f2f8ee 55%,#d2e4d8);
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: .68;
+}
+.dt-fidelity-tracking-map .dt-map-roads {height: 100%;opacity: .6;}
+.dt-tracking-map-panel .dt-live-order-map-canvas {
+  position: relative;z-index: 1;background: rgba(255,255,255,.94);
+  max-width: 360px;margin: 16px auto;padding: 18px;border: 1px solid #d7e9df;
+  border-radius: 15px;box-shadow: 0 3px 16px #133b2c17;
+}
+.dt-live-order-rider.dt-rider-card {display: flex;align-items: center;gap: 15px;}
+.dt-live-order-rider .dt-rider-avatar {width: 54px;height: 54px;min-width: 54px;}
+.dt-live-order-detail-grid > .dt-delivered-banner {grid-column: 1/-1;}
+.dt-delivered-banner h2 {font-size: clamp(25px,3vw,34px);letter-spacing: -1px;color: #0d402d;}
+.dt-delivered-receipt > h2 {display: flex;align-items: center;gap: 9px;margin: 0 0 17px;}
+.dt-delivered-receipt .dt-delivered-merchant {display: grid;gap: 6px;}
+.dt-delivered-receipt .dt-delivered-merchant small {font-size: 12px;color: #62798b;}
+.dt-receipt-lines > div {display: flex;justify-content: space-between;}
+.dt-receipt-total {display:flex;justify-content:space-between;gap:12px;padding:18px 0 3px;border-top:1px solid #dceee2;color:#005d3a;}
+.dt-delivery-checklist .dt-delivery-checkpoints {display: grid;gap: 12px;}
+.dt-delivery-checklist .dt-delivery-checkpoints li {list-style: none;display:flex;gap:12px;align-items:center;}
+.dt-delivery-checklist .dt-delivery-checkpoint {display:grid;gap:3px;}
+.dt-delivery-checklist .dt-delivery-checkpoint small {display:block;font-size:11px;color:#667b91;}
+.dt-delivery-checklist .dt-delivery-checkicon {display:grid;place-items:center;min-width:30px;height:30px;border-radius:50%;background:#e8ede9;color:#647383;font-weight:700;}
+.dt-delivery-checklist .dt-delivery-checkdone .dt-delivery-checkicon {background:#009d5e;color:#fff;}
+
+/* Reinstate approved account/dashboard layout around real authenticated records. */
+.dt-profile-page .dt-profile-summary {margin-bottom: 14px;}
+.dt-profile-summary .dt-profile-stats strong {font-size: 21px;}
+.dt-profile-tabs {margin: 0 0 15px;}
+.dt-profile-card-grid > .dt-live-account-card {min-width:0;}
+.dt-profile-card-grid > .dt-profile-card {scroll-margin-top:90px;}
+.dt-profile-rail .dt-plus-card {display: flex;flex-direction: column;gap: 9px;}
+.dt-profile-rail .dt-plus-card .dt-plus-crown {color: #008951;}
+.dt-profile-rail .dt-plus-card h2 {font-size: 20px;font-weight: 900;}
+.dt-security-page .dt-security-banner {margin-bottom: 12px;}
+.dt-security-page .dt-security-grid {grid-template-columns: repeat(2,minmax(0,1fr));}
+.dt-security-page .dt-security-card {min-width:0;}
+.dt-security-page .dt-login-list .dt-login-event {display:flex;align-items:center;gap:12px;padding:12px 0;border-top:1px solid #e7efeb;}
+.dt-security-page .dt-login-event>div {display:grid;gap:5px;}
+.dt-security-page .dt-login-event small {color:#658098;}
+.dt-notifications-page .dt-notify-banner {margin-bottom: 17px;}
+.dt-notifications-page .dt-notification-columns {align-items: start;}
+.dt-notifications-page .dt-notify-toolbar {margin-bottom: 16px;flex-wrap: wrap;}
+.dt-notifications-page .dt-notify-toolbar input {min-height: 40px;border:1px solid #dcece2;border-radius:12px;padding:7px 12px;max-width:200px;}
+.dt-notifications-page .dt-notification-item .dt-notification-main {flex:1;min-width:0;display:grid;gap:6px;}
+.dt-notifications-page .dt-notification-item .dt-notification-main small {display:block;color:#687c93;}
+.dt-notifications-page .dt-notification-item .dt-notification-time {white-space:nowrap;font-size:10px;color:#647992;}
+.dt-notifications-page .dt-notification-item .dt-button {min-width: 80px;}
+.dt-notifications-page .dt-notification-day {margin-bottom: 15px;}
+.dt-notifications-page .dt-notification-day > h2 {margin: 0 0 9px;}
+.dt-notifications-page .dt-notification-rail {display:grid;gap:15px;}
+.dt-notifications-page .dt-notify-settings {padding: 18px;}
+.dt-notifications-page .dt-notify-preference-row {display:flex;align-items:center;gap:9px;margin-top:9px;}
+.dt-notifications-page .dt-notify-preference-row>span:nth-child(2) {flex:1;}
+.dt-notifications-page .dt-notify-preference-row>span:nth-child(2) :is(strong,small) {display:block;}
+.dt-notifications-page .dt-notify-preference-row small {font-size:10px;color:#657c90;}
+.dt-notifications-page .dt-notify-preference-row button:disabled {opacity:.55;}
+.dt-notifications-page .dt-notification-push-cta button:disabled {cursor:not-allowed;}
+.dt-notifications-page .dt-notifications-disclaimer {display:flex;gap:8px;align-items:center;}
+
+/* Support art is the exact SVG used by the design-first preview. */
+.dt-live-support .dt-support-banner>svg {width:100%;height:126px;}
+.dt-live-support .dt-support-attachments .dt-support-attached-file {display:flex;align-items:center;gap:10px;}
+.dt-live-support .dt-support-chat-panel--full {min-width:0;}
+
+@media (max-width: 1200px) {
+  .dt-security-page .dt-security-grid {grid-template-columns: 1fr;}
+  .dt-live-order-detail-grid > .dt-delivered-banner {min-width:0;}
+}
+@media (max-width: 760px) {
+  .dt-notifications-page .dt-notification-item {flex-wrap:wrap;}
+  .dt-notifications-page .dt-notification-item .dt-notification-main {flex-basis: calc(100% - 80px);}
+  .dt-notifications-page .dt-notification-item .dt-notification-time {flex:1;}
+  .dt-profile-page .dt-profile-stats {flex-wrap:wrap;}
+  .dt-delivered-banner {padding:18px;min-height:150px;}
+  .dt-tracking-map-panel .dt-live-order-map-canvas {max-width: calc(100% - 20px);}
+}
