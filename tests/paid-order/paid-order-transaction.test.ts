@@ -10,6 +10,7 @@ import { customerRepository } from '../../apps/api/src/modules/customer/customer
 import { cartRepository } from '../../apps/api/src/modules/cart/cart.repository';
 import { checkoutService } from '../../apps/api/src/modules/cart/checkout.service';
 import { orderService } from '../../apps/api/src/modules/order/order.service';
+import { expireCheckoutStockHolds } from '../../apps/api/src/modules/merchant/stock-expiry.service';
 import { paymentService } from '../../apps/api/src/modules/payment/payment.service';
 import { paymentRepository } from '../../apps/api/src/modules/payment/payment.repository';
 import { financialPostingService } from '../../apps/api/src/modules/finance/financial-posting.service';
@@ -39,7 +40,7 @@ async function fixture(){
  const cart=await cartRepository.createCart({id:randomUUID(),customer_id:uid,branch_id:bid,currency:'KES',status:'ACTIVE',created_at:now,updated_at:now,expires_at:new Date(Date.now()+3600000).toISOString()} as any);
  const cartItem=await cartRepository.createCartItem({id:randomUUID(),cart_id:cart.id,menu_item_id:item,quantity:1,modifier_option_ids:[],created_at:now,updated_at:now});
  const quote=await checkoutService.generateQuote(uid,{address_id:address.id});
- return {uid,mid,bid,cartItem,quote};
+ return {uid,mid,bid,item,cartItem,quote};
 }
 async function pending(){const f=await fixture();const order=await orderService.createOrderFromQuote(f.uid,{quote_id:f.quote.id},randomUUID());return {...f,order};}
 async function evidence(order:any){
@@ -330,4 +331,40 @@ test('clearing a quoted basket retains immutable history and does not cancel an 
  const placed=await pending();
  await cartService.clearCart(placed.uid);
  assert.equal((await orderService.getOrderById(placed.order.id)).status,'PENDING_PAYMENT');
+});
+
+
+test('tracked checkout stock is held atomically and unpaid holds expire without refund fabrication',async()=>{
+ const f=await fixture(),db=getDbPool();
+ await db.query('INSERT INTO merchant_item_inventory(merchant_id,branch_id,item_id,quantity) VALUES($1,$2,$3,2)',
+   [f.mid,f.bid,f.item]);
+ const order=await orderService.createOrderFromQuote(f.uid,{quote_id:f.quote.id},randomUUID());
+ assert.equal((await db.query('SELECT quantity FROM merchant_item_inventory WHERE branch_id=$1 AND item_id=$2',[f.bid,f.item])).rows[0].quantity,1);
+ assert.deepEqual((await db.query('SELECT quantity,state FROM merchant_stock_reservations WHERE order_id=$1',[order.id])).rows.map(r=>[r.quantity,r.state]),[[1,'HELD']]);
+ await db.query("UPDATE merchant_stock_reservations SET expires_at=NOW()-INTERVAL '1 second' WHERE order_id=$1",[order.id]);
+ const expired=await expireCheckoutStockHolds();
+ assert.ok(expired.expired>=1);
+ assert.equal((await db.query('SELECT quantity FROM merchant_item_inventory WHERE branch_id=$1 AND item_id=$2',[f.bid,f.item])).rows[0].quantity,2);
+ assert.equal((await db.query('SELECT state FROM merchant_stock_reservations WHERE order_id=$1',[order.id])).rows[0].state,'RELEASED');
+ assert.equal((await db.query('SELECT status FROM orders WHERE id=$1',[order.id])).rows[0].status,'CANCELLED');
+ assert.equal((await expireCheckoutStockHolds()).expired,0);
+});
+test('tracked stock rejects oversell while keeping order and reservation records atomic',async()=>{
+ const f=await fixture(),db=getDbPool();
+ await db.query('INSERT INTO merchant_item_inventory(merchant_id,branch_id,item_id,quantity) VALUES($1,$2,$3,0)',
+   [f.mid,f.bid,f.item]);
+ await assert.rejects(orderService.createOrderFromQuote(f.uid,{quote_id:f.quote.id},randomUUID()));
+ assert.equal((await db.query('SELECT count(*)::int AS n FROM orders WHERE checkout_quote_id=$1',[f.quote.id])).rows[0].n,0);
+ assert.equal((await db.query('SELECT count(*)::int AS n FROM merchant_stock_reservations WHERE branch_id=$1',[f.bid])).rows[0].n,0);
+});
+test('verified capture confirms previously held stock exactly once',async()=>{
+ const f=await fixture(),db=getDbPool();
+ await db.query('INSERT INTO merchant_item_inventory(merchant_id,branch_id,item_id,quantity) VALUES($1,$2,$3,2)',
+   [f.mid,f.bid,f.item]);
+ const order=await orderService.createOrderFromQuote(f.uid,{quote_id:f.quote.id},randomUUID());
+ const {payment,result}=await evidence(order);
+ await paymentService.applyVerifiedOutcome(payment.id,result);
+ await paymentService.applyVerifiedOutcome(payment.id,result);
+ assert.equal((await db.query('SELECT quantity FROM merchant_item_inventory WHERE branch_id=$1 AND item_id=$2',[f.bid,f.item])).rows[0].quantity,1);
+ assert.equal((await db.query('SELECT state FROM merchant_stock_reservations WHERE order_id=$1',[order.id])).rows[0].state,'CONFIRMED');
 });
