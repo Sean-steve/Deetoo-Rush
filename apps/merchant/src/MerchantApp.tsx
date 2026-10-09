@@ -1,5 +1,8 @@
 import { BranchSettings } from "./components/BranchSettings";
 import { MerchantWorkspace } from "./components/MerchantWorkspace";
+import { MerchantNotifications } from "./components/MerchantNotifications";
+import { MerchantSupportCenter } from "./components/MerchantSupportCenter";
+import { MerchantSecurity } from "./components/MerchantSecurity";
 import { MerchantAccount } from "./components/MerchantAccount";
 import { AccountSupport } from "../../../packages/ui/src/AccountSupport";
 import { KitchenOrders } from "./components/KitchenOrders";
@@ -536,47 +539,13 @@ function MerchantAppInner() {
             canManage={canManageStoreStatus}
           />
         )}
-        {activeMainTab === "notifications" && <NotificationInbox />}
-        {activeMainTab === "support" && <AccountSupport mode="participant" />}
+        {activeMainTab === "notifications" && <MerchantNotifications onNavigate={(tab) => setActiveMainTab(tab as MerchantTab)} />}
+        {activeMainTab === "support" && <MerchantSupportCenter />}
         {branch && activeMainTab === "finance" && (
           <MerchantFinance merchantId={branch.merchant_id} />
         )}
         {activeMainTab === "sessions" && (
-          <Card className="bg-white">
-            <h3 className="text-sm font-bold text-slate-900 mb-2 flex items-center gap-2">
-              <History size={16} className="text-brand" /> Merchant Staff
-              Active Sessions
-            </h3>
-            <p className="text-xs text-slate-500 mb-4">
-              Active login tokens for staff member {user?.email}. Revoking
-              sessions invalidates all refresh tokens and active API tokens.
-            </p>
-            <div className="divide-y divide-slate-100 text-xs">
-              {sessions.map((s) => (
-                <div
-                  key={s.id}
-                  className="py-3 flex items-center justify-between"
-                >
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span className="font-mono font-bold text-slate-800">
-                        {s.id.substring(0, 16)}...
-                      </span>
-                      {s.current && (
-                        <Badge variant="success" className="text-[10px]">
-                          Current Session
-                        </Badge>
-                      )}
-                    </div>
-                    <div className="text-[11px] text-slate-500 mt-1">
-                      IP: {s.ip_address || "127.0.0.1"} | Device:{" "}
-                      {s.device_info || "Console"}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </Card>
+          <MerchantSecurity sessions={sessions} loading={isLoadingSessions} onRefresh={loadSessions} />
         )}
       </MerchantWorkspace>
     </ErrorBoundary>
