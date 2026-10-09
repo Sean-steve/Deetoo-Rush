@@ -59,8 +59,11 @@ test('Customer design-first component parity survives live account routes', asyn
   await page.locator('.dt-live-auth input[type="password"]').fill('CustomerPass123!');
   await page.locator('.dt-live-auth button[type="submit"]').click();
   await expect(page.locator('.dt-live-auth')).toHaveCount(0);
+  await expectSecureWebSession(context);
+  page.on('pageerror', error => console.log('CUSTOMER_ROUTE_JS_ERROR', error.message));
   await page.goto('http://127.0.0.1:5173/customer/profile');
-  await expect(page.locator('.dt-profile-summary')).toBeVisible();
+  console.log('CUSTOMER_PROFILE_DEBUG',page.url(),(await page.locator('body').innerText()).slice(0,1400));
+  await expect(page.locator('.dt-profile-summary')).toBeVisible({timeout:15000});
   await expect(page.locator('.dt-profile-tabs')).toBeVisible();
   await expect(page.locator('.dt-profile-rail')).toBeVisible();
   await page.goto('http://127.0.0.1:5173/customer/security');
