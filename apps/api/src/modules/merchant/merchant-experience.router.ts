@@ -3,6 +3,8 @@ import { z } from 'zod';
 import { AuthenticatedRequest, requireAuth, requireRole } from '../auth/auth.middleware';
 import { AppError } from '../../middleware/error-handler';
 import { ownBranch, ownMerchant, durable, datesSchema, pageSchema } from './merchant-experience.scope';
+import { merchantScope } from '../auth/scope';
+import { effectiveMerchantCapabilities, platformRoleCan, roleCapabilities } from './merchant-role-policy.service';
 
 export const merchantExperienceRouter=Router();
 merchantExperienceRouter.use(requireAuth);
@@ -103,6 +105,28 @@ merchantExperienceRouter.get('/help/articles',run(async(req,res)=>{
 }));
 // Configuration observability, not a declaration of successful provider delivery.
 // Never include credential bytes, customer payment details or secrets in this response.
+merchantExperienceRouter.get('/roles/capabilities',run(async(req,res)=>{
+ const merchantId=await ownMerchant(req);
+ res.json({data:{merchant_id:merchantId,roles:await effectiveMerchantCapabilities(merchantId),
+   semantics:'Owner may restrict existing capabilities; cannot grant permissions beyond platform RBAC.'}});
+}));
+merchantExperienceRouter.put('/roles/capabilities/:role',run(async(req,res)=>{
+ const db=durable(),merchantId=await ownMerchant(req);
+ await merchantScope(req.user!,merchantId,true,false,false);
+ const role=z.enum(['merchant_manager','merchant_staff']).parse(req.params.role);
+ const input=z.object({capability:z.enum(roleCapabilities),allowed:z.boolean()}).strict().parse(req.body);
+ if(!platformRoleCan(role,input.capability))
+   throw new AppError(403,'CAPABILITY_ESCALATION_FORBIDDEN','Cannot grant a capability not permitted by platform RBAC');
+ const saved=await db.query(`INSERT INTO merchant_role_capability_controls
+   (merchant_id,role_code,capability,allowed,updated_by)
+   VALUES($1,$2,$3,$4,$5)
+   ON CONFLICT (merchant_id,role_code,capability) DO UPDATE
+   SET allowed=EXCLUDED.allowed,updated_by=EXCLUDED.updated_by,updated_at=NOW()
+   RETURNING role_code,capability,allowed,updated_at`,
+   [merchantId,role,input.capability,input.allowed,req.user!.id]);
+ res.json({data:saved.rows[0]});
+}));
+
 merchantExperienceRouter.get('/providers/readiness',run(async(req,res)=>{
   await ownMerchant(req);
   const keys=(...names:string[])=>names.every(n=>Boolean(process.env[n]?.trim()));
