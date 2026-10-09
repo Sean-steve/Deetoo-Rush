@@ -74,7 +74,7 @@ paths:
       tags: [Merchant]
       security: [{ bearerAuth: [] }]
       parameters: [{ name: orderId, in: path, required: true, schema: { type: string } }]
-      responses: { '202': { description: Message queued, not delivery confirmed } }
+      responses: { '202': { description: Queued message awaiting external delivery confirmation } }
   /finance/merchant/experience/export/transactions.csv:
     get:
       summary: Export merchant-scoped verified order economics CSV; not an invoice
