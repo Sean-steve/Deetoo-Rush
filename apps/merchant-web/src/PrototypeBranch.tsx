@@ -25,6 +25,11 @@ export function PrototypeBranch({store,setStore,notify,live}:{store:"Open"|"Paus
  Promise.all([live.api.request<any[]>(`/merchant/branches/${live.branchId}/opening-hours`),live.api.request<any>(`/merchant/experience/branches/${live.branchId}/policies`)]).then(([response,policy])=>{if(!active)return;const days=["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
  setHours(days.slice(1).concat(days[0]).map(day=>{const h=response.data.find((x:any)=>Number(x.day_of_week)===days.indexOf(day));return {day,active:h?!h.is_closed:false,open:String(h?.open_time||"08:00").slice(0,5),close:String(h?.close_time||"23:00").slice(0,5)}}));
  setDelivery(Boolean(policy.data.delivery_enabled));setPickup(Boolean(policy.data.pickup_enabled));setDineIn(Boolean(policy.data.dine_in_enabled));setTableService(Boolean(policy.data.table_qr_enabled));setMaxConcurrent(String(policy.data.max_concurrent_orders||30));setCoverMedia(policy.data.cover_media_id||null);
+ if(policy.data.cover_media_id){
+  void live.api.request<{url:string}>(`/media/${policy.data.cover_media_id}/read-url`).then(r=>{
+    if(active)setBranch(prev=>({...prev,image:r.data.url}));
+  }).catch(()=>{/* Image remains visible as a placeholder if private media access is unavailable. */});
+ }
  }).catch(e=>{if(active)setLoadError(e instanceof Error?e.message:String(e));});return()=>{active=false};},[live?.branchId,live?.branch?.updated_at]);
 
  const update=(key:keyof BranchData,value:string)=>setBranch(prev=>({...prev,[key]:value}));
