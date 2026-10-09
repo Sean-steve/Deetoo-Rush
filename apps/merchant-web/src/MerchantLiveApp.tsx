@@ -63,7 +63,7 @@ function MerchantLiveGate(){
     setBranchId(previous=>(data||[]).some((b:any)=>b.id===previous)?previous:data?.[0]?.id||"");
   }).catch(e=>{if(alive){setBranchError(message(e));setBranches([]);}}).finally(()=>{if(alive)setBranchBusy(false);});
   return()=>{alive=false;};
- },[apiClient,isAuthenticated,authorized]);
+ },[apiClient,isAuthenticated,authorized,revision]);
  useEffect(()=>{
   if(!isAuthenticated||!authorized||!branchId)return;
   let alive=true;setBusy(true);
