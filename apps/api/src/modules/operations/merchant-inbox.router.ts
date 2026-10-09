@@ -1,10 +1,11 @@
 import { Router, Response, NextFunction } from 'express';
 import { z } from 'zod';
-import { requireAuth, AuthenticatedRequest } from '../auth/auth.middleware';
+import { requireAuth, requireRole, AuthenticatedRequest } from '../auth/auth.middleware';
 import { durable, ownMerchant, pageSchema } from '../merchant/merchant-experience.scope';
 import { AppError } from '../../middleware/error-handler';
 export const merchantInboxRouter=Router();
 merchantInboxRouter.use(requireAuth);
+merchantInboxRouter.use(requireRole('merchant','merchant_owner','merchant_manager','merchant_staff'));
 const run=(f:(req:AuthenticatedRequest,res:Response)=>Promise<void>)=>(req:AuthenticatedRequest,res:Response,next:NextFunction)=>{Promise.resolve().then(()=>f(req,res)).catch(next)};
 const inboxFilter=z.object({
   category:z.enum(['ORDERS','PAYMENTS','PAYOUTS','MENU','BUSINESS','SYSTEM','SUPPORT']).optional(),
