@@ -1,3 +1,4 @@
+import type { MerchantLiveBridge } from "./MerchantLiveApp";
 import React, { useEffect, useMemo, useState } from "react";
 import { Bell, Check, ChevronDown, CircleCheck, Clock3, CreditCard, FileText, Filter, MapPin, MessageSquare, Phone, Search, Settings, ShieldCheck, Store, TriangleAlert, Utensils, Wallet, X } from "lucide-react";
 import { DemoBadge, DemoCard, DemoHeading } from "./PrototypeBranch";
@@ -32,7 +33,7 @@ const seed:DemoNotice[]=[
 function saved<T>(key:string,fallback:T):T{try{const data=localStorage.getItem(key);return data?JSON.parse(data) as T:fallback;}catch{return fallback;}}
 const groups:NoticeGroup[]=["Orders","Payments","Payouts & settlements","Menu & availability","Business updates","System notifications","Support messages"];
 function NoticeIcon({kind}:{kind:NoticeGroup}){const i=kind==="Orders"?<Utensils/>:kind==="Payments"?<CreditCard/>:kind==="Payouts & settlements"?<Wallet/>:kind==="Menu & availability"?<TriangleAlert/>:kind==="Support messages"?<MessageSquare/>:kind==="Business updates"?<Store/>:<Settings/>;return <span className={"mp-p2-notice-icon mp-p2-notice-"+kind.split(" ")[0].toLowerCase()}>{i}</span>;}
-export function PrototypeNotifications({search,onNavigate,notify,onUnreadChange,onPrepareOrder}:{search:string;onNavigate:(s:string)=>void;notify:(s:string)=>void;onUnreadChange?:(n:number)=>void;onPrepareOrder?:(orderId:string)=>void}){
+export function PrototypeNotifications({search,onNavigate,notify,onUnreadChange,onPrepareOrder,live}:{search:string;onNavigate:(s:string)=>void;notify:(s:string)=>void;onUnreadChange?:(n:number)=>void;onPrepareOrder?:(orderId:string)=>void;live?:MerchantLiveBridge}){
  const [notices,setNotices]=useState<DemoNotice[]>(()=>saved("mp-demo-notices",seed));
  const [category,setCategory]=useState("All notifications");
  const [status,setStatus]=useState("All");
