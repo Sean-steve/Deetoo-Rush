@@ -81,7 +81,7 @@ export function Header({query,onQueryChange,goTo,bagCount,notice,userLabel="Test
           <span className="dt-avatar">{userLabel.slice(0,1).toUpperCase()}</span><strong>{userLabel}</strong><ChevronDown size={17}/>
         </button>
         <Button className="dt-header-cart" onClick={()=>goTo("bag")} startIcon={<ShoppingBag size={23}/>} >
-          <span key={bagCount} className="dt-cart-count" aria-label={`${bagCount} items in preview bag`}>{bagCount}</span>
+          <span key={bagCount} className="dt-cart-count" aria-label={`${bagCount} items in bag`}>{bagCount}</span>
           Cart
         </Button>
       </div>
@@ -106,7 +106,7 @@ export function Sidebar({active,goTo,open,onClose,bagCount,live=false}:{
             </button>
           ))}
         </nav>
-        <div className="dt-sidebar-footer"><span className="dt-preview-light"/> {live?"Live shopping":"Design preview"} <small>{live?"Other areas coming in later stages":"Backend not connected"}</small></div>
+        <div className="dt-sidebar-footer"><span className="dt-preview-light"/> {live?"Live shopping":"Design preview"} <small>{live?"Connected to DeeToo services":"Backend not connected"}</small></div>
       </aside>
     </>
   );

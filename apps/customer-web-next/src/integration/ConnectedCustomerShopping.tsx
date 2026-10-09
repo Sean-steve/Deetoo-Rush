@@ -18,7 +18,9 @@ const pathFor=(route:Route)=>({
  tracking:"/orders",delivered:"/orders",profile:"/profile",security:"/security",notifications:"/notifications",support:"/support",conversation:"/support"
 })[route];
 const classify=(pathname:string):{screen:Route|"payment";branchId:string;orderId:string;caseId?:string}=>{
- const segments=pathname.split("/").filter(Boolean);
+ // The public site links into /customer; the internal 15-screen router uses relative screen paths.
+ const customerPath=pathname.replace(/^\/customer(?=\/|$)/,"")||"/";
+ const segments=customerPath.split("/").filter(Boolean);
  if(segments[0]==="restaurant"&&segments[1])return {screen:"restaurant",branchId:segments[1],orderId:""};
  if(segments[0]==="payment"&&segments[1])return {screen:"payment",branchId:"",orderId:segments[1]};
  if(segments[0]==="support"&&segments[1]==="cases"&&segments[2]&&/^[a-zA-Z0-9_-]{1,128}$/.test(segments[2]))
@@ -28,9 +30,9 @@ const classify=(pathname:string):{screen:Route|"payment";branchId:string;orderId
  const screen=(["search","bag","checkout","orders","profile","security","notifications","support"].includes(segments[0]||"")?segments[0]:"discover") as Route;
  return {screen,branchId:"",orderId:""};
 };
-function LoginPanel({onDismiss}:{onDismiss:()=>void}){
+function LoginPanel({onDismiss,initialMode="login"}:{onDismiss:()=>void;initialMode?:"login"|"register"}){
  const {login,registerCustomer,error}=useAuth();
- const [mode,setMode]=useState<"login"|"register">("login");
+ const [mode,setMode]=useState<"login"|"register">(initialMode);
  const [identifier,setIdentifier]=useState(""),[password,setPassword]=useState(""),[name,setName]=useState("");
  const [busy,setBusy]=useState(false),[message,setMessage]=useState("");
  const submit=async(e:FormEvent)=>{
@@ -102,8 +104,18 @@ function ConnectedInner(){
  const {apiClient,user,isLoading,isAuthenticated,logout}=useAuth();
  const isCustomer=isAuthenticated&&Boolean(user?.roles.some(role=>String(role).toLowerCase()==="customer"));
  const gateway=useMemo(()=>createCustomerGateway(apiClient),[apiClient]);
+ // The canonical app lives below /customer. Standalone visual/backend test harnesses
+ // continue to use unprefixed URLs, but are not served as a second customer portal.
+ const appBase=window.location.pathname==="/customer"||window.location.pathname.startsWith("/customer/")?"/customer":"";
+ const initialAuthIntent=useRef(new URLSearchParams(window.location.search).get("auth"));
  const [path,setPath]=useState(window.location.pathname),[query,setQuery]=useState(""),[notice,setNotice]=useState<string|null>(null);
- const [mobile,setMobile]=useState(false),[authOpen,setAuthOpen]=useState(false),[locationOpen,setLocationOpen]=useState(false);
+ const [mobile,setMobile]=useState(false),[authOpen,setAuthOpen]=useState(initialAuthIntent.current==="login"||initialAuthIntent.current==="register"),[locationOpen,setLocationOpen]=useState(false);
+ useEffect(()=>{
+  if(initialAuthIntent.current!=="login"&&initialAuthIntent.current!=="register")return;
+  const url=new URL(window.location.href);
+  url.searchParams.delete("auth");
+  window.history.replaceState({},"",url.pathname+url.search+url.hash);
+ },[]);
  const [addressId,setAddressId]=useState("");
  const route=classify(path);
  const addresses=useBackendResource(()=>gateway.account.addresses(),isCustomer,[user?.id]);
@@ -113,7 +125,11 @@ function ConnectedInner(){
  useEffect(()=>{if(!addressId&&chosen)setAddressId(chosen.id);},[chosen?.id,addressId]);
  useEffect(()=>{const handler=()=>setPath(window.location.pathname);window.addEventListener("popstate",handler);return()=>window.removeEventListener("popstate",handler);},[]);
  useEffect(()=>{if(!notice)return;const t=setTimeout(()=>setNotice(null),5000);return()=>clearTimeout(t);},[notice]);
- const navigate=(url:string)=>{if(window.location.pathname!==url)window.history.pushState({},"",url);setPath(url);setMobile(false);window.scrollTo({top:0,behavior:"auto"});};
+ const navigate=(url:string)=>{
+  const destination=appBase&&!url.startsWith("/customer/")&&url!=="/customer"?appBase+(url==="/"?"":url):url;
+  if(window.location.pathname!==destination)window.history.pushState({},"",destination);
+  setPath(destination);setMobile(false);window.scrollTo({top:0,behavior:"auto"});
+ };
  const goTo=(next:Route)=>navigate(pathFor(next));
  const branchId=route.branchId;
  const remembered=useRef("");
@@ -141,11 +157,11 @@ function ConnectedInner(){
       <StatusPanel title="Page unavailable" description="The requested customer page is not available." onRetry={()=>navigate("/")}/>}
   </main>
   {notice&&<div className="dt-notice" role="status"><Check size={16}/>{notice}<IconButton label="Dismiss notification" onClick={()=>setNotice(null)}><X size={16}/></IconButton></div>}
-  {authOpen&&<LoginPanel onDismiss={()=>{setAuthOpen(false);addresses.refresh();cart.refresh();}}/>}
+  {authOpen&&<LoginPanel initialMode={initialAuthIntent.current==="register"?"register":"login"} onDismiss={()=>{setAuthOpen(false);addresses.refresh();cart.refresh();}}/>}
   {locationOpen&&<LocationPicker gateway={gateway} addresses={list} currentId={chosen?.id||""} onChoose={setAddressId} onSaved={()=>addresses.refresh()} onClose={()=>setLocationOpen(false)}/>}
  </div>;
 }
-/** Strictly opt-in while we verify real API flows and protect the 15 approved previews. */
+/** The sole live customer app; preview fixtures are restricted to isolated visual tests. */
 export function ConnectedCustomerShopping(){
  return <AuthProvider clientApp="customer"><ConnectedInner/></AuthProvider>;
 }

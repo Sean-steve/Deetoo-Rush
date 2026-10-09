@@ -15,6 +15,7 @@ export default defineConfig({
     '@deetoo/config': path.resolve(repoRoot, 'packages/config/src/index.ts'),
     '@deetoo/utils': path.resolve(repoRoot, 'packages/utils/src/index.ts'),
     '@deetoo/auth': path.resolve(repoRoot, 'packages/auth/src/index.ts'),
+    '@deetoo/auth-web': path.resolve(repoRoot, 'packages/auth-web/src/index.ts'),
     '@deetoo/api-client': path.resolve(repoRoot, 'packages/api-client/src/index.ts'),
     '@deetoo/ui': path.resolve(repoRoot, 'packages/ui/src/index.tsx')
   }},

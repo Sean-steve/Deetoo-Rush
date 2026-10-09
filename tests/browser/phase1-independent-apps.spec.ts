@@ -14,32 +14,30 @@ async function expectSecureWebSession(context: BrowserContext) {
   expect(csrf?.httpOnly).toBe(false);
 }
 
-test('Customer Web authenticates with cookies, not localStorage, and remains role-scoped', async ({ browser }) => {
+test('Canonical 15-screen Customer Web authenticates with cookies, not localStorage, and remains role-scoped', async ({ browser }) => {
   const context = await browser.newContext();
   const page = await context.newPage();
-  await page.goto('http://127.0.0.1:5173');
-
+  await page.goto('http://127.0.0.1:5173/');
   await expect(page.locator('.app-switcher')).toHaveCount(0);
   await page.getByRole('button', { name: 'Sign In', exact: true }).click();
-
-  const loginForm = page.locator('form').filter({
-    has: page.getByPlaceholder('customer@deetoo.ke or +254712345678'),
-  });
-  await loginForm.getByPlaceholder('customer@deetoo.ke or +254712345678').fill('customer@deetoo.ke');
-  await loginForm.locator('input[type="password"]').fill('CustomerPass123!');
-  await loginForm.getByRole('button', { name: 'Sign In', exact: true }).click();
-
-  await expect(page.getByTitle('Sign Out')).toBeVisible();
+  await expect(page).toHaveURL(/\/customer$/); // The one-shot auth intent is intentionally consumed.
+  await expect(page.locator('.dt-live-auth')).toBeVisible();
+  await page.locator('.dt-live-auth input[autocomplete="username"]').fill('customer@deetoo.ke');
+  await page.locator('.dt-live-auth input[type="password"]').fill('CustomerPass123!');
+  await page.locator('.dt-live-auth button[type="submit"]').click();
+  await expect(page.locator('.dt-app')).toBeVisible({timeout: 15_000});
+  await expect(page.locator('.dt-live-auth')).toHaveCount(0);
   await expectSecureWebSession(context);
-
   const storageKeys = await page.evaluate(() => Object.keys(localStorage));
   expect(storageKeys.filter((key) => key.startsWith('deetoo_auth_'))).toEqual([]);
-
   const ownStatus = await page.evaluate(async () => (await fetch('/api/v1/customer/addresses')).status);
   const adminStatus = await page.evaluate(async () => (await fetch('/api/v1/admin/orders')).status);
   expect(ownStatus).toBe(200);
   expect(adminStatus).toBe(403);
-
+  await page.locator('.dt-sidebar .dt-nav-link').filter({hasText:'Profile & addresses'}).click();
+  await expect(page).toHaveURL(/\/customer\/profile$/);
+  await page.reload();
+  await expect(page.locator('.dt-app')).toBeVisible();
   await context.close();
 });
 
@@ -119,34 +117,24 @@ test('Phase 1 UI foundation exposes dense Admin layout and honors reduced motion
 });
 
 
-test('Phase 2 Customer discovery is visual and item customization uses a bottom sheet', async ({ browser }) => {
-  const context = await browser.newContext({
-    viewport: { width: 390, height: 844 },
-    geolocation: { latitude: -1.2683, longitude: 36.8044 },
-    permissions: ['geolocation'],
-  });
+test('Canonical customer screens are the only customer experience on mobile and retain deep links', async ({ browser }) => {
+  const context = await browser.newContext({ viewport: { width: 390, height: 844 } });
   const page = await context.newPage();
   await page.goto('http://127.0.0.1:5173/customer');
-
-  await expect(page.getByPlaceholder('Search DeeToo')).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Open now' })).toBeVisible();
-
-  const restaurants = page.locator('.customer-restaurant-card');
-  await expect(restaurants.first()).toBeVisible({ timeout: 15_000 });
-  await expect(restaurants.first().locator('.customer-restaurant-media')).toBeVisible();
-
-  await restaurants.first().click();
-  const customizableItem = page.locator('[aria-label^="Customize "]').first();
-  await expect(customizableItem).toBeVisible({ timeout: 15_000 });
-  await customizableItem.click();
-
-  const sheet = page.locator('dialog.deetoo-bottom-sheet');
-  await expect(sheet).toBeVisible();
-  await expect(sheet.getByRole('button', { name: /Add · KES|Sign in to add/ })).toBeVisible();
-
+  await expect(page.locator('.dt-app')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Discover restaurants' })).toBeVisible();
+  await expect(page.locator('.dt-header')).toBeVisible();
+  await expect(page.locator('.customer-restaurant-card')).toHaveCount(0); // The previous customer UI must never render.
+  await page.getByRole('button',{name:'Menu',exact:true}).click();
+  await page.locator('.dt-sidebar .dt-nav-link').filter({hasText:'Orders & tracking'}).click();
+  await expect(page).toHaveURL(/\/customer\/orders$/);
+  await page.reload();
+  await expect(page.locator('.dt-app')).toBeVisible();
+  await page.goto('http://127.0.0.1:5173/customer/notifications');
+  await expect(page.locator('.dt-app')).toBeVisible();
+  await expect(page).toHaveURL(/\/customer\/notifications$/);
   await context.close();
 });
-
 
 test('Phase 3 Merchant workspace exposes persistent store control and urgency-first kitchen board', async ({ browser }) => {
   const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
