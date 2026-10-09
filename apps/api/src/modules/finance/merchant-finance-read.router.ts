@@ -1,13 +1,14 @@
 /** Merchant-safe read-only finance projections; never exposes operator ledger routes. */
 import { Router, Response, NextFunction } from 'express';
 import { z } from 'zod';
-import { AuthenticatedRequest, requireAuth } from '../auth/auth.middleware';
+import { AuthenticatedRequest, requireAuth, requireRole } from '../auth/auth.middleware';
 import { ownMerchant, durable, datesSchema, pageSchema } from '../merchant/merchant-experience.scope';
 import { merchantScope, branchScope } from '../auth/scope';
 import { ledgerRepository } from './ledger.repository';
 import { AppError } from '../../middleware/error-handler';
 export const merchantFinanceReadRouter=Router();
 merchantFinanceReadRouter.use(requireAuth);
+merchantFinanceReadRouter.use(requireRole('merchant_owner','merchant_manager'));
 const run=(f:(req:AuthenticatedRequest,res:Response)=>Promise<void>)=>(req:AuthenticatedRequest,res:Response,next:NextFunction)=>{Promise.resolve().then(()=>f(req,res)).catch(next)};
 const query=datesSchema.extend({branch_id:z.string().uuid().optional()});
 async function financeScope(req:AuthenticatedRequest,branchId?:string){
