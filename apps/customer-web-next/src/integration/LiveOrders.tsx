@@ -68,7 +68,7 @@ function EntryCard({order,onOpen,onReorder}:{order:Order;onOpen:()=>void;onReord
   <div className="dt-history-body"><div className="dt-history-merchant">
     <SafePhoto className="dt-live-order-photo" src={order.items?.[0]?.item_snapshot?.image_url} alt=""/>
     <div><h3>{order.merchant_name||order.branch_name||"Restaurant"}</h3><p>{itemCount(order)} items · {money(order.total_minor)}</p>
-      <div className="dt-live-order-mini-items">{(order.items||[]).slice(0,4).map(i=><small key={i.id}>{i.quantity}× {i.item_name}</small>)}</div></div>
+      <div className="dt-history-thumbs">{(order.items||[]).slice(0,3).map(i=><SafePhoto className="dt-order-photo" key={i.id} src={i.item_snapshot?.image_url} alt={i.item_name}/>)}</div><div className="dt-live-order-mini-items">{(order.items||[]).slice(0,4).map(i=><small key={i.id}>{i.quantity}× {i.item_name}</small>)}</div></div>
   </div><div className="dt-history-progress"><PhaseTimeline order={order}/>
   <p className="dt-history-caption">{order.status==="PENDING_PAYMENT"?"Payment confirmation is required before preparation begins.":
     order.status==="COMPLETED"?"Delivery confirmed by DeeToo. Open your order to review the receipt.":
@@ -112,7 +112,7 @@ function History({gateway,onNavigate}:{gateway:CustomerGateway;onNavigate:(path:
 function NoLocation({tracking}:{tracking:CustomerTrackingResponse|null}){
  const loc=tracking?.riderLiveLocation;
  const fresh=Boolean(loc&&!loc.isStale&&Date.now()-new Date(loc.recordedAt).getTime()<180000&&Date.now()-new Date(loc.recordedAt).getTime()>=-30000&&validCoordinate(loc.latitude,loc.longitude));
- return <div className="dt-live-order-map"><div className="dt-live-order-map-canvas"><MapPin size={42}/>
+ return <div className="dt-live-order-map dt-tracking-map-panel"><div className="dt-live-order-map-canvas"><MapPin size={42}/>
   <strong>{fresh?"Verified rider location available":"Live map unavailable"}</strong>
   <p>{fresh?"DeeToo has received a recent rider location. Open the verified point in a map. Live route geometry is not yet available here.":
     loc?"The latest rider position is old or cannot be verified. No marker or arrival estimate is shown.":
@@ -158,7 +158,8 @@ function LiveOrderDetail({gateway,orderId,onNavigate,completed}:{gateway:Custome
   <ResourceView resource={order.state} onRetry={order.refresh} empty="Order unavailable">{o=>
    completed&&o.status!=="COMPLETED"?<StatusPanel title="Order not yet completed" description="Only completed orders have a final delivery summary. You can follow the latest verified status instead."><Button onClick={()=>onNavigate("/orders/"+orderId+"/track")}>Open order tracking</Button></StatusPanel>:
    <div className="dt-live-order-detail-grid"><div className="dt-live-order-detail-primary">
-    <Panel className="dt-live-order-overview"><div><h2>Order #{idOf(o)}</h2><Status order={o}/></div>
+    {completed&&<div className="dt-delivered-banner dt-parity-delivered-banner"><CheckCircle2 size={49}/><div><h1>Order delivered!</h1><p>Completion confirmed by DeeToo. Thanks for ordering with us.</p></div></div>}
+  <Panel className="dt-live-order-overview"><div><h2>Order #{idOf(o)}</h2><Status order={o}/></div>
      <p>{o.merchant_name||o.branch_name||"DeeToo restaurant"} · Ordered {when(o.placed_at||o.created_at)}</p>
      <PhaseTimeline order={o} tracking={tracking}/>
      {o.status==="PENDING_PAYMENT"&&<div className="dt-live-order-alert"><CreditCard size={18}/><span>Payment is still pending. Preparation and courier assignment have not started.</span><Button onClick={()=>onNavigate("/payment/"+o.id)}>Complete payment</Button></div>}
@@ -170,10 +171,10 @@ function LiveOrderDetail({gateway,orderId,onNavigate,completed}:{gateway:Custome
       {track.state.status==="loading"&&<p role="status" className="dt-live-order-info">Checking current delivery status…</p>}
       {tracking&&["FAILED","CANCELLED"].includes(tracking.deliveryStatus)&&<p role="alert" className="dt-live-order-alert">This delivery needs support or operational review. No completion is assumed.</p>}
       {tracking&&["UNASSIGNED","OFFERED"].includes(tracking.deliveryStatus)&&<p role="status" className="dt-live-order-info"><Clock3 size={17}/> A rider hasn't accepted this delivery yet. You can check again later.</p>}
-      <NoLocation tracking={tracking}/><Rider tracking={tracking}/>
+      <NoLocation tracking={tracking}/><Rider tracking={tracking}/><Panel className="dt-delivery-checklist"><h3>Delivery journey</h3><PhaseTimeline order={o} tracking={tracking}/><small>Only verified milestones are shown.</small></Panel>
       {tracking?.deliveryStatus==="ARRIVED_DROPOFF"&&tracking.deliveryOtp&&<p className="dt-live-order-otp">Delivery handover code: <strong>{tracking.deliveryOtp}</strong><small>Share only with your assigned rider at the delivery point.</small></p>}
     </Panel>}
-    <Panel className="dt-live-order-products"><Items order={o}/></Panel>
+    <Panel className="dt-live-order-products dt-delivered-receipt"><Items order={o}/></Panel>
     {completed&&<Panel className="dt-live-order-rating"><h2>Rate your delivery</h2>
       {rated?<p role="status"><CheckCircle2 size={18}/> Your rating has been received by DeeToo.</p>:<>
       <p>Your rating is sent to the verified rider-performance service. Restaurant ratings are not yet available here.</p>

@@ -1,0 +1,32 @@
+/* Design-first component parity for connected Customer. */
+.dt-app{font-family:"DM Sans","Manrope",system-ui,sans-serif}
+.dt-parity-view-actions{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:8px 0}.dt-parity-view-actions>div{display:flex;gap:8px}
+.dt-parity-view-actions button{border:1px solid #cee9da;border-radius:10px;padding:10px 14px;background:#fff;color:#007f4b;font-weight:800}.dt-parity-view-actions button[aria-pressed=true]{background:#e8faef;border-color:#00a86a}
+.dt-parity-map-inline{min-height:260px;display:grid;place-items:center;background:linear-gradient(120deg,#e7f5ec,#dfeee6)}
+.dt-parity-favourite{position:absolute;top:9px;right:8px;border-radius:50%;width:32px;height:32px;display:grid;place-items:center;background:#ffffffd9;color:#7a9589}
+.dt-parity-referral{display:flex;align-items:center;gap:13px}.dt-parity-referral p{font-size:11px;color:#607689}.dt-parity-referral .dt-gift{flex-shrink:0}
+.dt-parity-modifier-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:9px}
+.dt-parity-modifier-cards label{display:flex;gap:9px;align-items:center;justify-content:space-between;min-height:78px;padding:12px;border:1px solid #cce8d9;border-radius:12px;background:#fafffc}
+.dt-parity-modifier-cards label.dt-product-option--active{background:#e7faed;border-color:#009d5e}.dt-parity-modifier-cards label.dt-live-disabled{opacity:.55}
+.dt-product-gallery{position:relative}.dt-parity-gallery-controls{position:absolute;top:10px;left:10px;right:10px;display:flex;align-items:center;justify-content:space-between;pointer-events:none}
+.dt-parity-gallery-controls button{background:#fff;border-radius:50%;border:1px solid #cde6d8;width:34px;height:34px;opacity:.65}
+.dt-parity-save-restaurant{display:flex;gap:6px;align-items:center;background:none;border:0;color:#71897f;font-size:12px}
+.dt-parity-upsell{padding:16px;border-radius:13px;background:#f3fff7;border:1px solid #d0e8da;display:flex;gap:12px;align-items:center;justify-content:space-between;margin:15px 0}
+.dt-parity-upsell h2{font-size:17px}.dt-parity-upsell p{font-size:11px;color:#6a7e75}
+.dt-parity-delivered-banner{display:flex;align-items:center;gap:21px;background:linear-gradient(115deg,#007b49,#00aa65);border-radius:18px;padding:28px 33px;color:white;margin-bottom:17px}
+.dt-parity-delivered-banner h1{font-size:27px;color:white}.dt-parity-delivered-banner p{font-size:13px;color:#effff4}
+.dt-delivery-checklist{padding:19px}.dt-delivery-checklist h3{font-size:17px}.dt-delivery-checklist small{display:block;color:#6c7f90;margin-top:12px}
+.dt-parity-profile-summary{display:flex;gap:19px;align-items:center;margin:15px 0;padding:20px}
+.dt-parity-profile-tabs{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px}.dt-parity-profile-tabs button{padding:10px 15px;border:1px solid #cde9d9;border-radius:11px;background:#fff;color:#007e4b}
+.dt-parity-profile-tabs button[aria-current]{background:#e8faef;font-weight:800}
+.dt-parity-security-banner{display:flex;justify-content:space-between;align-items:center;gap:17px;background:#e8faef;border-radius:17px;padding:22px;margin-bottom:18px}
+.dt-parity-security-banner .dt-security-banner-aside{display:flex;gap:12px;align-items:center;color:#008552}
+.dt-parity-notify-banner{display:grid;grid-template-columns:1fr auto;gap:16px;background:#e8faef;border:1px solid #d5ecda;border-radius:18px;padding:24px;margin-bottom:17px}
+.dt-parity-notify-banner .dt-notification-push-cta{grid-column:1/-1;display:flex;align-items:center;gap:13px;padding:15px;background:white}
+.dt-parity-notify-banner .dt-notification-push-cta>div{flex:1}.dt-parity-notify-banner h2{font-size:14px}
+.dt-parity-notification-columns{display:grid;grid-template-columns:minmax(0,1fr) minmax(230px,.4fr);gap:15px}.dt-parity-notification-columns .dt-notification-rail .dt-panel{padding:19px}
+.dt-parity-support-banner{display:grid;grid-template-columns:1fr 105px minmax(260px,.5fr);align-items:center;gap:13px}
+.dt-parity-agent-art{display:grid;place-items:center;min-height:100px;background:#e8fff1;border-radius:14px;color:#009c5b}
+.dt-parity-support-day{text-align:center;color:#63798a;font-size:11px;font-weight:800;padding:11px}
+@media(max-width:1120px){.dt-parity-notification-columns{grid-template-columns:1fr}.dt-parity-support-banner{grid-template-columns:1fr auto}.dt-parity-support-banner .dt-support-urgent{grid-column:1/-1}}
+@media(max-width:700px){.dt-parity-view-actions{flex-wrap:wrap}.dt-parity-support-banner,.dt-parity-notify-banner{grid-template-columns:1fr}.dt-parity-security-banner,.dt-parity-upsell{flex-direction:column;align-items:flex-start}.dt-parity-modifier-cards{grid-template-columns:1fr 1fr}}
