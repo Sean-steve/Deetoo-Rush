@@ -193,3 +193,38 @@ test('Phase 3 Admin exposes control tower, query filters and narrative support w
 
   await context.close();
 });
+
+
+test('Merchant frontend prototype Phase 1 navigates four reference screens and local workflows', async ({ browser }) => {
+  const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+  const page = await context.newPage();
+  await page.goto('http://127.0.0.1:5174/?merchant-prototype=1');
+  await expect(page.getByRole('heading', { name: 'Kitchen orders' })).toBeVisible();
+  await expect(page.locator('.mp-column')).toHaveCount(4);
+
+  await page.getByRole('button', { name: /Accept & set prep time/i }).click();
+  await expect(page.getByRole('dialog')).toBeVisible();
+  await page.getByRole('button', { name: 'Accept & start preparing' }).click();
+  await expect(page.locator('.mp-col-preparing .mp-order-card')).toHaveCount(1);
+
+  await page.locator('.mp-sidebar nav').getByRole('button', { name: 'Menu & availability' }).click();
+  await expect(page.getByRole('heading', { name: 'Menu & availability' })).toBeVisible();
+  await page.getByRole('button', { name: /Add food item/i }).click();
+  await page.getByRole('dialog').getByLabel('Food name').fill('Phase 1 Test Meal');
+  await page.getByRole('dialog').getByLabel('Price (KES)').fill('520');
+  await page.getByRole('button', { name: 'Save food item' }).click();
+  await expect(page.getByText('Phase 1 Test Meal')).toBeVisible();
+
+  await page.locator('.mp-sidebar nav').getByRole('button', { name: 'Finance & settlements' }).click();
+  await expect(page.getByRole('heading', { name: 'Finance & settlements' })).toBeVisible();
+  await expect(page.getByText('Order payment methods')).toBeVisible();
+
+  await page.locator('.mp-sidebar nav').getByRole('button', { name: 'Business & team' }).click();
+  await expect(page.getByRole('heading', { name: 'Business & team' })).toBeVisible();
+  await page.getByRole('button', { name: /Invite team member/i }).click();
+  await page.getByRole('dialog').getByLabel('Email').fill('phase1@example.com');
+  await page.getByRole('button', { name: 'Send invitation' }).click();
+  await expect(page.getByText('phase1@example.com')).toBeVisible();
+
+  await context.close();
+});
