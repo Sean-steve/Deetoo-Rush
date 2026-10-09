@@ -20,7 +20,7 @@ test('Canonical 15-screen Customer Web authenticates with cookies, not localStor
   await page.goto('http://127.0.0.1:5173/');
   await expect(page.locator('.app-switcher')).toHaveCount(0);
   await page.getByRole('button', { name: 'Sign In', exact: true }).click();
-  await expect(page).toHaveURL(/\/customer\?auth=login/);
+  await expect(page).toHaveURL(/\/customer$/); // The one-shot auth intent is intentionally consumed.
   await expect(page.locator('.dt-live-auth')).toBeVisible();
   await page.locator('.dt-live-auth input[autocomplete="username"]').fill('customer@deetoo.ke');
   await page.locator('.dt-live-auth input[type="password"]').fill('CustomerPass123!');
