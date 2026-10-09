@@ -293,7 +293,7 @@ test('Merchant frontend Phase 2 mobile navigation can reach all eight screen rou
 });
 
 test('Merchant Phase 3 authenticated approved design retains all eight screens without seed financial data', async ({browser}) => {
- const context=await browser.newContext({viewport:{width:1440,height:900}});
+ const context=await browser.newContext({viewport:{width:1648,height:928},reducedMotion:'reduce'});
  const page=await context.newPage();
  await page.goto('http://127.0.0.1:5174');
  await page.locator('.mp-live-auth input[autocomplete="username"]').fill('merchant@deetoo.ke');
@@ -302,6 +302,7 @@ test('Merchant Phase 3 authenticated approved design retains all eight screens w
  await expect(page.locator('.mp-sidebar')).toBeVisible({timeout:20_000});
  await expect(page.getByRole('heading',{name:'Kitchen orders'})).toBeVisible();
  await expect(page.getByText('#DT-9HY6J')).toHaveCount(0);
+ await page.screenshot({path:test.info().outputPath('merchant-live-01-kitchen.png'),fullPage:true,animations:'disabled'});
  const routes:[string,string][]=[
    ['Menu & availability','Menu & availability'],
    ['Finance & settlements','Finance & settlements'],
@@ -312,10 +313,11 @@ test('Merchant Phase 3 authenticated approved design retains all eight screens w
    ['Support','Support & help center'],
    ['Kitchen orders','Kitchen orders']
  ];
- for(const [button,title] of routes){
+ for(const [index,[button,title]] of routes.entries()){
    await page.locator('.mp-sidebar nav').getByRole('button',{name:button,exact:true}).click();
    await expect(page.getByRole('heading',{name:title,exact:true}).first()).toBeVisible();
    await expect(page.locator('.mp-sidebar')).toBeVisible();
+   await page.screenshot({path:test.info().outputPath('merchant-live-'+String(index+2).padStart(2,'0')+'-'+button.toLowerCase().replace(/[^a-z0-9]+/g,'-')+'.png'),fullPage:true,animations:'disabled'});
  }
  await context.close();
 });
