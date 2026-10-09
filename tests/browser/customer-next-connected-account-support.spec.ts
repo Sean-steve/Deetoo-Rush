@@ -47,7 +47,7 @@ async function setup(page:any){
 test("11 account uses backend profile, edits are persisted, preview fixtures not rendered",async({page})=>{
  const hits=await setup(page);await page.goto("/profile");
  await expect(page.getByRole("heading",{name:"My profile"})).toBeVisible();
- await expect(page.getByText("test@example.test")).toBeVisible();
+ await expect(page.locator(".dt-live-account-dl").getByText("test@example.test", { exact: true })).toBeVisible();
  await expect(page.getByText("Juja Road, Juja")).toBeVisible();
  await page.getByRole("button",{name:"Edit profile"}).click();
  await page.getByLabel("Display name").fill("Updated Customer");
@@ -70,7 +70,7 @@ test("11 account uses backend profile, edits are persisted, preview fixtures not
 test("12 sessions are server-owned and revocation requires explicit confirmation",async({page})=>{
  const hits=await setup(page);await page.goto("/security");
  await expect(page.getByRole("heading",{name:"Security & Devices"})).toBeVisible();
- await expect(page.getByText("Chrome on laptop")).toBeVisible();
+ await expect(page.locator(".dt-device-list").getByText("Chrome on laptop", { exact: true })).toBeVisible();
  await page.getByRole("button",{name:"Revoke"}).click();
  const dialog=page.getByRole("dialog",{name:"Confirm session revocation"});
  await expect(dialog).toBeVisible();
