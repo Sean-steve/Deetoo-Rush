@@ -41,6 +41,43 @@ test('Canonical 15-screen Customer Web authenticates with cookies, not localStor
   await context.close();
 });
 
+test('Customer design-first component parity survives live account routes', async ({ browser }) => {
+  const context = await browser.newContext({ viewport: {width: 1672, height: 941} });
+  const page = await context.newPage();
+  await page.goto('http://127.0.0.1:5173/customer');
+  await expect(page.locator('.dt-app')).toBeVisible();
+  await expect(page.locator('.dt-hero-offer')).toBeVisible();
+  await expect(page.locator('.dt-referral')).toBeVisible();
+  await expect(page.locator('.dt-live-fidelity-map')).toBeVisible();
+  const font = await page.locator('.dt-app').evaluate(el => getComputedStyle(el).fontFamily);
+  expect(font).toContain('DM Sans');
+  await page.goto('http://127.0.0.1:5173/customer/search');
+  await expect(page.locator('.dt-search-hero')).toBeVisible();
+  await expect(page.getByRole('button',{name:/Price range/})).toBeDisabled();
+  await page.goto('http://127.0.0.1:5173/customer?auth=login');
+  await page.locator('.dt-live-auth input[autocomplete="username"]').fill('customer@deetoo.ke');
+  await page.locator('.dt-live-auth input[type="password"]').fill('CustomerPass123!');
+  await page.locator('.dt-live-auth button[type="submit"]').click();
+  await expect(page.locator('.dt-live-auth')).toHaveCount(0);
+  await page.goto('http://127.0.0.1:5173/customer/profile');
+  await expect(page.locator('.dt-profile-summary')).toBeVisible();
+  await expect(page.locator('.dt-profile-tabs')).toBeVisible();
+  await expect(page.locator('.dt-profile-rail')).toBeVisible();
+  await page.goto('http://127.0.0.1:5173/customer/security');
+  await expect(page.locator('.dt-security-banner-aside')).toBeVisible();
+  await expect(page.locator('.dt-security-grid')).toBeVisible();
+  await page.goto('http://127.0.0.1:5173/customer/notifications');
+  await expect(page.locator('.dt-notify-banner-art')).toBeVisible();
+  await expect(page.locator('.dt-notification-rail')).toBeVisible();
+  await page.goto('http://127.0.0.1:5173/customer/support');
+  await expect(page.locator('.dt-support-banner svg')).toBeVisible();
+  await page.goto('http://127.0.0.1:5173/customer/orders');
+  await expect(page.locator('.dt-orders-page')).toBeVisible();
+  await page.goto('http://127.0.0.1:5173/customer/bag');
+  await expect(page.locator('.dt-app')).toBeVisible();
+  await context.close();
+});
+
 test('Merchant Web authenticates independently and reaches merchant-scoped APIs', async ({ browser }) => {
   const context = await browser.newContext();
   const page = await context.newPage();
