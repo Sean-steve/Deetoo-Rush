@@ -6,6 +6,7 @@ import { MerchantApp } from "../../merchant/src/MerchantApp";
 
 export type LiveResource = {
   orders: any[];
+  history: any[];
   metrics: any | null;
   menus: any[];
   categories: any[];
@@ -18,7 +19,7 @@ export type LiveResource = {
   roleMatrix: any | null;
   documents: any[];
 };
-const empty:LiveResource={orders:[],metrics:null,menus:[],categories:[],items:[],inventory:[],
+const empty:LiveResource={orders:[],history:[],metrics:null,menus:[],categories:[],items:[],inventory:[],
   team:{members:[],invitations:[]},profile:null,finance:null,transactions:[],roleMatrix:null,documents:[]};
 export type MerchantLiveBridge={
   api:DeetooApiClient;
@@ -70,6 +71,7 @@ function MerchantLiveGate(){
   const url=(part:string)=>part+"?branch_id="+encode(branchId);
   const requests:Record<string,Promise<any>>={
     orders:apiClient.request<any[]>(url("/merchant/orders")+"\u0026limit=100"),
+    history:apiClient.request<any[]>(url("/merchant/experience/orders/history")+"\u0026limit=100\u0026sort=newest"),
     metrics:apiClient.request(url("/merchant/experience/orders/metrics")),
     menus:apiClient.request<any[]>("/merchant/menus"),
     inventory:apiClient.request<any[]>(`/merchant/experience/branches/${encode(branchId)}/inventory`),
