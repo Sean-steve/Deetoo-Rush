@@ -72,7 +72,7 @@ test("09 foreign order denied",async({page})=>{
 });
 test("10 completed receipt and real rider rating API",async({page})=>{
  const calls=await setup(page);await page.goto("/orders/order-2/completed");
- await expect(page.getByText("Ksh 1,825.00")).toBeVisible();
+ await expect(page.locator(".dt-delivered-receipt .dt-receipt-total").getByText("Ksh 1,825.00", { exact: true })).toBeVisible();
  await page.getByRole("button",{name:"5 stars"}).click();
  await page.getByRole("button",{name:"Submit delivery rating"}).click();
  await expect(page.getByText(/rating has been received/)).toBeVisible();
