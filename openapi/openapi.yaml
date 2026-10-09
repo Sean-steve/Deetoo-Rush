@@ -221,6 +221,26 @@ paths:
       responses:
         '200':
           description: Authenticated, scope-checked response; see route contracts and Zod validators
+  /finance/merchant/experience/settlements/{settlementId}/statement.pdf:
+    get:
+      summary: Download merchant-scoped settlement PDF statement (not a tax invoice)
+      tags: [Finance]
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: path
+          name: settlementId
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Downloadable PDF settlement statement.
+          content:
+            application/pdf:
+              schema: { type: string, format: binary }
+        '403':
+          description: Not authorized for this merchant statement
+        '404':
+          description: Settlement not found
   /finance/merchant/experience/settlements/{settlementId}:
     get:
       summary: Merchant Phase 2 GET /finance/merchant/experience/settlements/settlementId
