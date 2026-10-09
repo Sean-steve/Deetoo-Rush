@@ -1,3 +1,4 @@
+import type { MerchantLiveBridge } from "./MerchantLiveApp";
 import React, { useState } from "react";
 import { AlertTriangle, Bell, Check, ChevronRight, Clock3, KeyRound, Laptop, LockKeyhole, LogOut, Monitor, ShieldCheck, Smartphone, TabletSmartphone, Trash2, UserRound, X } from "lucide-react";
 import { BranchBanner, DemoBadge, DemoCard, DemoHeading } from "./PrototypeBranch";
@@ -16,7 +17,7 @@ const loginSeed:Login[]=[
 {id:5,date:"Oct 6, 2026 2:11 PM",device:"Linux · Firefox",location:"Kalimoni, Juja",status:"Success"},
 {id:6,date:"Oct 5, 2026 11:03 AM",device:"Windows · Chrome",location:"Nakuru, Kenya",status:"Failed"}];
 function readLocal<T>(key:string,fallback:T):T{try{const val=localStorage.getItem(key);return val?JSON.parse(val) as T:fallback;}catch{return fallback;}}
-export function PrototypeSecurity({store,onNavigate,notify}:{store:string;onNavigate:(s:string)=>void;notify:(s:string)=>void}){
+export function PrototypeSecurity({store,onNavigate,notify,live}:{store:string;onNavigate:(s:string)=>void;notify:(s:string)=>void;live?:MerchantLiveBridge}){
  const [sessions,setSessions]=useState<Session[]>(()=>readLocal("mp-demo-sessions",sessionSeed));
  const [loginHistory]=useState<Login[]>(loginSeed);
  const [historyAll,setHistoryAll]=useState(false);
