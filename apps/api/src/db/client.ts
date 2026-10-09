@@ -148,6 +148,20 @@ export async function checkDatabaseHealth(): Promise<DependencyHealth> {
       
       const schema = await client.query("SELECT checksum FROM schema_migrations WHERE version='022_paid_order_posted_entry_boundary.sql'");
       if (!schema.rows[0]?.checksum) throw new Error("Foundation schema migration is missing or unverified");
+      // Merchant branch availability requires migration 035. A database that has
+      // only the foundation schema must not be reported as marketplace-ready.
+      const merchantSchema = await client.query(`
+        SELECT
+          to_regclass('merchant_branch_policies') AS policy_table,
+          EXISTS(
+            SELECT 1 FROM schema_migrations
+            WHERE version='035_merchant_experience_capabilities.sql'
+              AND checksum IS NOT NULL
+          ) AS migration_applied
+      `);
+      if (!merchantSchema.rows[0]?.migration_applied || !merchantSchema.rows[0]?.policy_table) {
+        throw new Error("Merchant schema migration 035 is missing or incomplete: run pnpm db:migrate against the API database.");
+      }
       // 2. Check PostGIS extension
       let postGisInstalled = false;
       try {
