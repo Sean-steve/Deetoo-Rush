@@ -32,6 +32,15 @@ test("Merchant durable storage failure remains a retryable-looking generic serve
   assert.equal(issue.referenceId,"req_mer_102");
 });
 
+test("Merchant schema migration errors show actionable diagnostics without raw SQL",()=>{
+  const issue=normalizeMerchantBranchError({error:{code:"MERCHANT_SCHEMA_MIGRATION_REQUIRED",message:"Merchant database schema needs migration 035.",request_id:"req_schema_035"}});
+  assert.equal(issue.title,"Merchant database upgrade required");
+  assert.equal(issue.kind,"temporary");
+  assert.match(issue.message,/pnpm db:migrate/);
+  assert.equal(issue.referenceId,"req_schema_035");
+  assert.doesNotMatch(issue.message,/relation .+ does not exist/);
+});
+
 test("Unexpected thrown Error and network failures render legibly",()=>{
   const msg=merchantErrorMessage(new Error("Merchant service returned an invalid response"));
   assert.match(msg,/invalid response/);
