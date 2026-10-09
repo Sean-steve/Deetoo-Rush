@@ -165,18 +165,46 @@ function Notifications({gateway,onNavigate}:{gateway:CustomerGateway;onNavigate:
  const unread=rows.filter(n=>!n.read_at).length;
  const read=async(n:NotificationRecord)=>{if(n.read_at||busy)return;setBusy(n.id);setError("");try{await gateway.notifications.markRead(n.id);resource.refresh();}catch(e){setError(backendError(e).message);}finally{setBusy("");}};
  useEffect(()=>{const t=setInterval(()=>{if(document.visibilityState==="visible")resource.refresh();},30000);return()=>clearInterval(t);},[resource.refresh]);
- return <section className="dt-notify-page dt-screen-enter dt-live-account"><header className="dt-account-pagehead"><div><h1>Notifications</h1><p>Updates about your real orders, payments, deliveries and support cases.</p></div>
-   <Badge variant="mint">{unread} unread</Badge></header>{inlineError(error)}
-   <Panel className="dt-live-account-card"><div className="dt-live-notify-tools"><div role="tablist" aria-label="Notification filters">{categories.map(([id,label])=><button key={id} role="tab" aria-selected={filter===id} onClick={()=>setFilter(id)}>{label}</button>)}</div>
-    <input aria-label="Search notifications" placeholder="Search notifications" value={query} onChange={e=>setQuery(e.target.value)}/><Button variant="outline" onClick={resource.refresh}><RefreshCw size={16}/> Refresh</Button></div>
-    <ResourceView resource={resource.state} onRetry={resource.refresh} empty="No notifications yet">{()=>matching.length?<div className="dt-live-notification-list">
-      {matching.map(n=>{const {title,body}=notificationText(n);return <article key={n.id} className={!n.read_at?"dt-live-notification-unread":""}>
-       <span className="dt-account-icon"><Bell size={21}/></span><div><h3>{title}</h3>{body&&<p>{body}</p>}<small>{prettyDate(n.created_at)} · {n.channel.toLowerCase()}</small></div>
-       {!n.read_at?<Button variant="outline" size="sm" disabled={busy===n.id} onClick={()=>void read(n)}>Mark read</Button>:<span className="dt-live-muted"><Check size={15}/> Read</span>}
-      </article>})}</div>:<p className="dt-live-account-note">No notifications match the selected filters.</p>}</ResourceView></Panel>
-   <div className="dt-live-security-grid"><Panel className="dt-live-account-card"><h2>Delivery preferences</h2><ResourceError message="Per-channel email, SMS and push preferences need a customer consent API. No toggles are displayed as saved before that API exists."/></Panel>
-   <Panel className="dt-live-account-card"><h2>Notification actions</h2><ResourceError message="Bulk mark-read is not supported by the current API. Read individual notifications above."/>
-   <Button variant="outline" onClick={()=>onNavigate("/orders")}>View orders <ArrowRight size={16}/></Button></Panel></div>
+ return <section className="dt-notifications-page dt-screen-enter dt-live-account">
+   <header className="dt-notify-banner">
+    <div><h1>Notifications Center</h1><p>Stay informed about real orders, payments, delivery and support updates.</p><Badge variant="mint">{unread} unread</Badge></div>
+    <div className="dt-notify-banner-art" aria-hidden="true"><Bell size={69} fill="#00aa62" strokeWidth={1.5}/><span>✦</span><span>✦</span></div>
+    <Panel className="dt-notification-push-cta"><span className="dt-push-icon"><Bell size={22}/></span><div><h2>Never miss an update</h2><p>View your DeeToo notifications here. Channel delivery settings require consent support.</p></div><Button size="sm" disabled title="Push channel management is not connected">Push settings unavailable</Button></Panel>
+   </header>
+   {inlineError(error)}
+   <div className="dt-notify-toolbar dt-live-notify-tools"><div role="tablist" aria-label="Notification filters">{categories.map(([id,label])=><button key={id} type="button" role="tab" aria-selected={filter===id} className={filter===id?"active":""} onClick={()=>setFilter(id)}>{label} <span>{id==="all"?rows.length:rows.filter(n=>tag(n)===id).length}</span></button>)}</div>
+    <input aria-label="Search notifications" placeholder="Search notifications" value={query} onChange={e=>setQuery(e.target.value)}/>
+    <Button variant="outline" size="sm" onClick={resource.refresh}><RefreshCw size={16}/> Refresh</Button>
+    <Button variant="outline" size="sm" disabled title="Bulk notification read requires a verified API"><Check size={16}/> Mark all as read</Button>
+   </div>
+   <div className="dt-notification-columns">
+    <div className="dt-notification-feed" aria-live="polite">
+     <ResourceView resource={resource.state} onRetry={resource.refresh} empty="No notifications yet">{()=>matching.length?
+      (["Today","Earlier"] as const).map(day=>{
+       const group=matching.filter(n=>(day==="Today")===(
+        new Intl.DateTimeFormat("en-KE",{timeZone:"Africa/Nairobi",day:"2-digit",month:"2-digit",year:"numeric"}).format(new Date(n.created_at))===
+        new Intl.DateTimeFormat("en-KE",{timeZone:"Africa/Nairobi",day:"2-digit",month:"2-digit",year:"numeric"}).format(new Date())
+       ));
+       return group.length?<div className="dt-notification-day" key={day}><h2>{day}</h2><Panel className="dt-notification-list dt-live-notification-list">{group.map(n=>{
+        const {title,body}=notificationText(n);
+        return <article className={classNames("dt-notification-item",!n.read_at&&"is-unread",!n.read_at&&"dt-live-notification-unread")} key={n.id}>
+         <span className={"dt-notification-icon dt-notification-icon--"+(tag(n)==="payments"?"payments":tag(n)==="delivery"?"delivery":tag(n)==="support"?"support":"orders")}><Bell size={22}/></span>
+         <div className="dt-notification-main"><strong>{title}</strong>{body&&<small>{body}</small>}<small>{n.channel.toLowerCase()}</small></div>
+         <span className="dt-notification-time">{prettyDate(n.created_at)}{!n.read_at&&<span className="dt-notification-dot"/>}</span>
+         {!n.read_at?<Button variant="outline" size="sm" disabled={busy===n.id} onClick={()=>void read(n)}>Mark read</Button>:<span className="dt-live-muted"><Check size={15}/> Read</span>}
+        </article>;})}</Panel></div>:null;
+      }):<Panel className="dt-notifications-empty"><Bell size={29}/><h2>No notifications here</h2><p>Try another category or search for different messages.</p></Panel>}</ResourceView>
+    </div>
+    <aside className="dt-notification-rail">
+     <Panel className="dt-notify-settings"><div className="dt-account-section-head"><span className="dt-account-icon"><Settings size={21}/></span><div><h2>Notification preferences</h2><p>Choose how DeeToo contacts you.</p></div></div>
+      <ResourceError message="Email, SMS and push preferences need a consent-aware customer API before these switches can be enabled."/>
+      <div className="dt-notify-preference-row"><span className="dt-preference-symbol"><ShoppingBag size={19}/></span><span><strong>Order updates</strong><small>Preferences unavailable</small></span><button type="button" disabled role="switch" aria-checked="false" aria-label="Order notification preference unavailable" className="dt-account-toggle"><span/></button></div>
+      <div className="dt-notify-preference-row"><span className="dt-preference-symbol"><Bell size={19}/></span><span><strong>Promotions</strong><small>Not configured</small></span><button type="button" disabled role="switch" aria-checked="false" aria-label="Promotion preference unavailable" className="dt-account-toggle"><span/></button></div>
+     </Panel>
+     <Panel className="dt-notify-settings"><div className="dt-account-section-head"><span className="dt-account-icon"><Bell size={20}/></span><div><h2>Notification channels</h2><p>Channel delivery is not configured here yet.</p></div></div><ResourceError message="Bulk read and delivery-channel controls are unavailable. Individual message read status is saved above."/><Button variant="outline" onClick={()=>onNavigate("/orders")}>View orders <ArrowRight size={16}/></Button></Panel>
+     <p className="dt-notifications-disclaimer"><ShieldCheck size={16}/> DeeToo only displays notifications from your account.</p>
+    </aside>
+   </div>
  </section>;
 }
 export function LiveAccount({screen,gateway,authenticated,requestSignIn,onNavigate,logout,userId,onAddressesChanged}:Props){
