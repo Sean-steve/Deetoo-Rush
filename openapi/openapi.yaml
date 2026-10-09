@@ -241,6 +241,39 @@ paths:
           description: Not authorized for this merchant statement
         '404':
           description: Settlement not found
+  /merchant/experience/roles/capabilities:
+    get:
+      summary: Read server-enforced Merchant Owner/Manager/Staff capability matrix
+      tags: [Merchant]
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Effective role capabilities with immutable platform bounds
+  /merchant/experience/roles/capabilities/{role}:
+    put:
+      summary: Merchant owner restricts (never escalates) an existing role capability
+      tags: [Merchant]
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: path
+          name: role
+          required: true
+          schema: { type: string, enum: [merchant_manager, merchant_staff] }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [capability, allowed]
+              properties:
+                capability: { type: string }
+                allowed: { type: boolean }
+      responses:
+        '200':
+          description: Persisted owner-controlled restriction
+        '403':
+          description: Owner required, or permission escalation forbidden
   /merchant/experience/providers/readiness:
     get:
       summary: Merchant provider credential presence (not a successful connection test)
