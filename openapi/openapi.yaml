@@ -61,6 +61,20 @@ tags:
 security:
 - bearerAuth: []
 paths:
+  /merchant/experience/orders/{orderId}/contact:
+    get:
+      summary: Merchant contact capabilities without revealing customer contact details
+      tags: [Merchant]
+      security: [{ bearerAuth: [] }]
+      parameters: [{ name: orderId, in: path, required: true, schema: { type: string } }]
+      responses: { '200': { description: Masked contact capability } }
+  /merchant/experience/orders/{orderId}/contact/message:
+    post:
+      summary: Queue rate-limited authorized merchant message to customer via SMS
+      tags: [Merchant]
+      security: [{ bearerAuth: [] }]
+      parameters: [{ name: orderId, in: path, required: true, schema: { type: string } }]
+      responses: { '202': { description: Message queued, not delivery confirmed } }
   /finance/merchant/experience/export/transactions.csv:
     get:
       summary: Export merchant-scoped verified order economics CSV; not an invoice
