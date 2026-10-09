@@ -367,3 +367,41 @@
   .merchant-v2-settings-layout .merchant-v2-hours-settings,.merchant-v2-settings-layout .merchant-v2-prep-settings,
   .merchant-v2-settings-layout .merchant-v2-delivery-settings {grid-column:1;grid-row:auto;}
 }
+
+
+/* Merchant conversation workspace: preserves API-backed case state and evidence flows. */
+.merchant-v2-main .merchant-v2-support-conversations { display:grid;grid-template-columns:minmax(320px,.82fr) minmax(450px,1.18fr);gap:13px;align-items:stretch; }
+.merchant-v2-case-list,.merchant-v2-case-chat { min-width:0;background:white;border:1px solid #e8eff0;border-radius:16px;box-shadow:var(--mv-shadow);padding:15px; }
+.merchant-v2-case-list { min-height:545px; }
+.merchant-v2-case-list .merchant-v2-tabs {margin-bottom:13px;gap:4px;}
+.merchant-v2-case-list .merchant-v2-tabs button {font-size:11px;padding:8px 10px;border:1px solid #edf1f2;}
+.merchant-v2-case-scroll {max-height:680px;overflow:auto;scrollbar-width:thin;}
+.merchant-v2-case-row {display:flex;align-items:center;gap:12px;width:100%;padding:16px 12px;border-bottom:1px solid #ebeff1;text-align:left;background:#fff;color:#142a3c;min-height:80px;}
+.merchant-v2-case-row.is-selected {background:#ebfaf3;outline:1px solid #a9e8c9;outline-offset:-1px;border-radius:12px;}
+.merchant-v2-case-icon {display:grid;place-items:center;flex:none;width:42px;height:42px;border-radius:10px;background:#fff0ed;color:#ff5362;}
+.merchant-v2-case-row strong,.merchant-v2-case-row small {display:block;}
+.merchant-v2-case-row strong {font-size:13px;font-weight:800;}
+.merchant-v2-case-row small {font-size:11px;color:#8899aa;margin-top:4px;}
+.merchant-v2-case-row .deetoo-badge {font-size:10px;padding:3px 7px;}
+.merchant-v2-chat-heading {display:flex;justify-content:space-between;gap:10px;padding-bottom:15px;border-bottom:1px solid #e8eff0;}
+.merchant-v2-chat-heading h2 {font-size:17px;font-weight:850;margin:6px 0;}
+.merchant-v2-chat-heading p {font-size:11px;color:#8a97a7;}
+.merchant-v2-messages {display:flex;flex-direction:column;gap:14px;max-height:440px;overflow-y:auto;min-height:265px;padding:17px 3px;}
+.merchant-v2-message {align-self:flex-start;max-width:86%;background:#f3f7fa;padding:13px 16px;border-radius:12px;color:#3c5065;}
+.merchant-v2-message:nth-of-type(even) {align-self:flex-end;background:#e6faf0;}
+.merchant-v2-message.is-resolution {border:1px solid #68d8a7;background:#f0fbf5;}
+.merchant-v2-message span {display:flex;gap:12px;align-items:center;margin-bottom:7px;}
+.merchant-v2-message strong {font-size:11px;color:#172b39;}
+.merchant-v2-message small {font-size:10px;color:#7991a3;}
+.merchant-v2-message p {font-size:12px;line-height:1.65;white-space:pre-wrap;}
+.merchant-v2-no-messages {font-size:13px;color:#8696a5;text-align:center;margin:auto;}
+.merchant-v2-attachments {display:flex;align-items:center;gap:7px;flex-wrap:wrap;font-size:11px;}
+.merchant-v2-resolution {border-radius:13px;background:#e9f9f1;border:1px solid #a7e6c7;padding:14px;margin-bottom:15px;font-size:12px;color:#125740;}
+.merchant-v2-resolution p {margin-top:6px;color:#55766a;}
+.merchant-v2-chat-composer {border-top:1px solid #e8eff0;padding-top:12px;}
+.merchant-v2-chat-composer .deetoo-field {min-height:75px;}
+.merchant-v2-chat-composer .deetoo-file-input {min-width:200px;}
+@media(max-width:1050px) {
+ .merchant-v2-main .merchant-v2-support-conversations {grid-template-columns:1fr;}
+ .merchant-v2-case-scroll {max-height:350px;}
+}
