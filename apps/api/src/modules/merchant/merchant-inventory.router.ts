@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { requireAuth, requireRole, AuthenticatedRequest } from '../auth/auth.middleware';
 import { AppError } from '../../middleware/error-handler';
 import { ownBranch, durable } from './merchant-experience.scope';
+import { requireMerchantCapability } from './merchant-role-policy.service';
 export const merchantInventoryRouter=Router();
 merchantInventoryRouter.use(requireAuth);
 merchantInventoryRouter.use(requireRole('merchant','merchant_owner','merchant_manager','merchant_staff'));
@@ -16,6 +17,7 @@ merchantInventoryRouter.get('/branches/:branchId/inventory',run(async(req,res)=>
 }));
 merchantInventoryRouter.post('/branches/:branchId/inventory/:itemId/adjust',run(async(req,res)=>{
   const db=durable(),{id,merchantId}=await ownBranch(req,true);
+  await requireMerchantCapability(req.user!.id,merchantId,'INVENTORY_WRITE');
   const itemId=z.string().uuid().parse(req.params.itemId);
   const input=z.object({delta:z.number().int().min(-100000).max(100000).refine(v=>v!==0),
     reason:z.string().trim().min(4).max(120),idempotency_key:z.string().min(8).max(128)}).parse(req.body);
@@ -52,7 +54,8 @@ merchantInventoryRouter.post('/branches/:branchId/inventory/:itemId/adjust',run(
   }catch(error){await c.query('ROLLBACK');throw error;}finally{c.release();}
 }));
 merchantInventoryRouter.put('/branches/:branchId/inventory/:itemId/threshold',run(async(req,res)=>{
-  const db=durable(),{id}=await ownBranch(req,true);const itemId=z.string().uuid().parse(req.params.itemId);
+  const db=durable(),{id,merchantId}=await ownBranch(req,true);
+  await requireMerchantCapability(req.user!.id,merchantId,'INVENTORY_WRITE');const itemId=z.string().uuid().parse(req.params.itemId);
   const threshold=z.object({low_stock_threshold:z.number().int().min(0).max(100000)}).parse(req.body).low_stock_threshold;
   const rows=await db.query(`UPDATE merchant_item_inventory SET low_stock_threshold=$3,updated_by=$4,updated_at=NOW()
     WHERE branch_id=$1 AND item_id=$2 RETURNING *`,[id,itemId,threshold,req.user!.id]);
