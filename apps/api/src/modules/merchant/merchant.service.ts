@@ -796,11 +796,11 @@ export class MerchantService {
       );
     }
 
-    if (isManager && params.role_code === MembershipRole.MERCHANT_OWNER) {
+    if (isManager && params.role_code !== MembershipRole.MERCHANT_STAFF) {
       throw new AppError(
         403,
         "FORBIDDEN_OPERATION",
-        "Managers cannot invite merchant owners",
+        "Managers may only invite branch staff; owner approval is required for elevated roles",
       );
     }
 
@@ -945,6 +945,16 @@ export class MerchantService {
       throw new AppError(404, "MEMBERSHIP_NOT_FOUND", "Membership not found");
     }
 
+    if (membership.user_id === actorUserId) {
+      throw new AppError(409, "SELF_REVOCATION_FORBIDDEN", "Owners cannot revoke their own last administrative access");
+    }
+    if (membership.role_code === MembershipRole.MERCHANT_OWNER && membership.status === MembershipStatus.ACTIVE) {
+      const all = await merchantRepository.listMembershipsByMerchant(membership.merchant_id);
+      const remaining = all.filter(m => m.id !== membership.id && m.role_code === MembershipRole.MERCHANT_OWNER && m.status === MembershipStatus.ACTIVE);
+      if (remaining.length === 0) {
+        throw new AppError(409, "LAST_OWNER_REQUIRED", "A merchant must retain at least one active owner");
+      }
+    }
     await merchantRepository.updateMembership(membershipId, {
       status: MembershipStatus.REVOKED,
     });
