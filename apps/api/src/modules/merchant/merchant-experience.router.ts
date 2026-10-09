@@ -18,8 +18,8 @@ merchantExperienceRouter.get('/orders/history',run(async(req,res)=>{
     sort:z.enum(['oldest','newest']).default('oldest')}).parse(req.query);
   const {id}=await ownBranch(req);
   const rows=await db.query(`SELECT o.id,o.public_code,o.status,o.branch_id,o.subtotal_minor,o.total_minor,
-     o.placed_at,o.created_at,o.completed_at,o.updated_at FROM orders o JOIN payments p ON p.id=o.payment_id
-     WHERE o.branch_id=$1 AND p.captured_at IS NOT NULL
+     o.placed_at,o.created_at,o.completed_at,o.updated_at FROM orders o
+     WHERE o.branch_id=$1
      AND EXISTS(SELECT 1 FROM payment_capture_evidence e WHERE e.order_id=o.id)
      AND ($2::timestamptz IS NULL OR o.created_at >=$2::timestamptz)
      AND ($3::timestamptz IS NULL OR o.created_at <$3::timestamptz)
@@ -34,8 +34,8 @@ merchantExperienceRouter.get('/orders/history',run(async(req,res)=>{
 merchantExperienceRouter.get('/orders/metrics',run(async(req,res)=>{
   const db=durable(),q=branchQuery.parse(req.query),{id}=await ownBranch(req);
   const result=await db.query(`WITH paid AS (
-    SELECT o.id,o.status,o.created_at FROM orders o JOIN payments p ON p.id=o.payment_id
-    WHERE o.branch_id=$1 AND p.captured_at IS NOT NULL
+    SELECT o.id,o.status,o.created_at FROM orders o
+    WHERE o.branch_id=$1
       AND EXISTS(SELECT 1 FROM payment_capture_evidence e WHERE e.order_id=o.id)
        AND ($2::timestamptz IS NULL OR o.created_at >=$2::timestamptz)
        AND ($3::timestamptz IS NULL OR o.created_at <$3::timestamptz)
