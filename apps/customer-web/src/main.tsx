@@ -15,6 +15,8 @@ import '../../customer-web-next/src/shopping.css';
 import '../../customer-web-next/src/orders.css';
 import '../../customer-web-next/src/account.css';
 import '../../customer-web-next/src/support.css';
+// Last-loaded canonical presentation restores the approved preview's typography and shell.
+import '../../customer-web-next/src/integration/live-fidelity.css';
 import { installTheme } from '../../../packages/ui/src/theme';
 
 installTheme(document.documentElement);
