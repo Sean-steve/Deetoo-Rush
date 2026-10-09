@@ -25,6 +25,7 @@ import {
 } from "@deetoo/types";
 import { logger } from "@deetoo/utils";
 import { AppError } from "../../middleware/error-handler";
+import { isMissingMerchantPolicyTable } from "../../db/merchant-schema-readiness";
 import { authRepository } from "../auth/auth.repository";
 import { merchantRepository } from "./merchant.repository";
 import { getDbPool } from "../../db/client";
@@ -234,10 +235,18 @@ export class MerchantService {
     let allowsDelivery = true;
     let withinCapacity = true;
     if (config.storage.mode === "postgres") {
+      // Migration 035 is required before Merchant branch availability can be
+      // calculated. Never assume delivery is enabled when policy storage is absent.
       const policy = await getDbPool().query(
         "SELECT delivery_enabled,max_concurrent_orders FROM merchant_branch_policies WHERE branch_id=$1",
         [branchId],
-      );
+      ).catch(error => {
+        if (isMissingMerchantPolicyTable(error)) {
+          throw new AppError(503, "MERCHANT_SCHEMA_MIGRATION_REQUIRED",
+            "Merchant services require database migration 035. An operator must run the DeeToo database migrations.");
+        }
+        throw error;
+      });
       if (policy.rows[0]) {
         allowsDelivery = Boolean(policy.rows[0].delivery_enabled);
         if (!allowsDelivery) reasons.push("Merchant has disabled delivery for this branch");
