@@ -13,7 +13,7 @@ export type MerchantCapability=(typeof roleCapabilities)[number];
 export type ScopedRole='merchant_owner'|'merchant_manager'|'merchant_staff';
 const baseline:Record<ScopedRole,ReadonlySet<MerchantCapability>>={
  merchant_owner:new Set(roleCapabilities),
- merchant_manager:new Set(['ORDERS_WRITE','MENU_WRITE','INVENTORY_WRITE','FINANCE_READ','TEAM_INVITE']),
+ merchant_manager:new Set(['ORDERS_WRITE','MENU_WRITE','INVENTORY_WRITE','BRANCH_WRITE','DOCUMENTS_WRITE','FINANCE_READ','TEAM_INVITE']),
  merchant_staff:new Set(['ORDERS_WRITE'])
 };
 export function platformRoleCan(role:ScopedRole,cap:MerchantCapability):boolean {
