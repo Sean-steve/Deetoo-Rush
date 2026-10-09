@@ -157,16 +157,25 @@ test('Phase 3 Merchant workspace exposes persistent store control and urgency-fi
   await page.locator('input[type="password"]').fill('MerchantPass123!');
   await page.getByRole('button', { name: 'Sign In to Restaurant Console' }).click();
 
-  await expect(page.locator('.merchant-branch-command')).toBeVisible({ timeout: 15_000 });
-  await expect(page.getByRole('group', { name: 'Store operating status' })).toBeVisible();
+  // The Merchant v2 design replaces the old sticky branch command and adds a completed lane.
+  await expect(page.getByRole('combobox', { name: 'Operating branch' })).toBeVisible({ timeout: 15_000 });
+  const storeControl = page.getByRole('button', { name: /Store (open|paused|closed)/i });
+  await expect(storeControl).toBeVisible();
+  await storeControl.click();
+  const storeMenu = page.getByRole('group', { name: 'Store status' });
+  await expect(storeMenu.getByRole('button', { name: 'Open' })).toBeVisible();
+  await expect(storeMenu.getByRole('button', { name: 'Paused' })).toBeVisible();
+  await expect(storeMenu.getByRole('button', { name: 'Closed' })).toBeVisible();
+  await storeControl.click();
+
   await expect(page.locator('.merchant-kitchen-summary')).toBeVisible();
   await expect(page.locator('.merchant-kitchen-board')).toBeVisible();
-
   const columnHeadings = page.locator('.merchant-kitchen-column-head h2');
-  await expect(columnHeadings).toHaveCount(3);
+  await expect(columnHeadings).toHaveCount(4);
   await expect(columnHeadings.nth(0)).toHaveText('New orders');
   await expect(columnHeadings.nth(1)).toHaveText('Preparing');
-  await expect(columnHeadings.nth(2)).toHaveText('Ready');
+  await expect(columnHeadings.nth(2)).toHaveText('Ready for pickup');
+  await expect(columnHeadings.nth(3)).toHaveText('Completed');
 
   await context.close();
 });
