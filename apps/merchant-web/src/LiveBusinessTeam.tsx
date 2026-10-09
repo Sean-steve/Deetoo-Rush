@@ -66,7 +66,7 @@ export function LiveBusinessTeam({live,notify}:{live:MerchantLiveBridge;notify:(
       <p>☎ &nbsp; Phone<strong>{profile.phone||"Not supplied"}</strong></p><p>⊕ &nbsp; Operating country<strong>{live.branch?.country_code||"KE"}</strong></p><p>✉ &nbsp; Email<strong>{profile.email||"Not supplied"}</strong></p></div>
    </section>
    <section className="mp-white-card"><div className="mp-card-title"><div><h3>Business documents</h3><p>Verification is performed by authorized administrators.</p></div><button className="mp-primary" onClick={()=>setDialog("document")}>Add document</button></div>
-    {docs.map((d:any)=><button className="mp-doc-row" key={d.id} onClick={()=>notify("Use an authorized signed media link to view your private document.")}>
+    {docs.map((d:any)=><button className="mp-doc-row" key={d.id} onClick={()=>void live.api.request<{url:string}>(`/media/${d.media_id}/read-url`).then(r=>window.open(r.data.url,"_blank","noopener,noreferrer")).catch(e=>notify("Document cannot be opened: "+(e instanceof Error?e.message:String(e))))}>
       <FilePlus2 size={20}/><span><b>{String(d.document_type).replaceAll("_"," ")}</b><small>Uploaded {dateText(d.created_at)}</small></span>
       <span className={"mp-pill mp-"+(d.review_status==="VERIFIED"?"green":"orange")}>{d.review_status}</span><Ellipsis size={17}/></button>)}
     {!docs.length&&<p className="mp-live-empty">No documents uploaded yet.</p>}
