@@ -1,3 +1,4 @@
+import type { MerchantLiveBridge } from "./MerchantLiveApp";
 import React, { useMemo, useState } from "react";
 import { AlertTriangle, BookOpen, Check, ChevronRight, Clock3, Download, Ellipsis, FilePlus, FileText, Filter, Headphones, LifeBuoy, MessageCircle, Paperclip, Phone, Plus, Search, Send, Settings, ShieldCheck, User, Wallet, X } from "lucide-react";
 import { DemoBadge, DemoCard, DemoHeading } from "./PrototypeBranch";
@@ -19,7 +20,7 @@ const initial:SupportCase[]=[
 function load<T>(key:string,def:T):T{try{const value=localStorage.getItem(key);return value?JSON.parse(value) as T:def;}catch{return def;}}
 const cats=["Orders","Payments","Menu","Business","Account","General","Other"];
 const faqs=[["How can I change my branch opening hours?","Open Branch Settings, select Operating hours and adjust the opening and closing times. Save to keep the demo state."],["What happens when I decline an order?","In the prototype, declining removes the order from your active kitchen queue. Production decisions must be confirmed by the order backend."],["How do I invite a staff member?","Open Business & Team, click Invite team member, and enter the staff member's email, role and branch access."],["How are settlements calculated?","The finance prototype uses illustrative values. The production view must use the authoritative ledger, commission contract and actual payment records."],["How does support resolution work?","Merchant replies form a conversation. DeeToo administrators investigate and propose resolution; merchant satisfaction is then recorded before closure according to permissions."]];
-export function PrototypeSupport({search,onNavigate,notify}:{search:string;onNavigate:(s:string)=>void;notify:(s:string)=>void}){
+export function PrototypeSupport({search,onNavigate,notify,live}:{search:string;onNavigate:(s:string)=>void;notify:(s:string)=>void;live?:MerchantLiveBridge}){
  const [cases,setCases]=useState<SupportCase[]>(()=>load("mp-demo-cases",initial));
  const [selected,setSelected]=useState("#SUP-00123");
  const [filter,setFilter]=useState("All");
