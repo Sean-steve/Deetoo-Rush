@@ -278,7 +278,7 @@ paths:
       responses:
         '200':
           description: Authenticated, scope-checked response; see route contracts and Zod validators
-  /merchant/inbox/:
+  /merchant/inbox:
     get:
       summary: Merchant Phase 2 GET /merchant/inbox/
       tags: [Merchant]
