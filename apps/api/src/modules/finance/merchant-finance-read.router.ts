@@ -25,37 +25,44 @@ merchantFinanceReadRouter.get('/overview',run(async(req,res)=>{
   const db=durable(),q=query.parse(req.query),id=await financeScope(req,q.branch_id);
   const range=[id,q.branch_id||null,q.from||null,q.to||null];
   const totals=await db.query(`
-   SELECT COUNT(*)::int AS completed_orders,
+   SELECT COUNT(*) FILTER (WHERE o.status IN ('DELIVERED','COMPLETED'))::int AS completed_orders,
       COALESCE(SUM(s.gmv_minor),0)::bigint AS gmv_minor,
       COALESCE(SUM(s.food_subtotal_minor),0)::bigint AS food_revenue_minor,
       COALESCE(SUM(s.commission_revenue_minor),0)::bigint AS commission_minor,
       COALESCE(SUM(s.payment_processing_cost_minor),0)::bigint AS processing_cost_minor,
-      COALESCE(SUM(s.merchant_payable_minor),0)::bigint AS earned_payable_minor
+      COALESCE(SUM(s.merchant_payable_minor),0)::bigint AS earned_payable_minor,
+      COALESCE(SUM(rf.refunded_minor),0)::bigint AS refunded_minor
    FROM order_financial_summaries s JOIN orders o ON o.id=s.order_id
-   JOIN payment_capture_evidence e ON e.order_id=o.id
+   LEFT JOIN LATERAL (SELECT COALESCE(SUM(r.amount_minor),0)::bigint AS refunded_minor
+      FROM refunds r WHERE r.order_id=o.id AND r.status='SUCCEEDED') rf ON TRUE
    WHERE s.merchant_id=$1 AND ($2::uuid IS NULL OR o.branch_id=$2::uuid)
       AND ($3::timestamptz IS NULL OR o.created_at >=$3::timestamptz)
       AND ($4::timestamptz IS NULL OR o.created_at <$4::timestamptz)
-      AND o.status IN ('DELIVERED','COMPLETED')`,range);
+      AND EXISTS(SELECT 1 FROM payment_capture_evidence e WHERE e.order_id=o.id)`,range);
   const daily=await db.query(`
    SELECT (o.created_at AT TIME ZONE 'Africa/Nairobi')::date AS day,
       COUNT(*)::int AS orders, SUM(s.food_subtotal_minor)::bigint AS revenue_minor,
       SUM(s.merchant_payable_minor)::bigint AS payable_minor
    FROM order_financial_summaries s JOIN orders o ON o.id=s.order_id
-   JOIN payment_capture_evidence e ON e.order_id=o.id
-   WHERE s.merchant_id=$1 AND ($2::uuid IS NULL OR o.branch_id=$2::uuid)
+   WHERE EXISTS(SELECT 1 FROM payment_capture_evidence e WHERE e.order_id=o.id)
+      AND s.merchant_id=$1 AND ($2::uuid IS NULL OR o.branch_id=$2::uuid)
       AND ($3::timestamptz IS NULL OR o.created_at >=$3::timestamptz)
       AND ($4::timestamptz IS NULL OR o.created_at <$4::timestamptz)
       AND o.status IN ('DELIVERED','COMPLETED')
    GROUP BY (o.created_at AT TIME ZONE 'Africa/Nairobi')::date ORDER BY day ASC`,range);
   const methods=await db.query(`
    SELECT UPPER(p.method) AS method,COUNT(*)::int AS orders,
-      SUM(p.amount_minor)::bigint AS captured_amount_minor FROM orders o
-   JOIN payments p ON p.id=o.payment_id JOIN payment_capture_evidence e ON e.payment_id=p.id
-   WHERE o.merchant_id=$1 AND ($2::uuid IS NULL OR o.branch_id=$2::uuid)
+      SUM(p.captured_minor)::bigint AS captured_amount_minor,
+      SUM(COALESCE(rf.refunded_minor,0))::bigint AS refunded_minor,
+      SUM(GREATEST(p.captured_minor-COALESCE(rf.refunded_minor,0),0))::bigint AS net_captured_minor
+   FROM orders o JOIN payments p ON p.id=o.payment_id
+   LEFT JOIN LATERAL (SELECT COALESCE(SUM(r.amount_minor),0)::bigint AS refunded_minor
+     FROM refunds r WHERE r.payment_id=p.id AND r.status='SUCCEEDED') rf ON TRUE
+   WHERE EXISTS(SELECT 1 FROM payment_capture_evidence e WHERE e.payment_id=p.id)
+      AND o.merchant_id=$1 AND ($2::uuid IS NULL OR o.branch_id=$2::uuid)
       AND ($3::timestamptz IS NULL OR o.created_at >=$3::timestamptz)
       AND ($4::timestamptz IS NULL OR o.created_at <$4::timestamptz)
-      AND o.status IN ('DELIVERED','COMPLETED') GROUP BY UPPER(p.method)`,range);
+      GROUP BY UPPER(p.method)`,range);
   const settlement=await ledgerRepository.findSettlements({merchantId:id});
   const rule=await ledgerRepository.getCommissionRuleForMerchant(id);
   const destinations=await db.query(`SELECT id,method,masked_destination,verified_at FROM payout_destinations
@@ -74,8 +81,9 @@ merchantFinanceReadRouter.get('/transactions',run(async(req,res)=>{
        o.branch_id,s.food_subtotal_minor,s.commission_revenue_minor,s.merchant_payable_minor,
        p.method AS payment_method,p.status AS payment_status,p.captured_at
     FROM order_financial_summaries s JOIN orders o ON o.id=s.order_id
-    JOIN payments p ON p.id=o.payment_id JOIN payment_capture_evidence e ON e.payment_id=p.id
-    WHERE s.merchant_id=$1 AND ($2::uuid IS NULL OR o.branch_id=$2::uuid)
+    JOIN payments p ON p.id=o.payment_id
+    WHERE EXISTS (SELECT 1 FROM payment_capture_evidence e WHERE e.payment_id=p.id)
+      AND s.merchant_id=$1 AND ($2::uuid IS NULL OR o.branch_id=$2::uuid)
        AND ($3::timestamptz IS NULL OR o.created_at >=$3::timestamptz)
        AND ($4::timestamptz IS NULL OR o.created_at <$4::timestamptz)
        AND ($5::text IS NULL OR o.status=$5)
@@ -119,8 +127,9 @@ merchantFinanceReadRouter.get('/export/transactions.csv',run(async(req,res)=>{
  const r=await db.query(`SELECT o.public_code,o.created_at,o.status,p.method,
        s.food_subtotal_minor,s.commission_revenue_minor,s.merchant_payable_minor
     FROM order_financial_summaries s JOIN orders o ON o.id=s.order_id
-    JOIN payments p ON p.id=o.payment_id JOIN payment_capture_evidence e ON e.payment_id=p.id
-    WHERE s.merchant_id=$1 AND ($2::uuid IS NULL OR o.branch_id=$2::uuid)
+    JOIN payments p ON p.id=o.payment_id
+    WHERE EXISTS (SELECT 1 FROM payment_capture_evidence e WHERE e.payment_id=p.id)
+      AND s.merchant_id=$1 AND ($2::uuid IS NULL OR o.branch_id=$2::uuid)
       AND ($3::timestamptz IS NULL OR o.created_at >=$3::timestamptz)
       AND ($4::timestamptz IS NULL OR o.created_at <$4::timestamptz)
     ORDER BY o.created_at DESC,o.id DESC LIMIT 10000`,
