@@ -85,6 +85,13 @@ export default function MerchantPrototype({live}:{live?:MerchantLiveBridge}={}){
   const status=String(live.branch?.operational_status||"OPEN");
   setStore(status==="OPEN"?"Open":status==="CLOSED"?"Closed":"Paused");
  },[live?.resource,live?.branch?.operational_status,live?.branchId]);
+ useEffect(()=>{if(!live)return;let active=true;
+  const refreshUnread=()=>live.api.request<any[]>("/merchant/inbox?state=unread&limit=100")
+    .then(r=>{if(active)setUnreadCount((r.data||[]).length);})
+    .catch(()=>{if(active)setUnreadCount(0);});
+  void refreshUnread();const timer=window.setInterval(()=>void refreshUnread(),30000);
+  return()=>{active=false;window.clearInterval(timer);};
+ },[live?.branchId]);
  const doLive=async(path:string,method="POST",body?:unknown)=>{if(!live)return;try{
    await live.run(path,{method,body:body===undefined?undefined:JSON.stringify(body)});
    notify("Saved to DeeToo");setDialog(null);
@@ -140,7 +147,7 @@ export default function MerchantPrototype({live}:{live?:MerchantLiveBridge}={}){
    <div className="mp-logo"><span className="mp-brand-mark">▰</span><span><strong>DeeToo</strong><small>Merchant</small></span><button aria-label="Collapse sidebar" onClick={()=>setNavOpen(false)}><ChevronsLeft size={19}/></button></div>
    <button className="mp-branch" onClick={()=>live&&live.branches.length>1?setDialog("branch-switch"):go("branch")}><span className="mp-branch-emblem"><Store size={24}/></span><span><b>{live?.branch?.name||"Juja Branch"}</b><small>{live?.branch?.city||"Kalimoni, Juja"}</small></span><ChevronDown size={15}/></button>
    <nav>{navigation.map(section=><div key={section.section}>{section.section&&<p className="mp-nav-label">{section.section}</p>}{section.links.map(([label,key,Icon])=><button className={screen===key&&label!=="Overview"?"active":""} key={label} onClick={()=>go(key)}><Icon size={20}/>{label}{label==="Notifications"&&unreadCount>0&&<span className="mp-count">{unreadCount}</span>}</button>)}</div>)}</nav>
-   <button className="mp-sidebar-user" onClick={()=>setDialog("account")}><span className="mp-avatar">TM</span><span><strong>{live?.user?.email||"test.merchant@deetoo.test"}</strong><small>Merchant Owner</small></span><ChevronRight size={16}/></button>
+   <button className="mp-sidebar-user" onClick={()=>setDialog("account")}><span className="mp-avatar">TM</span><span><strong>{live?.user?.email||"test.merchant@deetoo.test"}</strong><small>{live?(live.user?.roles?.includes("merchant_owner")?"Merchant Owner":live.user?.roles?.includes("merchant_manager")?"Merchant Manager":"Merchant Staff"):"Merchant Owner"}</small></span><ChevronRight size={16}/></button>
   </aside>
   <div className="mp-workspace">
     <header className="mp-topbar"><button className="mp-mobile-menu" onClick={()=>setNavOpen(!navOpen)}><MenuIcon/></button><div className="mp-global-search"><Search size={20}/><input value={globalQuery} onChange={e=>setGlobalQuery(e.target.value)} placeholder={"Search "+({orders:"orders, customer name or order ID...",menu:"menu items, categories or SKUs...",finance:"transactions, orders or settlements...",team:"team members, roles or permissions...",branch:"settings, branches or locations...",security:"devices, sessions or login activity...",notifications:"notifications, orders or payments...",support:"help topics, tickets or keywords..."}[screen])}/><kbd>Ctrl K</kbd></div><div className="mp-top-actions"><div className="mp-store-dropdown"><button className="mp-store-button" onClick={()=>setStoreMenu(v=>!v)}>● &nbsp; Store {store.toLowerCase()} <ChevronDown size={15}/></button>{storeMenu&&<div className="mp-store-menu">{(["Open","Paused","Closed"] as const).map(s=><button key={s} onClick={()=>{updateStore(s);setStoreMenu(false);}}>{s}</button>)}</div>}</div><button className="mp-notification" onClick={()=>go("notifications")}><Bell size={19}/>{unreadCount>0&&<b>{unreadCount}</b>}</button><button className="mp-profile" onClick={()=>setDialog("account")}><span className="mp-avatar">TM</span>{live?.resource.profile?.display_name||live?.user?.name||"Deetoo Test Merchant"}<ChevronDown size={15}/></button></div></header>
