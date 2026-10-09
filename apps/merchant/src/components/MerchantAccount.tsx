@@ -18,6 +18,7 @@ import {
 import {
   errorMessage,
   PageHeading,
+  MetricCard,
   ResourceState,
   StatusBadge,
   useResource,
@@ -42,6 +43,8 @@ export function MerchantAccount({
     description: "",
   });
   const [email, setEmail] = useState("");
+  const [teamQuery, setTeamQuery] = useState("");
+  const [teamFilter, setTeamFilter] = useState("ALL");
   const [role, setRole] = useState("merchant_staff");
   const [branchIds, setBranchIds] = useState<string[]>([]);
   const [target, setTarget] = useState<any>(null);
@@ -86,10 +89,17 @@ export function MerchantAccount({
   }
   return (
     <div className="space-y-6">
-      <PageHeading title="Business & team" />
+      <PageHeading eyebrow="Business" title="Business & team" subtitle="Manage your business profile and give your team the right access to run your restaurant." />
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
+        <MetricCard label="Team members" value={team.data?.members?.length ?? "—"} detail="Members in this merchant" />
+        <MetricCard label="Roles in use" value={team.data?.members ? new Set(team.data.members.map((member: any) => member.role_code)).size : "—"} detail="Actual assigned roles" />
+        <MetricCard label="Branches" value={branches.length} detail="Managed restaurant locations" />
+        <MetricCard label="Pending invites" value={team.data?.members ? team.data.members.filter((member: any) => member.status === "PENDING").length : "—"} detail="Awaiting activation" />
+      </div>
+      <div className="merchant-v2-account-layout">
       {error && <ErrorState message={error} />}
       <p role="status">{saved}</p>
-      <ResourceState resource={profile}>
+      <div className="merchant-v2-profile-panel"><ResourceState resource={profile}>
         {profile.data && (
           <Card>
             <form
@@ -128,60 +138,42 @@ export function MerchantAccount({
             </form>
           </Card>
         )}
-      </ResourceState>
-      <ResourceState resource={team}>
-        <h2 className="text-xl font-bold">Team access</h2>
-        {team.data?.members?.map((member: any) => (
-          <Card key={member.id} className="mt-3 flex justify-between gap-4">
-            <div>
-              <p>{member.email || member.user_id}</p>
-              <p>{member.role_code}</p>
-              <StatusBadge status={member.status} />
-              <p className="text-sm">
-                Branches:{" "}
-                {member.branch_ids?.length
-                  ? member.branch_ids
-                      .map(
-                        (id: string) =>
-                          branches.find((b) => b.id === id)?.name || id,
-                      )
-                      .join(", ")
-                  : "All assigned merchant branches"}
-              </p>
+      </ResourceState></div>
+
+      <div className="merchant-v2-team-panel">
+        <div className="merchant-v2-team-heading">
+          <div><h2>Team members</h2><p>Invite staff and manage access across your branches.</p></div>
+          {canManage && <Button onClick={() => { setTarget({}); setEmail(""); setRole("merchant_staff"); setBranchIds([]); }}>+ Invite team member</Button>}
+        </div>
+        <div className="merchant-v2-tabs" aria-label="Filter team members">
+          {["ALL","ACTIVE","PENDING","REVOKED"].map(status => (
+            <button type="button" key={status} aria-pressed={teamFilter === status} onClick={() => setTeamFilter(status)}>
+              {status === "ALL" ? "All members" : status.charAt(0) + status.slice(1).toLowerCase()}
+              {team.data?.members ? ` (${status === "ALL" ? team.data.members.length : team.data.members.filter((m: any) => m.status === status).length})` : ""}
+            </button>
+          ))}
+        </div>
+        <div className="merchant-v2-team-search"><input type="search" aria-label="Search team members" placeholder="Search team members..." value={teamQuery} onChange={event => setTeamQuery(event.target.value)} /></div>
+        <ResourceState resource={team}>
+          {team.data?.members?.length ? (
+            <div className="merchant-v2-team-table" role="table" aria-label="Merchant team">
+              <div role="row"><span>Name / email</span><span>Role</span><span>Branch access</span><span>Status</span><span>Actions</span></div>
+              {team.data.members
+                .filter((member: any) => (teamFilter === "ALL" || member.status === teamFilter) && (!teamQuery || [member.email || "",member.user_id || "",member.role_code || ""].some((str: string) => str.toLowerCase().includes(teamQuery.toLowerCase()))))
+                .map((member: any) => (
+                  <div role="row" key={member.id}>
+                    <strong title={member.email || member.user_id}>{member.email || member.user_id}</strong>
+                    <span>{member.role_code?.replaceAll("_", " ")}</span>
+                    <span>{member.branch_ids?.length ? member.branch_ids.map((id: string) => branches.find(b => b.id === id)?.name || "Assigned branch").join(", ") : "All assigned branches"}</span>
+                    <StatusBadge status={member.status} />
+                    {canManage ? <Button variant="outline" size="sm" onClick={() => {setTarget(member);setRole(member.role_code);setBranchIds(member.branch_ids || []);}}>Edit access</Button> : <span>—</span>}
+                  </div>
+                ))}
             </div>
-            {canManage && (
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setTarget(member);
-                  setRole(member.role_code);
-                  setBranchIds(member.branch_ids || []);
-                }}
-              >
-                Edit access
-              </Button>
-            )}
-          </Card>
-        ))}
-        {team.data && !team.data.members?.length && (
-          <EmptyState
-            title="No team members"
-            description="Team members will appear here."
-          />
-        )}
-      </ResourceState>
-      {canManage && (
-        <Button
-          onClick={() => {
-            setTarget({});
-            setEmail("");
-            setRole("merchant_staff");
-            setBranchIds([]);
-          }}
-        >
-          Invite team member
-        </Button>
-      )}
+          ) : <EmptyState title="No team members" description="Invite team members to collaborate on orders, menu and branch settings." />}
+        </ResourceState>
+      </div>
+      </div>
       <Modal
         isOpen={Boolean(target)}
         onClose={() => !busy && setTarget(null)}
