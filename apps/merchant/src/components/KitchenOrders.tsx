@@ -271,28 +271,7 @@ export function KitchenOrders({ branchId }: { branchId: string }) {
         title="Kitchen orders"
         eyebrow="Live service"
         subtitle="Prepare and manage incoming orders in real time. Oldest orders appear first."
-        action={
-          <div className="flex flex-wrap gap-2">
-            {!soundEnabled ? (
-              <Button variant="outline" onClick={enableSound}>
-                <BellRing size={15} aria-hidden="true" />
-                Enable new-order sound
-              </Button>
-            ) : (
-              <span className="merchant-sound-enabled" role="status">
-                <BellRing size={14} aria-hidden="true" />
-                Sound on
-              </span>
-            )}
-            <Button
-              variant="outline"
-              onClick={orders.refresh}
-              isLoading={orders.loading}
-            >
-              Refresh
-            </Button>
-          </div>
-        }
+
       />
 
       {error && <ErrorState message={error} />}
@@ -347,6 +326,28 @@ export function KitchenOrders({ branchId }: { branchId: string }) {
                 {label} ({count})
               </button>
             ))}
+          </div>
+          <div className="merchant-v2-kitchen-controls">
+          <div className="flex flex-wrap gap-2">
+            {!soundEnabled ? (
+              <Button variant="outline" onClick={enableSound}>
+                <BellRing size={15} aria-hidden="true" />
+                Enable new-order sound
+              </Button>
+            ) : (
+              <span className="merchant-sound-enabled" role="status">
+                <BellRing size={14} aria-hidden="true" />
+                Sound on
+              </span>
+            )}
+            <Button
+              variant="outline"
+              onClick={orders.refresh}
+              isLoading={orders.loading}
+            >
+              Refresh
+            </Button>
+          </div>
           </div>
           <div className="merchant-v2-filter-meta" role="status">{summary.pastTarget.length ? `${summary.pastTarget.length} past preparation target` : "Preparation targets healthy"} · Oldest first</div>
         </div>
