@@ -13,6 +13,7 @@ import { merchantExperienceAdminRouter } from './admin/merchant-experience-admin
 import { merchantRouter } from './merchant/merchant.router';
 import { merchantExperienceRouter } from './merchant/merchant-experience.router';
 import { merchantInventoryRouter } from './merchant/merchant-inventory.router';
+import { merchantContactRouter } from './merchant/merchant-contact.router';
 import { merchantFinanceReadRouter } from './finance/merchant-finance-read.router';
 import { merchantSecurityRouter } from './auth/merchant-security.router';
 import { merchantInboxRouter } from './operations/merchant-inbox.router';
@@ -48,6 +49,7 @@ v1Router.use('/customer/support', customerSupportRouter);
 v1Router.use('/support', participantSupportRouter);
 v1Router.use('/merchant/experience', merchantExperienceRouter);
 v1Router.use('/merchant/experience', merchantInventoryRouter);
+v1Router.use('/merchant/experience', merchantContactRouter);
 v1Router.use('/finance/merchant/experience', merchantFinanceReadRouter);
 v1Router.use('/auth/security', merchantSecurityRouter);
 v1Router.use('/merchant/inbox', merchantInboxRouter);
