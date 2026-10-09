@@ -57,9 +57,9 @@ function PrototypeInner(){
  const searchResults=search.trim()?nav.filter(n=>n.title.toLowerCase().includes(search.toLowerCase())):[];
  const notifyRead=(id:string)=>update(p=>({...p,notices:p.notices.map(n=>n.id===id?{...n,read:true}:n)}));
  const branchCard=<div className="mp-branch-summary">
- {branchImageFailed?<div className="mp-branch-art"><Store size={26}/></div>:<img src="https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=250&q=85" alt="Restaurant interior" onError={()=>setBranchImageFailed(true)}/>}
+ {branchImageFailed?<div className="mp-branch-art"><Store size={26}/></div>:<img src={data.business.photo || "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=250&q=85"} alt="Restaurant interior" onError={()=>setBranchImageFailed(true)}/>}
  <div><strong>{data.branch}</strong><small>Kalimoni, Juja</small></div><Pill>{data.storeStatus}</Pill>
- <button className="mp-outline mp-adjust" onClick={()=>setHoursOpen(true)}><Clock size={16}/> Adjust hours</button>
+ <button className="mp-outline mp-adjust" onClick={()=>page==="business"?document.querySelector(".mp-business-profile")?.scrollIntoView({behavior:"smooth"}):setHoursOpen(true)}>{page==="business"?<ChevronRight size={16}/>:<Clock size={16}/>} {page==="business"?"View profile":"Adjust hours"}</button>
  </div>;
  return <div className="mp-root">
  <aside className={"mp-sidebar "+(mobile?"mp-sidebar-open":"")}>
