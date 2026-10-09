@@ -94,3 +94,30 @@ merchantFinanceReadRouter.get('/settlements/:settlementId',run(async(req,res)=>{
    WHERE a.resource_type='SETTLEMENT' AND a.resource_id=$1 ORDER BY a.created_at DESC`,[settlementId]);
  res.json({data:{...r.rows[0],lines:lines.rows,disbursement_attempts:attempts.rows}});
 }));
+
+/** CSV is a downloadable merchant order-economics statement, not a fiscal tax invoice. */
+merchantFinanceReadRouter.get('/export/transactions.csv',run(async(req,res)=>{
+ const db=durable(),q=query.parse(req.query),id=await financeScope(req,q.branch_id);
+ const r=await db.query(`SELECT o.public_code,o.created_at,o.status,p.method,
+       s.food_subtotal_minor,s.commission_revenue_minor,s.merchant_payable_minor
+    FROM order_financial_summaries s JOIN orders o ON o.id=s.order_id
+    JOIN payments p ON p.id=o.payment_id JOIN payment_capture_evidence e ON e.payment_id=p.id
+    WHERE s.merchant_id=$1 AND ($2::uuid IS NULL OR o.branch_id=$2::uuid)
+      AND ($3::timestamptz IS NULL OR o.created_at >=$3::timestamptz)
+      AND ($4::timestamptz IS NULL OR o.created_at <$4::timestamptz)
+    ORDER BY o.created_at DESC,o.id DESC LIMIT 10000`,
+   [id,q.branch_id||null,q.from||null,q.to||null]);
+ const cell=(v:unknown)=>{
+   const raw=String(v??'');
+   const safe=/^[=+\-@\t\r]/.test(raw)?"'"+raw:raw;
+   return '"'+safe.replace(/"/g,'""')+'"';
+ };
+ const output=[
+  ['order_code','created_at','status','payment_method','food_subtotal_minor','commission_minor','merchant_payable_minor'],
+  ...r.rows.map(row=>[row.public_code,row.created_at,row.status,row.method,row.food_subtotal_minor,row.commission_revenue_minor,row.merchant_payable_minor])
+ ].map(row=>row.map(cell).join(',')).join('\r\n')+'\r\n';
+ res.setHeader('Content-Type','text/csv; charset=utf-8');
+ res.setHeader('Content-Disposition','attachment; filename="deetoo-merchant-transactions.csv"');
+ res.setHeader('Cache-Control','no-store');
+ res.status(200).send(output);
+}));
