@@ -1,11 +1,12 @@
 import { Router, Response, NextFunction } from 'express';
 import { z } from 'zod';
-import { AuthenticatedRequest, requireAuth } from '../auth/auth.middleware';
+import { AuthenticatedRequest, requireAuth, requireRole } from '../auth/auth.middleware';
 import { AppError } from '../../middleware/error-handler';
 import { ownBranch, ownMerchant, durable, datesSchema, pageSchema } from './merchant-experience.scope';
 
 export const merchantExperienceRouter=Router();
 merchantExperienceRouter.use(requireAuth);
+merchantExperienceRouter.use(requireRole('merchant','merchant_owner','merchant_manager','merchant_staff'));
 const run=(fn:(req:AuthenticatedRequest,res:Response)=>Promise<void>)=>(req:AuthenticatedRequest,res:Response,next:NextFunction)=>{Promise.resolve().then(()=>fn(req,res)).catch(next)};
 const branchQuery=z.object({branch_id:z.string().uuid()}).merge(datesSchema);
 
