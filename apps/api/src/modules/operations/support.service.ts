@@ -384,7 +384,7 @@ export class SupportService {
     await operationsRepository.resetSupportConfirmations(caseId, participants);
 
     const updated = await operationsRepository.updateSupportCase(caseId, {
-      status: participants.length ? "PARTY_CONFIRMATION" : "RESOLUTION_PROPOSED",
+      status: participants.length ? "PARTY_CONFIRMATION" : "RESOLVED",
       resolution_code: resolutionCode as any,
       resolution_notes: resolutionNotes,
       resolution_proposed_at: now,
@@ -421,6 +421,9 @@ export class SupportService {
     if (!supportCase) throw new AppError(404, "CASE_NOT_FOUND", "Support case not found");
     if (actor.isStaff) {
       throw new AppError(403, "PARTICIPANT_REQUIRED", "Staff cannot confirm a participant's satisfaction");
+    }
+    if (supportCase.status !== "PARTY_CONFIRMATION") {
+      throw new AppError(409, "RESOLUTION_NOT_PENDING", "This case does not have a pending resolution confirmation");
     }
     const partyType = this.resolveParticipantType(supportCase, actor);
     if (!partyType) throw new AppError(403, "FORBIDDEN_CASE", "You are not a participant in this support case");
@@ -467,10 +470,11 @@ export class SupportService {
     const confirmations = await operationsRepository.getSupportConfirmations(caseId);
     const allAccepted = confirmations.length > 0 && confirmations.every((item:any)=>item.decision === "ACCEPTED");
     if (allAccepted) {
+      // Participant consent is necessary; only a privileged administrator closes the case.
       return (await operationsRepository.updateSupportCase(caseId, {
-        status: "CLOSED",
+        status: "RESOLVED",
         resolved_at: now,
-        closed_at: now,
+        closed_at: null,
       }))!;
     }
     return (await operationsRepository.updateSupportCase(caseId, {
@@ -491,6 +495,47 @@ export class SupportService {
       throw new AppError(404, "CASE_ATTACHMENT_NOT_FOUND", "Evidence is not visible in this support case");
     }
     return mediaService.getReadUrl(mediaId, viewer.id, ["SUPPORT_ATTACHMENT"]);
+  }
+
+  /**
+   * Normal closure: all participants consent, then an administrator signs off.
+   * Super Admin override remains separate and requires a documented reason.
+   */
+  public async finalizeConfirmedCase(caseId: string, actor: SupportViewer): Promise<SupportCase> {
+    if (!actor.isStaff || !actor.roles.some(role => role === "admin" || role === "super_admin")) {
+      throw new AppError(403, "ADMIN_REQUIRED", "An authorized administrator must confirm final closure");
+    }
+    const supportCase = await operationsRepository.getSupportCaseById(caseId);
+    if (!supportCase) throw new AppError(404, "CASE_NOT_FOUND", "Support case not found");
+    if (supportCase.status !== "RESOLVED") {
+      throw new AppError(409, "CASE_NOT_READY_TO_CLOSE", "All parties must accept before administrator closure");
+    }
+    const required = this.requiredParticipants(supportCase);
+    const confirmations = await operationsRepository.getSupportConfirmations(caseId);
+    if (required.length !== confirmations.length ||
+        required.some(p => !confirmations.some(c =>
+          c.party_type === p.party_type && c.party_id === p.party_id && c.decision === "ACCEPTED"))) {
+      throw new AppError(409, "PARTICIPANTS_NOT_SATISFIED", "All required parties must accept the resolution");
+    }
+    const now = new Date().toISOString();
+    const updated = await operationsRepository.updateSupportCase(caseId, {
+      status: "CLOSED",
+      closed_at: now,
+    });
+    if (!updated) throw new AppError(404, "CASE_NOT_FOUND", "Support case not found");
+    await operationsRepository.addSupportCaseNote({
+      id: randomUUID(),
+      case_id: caseId,
+      author_user_id: actor.id,
+      author_role: actor.roles.includes("super_admin") ? "super_admin" : "admin",
+      author_name: actor.name,
+      visibility: "ALL_PARTICIPANTS",
+      body: "An administrator confirmed closure after all required parties accepted the resolution.",
+      message_type: "SYSTEM",
+      target_party: null,
+      created_at: now,
+    });
+    return updated;
   }
 
   public async forceCloseCase(

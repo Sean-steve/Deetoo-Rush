@@ -37,11 +37,13 @@ const caseProgress = [
   { id: "conversation", label: "Conversation", description: "Evidence and replies" },
   { id: "resolution", label: "Resolution", description: "Support proposes outcome" },
   { id: "confirmation", label: "Confirmation", description: "Participants respond" },
-  { id: "closed", label: "Closed", description: "Everyone satisfied or override" },
+  { id: "approved", label: "Confirmed", description: "All participants accepted" },
+  { id: "closed", label: "Closed", description: "Administrator signed off" },
 ];
 
 function supportProgressStage(status?: string): string {
-  if (status === "CLOSED" || status === "RESOLVED") return "closed";
+  if (status === "CLOSED") return "closed";
+  if (status === "RESOLVED") return "approved";
   if (status === "PARTY_CONFIRMATION" || status === "DISPUTED")
     return "confirmation";
   if (status === "RESOLUTION_PROPOSED") return "resolution";
@@ -667,6 +669,31 @@ export function SupportCaseConsole() {
                   </Button>
                 </div>
               </Card>
+
+              {(hasRole(UserRole.ADMIN) || hasRole(UserRole.SUPER_ADMIN)) &&
+                selected.status === "RESOLVED" && (
+                  <Card>
+                    <InlineBanner kind="info" title="Participant confirmation complete">
+                      All required participants accepted the resolution.
+                      Final closure is an explicit administrator decision.
+                    </InlineBanner>
+                    <Button
+                      fullWidth
+                      className="mt-3"
+                      disabled={busy}
+                      onClick={() =>
+                        void mutate(async () => {
+                          await apiClient.request(
+                            `/admin/operations/support/cases/${encodeURIComponent(selected.id)}/finalize`,
+                            { method: "POST" },
+                          );
+                        })
+                      }
+                    >
+                      Confirm final closure
+                    </Button>
+                  </Card>
+                )}
 
               {hasRole(UserRole.SUPER_ADMIN) &&
                 selected.status !== "CLOSED" && (

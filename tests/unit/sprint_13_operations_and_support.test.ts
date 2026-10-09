@@ -325,6 +325,10 @@ describe('Sprint 13: Operations, Support, Failure Recovery & Fraud Controls', ()
       assert.equal(proposed.status, 'PARTY_CONFIRMATION');
       assert.equal(proposed.resolution_code, 'REFUND_ISSUED');
       assert.equal(proposed.resolved_at, null);
+      await assert.rejects(
+        () => supportService.finalizeConfirmedCase(supportCase.id, {id:'admin_early',name:'Admin',roles:['admin'],isStaff:true}),
+        /must accept before administrator closure/i,
+      );
 
       // Operational status endpoint cannot bypass the confirmation workflow.
       await assert.rejects(
@@ -332,16 +336,30 @@ describe('Sprint 13: Operations, Support, Failure Recovery & Fraud Controls', ()
         /resolution-confirmation workflow/i,
       );
 
-      // The linked customer accepts; only then is the case closed.
-      const closed = await supportService.respondToResolution(
+      // Customer acceptance makes the case RESOLVED, never auto-CLOSED.
+      const accepted = await supportService.respondToResolution(
         supportCase.id,
         customer,
         'ACCEPTED',
         'The refund resolves my issue.',
       );
+      assert.equal(accepted.status, 'RESOLVED');
+      assert.ok(accepted.resolved_at);
+      assert.equal(accepted.closed_at, null);
+
+      // A support agent cannot finalize; consent cannot be bypassed.
+      await assert.rejects(
+        () => supportService.finalizeConfirmedCase(supportCase.id, staffAgent),
+        /administrator/i,
+      );
+      const admin = { id: 'admin_reviewer', name: 'Admin Reviewer', roles: ['admin'], isStaff: true };
+      const closed = await supportService.finalizeConfirmedCase(supportCase.id, admin);
       assert.equal(closed.status, 'CLOSED');
-      assert.ok(closed.resolved_at);
-      assert.ok((closed as any).closed_at);
+      assert.ok(closed.closed_at);
+      await assert.rejects(
+        () => supportService.finalizeConfirmedCase(supportCase.id, admin),
+        /must accept before administrator closure/i,
+      );
     });
   });
 
