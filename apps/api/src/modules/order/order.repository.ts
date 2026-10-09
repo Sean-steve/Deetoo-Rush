@@ -501,7 +501,7 @@ export class OrderRepository {
       try {
         await client.query('BEGIN');
 
-        await client.query(
+        const statusResult = await client.query(
           `UPDATE orders
            SET status = $1,
                version = version + 1,
@@ -518,7 +518,7 @@ export class OrderRepository {
                cancelled_by_type = COALESCE($12, cancelled_by_type),
                cancelled_by_id = COALESCE($13, cancelled_by_id),
                updated_at = CURRENT_TIMESTAMP
-           WHERE id = $14`,
+           WHERE id = $14 AND status = $15`,
           [
             nextStatus,
             updates.estimated_prep_minutes || null,
@@ -534,8 +534,12 @@ export class OrderRepository {
             updates.cancelled_by_type || null,
             updates.cancelled_by_id || null,
             orderId,
+            existing.status,
           ]
         );
+        if (!statusResult.rowCount) {
+          throw new AppError(409,'ORDER_STATE_CONFLICT','Order changed while this transition was being processed');
+        }
 
         await client.query(
           `INSERT INTO order_timeline (
