@@ -1,0 +1,81 @@
+/* Canonical Customer fidelity adjustments (approved design-first tokens and geometry).
+ * Scope every override to .dt-app; the DeeToo public landing pages retain their theme.
+ * Never imply that decorative map art, promotions or payment controls are live.
+ */
+.dt-app {
+  font-family: "DM Sans", "Manrope", system-ui, sans-serif;
+  font-synthesis: none;
+}
+.dt-app :is(h1,h2,h3,h4,h5,h6),.dt-app :is(button,input,select,textarea) {
+  font-family: inherit;
+}
+.dt-live-discovery .dt-hero-offer {
+  pointer-events: none;
+}
+.dt-live-discovery .dt-carousel-dots span {
+  display: block;
+  width: 16px;
+  height: 7px;
+  border-radius: 6px;
+  background: #fff;
+}
+.dt-live-discovery .dt-filter-pill:disabled {
+  opacity: .65;
+  cursor: not-allowed;
+}
+.dt-live-fidelity-map {
+  position: relative;
+  min-height: 238px;
+  display: grid;
+  place-items: center;
+  isolation: isolate;
+}
+.dt-live-fidelity-map .dt-map-roads {
+  pointer-events: none;
+  opacity: .45;
+  z-index: 0;
+}
+.dt-live-fidelity-map .dt-live-map-placeholder {
+  position: relative;
+  z-index: 1;
+  width: calc(100% - 24px);
+  padding: 18px;
+  margin: 12px;
+  border: 1px solid #cce8d9;
+  border-radius: 15px;
+  background: rgba(255,255,255,.92);
+  backdrop-filter: blur(4px);
+}
+.dt-live-fidelity-map .dt-fidelity-hint {
+  font-size: 11px;
+  color: #526c80;
+}
+.dt-referral--unavailable {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.dt-referral--unavailable > div:nth-child(2) {
+  min-width: 0;
+  flex: 1;
+}
+.dt-referral--unavailable > div:nth-child(2) strong {
+  font-weight: 850;
+  color: #092a1c;
+}
+.dt-referral--unavailable > div:nth-child(2) p {
+  margin-top: 6px;
+  font-size: 11px;
+  line-height: 1.4;
+  color: #4d6c5e;
+}
+.dt-referral--unavailable .dt-badge { font-size: 9px; white-space: nowrap; }
+@media (max-width: 1024px) {
+  .dt-referral--unavailable { flex-wrap: wrap; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .dt-live-fidelity-map *, .dt-live-discovery * {
+    animation-duration: .01ms !important;
+    transition-duration: .01ms !important;
+  }
+}
