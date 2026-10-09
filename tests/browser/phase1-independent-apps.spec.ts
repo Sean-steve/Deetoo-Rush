@@ -85,6 +85,26 @@ test('Merchant branch failures display DeeToo error messages and recover without
   await context.close();
 });
 
+test('Merchant missing policy migration surfaces repair instructions without leaking SQL', async ({ browser }) => {
+  const context=await browser.newContext();
+  const page=await context.newPage();
+  await page.route('**/api/v1/merchant/branches',async route=>
+    route.fulfill({status:503,contentType:'application/json',body:JSON.stringify({error:{
+      code:'MERCHANT_SCHEMA_MIGRATION_REQUIRED',
+      message:'Merchant services require database migration 035.',
+      request_id:'req_missing_policy_table'
+    }})}));
+  await page.goto('http://127.0.0.1:5174');
+  await page.locator('.mp-live-auth input[autocomplete="username"]').fill('merchant@deetoo.ke');
+  await page.locator('.mp-live-auth input[type="password"]').fill('MerchantPass123!');
+  await page.getByRole('button',{name:'Sign in',exact:true}).click();
+  await expect(page.getByRole('heading',{name:'Merchant database upgrade required'})).toBeVisible();
+  await expect(page.getByText(/pnpm db:migrate/)).toBeVisible();
+  await expect(page.getByText('Support reference: req_missing_policy_table')).toBeVisible();
+  await expect(page.locator('.mp-sidebar')).toHaveCount(0);
+  await context.close();
+});
+
 test('Merchant account without membership shows an assignment path, never a fabricated branch',async({browser})=>{
   const context=await browser.newContext();
   const page=await context.newPage();

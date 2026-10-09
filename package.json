@@ -28,6 +28,7 @@
     "test:phase1-browser": "playwright test --config playwright.phase1.config.ts",
     "format": "echo 'All files verified'",
     "db:migrate": "tsx --import dotenv/config scripts/db-migrate.ts",
+    "db:status": "tsx --import dotenv/config scripts/db-status.ts",
     "db:migrate:dev": "tsx --import dotenv/config scripts/db-migrate.ts --dev",
     "db:rollback": "tsx --import dotenv/config scripts/db-rollback.ts",
     "db:seed": "tsx --import dotenv/config scripts/db-seed.ts",

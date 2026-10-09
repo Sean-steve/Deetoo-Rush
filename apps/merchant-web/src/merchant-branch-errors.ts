@@ -16,6 +16,15 @@ export function merchantErrorMessage(error: unknown): string {
 /** Do not confuse an unassigned account with a temporary server outage. */
 export function normalizeMerchantBranchError(error: unknown): MerchantBranchError {
   const normalized = normalizeUXError(error);
+  if (normalized.code === "MERCHANT_SCHEMA_MIGRATION_REQUIRED") {
+    return {
+      kind: "temporary",
+      title: "Merchant database upgrade required",
+      message: "Your Merchant account is connected, but the DeeToo database needs migration 035. An operator must run pnpm db:migrate against the database used by the API. Once the update succeeds, retry your branch connection.",
+      referenceId: normalized.referenceId,
+      code: normalized.code
+    };
+  }
   if (normalized.code === "NO_MERCHANT_MEMBERSHIP") {
     return {
       kind: "membership",

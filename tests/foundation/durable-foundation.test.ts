@@ -25,6 +25,15 @@ const event=(id:string)=>({type:'order.status_changed',order_id:id,channel:`orde
 test('migration chain replays without changing checksums',async()=>{
   const fresh=!(await getDbPool().query("SELECT to_regclass('users') AS t")).rows[0].t;
   await runMigrations();
+  // A foundation-only schema previously passed /health/ready while merchant
+  // availability queries crashed because migration 035 had not been applied.
+  const merchantSchema=await getDbPool().query(`
+    SELECT to_regclass('merchant_branch_policies') AS policy_table,
+      (SELECT checksum FROM schema_migrations
+       WHERE version='035_merchant_experience_capabilities.sql') AS checksum
+  `);
+  assert.ok(merchantSchema.rows[0]?.policy_table,"required Merchant policy table exists");
+  assert.ok(merchantSchema.rows[0]?.checksum,"Merchant migration 035 is checksum verified");
   if(fresh) {
     for(const table of ['users','merchants','service_zones','restaurant_categories','ledger_accounts']) {
       assert.equal((await getDbPool().query('SELECT count(*) AS n FROM '+table)).rows[0].n,0);
