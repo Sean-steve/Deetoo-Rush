@@ -4,7 +4,7 @@ import { AuthenticatedRequest, requireAuth, requireRole } from '../auth/auth.mid
 import { AppError } from '../../middleware/error-handler';
 import { ownBranch, ownMerchant, durable, datesSchema, pageSchema } from './merchant-experience.scope';
 import { merchantScope } from '../auth/scope';
-import { effectiveMerchantCapabilities, platformRoleCan, roleCapabilities } from './merchant-role-policy.service';
+import { effectiveMerchantCapabilities, platformRoleCan, roleCapabilities, requireMerchantCapability } from './merchant-role-policy.service';
 
 export const merchantExperienceRouter=Router();
 merchantExperienceRouter.use(requireAuth);
@@ -58,7 +58,8 @@ merchantExperienceRouter.get('/branches/:branchId/policies',run(async(req,res)=>
   res.json({data:r.rows[0]||{branch_id:id,delivery_enabled:true,pickup_enabled:false,dine_in_enabled:false,table_qr_enabled:false,max_concurrent_orders:30,cover_media_id:null}});
 }));
 merchantExperienceRouter.put('/branches/:branchId/policies',run(async(req,res)=>{
-  const db=durable(),{id}=await ownBranch(req,true);
+  const db=durable(),{id,merchantId}=await ownBranch(req,true);
+  await requireMerchantCapability(req.user!.id,merchantId,'BRANCH_WRITE');
   const q=z.object({delivery_enabled:z.boolean(),pickup_enabled:z.boolean(),dine_in_enabled:z.boolean(),
     table_qr_enabled:z.boolean(),max_concurrent_orders:z.number().int().min(1).max(500),
     cover_media_id:z.string().uuid().nullable().optional()
@@ -86,6 +87,7 @@ merchantExperienceRouter.get('/documents',run(async(req,res)=>{
 }));
 merchantExperienceRouter.post('/documents',run(async(req,res)=>{
   const db=durable(),id=await ownMerchant(req,true);
+  await requireMerchantCapability(req.user!.id,id,'DOCUMENTS_WRITE');
   const input=z.object({media_id:z.string().uuid(),document_type:z.enum(['BUSINESS_REGISTRATION','KRA_PIN','FOOD_HANDLING','OTHER']),expires_at:z.string().date().nullable().optional()}).parse(req.body);
   const r=await db.query(`INSERT INTO merchant_document_records(merchant_id,media_id,document_type,expires_at,uploaded_by)
     SELECT $1,m.id,$3,$4,$2 FROM media_objects m WHERE m.id=$5 AND m.owner_user_id=$2
