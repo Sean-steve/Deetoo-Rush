@@ -982,3 +982,31 @@ test('Merchant Phase 2: shared notification read state is isolated per staff vie
     WHERE u.id=ANY($2::uuid[]) ORDER BY u.id`,[id,users.map(x=>x.id)]);
   assert.equal(state.rows.filter(x=>x.read_at!==null).length,1);
 });
+
+
+test('Merchant role controls are restrictive, durable, and never grant forbidden platform capabilities',async()=>{
+  const {requireMerchantCapability,effectiveMerchantCapabilities}=await import('../../apps/api/src/modules/merchant/merchant-role-policy.service');
+  const db=getDbPool(),record=await db.query('SELECT id FROM merchants ORDER BY id LIMIT 1');
+  assert.ok(record.rows.length>0);
+  const merchantId=record.rows[0].id,owner=randomUUID(),manager=randomUUID();
+  for(const id of [owner,manager]){
+    await authRepository.createUser({id,email:id+'@example.test',password_hash:'unused',status:UserStatus.ACTIVE});
+    await authRepository.setUserRoles(id,[id===owner?UserRole.MERCHANT_OWNER:UserRole.MERCHANT_MANAGER]);
+    await merchantRepository.createMembership({id:randomUUID(),user_id:id,merchant_id:merchantId,
+      role_code:id===owner?'merchant_owner':'merchant_manager',status:'ACTIVE',
+      branch_ids:[],created_at:new Date().toISOString()} as any);
+  }
+  await requireMerchantCapability(manager,merchantId,'MENU_WRITE');
+  await db.query(`INSERT INTO merchant_role_capability_controls(merchant_id,role_code,capability,allowed,updated_by)
+    VALUES($1,'merchant_manager','MENU_WRITE',FALSE,$2)`,[merchantId,owner]);
+  await assert.rejects(requireMerchantCapability(manager,merchantId,'MENU_WRITE'),{code:'MERCHANT_CAPABILITY_DISABLED'});
+  await requireMerchantCapability(manager,merchantId,'ORDERS_WRITE');
+  const matrix=await effectiveMerchantCapabilities(merchantId);
+  assert.equal((matrix as any).merchant_manager.MENU_WRITE.allowed,false);
+  assert.equal((matrix as any).merchant_manager.MENU_WRITE.editable,true);
+  assert.equal((matrix as any).merchant_staff.FINANCE_READ.platform_allowed,false);
+  assert.equal((matrix as any).merchant_owner.ORDERS_WRITE.editable,false);
+  await db.query(`UPDATE merchant_role_capability_controls SET allowed=TRUE WHERE merchant_id=$1
+    AND role_code='merchant_manager' AND capability='MENU_WRITE'`,[merchantId]);
+  await requireMerchantCapability(manager,merchantId,'MENU_WRITE');
+});
