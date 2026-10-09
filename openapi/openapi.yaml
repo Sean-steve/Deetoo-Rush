@@ -61,6 +61,17 @@ tags:
 security:
 - bearerAuth: []
 paths:
+  /finance/merchant/experience/export/transactions.csv:
+    get:
+      summary: Export merchant-scoped verified order economics CSV; not an invoice
+      tags: [Finance]
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: CSV data in KES minor units
+          content:
+            text/csv:
+              schema: { type: string }
   /merchant/experience/orders/history:
     get:
       summary: Merchant Phase 2 GET /merchant/experience/orders/history
