@@ -6,6 +6,7 @@ import { ownMerchant, durable, datesSchema, pageSchema } from '../merchant/merch
 import { merchantScope, branchScope } from '../auth/scope';
 import { ledgerRepository } from './ledger.repository';
 import { AppError } from '../../middleware/error-handler';
+import { renderMerchantSettlementPdf } from './merchant-statement-pdf';
 export const merchantFinanceReadRouter=Router();
 merchantFinanceReadRouter.use(requireAuth);
 merchantFinanceReadRouter.use(requireRole('merchant_owner','merchant_manager'));
@@ -94,6 +95,22 @@ merchantFinanceReadRouter.get('/settlements/:settlementId',run(async(req,res)=>{
    d.method,d.masked_destination FROM disbursement_attempts a JOIN payout_destinations d ON d.id=a.destination_id
    WHERE a.resource_type='SETTLEMENT' AND a.resource_id=$1 ORDER BY a.created_at DESC`,[settlementId]);
  res.json({data:{...r.rows[0],lines:lines.rows,disbursement_attempts:attempts.rows}});
+}));
+
+merchantFinanceReadRouter.get('/settlements/:settlementId/statement.pdf',run(async(req,res)=>{
+ const db=durable(),merchantId=await financeScope(req),settlementId=z.string().uuid().parse(req.params.settlementId);
+ const statement=await db.query(
+   'SELECT * FROM merchant_settlements WHERE id=$1 AND merchant_id=$2',[settlementId,merchantId]);
+ if(!statement.rowCount)throw new AppError(404,'SETTLEMENT_NOT_FOUND','Settlement not found for merchant');
+ const lines=await db.query(
+   `SELECT entry_type,reference_id,gross_amount_minor,commission_amount_minor,net_amount_minor
+    FROM merchant_settlement_lines WHERE settlement_id=$1 ORDER BY created_at,id`,[settlementId]);
+ const pdf=renderMerchantSettlementPdf(statement.rows[0],lines.rows);
+ res.setHeader('Content-Type','application/pdf');
+ res.setHeader('Content-Disposition','attachment; filename="deetoo-merchant-settlement.pdf"');
+ res.setHeader('Cache-Control','private, no-store');
+ res.setHeader('X-Content-Type-Options','nosniff');
+ res.status(200).end(pdf);
 }));
 
 /** CSV is a downloadable merchant order-economics statement, not a fiscal tax invoice. */
