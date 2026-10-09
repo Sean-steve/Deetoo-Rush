@@ -12,6 +12,8 @@ import "./shopping.css";
 import "./orders.css";
 import "./account.css";
 import "./support.css";
+// Use the same scoped visual-fidelity layer in connected harness and canonical Customer.
+import "./integration/live-fidelity.css";
 
 // Fail closed: production deploys cannot activate partially integrated screens.
 const connected = import.meta.env.DEV
