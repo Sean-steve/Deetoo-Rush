@@ -177,6 +177,26 @@ test('Phase 3 Merchant workspace exposes persistent store control and urgency-fi
   await expect(columnHeadings.nth(2)).toHaveText('Ready for pickup');
   await expect(columnHeadings.nth(3)).toHaveText('Completed');
 
+  // Every approved Merchant mockup has a real navigable web route and page heading.
+  const merchantNavigation = page.getByRole('navigation', { name: 'Merchant navigation' });
+  const merchantScreens = [
+    { tab: 'catalogue', nav: 'Menu & availability', heading: 'Menu & availability' },
+    { tab: 'finance', nav: 'Finance & settlements', heading: 'Finance & settlements' },
+    { tab: 'account', nav: 'Business & team', heading: 'Business & team' },
+    { tab: 'branch', nav: 'Branch settings', heading: 'Branch settings' },
+    { tab: 'sessions', nav: 'Security & sessions', heading: 'Security & sessions' },
+    { tab: 'notifications', nav: 'Notifications', heading: 'Notifications' },
+    { tab: 'support', nav: 'Support', heading: 'Support & help center' },
+  ];
+  for (const screen of merchantScreens) {
+    await merchantNavigation.getByRole('button', { name: screen.nav, exact: true }).click();
+    const main = page.locator(`.merchant-v2-main[data-merchant-page="${screen.tab}"]`);
+    await expect(main).toBeVisible();
+    await expect(main.getByRole('heading', { name: screen.heading, exact: true })).toBeVisible();
+  }
+  await merchantNavigation.getByRole('button', { name: 'Kitchen orders', exact: true }).click();
+  await expect(page.locator('.merchant-kitchen-board')).toBeVisible();
+
   await context.close();
 });
 
