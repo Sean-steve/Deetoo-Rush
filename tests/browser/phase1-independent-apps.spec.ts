@@ -317,7 +317,7 @@ test('Merchant Phase 3 authenticated approved design retains all eight screens w
    await page.locator('.mp-sidebar nav').getByRole('button',{name:button,exact:true}).click();
    await expect(page.getByRole('heading',{name:title,exact:true}).first()).toBeVisible();
    await expect(page.locator('.mp-sidebar')).toBeVisible();
-   await page.screenshot({path:test.info().outputPath('merchant-live-'+String(index+2).padStart(2,'0')+'-'+button.toLowerCase().replace(/[^a-z0-9]+/g,'-')+'.png'),fullPage:true,animations:'disabled'});
+   if(button!=='Kitchen orders') await page.screenshot({path:test.info().outputPath('merchant-live-'+String(index+2).padStart(2,'0')+'-'+button.toLowerCase().replace(/[^a-z0-9]+/g,'-')+'.png'),fullPage:true,animations:'disabled'});
  }
  await context.close();
 });
