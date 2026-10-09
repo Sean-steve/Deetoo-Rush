@@ -751,6 +751,21 @@ merchantRouter.patch(
     try {
       const membershipId = req.params.id;
       const validated = UpdateMembershipSchema.parse(req.body);
+      const existing = await merchantRepository.findMembershipById(membershipId);
+      if (!existing) throw new AppError(404, "MEMBERSHIP_NOT_FOUND", "Membership not found");
+      const proposed = validated as { role_code?: string; status?: string };
+      const removesOwner = existing.role_code === "merchant_owner" &&
+        ((proposed.role_code && proposed.role_code !== "merchant_owner") ||
+         (proposed.status && proposed.status !== "ACTIVE"));
+      if (removesOwner) {
+        const all = await merchantRepository.listMembershipsByMerchant(existing.merchant_id);
+        const remainingOwners = all.filter(member =>
+          member.id !== existing.id && member.role_code === "merchant_owner" && member.status === "ACTIVE");
+        if (!remainingOwners.length)
+          throw new AppError(409, "LAST_OWNER_REQUIRED", "A merchant requires an active owner");
+        if (existing.user_id === req.user!.id)
+          throw new AppError(409, "SELF_DEMOTION_FORBIDDEN", "Owner may not demote their own account");
+      }
 
       const updated = await merchantRepository.updateMembership(
         membershipId,
