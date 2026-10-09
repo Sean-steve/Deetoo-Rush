@@ -15,6 +15,7 @@ All routes have the standard `/api/v1` prefix.
 
 | Approved screen | New module | Routes / functionality created |
 |---|---|---|
+| 01/07 Contact customer | `merchant/merchant-contact.router.ts` | `GET /merchant/experience/orders/:orderId/contact`, `POST .../contact/message`: paid-order branch-scope messaging via existing SMS notification worker; no phone number exposed, 10 messages/hour per order, honest queued status, SMS provider required. |
 | 01 Kitchen | `merchant/merchant-experience.router.ts` | `GET /merchant/experience/orders/history` (scoped, date/status/search/sort/page); `GET /merchant/experience/orders/metrics` (paid-order stage and average prep metrics). |
 | 02 Menu | `merchant/merchant-inventory.router.ts` | `GET /merchant/experience/branches/:branchId/inventory`; `POST .../inventory/:itemId/adjust` (transactional/idempotent stock movement, nonnegative stock); `PUT .../inventory/:itemId/threshold`; low-stock notification insertion. Existing catalogue/modifier routes unchanged. |
 | 03 Finance | `finance/merchant-finance-read.router.ts` | `GET /finance/merchant/experience/overview` (period, totals, daily series, payment method split, settlements/commission, payout destination); `GET .../transactions`; `GET .../settlements/:settlementId`; `GET .../export/transactions.csv`. Merchant Owner/Manager only. Existing ledger and commission services reused. |
@@ -23,6 +24,8 @@ All routes have the standard `/api/v1` prefix.
 | 06 Security | `auth/merchant-security.router.ts` | `GET /auth/security/mfa/status`, `POST .../mfa/disable`, `POST .../password/change`, `GET .../login-history`, `GET .../trusted-devices`, `POST .../trusted-devices/current`, `DELETE .../trusted-devices/:id`, `POST .../deactivation-request`. Informational trusted devices do NOT bypass MFA. |
 | 07 Notifications | `operations/merchant-inbox.router.ts` | `GET /merchant/inbox` typed/filtred paged feed; `POST /merchant/inbox/read-all`; `POST /merchant/inbox/:id/read`; `POST /merchant/inbox/:id/dismiss`; `GET/PUT /merchant/inbox/preferences`. Per-user state; do not globally clear merchant-shared notifications. |
 | 08 Support | Merchant + Admin experience routers | `GET /merchant/experience/help/articles`, `GET .../help/contact`, staff-only article editing `PUT /admin/merchant-experience/help/articles/:slug`, contact directory `PUT .../help/contacts/:code`. Existing case discussion and staff-led resolution untouched. |
+
+Delivery and capacity rules are **now evaluated server-side** in `merchant.service.ts` for the existing delivery availability engine. Optional `MAPBOX_ACCESS_TOKEN` switches geocoding/reverse/autocomplete from explicitly simulated presets to a real provider; tile-rendering remains a frontend/external task.
 
 Cross-cutting: route registration in `apps/api/src/modules/index.ts`; media purpose/scope updates; map provider changes; existing Merchant and Admin route reuse; OpenAPI additions and coverage script updates.
 
@@ -42,11 +45,11 @@ Cross-cutting: route registration in `apps/api/src/modules/index.ts`; media purp
 This is a **backend capability slice**, not a claim of 100% fulfillment of every frontend component:
 
 1. **Business/device security:** no independently verified complete login-failure attribution, 2FA recovery codes, native attestation, account reactivation pipeline, or defensible security-strength model. Trusted devices are explicitly informational.
-2. **Kitchen/rider:** richer merchant-to-customer masked contact, rider-authorized handover request/approval UI contract, stage-specific overdue SLA rules and dashboard growth comparisons remain to be completed or verified. Existing rider pickup workflow remains authoritative.
+2. **Kitchen/rider:** masked *voice calling* (queued SMS messaging exists), rider-authorized handover request/approval UI contract, stage-specific overdue SLA rules and dashboard growth comparisons remain to be completed or verified. Existing rider pickup workflow remains authoritative.
 3. **Inventory:** new manual stock adjustments and threshold alerts do not yet prove automatic stock decrement/reservation against concurrent customer checkout; do not label this "stock-safe ordering" before cross-app tests.
 4. **Finance:** merchant CSV exists; tax-compliant invoices, PDF rendering, historical comparative growth, confirmed future payout scheduling and full refund-aware reconciliation of every new projection need further validation. Upcoming settlement deliberately reports *unconfirmed* where no authoritative schedule exists.
 5. **Merchant roles:** granular custom role editor is not implemented; existing owner/manager/staff hierarchy remains. Granular invitation, owner self-revocation and last-owner security should be verified with tests.
-6. **Map/providers:** integration requires production map/tile credentials and live provider selection. FCM/SMS/email/private bucket/payment gateway settings must be validated in staging, not inferred from provider code.
+6. **Map/providers:** integration requires production map/tile credentials and live provider selection. Notification preferences are **persisted but not yet applied to merchant-wide push/email fan-out**; FCM/SMS/email/private bucket/payment gateway settings must be validated in staging, not inferred from provider code.
 7. **Support:** KB editor/contact directory contracts exist but verified help content/contact info must be provisioned. End-to-end attachment upload, realtime reply notifications and merchant resolution UI binding are Phase 3/4 work.
 8. **Frontend:** all approved screens are still isolated local demo UX. No claim of backend connectivity or end-to-end visual acceptance until Phase 3.
 9. **Runtime:** PostgreSQL migration/authorization CI alone does not prove every new SQL query executes successfully with seeded real orders, invoices, payouts, authentication providers or third-party integrations. Add per-route PostgreSQL integration tests before release.
