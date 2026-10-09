@@ -15,7 +15,7 @@ import {
   Select,
   EmptyState,
 } from '../../../../packages/ui/src/index';
-import { errorMessage } from '../../../../packages/ui/src/workflows';
+import { errorMessage, MetricCard, PageHeading } from '../../../../packages/ui/src/workflows';
 import { useAuth } from '../../../../packages/auth/src/react';
 import {
   Menu,
@@ -79,6 +79,8 @@ export function CatalogueManager({ currentBranchId, branches }: CatalogueManager
 
   // Active category filter
   const [activeCategoryId, setActiveCategoryId] = useState<string>('ALL');
+  const [searchText, setSearchText] = useState('');
+  const [availabilityFilter, setAvailabilityFilter] = useState<'all' | 'available' | 'unavailable'>('all');
 
   // Modals
   const [menuModalOpen, setMenuModalOpen] = useState(false);
@@ -422,14 +424,41 @@ export function CatalogueManager({ currentBranchId, branches }: CatalogueManager
     }
   };
 
-  // Filter items by category
+  // Keep filters aligned with the effective branch availability when overrides are selected.
+  const effectiveAvailable = (item: MenuItem) => {
+    if (catalogueScope === 'base' || !branchCatalogueData) return item.is_available;
+    for (const category of branchCatalogueData.categories || []) {
+      const branchItem = (category.items || []).find((entry: any) => entry.id === item.id);
+      if (branchItem) return Boolean(branchItem.effective_available);
+    }
+    return item.is_available;
+  };
+  const availableCount = items.filter(effectiveAvailable).length;
   const filteredItems = items.filter((item) => {
-    if (activeCategoryId === 'ALL') return true;
-    return item.category_id === activeCategoryId;
+    if (activeCategoryId !== 'ALL' && item.category_id !== activeCategoryId) return false;
+    if (searchText && ![item.name, item.description || '', item.sku || ''].some(value => value.toLowerCase().includes(searchText.toLowerCase()))) return false;
+    if (availabilityFilter === 'available' && !effectiveAvailable(item)) return false;
+    if (availabilityFilter === 'unavailable' && effectiveAvailable(item)) return false;
+    return true;
   });
 
   return (
-    <div className="flex flex-col gap-6 font-sans">
+    <div className="merchant-v2-catalogue flex flex-col gap-6 font-sans">
+      <PageHeading eyebrow="Menu management" title="Menu & availability" subtitle="Manage your food menu, categories, pricing and availability across DeeToo." />
+      <div className="merchant-v2-catalogue-stats">
+        <MetricCard label="Total items" value={items.length} detail={`${availableCount} available · ${items.length - availableCount} unavailable`} />
+        <MetricCard label="Categories" value={categories.length} detail="Organize your menu" />
+        <MetricCard label="Visible to customers" value={availableCount} detail="Items currently available" />
+        <MetricCard label="Unavailable items" value={items.length - availableCount} detail="Items hidden from customers" />
+      </div>
+      <div className="merchant-v2-catalogue-toolbar">
+        <div className="merchant-v2-tabs" aria-label="Filter menu availability">
+          <button type="button" aria-pressed={availabilityFilter === 'all'} onClick={() => setAvailabilityFilter('all')}>All items ({items.length})</button>
+          <button type="button" aria-pressed={availabilityFilter === 'available'} onClick={() => setAvailabilityFilter('available')}>● Available ({availableCount})</button>
+          <button type="button" aria-pressed={availabilityFilter === 'unavailable'} onClick={() => setAvailabilityFilter('unavailable')}>● Unavailable ({items.length - availableCount})</button>
+        </div>
+        <input value={searchText} onChange={event => setSearchText(event.target.value)} type="search" aria-label="Search menu items" placeholder="Search food items..." />
+      </div>
       {/* Top Controls & Navigation Bar */}
       <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs flex flex-wrap items-center justify-between gap-4">
         {/* Left: Menu & Branch Scope Selector */}
@@ -586,7 +615,7 @@ export function CatalogueManager({ currentBranchId, branches }: CatalogueManager
       )}
 
       {/* Main Catalogue Grid Layout: Categories Sidebar + Items Showcase */}
-      <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-start">
+      <div className="merchant-v2-catalogue-grid grid grid-cols-1 md:grid-cols-12 gap-6 items-start">
         {/* Left Column: Categories List (3 cols) */}
         <div className="md:col-span-3 flex flex-col gap-3">
           <div className="bg-white rounded-xl border border-slate-200 shadow-xs p-3">
@@ -705,8 +734,8 @@ export function CatalogueManager({ currentBranchId, branches }: CatalogueManager
             <div className="bg-white rounded-xl border border-slate-200 p-12 text-center">
               <EmptyState
                 icon={Layers}
-                title="No Food Items in this Category"
-                description="Click 'Add Food Item' above to add mouthwatering dishes, prices, descriptions, and modifier options."
+                title="No menu items match your filters"
+                description="Try another category, availability filter or search. You can also add a food item."
               />
             </div>
           ) : (
