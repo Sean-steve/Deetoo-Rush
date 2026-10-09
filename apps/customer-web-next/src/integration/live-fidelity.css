@@ -177,3 +177,33 @@
   .dt-delivered-banner {padding:18px;min-height:150px;}
   .dt-tracking-map-panel .dt-live-order-map-canvas {max-width: calc(100% - 20px);}
 }
+
+/* The approved notification panels must fit phones without horizontal document scroll. */
+@media (max-width: 640px) {
+ .dt-notifications-page,
+ .dt-notifications-page .dt-notify-banner,
+ .dt-notifications-page .dt-notification-columns,
+ .dt-notifications-page .dt-notification-feed,
+ .dt-notifications-page .dt-notification-day,
+ .dt-notifications-page .dt-notification-list,
+ .dt-notifications-page .dt-notification-rail,
+ .dt-notifications-page .dt-notify-settings,
+ .dt-notifications-page .dt-notify-toolbar {
+   min-width: 0;
+   max-width: 100%;
+   width: 100%;
+ }
+ .dt-notifications-page .dt-notification-columns {grid-template-columns: minmax(0,1fr);}
+ .dt-notifications-page .dt-notification-rail {grid-template-columns: minmax(0,1fr);}
+ .dt-notifications-page .dt-notify-banner {grid-template-columns: minmax(0,1fr);}
+ .dt-notifications-page .dt-notification-push-cta {min-width:0;max-width:100%;grid-template-columns:40px minmax(0,1fr);}
+ .dt-notifications-page .dt-notification-push-cta .dt-button {white-space:normal;max-width:100%;}
+ .dt-notifications-page .dt-notify-toolbar > [role=tablist] {width:100%;max-width:100%;min-width:0;overflow-x:auto;overscroll-behavior-x:contain;}
+ .dt-notifications-page .dt-notify-toolbar > input {max-width:100%;width:100%;}
+ .dt-notifications-page .dt-notification-item {min-width:0;max-width:100%;flex-wrap:wrap;overflow-wrap:anywhere;}
+ .dt-notifications-page .dt-notification-item .dt-notification-main {flex:1 1 calc(100% - 75px);min-width:0;overflow-wrap:anywhere;}
+ .dt-notifications-page .dt-notification-item .dt-notification-time {flex:1 1 auto;min-width:0;white-space:normal;text-align:left;}
+ .dt-notifications-page .dt-notification-item .dt-button {min-width:0;flex:0 1 auto;}
+ .dt-notifications-page .dt-notify-preference-row > span:nth-child(2) {min-width:0;overflow-wrap:anywhere;}
+ .dt-notifications-page .dt-notifications-disclaimer {overflow-wrap:anywhere;}
+}
