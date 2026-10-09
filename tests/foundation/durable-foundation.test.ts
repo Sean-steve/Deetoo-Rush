@@ -956,7 +956,7 @@ test('Merchant Phase 2: PostgreSQL branch policies and idempotent inventory comm
     const first=await request(path,'POST',{delta:5,reason:'Initial counted stock',idempotency_key:key});
     assert.equal(first.status,201,await first.text());
     const replay=await request(path,'POST',{delta:5,reason:'Initial counted stock',idempotency_key:key});
-    assert.equal(replay.status,200,await replay.text());
+    assert.equal(replay.status,200,await replay.clone().text());
     assert.equal((await replay.json()).replayed,true);
     const negative=await request(path,'POST',{delta:-6,reason:'Exceeds available stock',idempotency_key:randomUUID()});
     assert.equal(negative.status,409,await negative.text());
