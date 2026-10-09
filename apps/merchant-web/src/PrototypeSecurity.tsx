@@ -1,10 +1,10 @@
 import type { MerchantLiveBridge } from "./MerchantLiveApp";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { AlertTriangle, Bell, Check, ChevronRight, Clock3, KeyRound, Laptop, LockKeyhole, LogOut, Monitor, ShieldCheck, Smartphone, TabletSmartphone, Trash2, UserRound, X } from "lucide-react";
 import { BranchBanner, DemoBadge, DemoCard, DemoHeading } from "./PrototypeBranch";
 
-type Session={id:number;device:string;location:string;time:string;current:boolean;trusted:boolean;browser:string};
-type Login={id:number;date:string;device:string;location:string;status:"Success"|"Failed"};
+type Session={id:number|string;device:string;location:string;time:string;current:boolean;trusted:boolean;browser:string};
+type Login={id:number|string;date:string;device:string;location:string;status:"Success"|"Failed"};
 const sessionSeed:Session[]=[
 {id:1,device:"Linux · Chrome 118.0.0",location:"Kalimoni, Juja, Kenya",time:"Just now",current:true,trusted:true,browser:"desktop"},
 {id:2,device:"Android · Chrome 118.0.0",location:"Juja, Kenya",time:"Oct 9, 2026 10:18 AM",current:false,trusted:true,browser:"phone"},
@@ -19,32 +19,60 @@ const loginSeed:Login[]=[
 function readLocal<T>(key:string,fallback:T):T{try{const val=localStorage.getItem(key);return val?JSON.parse(val) as T:fallback;}catch{return fallback;}}
 export function PrototypeSecurity({store,onNavigate,notify,live}:{store:string;onNavigate:(s:string)=>void;notify:(s:string)=>void;live?:MerchantLiveBridge}){
  const [sessions,setSessions]=useState<Session[]>(()=>readLocal("mp-demo-sessions",sessionSeed));
- const [loginHistory]=useState<Login[]>(loginSeed);
+ const [loginHistory,setHistory]=useState<Login[]>(loginSeed);
  const [historyAll,setHistoryAll]=useState(false);
  const [twoFactor,setTwoFactor]=useState(()=>readLocal("mp-demo-2fa",true));
  const [deactivated,setDeactivated]=useState(()=>readLocal("mp-demo-deactivated",false));
  const [dialog,setDialog]=useState<"password"|"2fa"|"trusted"|"deactivate"|"session"|"history"|"all"|null>(null);
- const [chosen,setChosen]=useState<number|null>(null);
+ const [chosen,setChosen]=useState<string|number|null>(null);
  const [password,setPassword]=useState(""),[confirmPassword,setConfirmPassword]=useState("");
- const saveSessions=(next:Session[])=>{setSessions(next);localStorage.setItem("mp-demo-sessions",JSON.stringify(next));};
- const revoke=(id:number)=>{saveSessions(sessions.filter(x=>x.id!==id));setDialog(null);notify("Session revoked in frontend preview");};
- const logoutAll=()=>{saveSessions([]);setDialog(null);notify("All demo sessions signed out. No real tokens were revoked.");};
- const toggleTrust=(id:number)=>{saveSessions(sessions.map(x=>x.id===id?{...x,trusted:!x.trusted}:x));notify("Device trust changed in frontend preview");};
- const trustedCount=sessions.filter(s=>s.trusted&&!s.current).length;
+ const [currentPassword,setCurrentPassword]=useState(""),[reason,setReason]=useState(""),
+   [totp,setTotp]=useState(""),[mfaSecret,setMfaSecret]=useState(""),
+   [trustedDevices,setTrustedDevices]=useState<any[]>([]),[securityError,setSecurityError]=useState("");
+
+ const loadSecurity=async()=>{if(!live)return;try{
+   const [ss,history,mfa,devices]=await Promise.all([
+     live.api.listSessions(),live.api.request<any>("/auth/security/login-history?limit=30"),
+     live.api.request<any>("/auth/security/mfa/status"),live.api.request<any[]>("/auth/security/trusted-devices")]);
+   setSessions((ss.data||[]).map((x:any)=>({id:x.id,device:x.device_info||"Unknown device",location:x.ip_address||"Unknown location",
+     time:new Date(x.last_used_at||x.created_at).toLocaleString("en-KE"),current:Boolean(x.is_current||x.current),
+     trusted:false,browser:/android|iphone/i.test(x.device_info||"")?"phone":"desktop"})));
+   const hist=(history.data?.sessions||[]).map((x:any)=>({id:x.id,date:new Date(x.created_at).toLocaleString("en-KE"),
+     device:x.device_info||"Unknown device",location:x.ip_address||"Unknown network",status:"Success" as const}));
+   const events=(history.data?.events||[]).map((x:any)=>({id:x.id,date:new Date(x.created_at).toLocaleString("en-KE"),
+     device:x.device_info||x.event_type,location:x.ip_address||"Unknown network",
+     status:x.event_type?.includes("FAILED")?"Failed" as const:"Success" as const}));
+   setHistory([...hist,...events]);setTwoFactor(Boolean(mfa.data.enabled));
+   setTrustedDevices((devices.data||[]).filter((x:any)=>!x.revoked_at));setSecurityError("");
+ }catch(e){setSecurityError(e instanceof Error?e.message:String(e));}};
+ useEffect(()=>{if(live)void loadSecurity();},[live?.branchId]);
+ const securityCommand=async(path:string,method="POST",body?:unknown)=>{
+  if(!live)return;
+  try{await live.api.request(path,{method,body:body===undefined?undefined:JSON.stringify(body)});
+    await loadSecurity();setDialog(null);notify("Security change saved to DeeToo");
+  }catch(e){notify("Unable to update security: "+(e instanceof Error?e.message:String(e)));}
+ };
+
+ const saveSessions=(next:Session[])=>{setSessions(next);if(!live)localStorage.setItem("mp-demo-sessions",JSON.stringify(next));};
+ const revoke=(id:string|number)=>{if(live){void securityCommand(`/auth/sessions/${id}/revoke`);return;}saveSessions(sessions.filter(x=>x.id!==id));setDialog(null);notify("Session revoked in frontend preview");};
+ const logoutAll=()=>{if(live){void live.api.revokeAllSessions().then(()=>live.logout()).catch(e=>notify("Unable to sign out: "+(e instanceof Error?e.message:String(e))));return;}saveSessions([]);setDialog(null);notify("All demo sessions signed out. No real tokens were revoked.");};
+ const toggleTrust=(id:string|number)=>{if(live){notify("Trusted authentication devices are managed below. Verification is required.");setDialog("trusted");return;}saveSessions(sessions.map(x=>x.id===id?{...x,trusted:!x.trusted}:x));notify("Device trust changed in frontend preview");};
+ const trustedCount=live?trustedDevices.length:sessions.filter(s=>s.trusted&&!s.current).length;
  const deviceIcon=(v:string)=>v==="phone"?<Smartphone size={25}/>:<Monitor size={26}/>;
  return <div className="mp-p2">
+  {securityError&&<div role="alert" className="mp-live-error">{securityError}</div>}
   <DemoHeading eyebrow="ACCOUNT" title="Security & sessions" description="Keep your account secure and manage where it is being accessed." action={<BranchBanner store={store} action="Back to dashboard" onAction={()=>onNavigate("orders")}/>} />
   <div className="mp-p2-security-stats">
     <div className="mp-p2-security-stat"><span className="mp-p2-stat-icon mp-green"><ShieldCheck size={27}/></span><div><small>Active sessions</small><strong>{sessions.length}</strong><p>Devices currently signed in</p></div></div>
     <div className="mp-p2-security-stat"><span className="mp-p2-stat-icon mp-blue"><Monitor size={27}/></span><div><small>Trusted devices</small><strong>{trustedCount}</strong><p>Devices you've marked as trusted</p></div></div>
-    <div className="mp-p2-security-stat"><span className="mp-p2-stat-icon mp-blue"><Clock3 size={27}/></span><div><small>Last login</small><strong>Today, 12:24 PM</strong><p>Kalimoni, Juja · Chrome on Linux</p></div></div>
-    <div className="mp-p2-security-stat"><span className="mp-p2-stat-icon mp-orange"><LockKeyhole size={27}/></span><div><small>Security status</small><strong className="mp-p2-security-strong">Strong <span/></strong><p>Illustrative security score</p></div></div>
+    <div className="mp-p2-security-stat"><span className="mp-p2-stat-icon mp-blue"><Clock3 size={27}/></span><div><small>Last login</small><strong>{live?(loginHistory[0]?.date||"No login events"):"Today, 12:24 PM"}</strong><p>{live?(loginHistory[0]?.device||"Device information unavailable"):"Kalimoni, Juja · Chrome on Linux"}</p></div></div>
+    <div className="mp-p2-security-stat"><span className="mp-p2-stat-icon mp-orange"><LockKeyhole size={27}/></span><div><small>Security status</small><strong className="mp-p2-security-strong">{live?(twoFactor?"2FA enabled":"2FA disabled"):"Strong"} <span/></strong><p>{live?"Verified account protection status":"Illustrative security score"}</p></div></div>
   </div>
   <div className="mp-p2-security-grid">
-    <DemoCard><div className="mp-p2-card-head"><div><h2>Active sessions</h2><p>These are the devices currently signed in to your account.</p></div><button className="mp-p2-danger-soft" onClick={()=>setDialog("all")}><LogOut size={15}/> Sign out from all devices</button></div><div className="mp-p2-sessions">{sessions.map(session=><div className={"mp-p2-session "+(session.current?"current":"")} key={session.id}>{deviceIcon(session.browser)}<div><span>{session.current&&<DemoBadge>Current session</DemoBadge>}<strong>{session.device}</strong></span><p>⌖ {session.location} · {session.current?"This device":session.time}</p></div><div className="mp-p2-session-side"><small>{session.time}</small>{session.trusted&&<DemoBadge>{session.current?"Current":"Trusted"}</DemoBadge>}{!session.current&&<button aria-label={"Manage "+session.device} onClick={()=>{setChosen(session.id);setDialog("session");}}>⋮</button>}</div></div>)}{sessions.length===0&&<div className="mp-p2-empty">All preview sessions have been signed out. <button onClick={()=>{saveSessions(sessionSeed);notify("Demo sessions restored");}}>Restore demo sessions</button></div>}</div></DemoCard>
-    <DemoCard><div className="mp-p2-card-head"><div><h2>Login history</h2><p>Recent sign-in activity on your account.</p></div><button className="mp-outline" onClick={()=>setHistoryAll(!historyAll)}>{historyAll?"Show less":"View all"}</button></div><div className="mp-table-scroll"><table><thead><tr><th>Date & time</th><th>Device</th><th>Location</th><th>Status</th><th>Actions</th></tr></thead><tbody>{(historyAll?loginHistory:loginHistory.slice(0,6)).map(row=><tr key={row.id}><td>{row.date}</td><td>{row.device}</td><td>{row.location}</td><td><DemoBadge kind={row.status==="Success"?"green":"red"}>{row.status}</DemoBadge></td><td><button aria-label={"Inspect login "+row.date} onClick={()=>{setChosen(row.id);setDialog("history");}}>⋮</button></td></tr>)}</tbody></table></div><small className="mp-p2-data-note">Illustrative login history, not authenticated security events.</small></DemoCard>
-    <DemoCard><div className="mp-p2-card-head"><div><h2>Security settings</h2><p>Manage your account security preferences.</p></div></div><div className="mp-p2-security-options"><button onClick={()=>setDialog("password")}><LockKeyhole/><span><strong>Change password</strong><small>Update your password regularly to keep your account secure.</small></span><ChevronRight/></button><button onClick={()=>setDialog("2fa")}><ShieldCheck/><span><strong>Two-factor authentication (2FA)</strong><small>Add an extra layer of security to your account.</small></span><DemoBadge>{twoFactor?"Enabled":"Disabled"}</DemoBadge><ChevronRight/></button><button onClick={()=>setDialog("trusted")}><Laptop/><span><strong>Trusted devices</strong><small>Manage devices that you trust and won't require additional verification.</small></span><ChevronRight/></button></div></DemoCard>
-    <DemoCard><div className="mp-p2-card-head"><div><h2 className="mp-p2-danger-title">Danger zone</h2><p>These actions can affect your account access and data.</p></div></div><div className="mp-p2-danger-list"><div><span><Trash2/></span><div><strong>Sign out from all devices</strong><small>This will end all active demo sessions, including your current one.</small></div><button className="mp-p2-danger-button" onClick={()=>setDialog("all")}>Sign out all</button></div><div><span><AlertTriangle/></span><div><strong>{deactivated?"Reactivate account":"Deactivate account"}</strong><small>Temporarily disable your merchant access. You can reactivate it later.</small></div><button className="mp-p2-danger-outline" onClick={()=>setDialog("deactivate")}>{deactivated?"Reactivate":"Deactivate"}</button></div></div></DemoCard>
+    <DemoCard><div className="mp-p2-card-head"><div><h2>Active sessions</h2><p>These are the devices currently signed in to your account.</p></div><button className="mp-p2-danger-soft" onClick={()=>setDialog("all")}><LogOut size={15}/> Sign out from all devices</button></div><div className="mp-p2-sessions">{sessions.map(session=><div className={"mp-p2-session "+(session.current?"current":"")} key={session.id}>{deviceIcon(session.browser)}<div><span>{session.current&&<DemoBadge>Current session</DemoBadge>}<strong>{session.device}</strong></span><p>⌖ {session.location} · {session.current?"This device":session.time}</p></div><div className="mp-p2-session-side"><small>{session.time}</small>{session.trusted&&<DemoBadge>{session.current?"Current":"Trusted"}</DemoBadge>}{!session.current&&<button aria-label={"Manage "+session.device} onClick={()=>{setChosen(session.id);setDialog("session");}}>⋮</button>}</div></div>)}{sessions.length===0&&<div className="mp-p2-empty">{live?"No active sessions reported by the server.":<>All preview sessions have been signed out. <button onClick={()=>{saveSessions(sessionSeed);notify("Demo sessions restored");}}>Restore demo sessions</button></>}</div>}</div></DemoCard>
+    <DemoCard><div className="mp-p2-card-head"><div><h2>Login history</h2><p>Recent sign-in activity on your account.</p></div><button className="mp-outline" onClick={()=>setHistoryAll(!historyAll)}>{historyAll?"Show less":"View all"}</button></div><div className="mp-table-scroll"><table><thead><tr><th>Date & time</th><th>Device</th><th>Location</th><th>Status</th><th>Actions</th></tr></thead><tbody>{(historyAll?loginHistory:loginHistory.slice(0,6)).map(row=><tr key={row.id}><td>{row.date}</td><td>{row.device}</td><td>{row.location}</td><td><DemoBadge kind={row.status==="Success"?"green":"red"}>{row.status}</DemoBadge></td><td><button aria-label={"Inspect login "+row.date} onClick={()=>{setChosen(row.id);setDialog("history");}}>⋮</button></td></tr>)}</tbody></table></div><small className="mp-p2-data-note">{live?"Authenticated user-associated sessions and security events.":"Illustrative login history, not authenticated security events."}</small></DemoCard>
+    <DemoCard><div className="mp-p2-card-head"><div><h2>Security settings</h2><p>Manage your account security preferences.</p></div></div><div className="mp-p2-security-options"><button onClick={()=>setDialog("password")}><LockKeyhole/><span><strong>Change password</strong><small>Update your password regularly to keep your account secure.</small></span><ChevronRight/></button><button onClick={()=>setDialog("2fa")}><ShieldCheck/><span><strong>Two-factor authentication (2FA)</strong><small>Add an extra layer of security to your account.</small></span><DemoBadge>{twoFactor?"Enabled":"Disabled"}</DemoBadge><ChevronRight/></button><button onClick={()=>setDialog("trusted")}><Laptop/><span><strong>Trusted devices</strong><small>Manage remembered devices. Remembering a device never bypasses MFA.</small></span><ChevronRight/></button></div></DemoCard>
+    <DemoCard><div className="mp-p2-card-head"><div><h2 className="mp-p2-danger-title">Danger zone</h2><p>These actions can affect your account access and data.</p></div></div><div className="mp-p2-danger-list"><div><span><Trash2/></span><div><strong>Sign out from all devices</strong><small>{live?"This revokes all active server sessions, including this one.":"This will end all active demo sessions, including your current one."}</small></div><button className="mp-p2-danger-button" onClick={()=>setDialog("all")}>Sign out all</button></div><div><span><AlertTriangle/></span><div><strong>{deactivated?"Reactivate account":"Deactivate account"}</strong><small>{live?"Submit an account deactivation request for administrator review.":"Temporarily disable your merchant access. You can reactivate it later."}</small></div><button className="mp-p2-danger-outline" onClick={()=>setDialog("deactivate")}>{deactivated?"Reactivate":"Deactivate"}</button></div></div></DemoCard>
   </div>
   {dialog&&<div className="mp-modal-overlay" onMouseDown={e=>e.target===e.currentTarget&&setDialog(null)}><section className="mp-modal" role="dialog" aria-modal="true" aria-label={dialog}><div className="mp-modal-head"><h2>{dialog==="password"?"Change password":dialog==="2fa"?"Two-factor authentication":dialog==="trusted"?"Trusted devices":dialog==="deactivate"?(deactivated?"Reactivate account":"Deactivate account"):dialog==="session"?"Manage session":dialog==="history"?"Login event":"Sign out all devices"}</h2><button aria-label="Close" onClick={()=>setDialog(null)}><X/></button></div>
     {dialog==="password"&&<form onSubmit={e=>{e.preventDefault();if(password!==confirmPassword){notify("Passwords must match");return;}setPassword("");setConfirmPassword("");setDialog(null);notify("Demo password form submitted. No credentials changed.");}}><p>Password changes are simulated in this isolated frontend preview. Never use a real password here.</p><label>New demo password<input type="password" autoComplete="new-password" minLength={8} required value={password} onChange={e=>setPassword(e.target.value)}/></label><label>Confirm demo password<input type="password" autoComplete="new-password" minLength={8} required value={confirmPassword} onChange={e=>setConfirmPassword(e.target.value)}/></label><button className="mp-primary mp-full">Save demo password</button></form>}
