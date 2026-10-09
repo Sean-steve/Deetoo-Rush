@@ -47,7 +47,7 @@ function MerchantLiveGate(){
        [authError,setAuthError]=useState(""),[signing,setSigning]=useState(false);
  const [branches,setBranches]=useState<any[]>([]),[branchId,setBranchId]=useState(""),
        [branchBusy,setBranchBusy]=useState(true),[branchError,setBranchError]=useState("");
- const [revision,setRevision]=useState(0),[resources,setResources]=useState<LiveResource>(empty),
+ const [revision,setRevision]=useState(0),[resources,setResources]=useState<LiveResource>(empty),[loadedBranchId,setLoadedBranchId]=useState(""),
        [busy,setBusy]=useState(false),[errors,setErrors]=useState<Record<string,string>>({});
  const refresh=useCallback(()=>setRevision(v=>v+1),[]);
  const run=useCallback(async <T,>(path:string,options:RequestInit={})=>{
@@ -102,7 +102,7 @@ function MerchantLiveGate(){
       }else if(r.status==="rejected")issues.catalogue=message(r.reason);
     });
     patch.categories=categories;patch.items=items;
-    setResources({...empty,...patch});
+    setResources({...empty,...patch});setLoadedBranchId(branchId);
     setErrors(issues);
   }).catch(e=>{if(alive)setErrors({all:message(e)});}).finally(()=>{if(alive)setBusy(false);});
   return()=>{alive=false;};
@@ -115,9 +115,10 @@ function MerchantLiveGate(){
  },[isAuthenticated,branchId,refresh]);
  const branch=branches.find(b=>b.id===branchId)||null;
  const merchantId=String(branch?.merchant_id||user?.merchant_ids?.[0]||"");
+ const currentResource=loadedBranchId===branchId?resources:empty;
  const live=useMemo<MerchantLiveBridge>(()=>({api:apiClient,user,branchId,merchantId,
-    branch,branches,resource:resources,loading:busy,errors,refresh,logout,setBranchId,run}),
-  [apiClient,user,branchId,merchantId,branch,branches,resources,busy,errors,refresh,logout,run]);
+    branch,branches,resource:currentResource,loading:busy||loadedBranchId!==branchId,errors:loadedBranchId===branchId?errors:{},refresh,logout,setBranchId,run}),
+  [apiClient,user,branchId,merchantId,branch,branches,currentResource,busy,loadedBranchId,errors,refresh,logout,run]);
  if(isLoading)return <main className="mp-live-gate" role="status">Checking your Merchant session…</main>;
  if(!isAuthenticated)return <main className="mp-live-gate"><div className="mp-live-auth">
    <div className="mp-live-brand">▰ DeeToo <small>Merchant</small></div>
