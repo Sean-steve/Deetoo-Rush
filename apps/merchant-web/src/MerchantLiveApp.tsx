@@ -3,6 +3,7 @@ import { AuthProvider, useAuth } from "../../../packages/auth/src/react";
 import type { DeetooApiClient } from "../../../packages/api-client/src";
 import MerchantPrototype from "./MerchantPrototype";
 import { MerchantApp } from "../../merchant/src/MerchantApp";
+import { normalizeMerchantBranchError, merchantErrorMessage, type MerchantBranchError } from "./merchant-branch-errors";
 
 export type LiveResource = {
   orders: any[];
@@ -36,7 +37,7 @@ export type MerchantLiveBridge={
   setBranchId:(id:string)=>void;
   run:<T=any>(path:string,options?:RequestInit)=>Promise<T>;
 };
-function message(e:unknown){return e instanceof Error?e.message:String(e);}
+const message = merchantErrorMessage;
 const encode=(s:string)=>encodeURIComponent(s);
 /** Browser cookies/CSRF are managed by the shared client; never store tokens in localStorage. */
 export function MerchantLiveApp(){
@@ -47,7 +48,8 @@ function MerchantLiveGate(){
  const [identifier,setIdentifier]=useState(""),[password,setPassword]=useState(""),
        [authError,setAuthError]=useState(""),[signing,setSigning]=useState(false);
  const [branches,setBranches]=useState<any[]>([]),[branchId,setBranchId]=useState(""),
-       [branchBusy,setBranchBusy]=useState(true),[branchError,setBranchError]=useState("");
+       [branchBusy,setBranchBusy]=useState(true),[branchError,setBranchError]=useState<MerchantBranchError|null>(null),
+       [branchRetry,setBranchRetry]=useState(0);
  const [revision,setRevision]=useState(0),[resources,setResources]=useState<LiveResource>(empty),[loadedBranchId,setLoadedBranchId]=useState(""),
        [busy,setBusy]=useState(false),[errors,setErrors]=useState<Record<string,string>>({});
  const refresh=useCallback(()=>setRevision(v=>v+1),[]);
@@ -57,14 +59,18 @@ function MerchantLiveGate(){
  },[apiClient,refresh]);
  const authorized=Boolean(user?.roles?.some((x:string)=>["merchant","merchant_owner","merchant_manager","merchant_staff","admin"].includes(x)));
  useEffect(()=>{
-  if(!isAuthenticated||!authorized){setBranches([]);setBranchBusy(false);return;}
-  let alive=true;setBranchBusy(true);setBranchError("");
+  if(!isAuthenticated||!authorized){setBranches([]);setBranchId("");setBranchError(null);setBranchBusy(false);return;}
+  let alive=true;setBranchBusy(true);setBranchError(null);
   apiClient.request<any[]>("/merchant/branches").then(({data})=>{
-    if(!alive)return;setBranches(Array.isArray(data)?data:[]);
-    setBranchId(previous=>(data||[]).some((b:any)=>b.id===previous)?previous:data?.[0]?.id||"");
-  }).catch(e=>{if(alive){setBranchError(message(e));setBranches([]);}}).finally(()=>{if(alive)setBranchBusy(false);});
+    if(!alive)return;
+    // Never turn a malformed API response into "no branches" or a made-up success.
+    if(!Array.isArray(data))throw new Error("The Merchant branch service returned an invalid response. Retry or contact support.");
+    setBranches(data);
+    setBranchId(previous=>data.some((b:any)=>b.id===previous)?previous:data[0]?.id||"");
+  }).catch(e=>{if(alive){setBranchError(normalizeMerchantBranchError(e));setBranches([]);setBranchId("");}})
+    .finally(()=>{if(alive)setBranchBusy(false);});
   return()=>{alive=false;};
- },[apiClient,isAuthenticated,authorized,revision]);
+ },[apiClient,isAuthenticated,authorized,revision,branchRetry]);
  useEffect(()=>{
   if(!isAuthenticated||!authorized||!branchId)return;
   let alive=true;setBusy(true);
@@ -135,10 +141,14 @@ function MerchantLiveGate(){
  if(!authorized)return <main className="mp-live-gate"><h1>Merchant access required</h1>
    <p>Your account does not have an authorized Merchant role.</p><button onClick={()=>void logout()}>Sign out</button></main>;
  if(branchBusy)return <main className="mp-live-gate" role="status">Loading authorized branches…</main>;
- if(branchError)return <main className="mp-live-gate" role="alert"><h1>Unable to load branches</h1><p>{branchError}</p>
-  <button onClick={()=>window.location.reload()}>Retry</button></main>;
- if(!branch)return <main className="mp-live-gate"><h1>No branch access</h1>
-  <p>Your Merchant account does not currently have an assigned branch. Ask the owner or an administrator to assign one.</p>
+ if(branchError)return <main className="mp-live-gate" role="alert"><h1>{branchError.title}</h1><p>{branchError.message}</p>
+  {branchError.referenceId&&<p><small>Support reference: {branchError.referenceId}</small></p>}
+  <button onClick={()=>setBranchRetry(v=>v+1)}>Retry branch connection</button>
+  {branchError.kind==="membership"&&<button type="button" onClick={()=>void logout()}>Sign out</button>}
+ </main>;
+ if(!branch)return <main className="mp-live-gate"><h1>No branches available</h1>
+  <p>Your Merchant organization has no branches assigned to this account yet. An owner or administrator must provision a branch or assign your account to an existing branch.</p>
+  <button onClick={()=>setBranchRetry(v=>v+1)}>Refresh branches</button>
   <button onClick={()=>void logout()}>Sign out</button></main>;
  return <MerchantPrototype live={live}/>;
 }

@@ -63,6 +63,44 @@ test('Merchant Web authenticates independently and reaches merchant-scoped APIs'
   await context.close();
 });
 
+test('Merchant branch failures display DeeToo error messages and recover without reload', async ({ browser }) => {
+  const context=await browser.newContext();
+  const page=await context.newPage();
+  let fail=true;
+  await page.route('**/api/v1/merchant/branches',async route=>{
+    if(fail)await route.fulfill({status:503,contentType:'application/json',body:JSON.stringify({error:{code:'BRANCH_UNAVAILABLE',message:'Branch catalogue is temporarily unavailable',request_id:'req_merchant_regression'}})});
+    else await route.continue();
+  });
+  await page.goto('http://127.0.0.1:5174');
+  await page.locator('.mp-live-auth input[autocomplete="username"]').fill('merchant@deetoo.ke');
+  await page.locator('.mp-live-auth input[type="password"]').fill('MerchantPass123!');
+  await page.getByRole('button',{name:'Sign in',exact:true}).click();
+  await expect(page.getByRole('heading',{name:'Unable to load branches'})).toBeVisible();
+  await expect(page.getByText('Branch catalogue is temporarily unavailable')).toBeVisible();
+  await expect(page.getByText('Support reference: req_merchant_regression')).toBeVisible();
+  await expect(page.getByText('[object Object]')).toHaveCount(0);
+  fail=false;
+  await page.getByRole('button',{name:'Retry branch connection'}).click();
+  await expect(page.locator('.mp-sidebar')).toBeVisible({timeout:20000});
+  await context.close();
+});
+
+test('Merchant account without membership shows an assignment path, never a fabricated branch',async({browser})=>{
+  const context=await browser.newContext();
+  const page=await context.newPage();
+  await page.route('**/api/v1/merchant/branches',async route=>
+    route.fulfill({status:403,contentType:'application/json',body:JSON.stringify({error:{code:'NO_MERCHANT_MEMBERSHIP',message:'User is not associated with any merchant organization',request_id:'req_merchant_membership'}})}));
+  await page.goto('http://127.0.0.1:5174');
+  await page.locator('.mp-live-auth input[autocomplete="username"]').fill('merchant@deetoo.ke');
+  await page.locator('.mp-live-auth input[type="password"]').fill('MerchantPass123!');
+  await page.getByRole('button',{name:'Sign in',exact:true}).click();
+  await expect(page.getByRole('heading',{name:'Merchant organization access required'})).toBeVisible();
+  await expect(page.getByText(/no active Merchant organization membership/)).toBeVisible();
+  await expect(page.getByText('[object Object]')).toHaveCount(0);
+  await expect(page.locator('.mp-sidebar')).toHaveCount(0);
+  await context.close();
+});
+
 test('Admin Web authenticates independently and reaches admin-scoped APIs', async ({ browser }) => {
   const context = await browser.newContext();
   const page = await context.newPage();
