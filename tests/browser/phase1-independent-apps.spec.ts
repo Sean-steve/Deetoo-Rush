@@ -53,7 +53,7 @@ test('Merchant Web authenticates independently and reaches merchant-scoped APIs'
   await page.locator('input[type="password"]').fill('MerchantPass123!');
   await page.getByRole('button', { name: 'Sign in', exact: true }).click();
 
-  await expect(page.locator('.mp-live-auth')).toHaveCount(0);
+  await expect(page.locator('.mp-sidebar')).toBeVisible({timeout:20_000});
   await expectSecureWebSession(context);
 
   const status = await page.evaluate(async () => (await fetch('/api/v1/merchant/branches')).status);
