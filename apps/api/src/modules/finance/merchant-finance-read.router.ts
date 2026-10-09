@@ -6,6 +6,7 @@ import { ownMerchant, durable, datesSchema, pageSchema } from '../merchant/merch
 import { merchantScope, branchScope } from '../auth/scope';
 import { ledgerRepository } from './ledger.repository';
 import { AppError } from '../../middleware/error-handler';
+import { requireMerchantCapability } from '../merchant/merchant-role-policy.service';
 import { renderMerchantSettlementPdf } from './merchant-statement-pdf';
 export const merchantFinanceReadRouter=Router();
 merchantFinanceReadRouter.use(requireAuth);
@@ -19,6 +20,7 @@ async function financeScope(req:AuthenticatedRequest,branchId?:string){
     const row=await durable().query('SELECT 1 FROM merchant_branches WHERE id=$1 AND merchant_id=$2',[branchId,id]);
     if(!row.rowCount)throw new AppError(403,'FINANCE_BRANCH_FORBIDDEN','Branch does not belong to merchant');
   }
+  await requireMerchantCapability(req.user!.id,id,'FINANCE_READ');
   return id;
 }
 merchantFinanceReadRouter.get('/overview',run(async(req,res)=>{
