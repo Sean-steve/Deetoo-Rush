@@ -43,6 +43,7 @@ const ROUTERS: RouterConfig[] = [
   { file: 'apps/api/src/modules/merchant/merchant.router.ts', varName: 'merchantRouter', prefix: '/merchant' },
   { file: 'apps/api/src/modules/merchant/merchant-experience.router.ts', varName: 'merchantExperienceRouter', prefix: '/merchant/experience' },
   { file: 'apps/api/src/modules/merchant/merchant-inventory.router.ts', varName: 'merchantInventoryRouter', prefix: '/merchant/experience' },
+  { file: 'apps/api/src/modules/merchant/merchant-contact.router.ts', varName: 'merchantContactRouter', prefix: '/merchant/experience' },
   { file: 'apps/api/src/modules/finance/merchant-finance-read.router.ts', varName: 'merchantFinanceReadRouter', prefix: '/finance/merchant/experience' },
   { file: 'apps/api/src/modules/auth/merchant-security.router.ts', varName: 'merchantSecurityRouter', prefix: '/auth/security' },
   { file: 'apps/api/src/modules/operations/merchant-inbox.router.ts', varName: 'merchantInboxRouter', prefix: '/merchant/inbox' },
