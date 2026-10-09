@@ -110,6 +110,7 @@ export function KitchenOrders({ branchId }: { branchId: string }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [soundEnabled, setSoundEnabled] = useState(false);
+  const [stageFilter, setStageFilter] = useState("all");
   const [now, setNow] = useState(Date.now());
   const audioContextRef = useRef<AudioContext | null>(null);
   const previousPlacedCountRef = useRef<number | null>(null);
@@ -207,6 +208,7 @@ export function KitchenOrders({ branchId }: { branchId: string }) {
       ["ACCEPTED", "PREPARING"].includes(order.status),
     );
     const ready = liveOrders.filter((order) => order.status === "READY");
+    const completed = liveOrders.filter((order) => ["PICKED_UP", "DELIVERED", "COMPLETED"].includes(order.status));
     const pastTarget = preparing.filter(
       (order) =>
         order.estimated_ready_at &&
@@ -226,6 +228,7 @@ export function KitchenOrders({ branchId }: { branchId: string }) {
       newOrders,
       preparing,
       ready,
+      completed,
       pastTarget,
       averagePrep,
     };
@@ -248,10 +251,17 @@ export function KitchenOrders({ branchId }: { branchId: string }) {
     },
     {
       id: "ready",
-      title: "Ready",
-      subtitle: "Handover to Rider",
+      title: "Ready for pickup",
+      subtitle: "Waiting for Rider",
       icon: PackageCheck,
       states: ["READY"],
+    },
+    {
+      id: "completed",
+      title: "Completed",
+      subtitle: "Picked up & delivered",
+      icon: PackageCheck,
+      states: ["PICKED_UP", "DELIVERED", "COMPLETED"],
     },
   ];
 
@@ -260,7 +270,7 @@ export function KitchenOrders({ branchId }: { branchId: string }) {
       <PageHeading
         title="Kitchen orders"
         eyebrow="Live service"
-        subtitle="Work from left to right. Oldest and past-target orders are surfaced first."
+        subtitle="Prepare and manage incoming orders in real time. Oldest orders appear first."
         action={
           <div className="flex flex-wrap gap-2">
             {!soundEnabled ? (
@@ -318,25 +328,30 @@ export function KitchenOrders({ branchId }: { branchId: string }) {
             detail="Waiting for Rider pickup"
           />
           <MetricCard
-            label="Past target"
-            value={summary.pastTarget.length}
-            detail={
-              summary.pastTarget.length
-                ? "Prioritize these orders"
-                : "Preparation targets healthy"
-            }
-            status={
-              summary.pastTarget.length ? (
-                <StatusBadge status="OVERDUE" tone="danger" />
-              ) : (
-                <StatusBadge status="CLEAR" tone="success" />
-              )
-            }
+            label="Avg. prep time"
+            value={summary.averagePrep == null ? "—" : `${summary.averagePrep} min`}
+            detail="Based on current preparation targets"
           />
         </div>
 
+        <div className="merchant-v2-filter-bar">
+          <div className="merchant-v2-tabs" aria-label="Filter kitchen orders">
+            {[
+              ["all", "All", liveOrders.length],
+              ["new", "New", summary.newOrders.length],
+              ["preparing", "Preparing", summary.preparing.length],
+              ["ready", "Ready", summary.ready.length],
+              ["completed", "Completed", summary.completed.length],
+            ].map(([value, label, count]) => (
+              <button key={value} type="button" aria-pressed={stageFilter === value} onClick={() => setStageFilter(String(value))}>
+                {label} ({count})
+              </button>
+            ))}
+          </div>
+          <div className="merchant-v2-filter-meta" role="status">{summary.pastTarget.length ? `${summary.pastTarget.length} past preparation target` : "Preparation targets healthy"} · Oldest first</div>
+        </div>
         <div className="kitchen-board merchant-kitchen-board">
-          {columns.map((column) => {
+          {columns.filter((column) => stageFilter === "all" || column.id === stageFilter).map((column) => {
             const rows = liveOrders
               .filter((order) => column.states.includes(order.status))
               .sort((a, b) => {
@@ -511,8 +526,8 @@ export function KitchenOrders({ branchId }: { branchId: string }) {
 
                 {orders.data && !rows.length && (
                   <EmptyState
-                    title="Queue clear"
-                    description="Orders in this stage will appear here."
+                    title={column.id === "completed" ? "No completed orders yet" : "Queue clear"}
+                    description={column.id === "completed" ? "Orders will appear here after pickup." : "Orders in this stage will appear here."}
                     icon={UtensilsCrossed}
                   />
                 )}
