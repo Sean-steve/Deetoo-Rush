@@ -271,6 +271,10 @@ export class OrderRepository {
         client.release();
       }
     } catch (err: any) {
+      if (config.storage.mode !== 'memory') {
+        if (err instanceof AppError) throw err;
+        throw new AppError(503,'DURABLE_STORAGE_REQUIRED','Order persistence failed; no inventory was reserved');
+      }
       allowMemoryAdapter();
       logger.warn('Order persisted to memory store (PostgreSQL unavailable or offline)', {
         service: 'order-repo',
