@@ -83,6 +83,9 @@ jobs:
       - name: Build Customer Web independently
         run: pnpm build:customer
 
+      - name: Build design-first Customer Web preview independently
+        run: pnpm build:customer-next
+
       - name: Build Merchant Web independently
         run: pnpm build:merchant
 
@@ -125,6 +128,8 @@ jobs:
           node-version: 22
       - run: pnpm install --frozen-lockfile
       - run: pnpm test:foundation
+      - name: Verify paid-order capture and checkout inventory holds
+        run: pnpm test:paid-order
 
   code-analysis:
     name: CodeQL security analysis
@@ -165,3 +170,117 @@ jobs:
 
       - name: Verify independent web auth and role isolation
         run: pnpm test:phase1-browser
+
+      - name: Verify design-first customer preview and capture reference viewport
+        run: pnpm test:customer-next-visual
+
+      - name: Verify Phase B2 API-connected customer shopping with mocked backend contracts
+        run: pnpm test:customer-next-connected
+
+      - name: Upload design-first customer screenshots and geometry
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: customer-next-visual-preview
+          path: visual-output/customer-next/
+          if-no-files-found: warn
+          retention-days: 10
+
+
+      - name: Upload approved Merchant live-screen visual evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: merchant-live-eight-screen-captures
+          path: test-results/**/merchant-live-*.png
+          if-no-files-found: warn
+          retention-days: 14
+
+
+  customer-shopping-real-services:
+    name: Real PostGIS Redis API shopping journey (local payment only)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgis/postgis:16-3.4
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: isolated_acceptance_only
+          POSTGRES_DB: deetoo_foundation_shopping
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d deetoo_foundation_shopping"
+          --health-interval 5s --health-timeout 5s --health-retries 15
+      redis:
+        image: redis:7
+        ports:
+          - 6379:6379
+    env:
+      NODE_ENV: test
+      APP_ENV: test
+      DEETOO_STORAGE_MODE: postgres
+      DEETOO_FIXTURES: 'false'
+      # Synthetic payment is exclusively allowed for isolated local/test DBs;
+      # this job is NOT a Safaricom staging certification.
+      DEETOO_LOCAL_WORKFLOW: 'true'
+      DATABASE_URL: postgres://postgres:isolated_acceptance_only@127.0.0.1:5432/deetoo_foundation_shopping
+      REDIS_URL: redis://127.0.0.1:6379/13
+      JWT_SECRET: CI_only_random_environment_not_for_deploy_deetoo_2026
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.17.1
+          run_install: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: pnpm install --frozen-lockfile
+      - name: Exercise real API, PostgreSQL/PostGIS, Redis, checkout and payment worker
+        run: pnpm test:customer-next-real-services
+
+
+  customer-delivery-real-services:
+    name: Real PostGIS Redis Merchant-Rider-Delivery journey (local payment only)
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    services:
+      postgres:
+        image: postgis/postgis:16-3.4
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: isolated_delivery_only
+          POSTGRES_DB: deetoo_foundation_delivery
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d deetoo_foundation_delivery"
+          --health-interval 5s --health-timeout 5s --health-retries 15
+      redis:
+        image: redis:7
+        ports:
+          - 6379:6379
+    env:
+      NODE_ENV: test
+      APP_ENV: test
+      DEETOO_STORAGE_MODE: postgres
+      DEETOO_FIXTURES: 'false'
+      # Explicit synthetic local-only payments: never a Safaricom staging claim.
+      DEETOO_LOCAL_WORKFLOW: 'true'
+      DATABASE_URL: postgres://postgres:isolated_delivery_only@127.0.0.1:5432/deetoo_foundation_delivery
+      REDIS_URL: redis://127.0.0.1:6379/14
+      JWT_SECRET: CI_only_random_environment_not_for_deploy_deetoo_2026
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.17.1
+          run_install: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: pnpm install --frozen-lockfile
+      - name: Validate real database payment, merchant fulfilment, rider dispatch, pickup OTP and delivered completion
+        run: pnpm test:local-workflow

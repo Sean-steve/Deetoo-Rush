@@ -909,3 +909,104 @@ test('Phase 3 Merchant cannot advance to LIVE before onboarding readiness is com
   assert.equal(merchant.status, 'DISABLED');
   assert.equal(merchant.approval_status, 'DRAFT');
 });
+
+
+test('Merchant Phase 2: PostgreSQL branch policies and idempotent inventory commands honor owner scope', async () => {
+  const { createApp } = await import('../../apps/api/src/app');
+  const { signAccessToken } = await import('../../packages/auth/src/crypto');
+  const http = await import('node:http');
+  const { MembershipRole, MembershipStatus } = await import('@deetoo/types');
+  const db = getDbPool();
+  const [branch] = (await db.query('SELECT id,merchant_id FROM merchant_branches ORDER BY id LIMIT 1')).rows;
+  assert.ok(branch,'Merchant fixture branch must exist');
+  const userId=randomUUID(),sessionId=randomUUID();
+  await authRepository.createUser({id:userId,email:userId+'@merchant.test',password_hash:'not-used',status:UserStatus.ACTIVE});
+  await authRepository.setUserRoles(userId,[UserRole.MERCHANT_OWNER,UserRole.MERCHANT]);
+  await merchantRepository.createMembership({id:randomUUID(),merchant_id:branch.merchant_id,user_id:userId,
+    user_email:userId+'@merchant.test',role_code:MembershipRole.MERCHANT_OWNER,
+    status:MembershipStatus.ACTIVE,branch_ids:[],created_at:new Date().toISOString()});
+  await authRepository.createSession({id:sessionId,user_id:userId,refresh_token_hash:randomUUID(),
+    expires_at:new Date(Date.now()+3600000)});
+  const token=signAccessToken({sub:userId,sessionId});
+  const srv=http.createServer(createApp());
+  await new Promise<void>(resolve=>srv.listen(0,'127.0.0.1',resolve));
+  const base='http://127.0.0.1:'+(srv.address() as any).port+'/api/v1';
+  const request=(path:string,method='GET',body?:unknown)=>fetch(base+path,{method,
+    headers:{Authorization:'Bearer '+token,'Content-Type':'application/json',Connection:'close'},
+    ...(method!=='GET'?{body:JSON.stringify(body??{})}:{})});
+  try {
+    const url='/merchant/experience/branches/'+branch.id;
+    const initial=await request(url+'/policies');
+    assert.equal(initial.status,200,await initial.text());
+    const updated=await request(url+'/policies','PUT',{delivery_enabled:false,pickup_enabled:false,dine_in_enabled:false,
+      table_qr_enabled:false,max_concurrent_orders:20});
+    assert.equal(updated.status,200,await updated.text());
+    const { merchantService }=await import('../../apps/api/src/modules/merchant/merchant.service');
+    const availability=await merchantService.evaluateBranchAvailability(branch.id);
+    assert.equal(availability.is_available,false);
+    assert.ok(availability.reasons.some(x=>x.includes('disabled delivery')));
+
+    const menu=randomUUID(),category=randomUUID(),item=randomUUID();
+    await db.query("INSERT INTO menus(id,branch_id,merchant_id,name,status) VALUES($1,$2,$3,'Stock demo','ACTIVE')",
+      [menu,branch.id,branch.merchant_id]);
+    await db.query("INSERT INTO menu_categories(id,menu_id,name) VALUES($1,$2,'Test')",[category,menu]);
+    await db.query("INSERT INTO menu_items(id,menu_id,category_id,name,price_minor) VALUES($1,$2,$3,'Stock item',10000)",
+      [item,menu,category]);
+    const path=url+'/inventory/'+item+'/adjust',key=randomUUID();
+    const first=await request(path,'POST',{delta:5,reason:'Initial counted stock',idempotency_key:key});
+    assert.equal(first.status,201,await first.text());
+    const replay=await request(path,'POST',{delta:5,reason:'Initial counted stock',idempotency_key:key});
+    assert.equal(replay.status,200,await replay.clone().text());
+    assert.equal((await replay.json()).replayed,true);
+    const negative=await request(path,'POST',{delta:-6,reason:'Exceeds available stock',idempotency_key:randomUUID()});
+    assert.equal(negative.status,409,await negative.text());
+    assert.equal((await db.query('SELECT quantity FROM merchant_item_inventory WHERE branch_id=$1 AND item_id=$2',
+      [branch.id,item])).rows[0].quantity,5);
+  } finally {
+    srv.closeAllConnections();
+    await new Promise<void>(resolve=>srv.close(()=>resolve()));
+  }
+});
+
+test('Merchant Phase 2: shared notification read state is isolated per staff viewer', async () => {
+  const db=getDbPool();
+  const users=(await db.query('SELECT id FROM users ORDER BY id LIMIT 2')).rows;
+  assert.ok(users.length>=2);
+  const id=randomUUID();
+  await db.query(`INSERT INTO notifications(id,recipient_type,recipient_id,channel,template_code,idempotency_key)
+    VALUES($1,'MERCHANT',$2,'IN_APP','TEST_MERCHANT',$3)`,[id,users[0].id,'phase2-'+id]);
+  await db.query('INSERT INTO merchant_notification_views(notification_id,user_id,read_at) VALUES($1,$2,NOW())',
+    [id,users[0].id]);
+  const state=await db.query(`SELECT u.id,v.read_at FROM users u
+    LEFT JOIN merchant_notification_views v ON v.user_id=u.id AND v.notification_id=$1
+    WHERE u.id=ANY($2::uuid[]) ORDER BY u.id`,[id,users.map(x=>x.id)]);
+  assert.equal(state.rows.filter(x=>x.read_at!==null).length,1);
+});
+
+
+test('Merchant role controls are restrictive, durable, and never grant forbidden platform capabilities',async()=>{
+  const {requireMerchantCapability,effectiveMerchantCapabilities}=await import('../../apps/api/src/modules/merchant/merchant-role-policy.service');
+  const db=getDbPool(),record=await db.query('SELECT id FROM merchants ORDER BY id LIMIT 1');
+  assert.ok(record.rows.length>0);
+  const merchantId=record.rows[0].id,owner=randomUUID(),manager=randomUUID();
+  for(const id of [owner,manager]){
+    await authRepository.createUser({id,email:id+'@example.test',password_hash:'unused',status:UserStatus.ACTIVE});
+    await authRepository.setUserRoles(id,[id===owner?UserRole.MERCHANT_OWNER:UserRole.MERCHANT_MANAGER]);
+    await merchantRepository.createMembership({id:randomUUID(),user_id:id,merchant_id:merchantId,
+      role_code:id===owner?'merchant_owner':'merchant_manager',status:'ACTIVE',
+      branch_ids:[],created_at:new Date().toISOString()} as any);
+  }
+  await requireMerchantCapability(manager,merchantId,'MENU_WRITE');
+  await db.query(`INSERT INTO merchant_role_capability_controls(merchant_id,role_code,capability,allowed,updated_by)
+    VALUES($1,'merchant_manager','MENU_WRITE',FALSE,$2)`,[merchantId,owner]);
+  await assert.rejects(requireMerchantCapability(manager,merchantId,'MENU_WRITE'),{code:'MERCHANT_CAPABILITY_DISABLED'});
+  await requireMerchantCapability(manager,merchantId,'ORDERS_WRITE');
+  const matrix=await effectiveMerchantCapabilities(merchantId);
+  assert.equal((matrix as any).merchant_manager.MENU_WRITE.allowed,false);
+  assert.equal((matrix as any).merchant_manager.MENU_WRITE.editable,true);
+  assert.equal((matrix as any).merchant_staff.FINANCE_READ.platform_allowed,false);
+  assert.equal((matrix as any).merchant_owner.ORDERS_WRITE.editable,false);
+  await db.query(`UPDATE merchant_role_capability_controls SET allowed=TRUE WHERE merchant_id=$1
+    AND role_code='merchant_manager' AND capability='MENU_WRITE'`,[merchantId]);
+  await requireMerchantCapability(manager,merchantId,'MENU_WRITE');
+});

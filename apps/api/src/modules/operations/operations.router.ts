@@ -571,6 +571,18 @@ operationsRouter.post(
 );
 
 operationsRouter.post(
+  "/support/cases/:id/finalize",
+  requireAuth,
+  async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      const viewer = buildViewer(req);
+      const updated = await supportService.finalizeConfirmedCase(req.params.id, viewer);
+      res.json({ success: true, data: updated });
+    } catch (err) { next(err); }
+  },
+);
+
+operationsRouter.post(
   "/support/cases/:id/force-close",
   requireAuth,
   requireRole("super_admin"),

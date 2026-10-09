@@ -1,0 +1,24 @@
+/* Developer-only connection screen, separate from the approved visual design. */
+.dt-foundation-page {min-height:100dvh;background:#f0f8f4;display:grid;place-items:center;padding:24px;font-family:Inter,system-ui,sans-serif;color:#112536}
+.dt-foundation-card {background:white;border:1px solid #d4e8dd;box-shadow:0 18px 60px #123d2620;width:min(650px,100%);border-radius:20px;padding:clamp(20px,4vw,40px);display:grid;gap:17px}
+.dt-foundation-card header {display:flex;align-items:center;gap:12px;color:#007945;font-weight:750;font-size:13px}
+.dt-foundation-logo {background:#00a768;color:white;display:grid;place-items:center;height:41px;width:41px;border-radius:12px}
+.dt-foundation-card h1 {font-size:clamp(24px,4vw,34px);letter-spacing:-.9px;margin:0}
+.dt-foundation-card p {color:#536d80;line-height:1.5;font-size:14px;margin:0}
+.dt-foundation-card .dt-foundation-description {border-left:3px solid #00a366;padding:9px 12px;background:#f0fcf5}
+.dt-foundation-card form {display:grid;gap:14px}
+.dt-foundation-card form label {display:grid;gap:7px;color:#344f61;font-size:13px;font-weight:750}
+.dt-foundation-card input {width:100%;border:1px solid #c8dfd5;border-radius:10px;padding:12px;font:inherit}
+.dt-foundation-card :is(button,input):focus-visible {outline:3px solid #21bd75;outline-offset:3px}
+.dt-foundation-card button {display:inline-flex;justify-content:center;align-items:center;gap:8px;border:0;border-radius:11px;background:#009d60;color:#fff;padding:12px 17px;font-size:13px;font-weight:800;cursor:pointer}
+.dt-foundation-card button:disabled {opacity:.6;cursor:wait}
+.dt-foundation-actions {display:flex;flex-wrap:wrap;gap:9px}
+.dt-foundation-actions button:last-child {background:#f1f7f4;color:#007d52}
+.dt-foundation-card .dt-foundation-error {color:#b91c1c;background:#fff2f2;padding:10px;border-radius:8px}
+.dt-foundation-success {display:flex;align-items:center;gap:8px;color:#067544;font-size:14px;font-weight:800}
+.dt-foundation-probes {display:grid;gap:0;margin:0}
+.dt-foundation-probes>div {display:flex;justify-content:space-between;gap:15px;padding:13px 0;border-top:1px solid #e8efec;font-size:13px}
+.dt-foundation-probes dt {font-weight:750}
+.dt-foundation-probes dd {margin:0;color:#536d80;max-width:60%;text-align:right}
+.dt-foundation-card footer {display:flex;align-items:center;gap:8px;color:#667f73;font-size:11px;border-top:1px solid #edf4f0;padding-top:15px}
+@media(prefers-reduced-motion:reduce){.dt-foundation-card *{scroll-behavior:auto!important;transition:none!important}}

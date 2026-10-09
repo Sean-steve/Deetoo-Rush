@@ -28,6 +28,7 @@ import { AppError } from "../../middleware/error-handler";
 import { authRepository } from "../auth/auth.repository";
 import { merchantRepository } from "./merchant.repository";
 import { getDbPool } from "../../db/client";
+import { config } from "@deetoo/config";
 
 export class MerchantService {
   // ==========================================
@@ -227,7 +228,33 @@ export class MerchantService {
       );
     }
 
+    // Merchant service/ordering policies have server-side effect, not just UI toggles.
+    // This engine currently governs the delivery checkout channel. Pickup/QR flows
+    // must acquire their own fulfillment-specific checkout contracts before launch.
+    let allowsDelivery = true;
+    let withinCapacity = true;
+    if (config.storage.mode === "postgres") {
+      const policy = await getDbPool().query(
+        "SELECT delivery_enabled,max_concurrent_orders FROM merchant_branch_policies WHERE branch_id=$1",
+        [branchId],
+      );
+      if (policy.rows[0]) {
+        allowsDelivery = Boolean(policy.rows[0].delivery_enabled);
+        if (!allowsDelivery) reasons.push("Merchant has disabled delivery for this branch");
+        const active = await getDbPool().query(`
+          SELECT COUNT(*)::int AS count FROM orders o
+          JOIN payment_capture_evidence e ON e.order_id=o.id
+          WHERE o.branch_id=$1 AND o.status IN ('PLACED','ACCEPTED','PREPARING','READY')`,
+          [branchId],
+        );
+        withinCapacity = Number(active.rows[0]?.count || 0) < Number(policy.rows[0].max_concurrent_orders);
+        if (!withinCapacity) reasons.push("Branch has reached its concurrent order limit");
+      }
+    }
+
     const isAvailable =
+      allowsDelivery &&
+      withinCapacity &&
       merchantApproved &&
       merchantActive &&
       branchActive &&
@@ -796,11 +823,11 @@ export class MerchantService {
       );
     }
 
-    if (isManager && params.role_code === MembershipRole.MERCHANT_OWNER) {
+    if (isManager && params.role_code !== MembershipRole.MERCHANT_STAFF) {
       throw new AppError(
         403,
         "FORBIDDEN_OPERATION",
-        "Managers cannot invite merchant owners",
+        "Managers may only invite branch staff; owner approval is required for elevated roles",
       );
     }
 
@@ -945,6 +972,16 @@ export class MerchantService {
       throw new AppError(404, "MEMBERSHIP_NOT_FOUND", "Membership not found");
     }
 
+    if (membership.user_id === actorUserId) {
+      throw new AppError(409, "SELF_REVOCATION_FORBIDDEN", "Owners cannot revoke their own last administrative access");
+    }
+    if (membership.role_code === MembershipRole.MERCHANT_OWNER && membership.status === MembershipStatus.ACTIVE) {
+      const all = await merchantRepository.listMembershipsByMerchant(membership.merchant_id);
+      const remaining = all.filter(m => m.id !== membership.id && m.role_code === MembershipRole.MERCHANT_OWNER && m.status === MembershipStatus.ACTIVE);
+      if (remaining.length === 0) {
+        throw new AppError(409, "LAST_OWNER_REQUIRED", "A merchant must retain at least one active owner");
+      }
+    }
     await merchantRepository.updateMembership(membershipId, {
       status: MembershipStatus.REVOKED,
     });

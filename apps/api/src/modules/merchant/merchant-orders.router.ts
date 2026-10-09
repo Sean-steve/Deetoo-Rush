@@ -18,6 +18,7 @@ import { orderService } from "../order/order.service";
 import { deliveryRepository } from "../order/delivery.repository";
 import { riderRepository } from "../rider/rider.repository";
 import { merchantRepository } from "./merchant.repository";
+import { requireMerchantCapability } from "./merchant-role-policy.service";
 import { AppError } from "../../middleware/error-handler";
 
 export const merchantOrderRouter = Router();
@@ -29,6 +30,8 @@ merchantOrderRouter.param(
       const order = await orderService.getOrderById(id);
       await branchScope(req.user!, order.branch_id);
       await requirePaidOrder(order.id);
+      if(req.method !== "GET" && !req.user!.roles.some(r=>["admin","ops"].includes(String(r))))
+        await requireMerchantCapability(req.user!.id,order.merchant_id,"ORDERS_WRITE");
       next();
     } catch (err) {
       next(err);
