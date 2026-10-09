@@ -252,7 +252,7 @@ test('Merchant frontend prototype Phase 2 navigates branch, security, notificati
   await expect(page.getByRole('status')).toContainText('Session revoked');
 
   await nav.getByRole('button', { name: /Notifications/ }).click();
-  await expect(page.getByRole('heading', { name: 'Notifications' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Notifications', exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: /New order received/ })).toBeVisible();
   await page.getByRole('button', { name: 'Mark read' }).click();
   await expect(page.getByRole('status')).toContainText('Notification marked as read');
