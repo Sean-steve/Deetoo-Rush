@@ -279,3 +279,91 @@
  .merchant-v2-main .merchant-kitchen-summary,.merchant-v2-catalogue .merchant-v2-catalogue-stats {grid-template-columns:1fr;}
 }
 @media(prefers-reduced-motion:reduce){ .merchant-v2 *, .merchant-v2 *::before,.merchant-v2 *::after {animation-duration:.001ms!important;transition-duration:.001ms!important;} }
+
+
+/* Page-specific finishing details */
+.merchant-v2-brand svg text { fill:#ffffff; }
+.merchant-v2-main[data-merchant-page="catalogue"] .deetoo-page-heading {padding-right:min(540px,43%);}
+.merchant-v2-main .merchant-v2-account-layout {display:grid;grid-template-columns:minmax(320px,.9fr) minmax(0,1.55fr);align-items:start;gap:16px;}
+.merchant-v2-profile-panel>.deetoo-card,.merchant-v2-team-panel {min-width:0;background:white;border:1px solid #eaf0f0;box-shadow:var(--mv-shadow);border-radius:16px;padding:18px;}
+.merchant-v2-profile-panel .deetoo-card {border-radius:15px;}
+.merchant-v2-profile-panel .deetoo-card input {font-size:13px;}
+.merchant-v2-team-heading,.merchant-v2-card-heading {display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:16px;}
+.merchant-v2-team-heading h2,.merchant-v2-card-heading h2 {font-size:18px;font-weight:800;}
+.merchant-v2-team-heading p,.merchant-v2-card-heading p {font-size:12px;color:#8190a1;margin-top:4px;}
+.merchant-v2-team-search {margin:14px 0;}
+.merchant-v2-team-search input {width:100%;border:1px solid #e3ecee;padding:11px 13px;border-radius:10px;background:white;}
+.merchant-v2-main .merchant-v2-team-table > div {grid-template-columns: minmax(130px,2.3fr) minmax(85px,1fr) minmax(120px,1.4fr) minmax(75px,.8fr) minmax(90px,.8fr);font-size:12px;}
+.merchant-v2-team-table strong,.merchant-v2-team-table span {min-width:0;overflow-wrap:anywhere;}
+.merchant-v2-settings-tab {text-decoration:none;display:inline-block;background:white;color:#45596d;font-size:12px;font-weight:750;padding:12px 19px;border-radius:11px;border:1px solid #e4edef;}
+.merchant-v2-settings-tab:first-child {background:#00b666;color:white;}
+.merchant-v2-settings-layout .merchant-v2-branch-form {display:contents;}
+.merchant-v2-main .merchant-v2-settings-layout {grid-template-columns:minmax(0,1.05fr) minmax(0,1.05fr) minmax(0,1fr);align-items:start;}
+.merchant-v2-settings-layout .merchant-v2-general-settings {grid-column:1;grid-row:1;}
+.merchant-v2-settings-layout .merchant-v2-location-settings {grid-column:2;grid-row:1;}
+.merchant-v2-settings-layout .merchant-v2-hours-settings {grid-column:3;grid-row:1;}
+.merchant-v2-settings-layout .merchant-v2-prep-settings {grid-column:1;grid-row:2;}
+.merchant-v2-settings-layout .merchant-v2-delivery-settings {grid-column:2 / 4;grid-row:2;}
+.merchant-v2-main .merchant-v2-settings-layout .deetoo-card {min-width:0;padding:18px;}
+.merchant-v2-settings-layout .merchant-v2-branch-form input {margin-bottom:7px;}
+.merchant-v2-coordinate-map {margin-top:13px;overflow:hidden;border-radius:12px;border:1px solid #e5ebec;background:#f1f8f7;min-height:180px;}
+.merchant-v2-coordinate-map>.location-map svg {max-height:152px;}
+.merchant-v2-coordinate-map>.location-map>div:first-child {padding:9px;}
+.merchant-v2-coordinate-map>.location-map>p {padding:8px;}
+.merchant-v2-coordinate-map>p {font-size:12px;padding:28px;color:#8192a0;}
+.merchant-v2-hour-row {display:grid;grid-template-columns:minmax(110px,1fr);gap:10px;margin-bottom:12px;padding:9px;border-radius:10px;background:#f8fbfb;}
+.merchant-v2-hour-row select,.merchant-v2-hour-row input {min-width:0;}
+.merchant-v2-security-stat {display:flex;gap:14px;align-items:center;min-height:60px;}
+.merchant-v2-security-stat>svg {flex:none;width:50px;height:50px;padding:13px;border-radius:12px;background:#e6f9ee;color:#009956;}
+.merchant-v2-security-stat small,.merchant-v2-security-stat strong,.merchant-v2-security-stat span {display:block;}
+.merchant-v2-security-stat small {color:#50647c;font-size:12px;}
+.merchant-v2-security-stat strong {font-size:18px;color:#102335;margin:5px 0;font-weight:850;}
+.merchant-v2-security-stat span {font-size:11px;color:#8293a4;}
+.merchant-v2-main .merchant-v2-session-grid>.deetoo-card {padding:20px;min-height:290px;}
+.merchant-v2-session-row>div {min-width:0;}
+.merchant-v2-session-row strong {font-size:12px;}
+.merchant-v2-unavailable {display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;gap:12px;min-height:205px;background:#f7fafb;border-radius:12px;color:#6d8293;padding:20px;}
+.merchant-v2-unavailable strong {color:#173448;}
+.merchant-v2-unavailable p {max-width:370px;font-size:12px;}
+.merchant-v2-setting-list>div {display:flex;align-items:center;gap:12px;padding:15px 0;border-bottom:1px solid #edf1f2;}
+.merchant-v2-setting-list>div svg {flex:none;color:#1d627e;}
+.merchant-v2-setting-list strong,.merchant-v2-setting-list small,.merchant-v2-danger-action strong,.merchant-v2-danger-action small {display:block;}
+.merchant-v2-setting-list small,.merchant-v2-danger-action small {margin-top:4px;font-size:11px;color:#7c899a;}
+.merchant-v2-danger-action {display:flex;align-items:center;gap:14px;background:#fff0f1;padding:14px;border-radius:11px;color:#d22a44;}
+.merchant-v2-danger-action>div {flex:1;}
+.merchant-v2-danger-action strong {font-size:12px;}
+.merchant-v2-notify-search {display:flex;align-items:center;gap:9px;border:1px solid #e4eef0;border-radius:10px;padding:10px 12px;margin-bottom:11px;color:#728496;}
+.merchant-v2-notify-search input {width:100%;border:0;background:transparent;outline:0;min-width:0;}
+.merchant-v2-notify-row .merchant-v2-notification-icon,.merchant-v2-notify-detail>.flex .merchant-v2-notification-icon {width:42px;height:42px;border-radius:11px;display:grid;place-items:center;flex:none;color:#ed5764;background:#fff0f1;}
+.merchant-v2-notice-time {font-size:10px;color:#8496a6;white-space:nowrap;}
+.merchant-v2-notice-message {border-radius:12px;background:#f7fafb;padding:15px;margin-top:20px;color:#465d71;white-space:pre-wrap;}
+.merchant-v2-notify-detail-row {display:flex;justify-content:space-between;gap:12px;border-bottom:1px solid #e8eff1;padding:11px 2px;}
+.merchant-v2-notify-detail-row strong {color:#102637;overflow-wrap:anywhere;}
+.merchant-v2-support-intro {display:flex;align-items:flex-start;justify-content:space-between;gap:20px;}
+.merchant-v2-support-helper {display:flex;gap:12px;align-items:center;background:#fff;border:1px solid #e9f1f0;border-radius:13px;padding:13px 15px;max-width:335px;box-shadow:var(--mv-shadow);}
+.merchant-v2-support-helper svg {color:#00a95e;flex:none;}
+.merchant-v2-support-helper strong {font-size:12px;}
+.merchant-v2-support-helper p {font-size:11px;color:#8190a0;margin-top:4px;}
+.merchant-v2-main .merchant-v2-support-grid .deetoo-page-heading {display:none;}
+.merchant-v2-main .merchant-v2-support-grid .workflow-grid {display:grid;grid-template-columns: minmax(290px,.85fr) minmax(330px,1.15fr);align-items:start;gap:14px;}
+.merchant-v2-main .merchant-v2-support-grid .workflow-grid>section {order:1;}
+.merchant-v2-main .merchant-v2-support-grid .workflow-grid>.deetoo-card {order:2;}
+.merchant-v2-support-grid .workflow-grid>section>.deetoo-card {border-radius:12px;}
+.merchant-v2-support-grid .workflow-grid>section>.deetoo-card h2 {font-size:15px;}
+@media(max-width:1250px) {
+  .merchant-v2-main .merchant-v2-account-layout {grid-template-columns:1fr;}
+  .merchant-v2-main .merchant-v2-settings-layout {grid-template-columns:repeat(2,minmax(0,1fr));}
+  .merchant-v2-settings-layout .merchant-v2-general-settings {grid-column:1;grid-row:1;}
+  .merchant-v2-settings-layout .merchant-v2-location-settings {grid-column:2;grid-row:1;}
+  .merchant-v2-settings-layout .merchant-v2-hours-settings {grid-column:1 / 3;grid-row:2;}
+  .merchant-v2-settings-layout .merchant-v2-prep-settings {grid-column:1;grid-row:3;}
+  .merchant-v2-settings-layout .merchant-v2-delivery-settings {grid-column:2;grid-row:3;}
+}
+@media(max-width:760px) {
+  .merchant-v2-support-intro {flex-direction:column;}
+  .merchant-v2-main .merchant-v2-support-grid .workflow-grid {grid-template-columns:1fr;}
+  .merchant-v2-main .merchant-v2-settings-layout {grid-template-columns:1fr;}
+  .merchant-v2-settings-layout .merchant-v2-general-settings,.merchant-v2-settings-layout .merchant-v2-location-settings,
+  .merchant-v2-settings-layout .merchant-v2-hours-settings,.merchant-v2-settings-layout .merchant-v2-prep-settings,
+  .merchant-v2-settings-layout .merchant-v2-delivery-settings {grid-column:1;grid-row:auto;}
+}
