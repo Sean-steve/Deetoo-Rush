@@ -179,9 +179,17 @@ export function MerchantFinance({ merchantId }: { merchantId: string }) {
     return true;
   });
 
+  const gross = filtered.reduce((total, row) => total + (row.gross_order_value_minor || 0), 0);
+  const commissions = filtered.reduce((total, row) => total + (row.commission_amount_minor || 0), 0);
+  const paid = filtered.filter(row => row.status === "PAID").reduce((total, row) => total + (row.net_settlement_amount_minor || 0), 0);
+  const chartRows = [...filtered].sort((a,b) => a.period_end.localeCompare(b.period_end)).slice(-8);
+  const maxGross = Math.max(1, ...chartRows.map(row => Math.max(0,row.gross_order_value_minor || row.net_settlement_amount_minor || 0)));
+
   return (
     <>
       <PageHeading
+        eyebrow="Business"
+        subtitle="Track your earnings, view settlement history and review your commercial terms."
         title="Finance & settlements"
         action={
           <Button variant="outline" onClick={statement.refresh}>
@@ -192,17 +200,42 @@ export function MerchantFinance({ merchantId }: { merchantId: string }) {
       <ResourceState resource={statement}>
         {statement.data && (
           <>
-            <div className="grid grid-cols-2 gap-4">
-              <MetricCard
-                label="Payable balance"
-                value={<Price minor={statement.data.payable_balance_minor} />}
-              />
-              {statement.data.commission_rate != null && (
-                <MetricCard
-                  label="Commission rate"
-                  value={`${(statement.data.commission_rate * 100).toFixed(1)}%`}
-                />
-              )}
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
+              <MetricCard label="Settled gross revenue" value={<Price minor={gross} />} detail="From recorded settlements" />
+              <MetricCard label="Commission fees" value={<Price minor={commissions} />} detail="Recorded settlement deductions" />
+              <MetricCard label="Payable balance" value={<Price minor={statement.data.payable_balance_minor} />} detail="Current merchant balance" />
+              <MetricCard label="Settlements" value={filtered.length} detail="Periods matching filters" />
+            </div>
+            <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 mt-4">
+              <div className="merchant-v2-finance-chart xl:col-span-2">
+                <h2>Earnings overview</h2>
+                <p>Actual settlement revenue for the available periods (KES).</p>
+                {chartRows.length ? (
+                  <>
+                    <div className="merchant-v2-finance-bars" role="img" aria-label={`Gross revenue across ${chartRows.length} settlement periods`}>
+                      {chartRows.map((row) => <div className="merchant-v2-finance-bar" key={row.id}
+                        title={`${row.period_start.slice(0,10)} – ${row.period_end.slice(0,10)}: KES ${((row.gross_order_value_minor || 0) / 100).toFixed(2)}`}>
+                        <span style={{height:`${Math.max(2, ((row.gross_order_value_minor || row.net_settlement_amount_minor || 0) / maxGross)*100)}%`}} />
+                        <small>{row.period_end?.slice(5,10)}</small>
+                      </div>)}
+                    </div>
+                    <div className="merchant-v2-finance-legend">Gross settled order value</div>
+                  </>
+                ) : <p className="mt-8 text-sm">No settlement periods are available for this selection.</p>}
+              </div>
+              <div className="merchant-v2-finance-panel">
+                <h2>Commission breakdown</h2>
+                <p>Based on recorded settlements for this period.</p>
+                <div className="merchant-v2-finance-breakdown">
+                  <div><span>Gross order value</span><strong><Price minor={gross}/></strong></div>
+                  <div><span>Commission deducted</span><strong><Price minor={commissions}/></strong></div>
+                  <div><span>Already paid</span><strong><Price minor={paid}/></strong></div>
+                  <div><span>Current payable balance</span><strong><Price minor={statement.data.payable_balance_minor}/></strong></div>
+                  {statement.data.commission_rate != null && <div><span>Current commission rate</span><strong>{(statement.data.commission_rate*100).toFixed(1)}%</strong></div>}
+                </div>
+                <p className="mt-5 text-xs text-slate-500">Payment-method shares and pending payout dates require additional finance endpoints.</p>
+              </div>
             </div>
 
             <Card className="mt-4">
