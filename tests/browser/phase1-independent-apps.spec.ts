@@ -49,11 +49,11 @@ test('Merchant Web authenticates independently and reaches merchant-scoped APIs'
   await page.goto('http://127.0.0.1:5174');
 
   await expect(page.locator('.app-switcher')).toHaveCount(0);
-  await page.getByPlaceholder('merchant.owner@deetoo.ke').fill('merchant@deetoo.ke');
+  await page.locator('.mp-live-auth input[autocomplete="username"]').fill('merchant@deetoo.ke');
   await page.locator('input[type="password"]').fill('MerchantPass123!');
-  await page.getByRole('button', { name: 'Sign In to Restaurant Console' }).click();
+  await page.getByRole('button', { name: 'Sign in', exact: true }).click();
 
-  await expect(page.getByRole('button', { name: 'Sign In to Restaurant Console' })).toHaveCount(0);
+  await expect(page.locator('.mp-live-auth')).toHaveCount(0);
   await expectSecureWebSession(context);
 
   const status = await page.evaluate(async () => (await fetch('/api/v1/merchant/branches')).status);
@@ -151,7 +151,7 @@ test('Phase 2 Customer discovery is visual and item customization uses a bottom 
 test('Phase 3 Merchant workspace exposes persistent store control and urgency-first kitchen board', async ({ browser }) => {
   const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
   const page = await context.newPage();
-  await page.goto('http://127.0.0.1:5174');
+  await page.goto('http://127.0.0.1:5174/?merchant-legacy=1');
 
   await page.getByPlaceholder('merchant.owner@deetoo.ke').fill('merchant@deetoo.ke');
   await page.locator('input[type="password"]').fill('MerchantPass123!');
