@@ -101,6 +101,29 @@ merchantExperienceRouter.get('/help/articles',run(async(req,res)=>{
    ORDER BY category,title LIMIT 60`,[q||null]);
   res.json({data:r.rows});
 }));
+// Configuration observability, not a declaration of successful provider delivery.
+// Never include credential bytes, customer payment details or secrets in this response.
+merchantExperienceRouter.get('/providers/readiness',run(async(req,res)=>{
+  await ownMerchant(req);
+  const keys=(...names:string[])=>names.every(n=>Boolean(process.env[n]?.trim()));
+  const checks={
+    geocoding:keys('MAPBOX_ACCESS_TOKEN'),
+    object_storage:keys('OBJECT_STORAGE_BUCKET','OBJECT_STORAGE_REGION','OBJECT_STORAGE_ACCESS_KEY_ID','OBJECT_STORAGE_SECRET_ACCESS_KEY'),
+    push:keys('FCM_PROJECT_ID','FCM_CLIENT_EMAIL','FCM_PRIVATE_KEY'),
+    email:keys('RESEND_API_KEY','AUTH_EMAIL_FROM'),
+    sms:keys('AFRICASTALKING_API_KEY','AFRICASTALKING_USERNAME','AUTH_SMS_FROM'),
+    mpesa:keys('MPESA_CONSUMER_KEY','MPESA_CONSUMER_SECRET'),
+  };
+  res.json({data:{
+    providers:Object.fromEntries(Object.entries(checks).map(([name,configured])=>[name,{
+      status:configured?'CONFIGURATION_PRESENT':'NOT_CONFIGURED',
+      configured,delivery_verified:false,
+      note:'Credential presence is not a health check. Complete provider sandbox and callback tests in staging.'
+    }])),
+    production_ready:false,reason:'External provider readiness requires successful authenticated staging probes and audited callbacks.'
+  }});
+}));
+
 merchantExperienceRouter.get('/help/contact',run(async(req,res)=>{
   const db=durable();await ownMerchant(req);
   const r=await db.query('SELECT code,label,phone_e164,email,hours_text FROM merchant_support_contacts WHERE active=TRUE ORDER BY code');
