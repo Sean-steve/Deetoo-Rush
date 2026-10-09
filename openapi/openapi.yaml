@@ -61,6 +61,348 @@ tags:
 security:
 - bearerAuth: []
 paths:
+  /merchant/experience/orders/history:
+    get:
+      summary: Merchant Phase 2 GET /merchant/experience/orders/history
+      tags: [Merchant]
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Authenticated, scope-checked response; see route contracts and Zod validators
+  /merchant/experience/orders/metrics:
+    get:
+      summary: Merchant Phase 2 GET /merchant/experience/orders/metrics
+      tags: [Merchant]
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Authenticated, scope-checked response; see route contracts and Zod validators
+  /merchant/experience/branches/{branchId}/policies:
+    get:
+      summary: Merchant Phase 2 GET /merchant/experience/branches/branchId/policies
+      tags: [Merchant]
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: path
+          name: branchId
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Authenticated, scope-checked response; see route contracts and Zod validators
+    put:
+      summary: Merchant Phase 2 PUT /merchant/experience/branches/branchId/policies
+      tags: [Merchant]
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: path
+          name: branchId
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Authenticated, scope-checked response; see route contracts and Zod validators
+  /merchant/experience/documents:
+    get:
+      summary: Merchant Phase 2 GET /merchant/experience/documents
+      tags: [Merchant]
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Authenticated, scope-checked response; see route contracts and Zod validators
+    post:
+      summary: Merchant Phase 2 POST /merchant/experience/documents
+      tags: [Merchant]
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Authenticated, scope-checked response; see route contracts and Zod validators
+  /merchant/experience/help/articles:
+    get:
+      summary: Merchant Phase 2 GET /merchant/experience/help/articles
+      tags: [Merchant]
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Authenticated, scope-checked response; see route contracts and Zod validators
+  /merchant/experience/help/contact:
+    get:
+      summary: Merchant Phase 2 GET /merchant/experience/help/contact
+      tags: [Merchant]
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Authenticated, scope-checked response; see route contracts and Zod validators
+  /merchant/experience/branches/{branchId}/inventory:
+    get:
+      summary: Merchant Phase 2 GET /merchant/experience/branches/branchId/inventory
+      tags: [Merchant]
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: path
+          name: branchId
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Authenticated, scope-checked response; see route contracts and Zod validators
+  /merchant/experience/branches/{branchId}/inventory/{itemId}/adjust:
+    post:
+      summary: Merchant Phase 2 POST /merchant/experience/branches/branchId/inventory/itemId/adjust
+      tags: [Merchant]
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: path
+          name: branchId
+          required: true
+          schema: { type: string }
+        - in: path
+          name: itemId
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Authenticated, scope-checked response; see route contracts and Zod validators
+  /merchant/experience/branches/{branchId}/inventory/{itemId}/threshold:
+    put:
+      summary: Merchant Phase 2 PUT /merchant/experience/branches/branchId/inventory/itemId/threshold
+      tags: [Merchant]
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: path
+          name: branchId
+          required: true
+          schema: { type: string }
+        - in: path
+          name: itemId
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Authenticated, scope-checked response; see route contracts and Zod validators
+  /finance/merchant/experience/overview:
+    get:
+      summary: Merchant Phase 2 GET /finance/merchant/experience/overview
+      tags: [Finance]
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Authenticated, scope-checked response; see route contracts and Zod validators
+  /finance/merchant/experience/transactions:
+    get:
+      summary: Merchant Phase 2 GET /finance/merchant/experience/transactions
+      tags: [Finance]
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Authenticated, scope-checked response; see route contracts and Zod validators
+  /finance/merchant/experience/settlements/{settlementId}:
+    get:
+      summary: Merchant Phase 2 GET /finance/merchant/experience/settlements/settlementId
+      tags: [Finance]
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: path
+          name: settlementId
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Authenticated, scope-checked response; see route contracts and Zod validators
+  /auth/security/mfa/status:
+    get:
+      summary: Merchant Phase 2 GET /auth/security/mfa/status
+      tags: [Auth]
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Authenticated, scope-checked response; see route contracts and Zod validators
+  /auth/security/mfa/disable:
+    post:
+      summary: Merchant Phase 2 POST /auth/security/mfa/disable
+      tags: [Auth]
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Authenticated, scope-checked response; see route contracts and Zod validators
+  /auth/security/password/change:
+    post:
+      summary: Merchant Phase 2 POST /auth/security/password/change
+      tags: [Auth]
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Authenticated, scope-checked response; see route contracts and Zod validators
+  /auth/security/login-history:
+    get:
+      summary: Merchant Phase 2 GET /auth/security/login-history
+      tags: [Auth]
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Authenticated, scope-checked response; see route contracts and Zod validators
+  /auth/security/trusted-devices:
+    get:
+      summary: Merchant Phase 2 GET /auth/security/trusted-devices
+      tags: [Auth]
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Authenticated, scope-checked response; see route contracts and Zod validators
+  /auth/security/trusted-devices/current:
+    post:
+      summary: Merchant Phase 2 POST /auth/security/trusted-devices/current
+      tags: [Auth]
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Authenticated, scope-checked response; see route contracts and Zod validators
+  /auth/security/trusted-devices/{id}:
+    delete:
+      summary: Merchant Phase 2 DELETE /auth/security/trusted-devices/id
+      tags: [Auth]
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Authenticated, scope-checked response; see route contracts and Zod validators
+  /auth/security/deactivation-request:
+    post:
+      summary: Merchant Phase 2 POST /auth/security/deactivation-request
+      tags: [Auth]
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Authenticated, scope-checked response; see route contracts and Zod validators
+  /merchant/inbox/:
+    get:
+      summary: Merchant Phase 2 GET /merchant/inbox/
+      tags: [Merchant]
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Authenticated, scope-checked response; see route contracts and Zod validators
+  /merchant/inbox/read-all:
+    post:
+      summary: Merchant Phase 2 POST /merchant/inbox/read-all
+      tags: [Merchant]
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Authenticated, scope-checked response; see route contracts and Zod validators
+  /merchant/inbox/{id}/read:
+    post:
+      summary: Merchant Phase 2 POST /merchant/inbox/id/read
+      tags: [Merchant]
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Authenticated, scope-checked response; see route contracts and Zod validators
+  /merchant/inbox/{id}/dismiss:
+    post:
+      summary: Merchant Phase 2 POST /merchant/inbox/id/dismiss
+      tags: [Merchant]
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Authenticated, scope-checked response; see route contracts and Zod validators
+  /merchant/inbox/preferences:
+    get:
+      summary: Merchant Phase 2 GET /merchant/inbox/preferences
+      tags: [Merchant]
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Authenticated, scope-checked response; see route contracts and Zod validators
+    put:
+      summary: Merchant Phase 2 PUT /merchant/inbox/preferences
+      tags: [Merchant]
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Authenticated, scope-checked response; see route contracts and Zod validators
+  /admin/merchant-experience/documents:
+    get:
+      summary: Merchant Phase 2 GET /admin/merchant-experience/documents
+      tags: [Admin]
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Authenticated, scope-checked response; see route contracts and Zod validators
+  /admin/merchant-experience/documents/{id}/review:
+    post:
+      summary: Merchant Phase 2 POST /admin/merchant-experience/documents/id/review
+      tags: [Admin]
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Authenticated, scope-checked response; see route contracts and Zod validators
+  /admin/merchant-experience/help/articles/{slug}:
+    put:
+      summary: Merchant Phase 2 PUT /admin/merchant-experience/help/articles/slug
+      tags: [Admin]
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: path
+          name: slug
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Authenticated, scope-checked response; see route contracts and Zod validators
+  /admin/merchant-experience/help/contacts/{code}:
+    put:
+      summary: Merchant Phase 2 PUT /admin/merchant-experience/help/contacts/code
+      tags: [Admin]
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: path
+          name: code
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Authenticated, scope-checked response; see route contracts and Zod validators
+  /admin/merchant-experience/deactivation-requests:
+    get:
+      summary: Merchant Phase 2 GET /admin/merchant-experience/deactivation-requests
+      tags: [Admin]
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Authenticated, scope-checked response; see route contracts and Zod validators
+  /admin/merchant-experience/deactivation-requests/{id}/review:
+    post:
+      summary: Merchant Phase 2 POST /admin/merchant-experience/deactivation-requests/id/review
+      tags: [Admin]
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Authenticated, scope-checked response; see route contracts and Zod validators
   /devices/register:
     post:
       summary: Register or refresh an authenticated application push device
