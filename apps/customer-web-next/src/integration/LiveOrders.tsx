@@ -153,7 +153,7 @@ function LiveOrderDetail({gateway,orderId,onNavigate,completed}:{gateway:Custome
  const verifiedEta=tracking?.riderLiveLocation&&!tracking.riderLiveLocation.isStale&&tracking.estimatedEtaMinutes!=null
   &&arrival.has(tracking.deliveryStatus)&&Date.now()-new Date(tracking.riderLiveLocation.recordedAt).getTime()<180000
   &&Date.now()-new Date(tracking.riderLiveLocation.recordedAt).getTime()>=-30000;
- return <section className={classNames("dt-orders-page","dt-screen-enter",completed?"dt-completed-page":"dt-tracking-page")}>
+ return <section className={classNames("dt-orders-page","dt-screen-enter","dt-connected-order-detail",completed?"dt-completed-page":"dt-tracking-page")}>
   <header className="dt-orders-header dt-live-order-detail-head"><div><button className="dt-live-order-back" onClick={()=>onNavigate("/orders")}><ArrowLeft size={16}/> Back to your orders</button>
   <h1>{completed?"Order complete":"Track your delivery"}</h1>
   <p>Real order updates from DeeToo. Delivery information refreshes while this page is open.</p></div><Button variant="outline" onClick={()=>{order.refresh();track.refresh();}}><RefreshCw size={17}/> Refresh</Button></header>
