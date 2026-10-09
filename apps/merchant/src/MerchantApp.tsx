@@ -1,4 +1,5 @@
 import { BranchSettings } from "./components/BranchSettings";
+import { MerchantWorkspace } from "./components/MerchantWorkspace";
 import { MerchantAccount } from "./components/MerchantAccount";
 import { AccountSupport } from "../../../packages/ui/src/AccountSupport";
 import { KitchenOrders } from "./components/KitchenOrders";
@@ -385,114 +386,29 @@ function MerchantAppInner() {
   // 3. AUTHENTICATED & AUTHORIZED OPERATIONAL CONSOLE
   return (
     <ErrorBoundary fallbackTitle="Merchant operations">
-      <OperationsLayout
-        density="compact"
-        title="Kitchen operations"
+      <MerchantWorkspace
+        active={activeMainTab}
+        onNavigate={(tab) => {
+          setActiveMainTab(tab as MerchantTab);
+          if (tab === "sessions") void loadSessions();
+        }}
         userName={user?.name || user?.email}
         onLogout={logout}
-        navigation={
-          <Navigation
-            active={activeMainTab}
-            onChange={(id) => {
-              setActiveMainTab(id as typeof activeMainTab);
-              if (id === "sessions") void loadSessions();
-            }}
-            items={[
-              { id: "orders", label: "Kitchen display", icon:<ChefHat size={16}/>, group:"Live operations" },
-              { id: "catalogue", label: "Menu & availability", icon:<UtensilsCrossed size={16}/>, group:"Live operations" },
-              { id: "finance", label: "Finance & settlements", icon:<WalletCards size={16}/>, group:"Business" },
-              { id: "account", label: "Business & team", icon:<User size={16}/>, group:"Business" },
-              { id: "branch", label: "Branch settings", icon:<Store size={16}/>, group:"Business" },
-              { id: "sessions", label: "Security & sessions", icon:<ShieldCheck size={16}/>, group:"Account" },
-              { id: "notifications", label: "Notifications", icon:<Bell size={16}/>, group:"Account" },
-              { id: "support", label: "Support", icon:<LifeBuoy size={16}/>, group:"Account" },
-            ]}
-          />
-        }
+        branches={branches.data || []}
+        branchId={selectedBranch}
+        onBranchChange={setSelectedBranch}
+        canManageStatus={canManageStoreStatus}
+        statusBusy={savingStatus}
+        onStatusChange={(status) => void updateStatus(status)}
+        canCreateBranch={canCreateBranch}
+        onAddBranch={() => {
+          setAddBranchError(null);
+          setAddBranchOpen(true);
+          void captureNewBranchLocation();
+        }}
       >
-        <ResourceState resource={branches}>
-          <section className="merchant-branch-command">
-            <div className="merchant-branch-command-main">
-              <div className="merchant-branch-select">
-                <FormField label="Operating branch">
-                  <Select
-                    value={selectedBranch}
-                    onChange={(event) => setSelectedBranch(event.target.value)}
-                  >
-                    <option value="">Select branch</option>
-                    {branches.data?.map((item) => (
-                      <option key={item.id} value={item.id}>
-                        {item.name}
-                      </option>
-                    ))}
-                  </Select>
-                </FormField>
-                {branch && (
-                  <p className="merchant-branch-location">
-                    {branch.address_text || branch.address_line1 || branch.city}
-                  </p>
-                )}
-              </div>
-
-              {branch && (
-                <div className="merchant-store-state">
-                  <div className="merchant-store-state-label">
-                    <span>Store status</span>
-                    <StatusBadge status={branch.operational_status} />
-                  </div>
-                  <SegmentedControl
-                    ariaLabel="Store operating status"
-                    value={branch.operational_status}
-                    onChange={(value) => void updateStatus(value)}
-                    options={[
-                      {
-                        value: "OPEN",
-                        label: "Open",
-                        disabled: !canManageStoreStatus || savingStatus,
-                      },
-                      {
-                        value: "PAUSED",
-                        label: "Paused",
-                        disabled: !canManageStoreStatus || savingStatus,
-                      },
-                      {
-                        value: "CLOSED",
-                        label: "Closed",
-                        disabled: !canManageStoreStatus || savingStatus,
-                      },
-                    ]}
-                  />
-                  <p>
-                    {branch.operational_status === "OPEN"
-                      ? "Accepting new customer orders."
-                      : branch.operational_status === "PAUSED"
-                        ? "New orders are temporarily paused while current work can continue."
-                        : "Not accepting customer orders."}
-                  </p>
-                </div>
-              )}
-
-              {canCreateBranch && (
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    setAddBranchError(null);
-                    setAddBranchOpen(true);
-                    void captureNewBranchLocation();
-                  }}
-                >
-                  Add branch
-                </Button>
-              )}
-            </div>
-
-            {branchError && (
-              <InlineBanner kind="danger" className="mt-3">
-                {branchError}
-              </InlineBanner>
-            )}
-          </section>
-        </ResourceState>
+        {branches.error && <InlineBanner kind="danger">{branches.error}</InlineBanner>}
+        {branchError && <InlineBanner kind="danger">{branchError}</InlineBanner>}
         {canCreateBranch && (
           <Modal
             isOpen={addBranchOpen}
@@ -662,7 +578,7 @@ function MerchantAppInner() {
             </div>
           </Card>
         )}
-      </OperationsLayout>
+      </MerchantWorkspace>
     </ErrorBoundary>
   );
 }
