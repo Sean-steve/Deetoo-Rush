@@ -17,6 +17,7 @@ import {
 } from '@deetoo/types';
 import { getDbPool } from '../../db/client';
 import { logger } from '@deetoo/utils';
+import { AppError } from '../../middleware/error-handler';
 
 export interface IdempotencyRecord {
   key: string;
