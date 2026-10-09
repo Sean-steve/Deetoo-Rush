@@ -12,10 +12,11 @@ export async function expireCheckoutStockHolds(limit=100):Promise<{expired:numbe
   try {
     await client.query("BEGIN");
     const expired=await client.query(
-      `SELECT DISTINCT o.id
+      `SELECT o.id
        FROM orders o
-       JOIN merchant_stock_reservations r ON r.order_id=o.id
-       WHERE o.status='PENDING_PAYMENT' AND r.state='HELD' AND r.expires_at<NOW()
+       WHERE o.status='PENDING_PAYMENT'
+         AND EXISTS (SELECT 1 FROM merchant_stock_reservations r WHERE r.order_id=o.id
+                     AND r.state='HELD' AND r.expires_at<NOW())
          AND NOT EXISTS (SELECT 1 FROM payment_capture_evidence e WHERE e.order_id=o.id)
        ORDER BY o.id FOR UPDATE OF o SKIP LOCKED LIMIT $1`,[limit]);
     let units=0;
