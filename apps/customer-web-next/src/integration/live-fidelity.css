@@ -207,3 +207,16 @@
  .dt-notifications-page .dt-notify-preference-row > span:nth-child(2) {min-width:0;overflow-wrap:anywhere;}
  .dt-notifications-page .dt-notifications-disclaimer {overflow-wrap:anywhere;}
 }
+
+/* Connected detail has its own nested two-column grid; the preview's outer
+ * .dt-completed-page/.dt-tracking-page grid must not compress its hit targets. */
+.dt-orders-page.dt-connected-order-detail.dt-completed-page,
+.dt-orders-page.dt-connected-order-detail.dt-tracking-page {
+  display: block;
+  width: 100%;
+  min-width: 0;
+}
+.dt-connected-order-detail .dt-live-order-detail-grid {
+  width: 100%;
+  min-width: 0;
+}
