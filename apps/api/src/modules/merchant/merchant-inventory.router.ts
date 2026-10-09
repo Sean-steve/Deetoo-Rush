@@ -1,10 +1,11 @@
 import { Router, Response, NextFunction } from 'express';
 import { z } from 'zod';
-import { requireAuth, AuthenticatedRequest } from '../auth/auth.middleware';
+import { requireAuth, requireRole, AuthenticatedRequest } from '../auth/auth.middleware';
 import { AppError } from '../../middleware/error-handler';
 import { ownBranch, durable } from './merchant-experience.scope';
 export const merchantInventoryRouter=Router();
 merchantInventoryRouter.use(requireAuth);
+merchantInventoryRouter.use(requireRole('merchant','merchant_owner','merchant_manager','merchant_staff'));
 const run=(f:(req:AuthenticatedRequest,res:Response)=>Promise<void>)=>(req:AuthenticatedRequest,res:Response,next:NextFunction)=>{Promise.resolve().then(()=>f(req,res)).catch(next);};
 
 merchantInventoryRouter.get('/branches/:branchId/inventory',run(async(req,res)=>{
