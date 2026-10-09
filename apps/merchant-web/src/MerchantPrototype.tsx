@@ -70,7 +70,7 @@ export default function MerchantPrototype({live}:{live?:MerchantLiveBridge}={}){
     id:m.id,name:m.user_name||m.name||m.user_email||"Team member",email:m.user_email||m.email||"",
     role:(m.role_code==="merchant_owner"?"Owner":m.role_code==="merchant_manager"?"Manager":"Staff") as Staff["role"],
     branch:m.branch_ids?.length?"Assigned branches":"All branches",
-    status:m.status==="ACTIVE"?"Active":m.status==="SUSPENDED"?"Inactive":"Pending"
+    status:(m.status==="ACTIVE"?"Active":m.status==="SUSPENDED"?"Inactive":"Pending") as Staff["status"]
   }));
   const pending=(live.resource.team?.invitations||[]).map((m:any)=>({
     id:m.id,name:m.email||"Invitee",email:m.email||"",
