@@ -18,10 +18,10 @@ const loginSeed:Login[]=[
 {id:6,date:"Oct 5, 2026 11:03 AM",device:"Windows · Chrome",location:"Nakuru, Kenya",status:"Failed"}];
 function readLocal<T>(key:string,fallback:T):T{try{const val=localStorage.getItem(key);return val?JSON.parse(val) as T:fallback;}catch{return fallback;}}
 export function PrototypeSecurity({store,onNavigate,notify,live}:{store:string;onNavigate:(s:string)=>void;notify:(s:string)=>void;live?:MerchantLiveBridge}){
- const [sessions,setSessions]=useState<Session[]>(()=>readLocal("mp-demo-sessions",sessionSeed));
- const [loginHistory,setHistory]=useState<Login[]>(loginSeed);
+ const [sessions,setSessions]=useState<Session[]>(()=>live?[]:readLocal("mp-demo-sessions",sessionSeed));
+ const [loginHistory,setHistory]=useState<Login[]>(()=>live?[]:loginSeed);
  const [historyAll,setHistoryAll]=useState(false);
- const [twoFactor,setTwoFactor]=useState(()=>readLocal("mp-demo-2fa",true));
+ const [twoFactor,setTwoFactor]=useState(()=>live?false:readLocal("mp-demo-2fa",true));
  const [deactivated,setDeactivated]=useState(()=>readLocal("mp-demo-deactivated",false));
  const [dialog,setDialog]=useState<"password"|"2fa"|"trusted"|"deactivate"|"session"|"history"|"all"|null>(null);
  const [chosen,setChosen]=useState<string|number|null>(null);
