@@ -1,0 +1,35 @@
+name: Merchant Staging Acceptance Gate
+
+# Run manually after provisioning isolated staging accounts, merchant branches,
+# and provider sandbox credentials. Not a substitute for payment-provider tests.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  merchant-cross-app-read-gate:
+    name: Merchant multi-actor read and permission gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      DEETOO_STAGING_API_URL: ${{ vars.DEETOO_STAGING_API_URL }}
+      DEETOO_STAGING_BRANCH_ID: ${{ vars.DEETOO_STAGING_BRANCH_ID }}
+      DEETOO_STAGING_FOREIGN_BRANCH_ID: ${{ vars.DEETOO_STAGING_FOREIGN_BRANCH_ID }}
+      DEETOO_STAGING_MERCHANT_TOKEN: ${{ secrets.DEETOO_STAGING_MERCHANT_TOKEN }}
+      DEETOO_STAGING_CUSTOMER_TOKEN: ${{ secrets.DEETOO_STAGING_CUSTOMER_TOKEN }}
+      DEETOO_STAGING_RIDER_TOKEN: ${{ secrets.DEETOO_STAGING_RIDER_TOKEN }}
+      DEETOO_STAGING_ADMIN_TOKEN: ${{ secrets.DEETOO_STAGING_ADMIN_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.17.1
+          run_install: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: pnpm install --frozen-lockfile
+      - name: Test real staging roles, scoped data, and cross-tenant denial
+        run: pnpm test:merchant-staging
