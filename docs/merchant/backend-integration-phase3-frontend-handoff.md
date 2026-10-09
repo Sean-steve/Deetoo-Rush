@@ -7,7 +7,7 @@
 | Screen | Authenticated component/API bindings |
 | --- | --- |
 | 01 Kitchen Orders | `MerchantLiveApp.tsx` loads scoped `/merchant/orders`, `/merchant/experience/orders/history`, `/merchant/experience/orders/metrics`. `MerchantPrototype.tsx` handles accept/reject/preparing/ready, rider-only pickup, scoped SMS contact and history/date filters. |
-| 02 Menu | `MerchantPrototype.tsx` and `LiveMenuEditor.tsx`: menus, categories, items, availability and modifier-group/option CRUD. Inventory is fetched for the branch but **stock adjustment and threshold controls are not yet bound to visible menu actions**; a signed branch-image upload is implemented in Branch Settings, while product-image association requires dedicated completion. |
+| 02 Menu | `MerchantPrototype.tsx`, `LiveMenuEditor.tsx` and `LiveInventoryControls.tsx`: menus, categories, items, availability, modifier-group/option CRUD, tracked item adjustments and low-stock thresholds through the food item's action menu. A signed branch-image upload exists in Branch Settings; durable product-image association requires dedicated completion. |
 | 03 Finance | `LiveFinance.tsx`: merchant-only ledger overview, dated chart, captured/payment-method split, transactions, settlements and CSV/PDF statements. Future payout date is never fabricated and PDF statements are not fiscal invoices. |
 | 04 Business & Team | `LiveBusinessTeam.tsx`: merchant profile, invited members, roles/capability matrix, documents via authorized media URLs, administrative verification state. |
 | 05 Branch Settings | `PrototypeBranch.tsx`: scoped branch profile/status/hours/policies/media and browser GPS. The existing on-screen map is an illustrative view; production interactive map tiles/geocoding integration remains unverified. |
@@ -22,7 +22,7 @@ All approved components stay visible. The live route must use server data, never
 ## Outstanding Phase 4 acceptance gates
 
 - Cross-app order/payment/inventory/dispatch/finance/support acceptance using seeded PostgreSQL and staging providers; cash/payment/refund/settlement reconciliation.
-- Stock adjustment/low-stock thresholds in the approved menu workflows, complete product-image associations, persistent merchant logo, and full branch settings atomic-save/partial-failure handling. Real provider credential certification for Mapbox, media, M-PESA, FCM, email/SMS and masked voice. A reported configuration flag does **not** prove provider health.
+- Complete product-image associations, persistent merchant logo, and full branch settings atomic-save/partial-failure handling. Real provider credential certification for Mapbox, media, M-PESA, FCM, email/SMS and masked voice. A reported configuration flag does **not** prove provider health.
 - Fiscal KRA/eTIMS invoices need certified third-party integration; existing settlement PDF is explicitly non-tax.
 - High-volume server-side pagination/search and complete date-range filtering, native trusted-device attestation/recovery, accessibility and pixel comparison at the approved viewport.
 - Latest CI lint/type/build, PostgreSQL tests, browser acceptance and CodeQL must pass before release. No merge to main without approval.
@@ -34,7 +34,7 @@ All approved components stay visible. The live route must use server data, never
 | Kitchen | Mark as picked up | Visually present; rider-authoritative verification is enforced, with an explanatory response instead of a merchant spoof action. Attach rider handover status and eligibility in Phase 4. |
 | Kitchen | Customer phone icon | Privately queued SMS message via existing contact relay; masked live calling requires provider and cannot reveal customer number. |
 | Menu | Image on each food item | Existing media URL displayed where available; image picker/upload + permanent item media association still needs completion. |
-| Menu | Inventory and low-stock threshold | Backend exists and inventory loads, but approved menu controls need complete stock/threshold dialogs and Phase 4 checkout/order concurrency acceptance. |
+| Menu | Inventory and low-stock threshold | Inventory-backed adjustments and thresholds are available in each food item's action modal; final cross-app stock/checkout and concurrent order acceptance remains a Phase 4 gate. |
 | Finance | Invoices | Visible tab states truthfully that KRA/eTIMS certified invoicing is not configured; PDF statement export is **not** a fiscal invoice. |
 | Finance | Upcoming settlement | Shows a verified schedule only when returned by server; otherwise **Unconfirmed** instead of a made-up payment date. |
 | Business | Merchant logo camera button | Visible and explains media dependency; persistent verified logo-to-profile association not completed. |
