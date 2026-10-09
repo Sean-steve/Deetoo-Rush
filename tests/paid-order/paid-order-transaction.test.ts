@@ -368,3 +368,53 @@ test('verified capture confirms previously held stock exactly once',async()=>{
  assert.equal((await db.query('SELECT quantity FROM merchant_item_inventory WHERE branch_id=$1 AND item_id=$2',[f.bid,f.item])).rows[0].quantity,1);
  assert.equal((await db.query('SELECT state FROM merchant_stock_reservations WHERE order_id=$1',[order.id])).rows[0].state,'CONFIRMED');
 });
+
+
+test('Phase 4 merchant API: duplicate provider captures count once and tenant-scoped history/finance never leak', async()=>{
+ const {authRepository}=await import('../../apps/api/src/modules/auth/auth.repository');
+ const {signAccessToken}=await import('../../packages/auth/src/crypto');
+ const {UserRole}=await import('@deetoo/types');
+ const {createApp}=await import('../../apps/api/src/app');
+ const http=await import('node:http');
+ const f=await pending(),g=await fixture();
+ const first=await evidence(f.order);
+ await paymentService.applyVerifiedOutcome(first.payment.id,{...first.result,status:'FAILED'});
+ const second=await evidence(f.order);
+ await paymentService.applyVerifiedOutcome(second.payment.id,second.result);
+ await paymentService.applyVerifiedOutcome(first.payment.id,first.result);
+ const evidenceCount=await getDbPool().query('SELECT COUNT(*)::int AS n FROM payment_capture_evidence WHERE order_id=$1',[f.order.id]);
+ assert.equal(Number(evidenceCount.rows[0].n),2,'fixture must reproduce two provider captures on one order');
+ const owner=(await authService.registerCustomer({name:'Merchant analytics owner',email:`${randomUUID()}@example.test`,password:'Foundation-test-ONLY-893!'})).user;
+ await authRepository.setUserRoles(owner.id,[UserRole.MERCHANT_OWNER]);
+ await merchantRepository.createMembership({id:randomUUID(),user_id:owner.id,merchant_id:f.mid,
+   role_code:'merchant_owner',status:'ACTIVE',branch_ids:[f.bid],created_at:new Date().toISOString()} as any);
+ const sessionId=randomUUID();
+ await authRepository.createSession({id:sessionId,user_id:owner.id,refresh_token_hash:randomUUID(),
+   expires_at:new Date(Date.now()+3600000)});
+ const token=signAccessToken({sub:owner.id,sessionId});
+ const server=http.createServer(createApp());
+ await new Promise<void>(resolve=>server.listen(0,'127.0.0.1',resolve));
+ const base=`http://127.0.0.1:${(server.address() as any).port}/api/v1`;
+ const get=async(path:string)=>{const response=await fetch(base+path,{headers:{Authorization:'Bearer '+token}});
+   return {status:response.status,body:await response.json()};};
+ try {
+   const history=await get('/merchant/experience/orders/history?branch_id='+f.bid);
+   assert.equal(history.status,200,JSON.stringify(history.body));
+   assert.equal(history.body.data.filter((x:any)=>x.id===f.order.id).length,1,'one paid order occupies one history row');
+   const metrics=await get('/merchant/experience/orders/metrics?branch_id='+f.bid);
+   assert.equal(metrics.status,200,JSON.stringify(metrics.body));
+   assert.equal(Number(metrics.body.data.total),1,'late capture cannot inflate counted orders');
+   const finance=await get('/finance/merchant/experience/overview?branch_id='+f.bid);
+   assert.equal(finance.status,200,JSON.stringify(finance.body));
+   assert.equal(Number(finance.body.data.totals.completed_orders),0,'pending fulfilment is not a completed order');
+   assert.equal(Number(finance.body.data.totals.gmv_minor),Number((await ledgerRepository.findOrderSummary(f.order.id))!.gmv_minor));
+   for(const route of ['/merchant/experience/orders/history?branch_id='+g.bid,
+     '/merchant/experience/orders/metrics?branch_id='+g.bid,
+     '/finance/merchant/experience/overview?branch_id='+g.bid]){
+     const result=await get(route);assert.equal(result.status,403,'must deny cross-merchant branch: '+route);
+   }
+ }finally{
+   server.closeAllConnections();
+   await new Promise<void>(resolve=>server.close(()=>resolve()));
+ }
+});
