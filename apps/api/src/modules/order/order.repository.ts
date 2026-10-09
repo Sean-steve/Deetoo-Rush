@@ -149,6 +149,41 @@ export class OrderRepository {
           ]
         );
 
+        // Reserve available inventory inside the SAME transaction as the order snapshot.
+        // No stock row = intentionally untracked product; tracked products cannot oversell.
+        // Sorted IDs establish consistent row lock ordering between concurrent carts.
+        const stockQuantities = new Map<string, number>();
+        for (const item of order.items || []) if (item.source_menu_item_id) {
+          stockQuantities.set(item.source_menu_item_id,
+            (stockQuantities.get(item.source_menu_item_id) || 0) + item.quantity);
+        }
+        for (const [itemId, quantity] of [...stockQuantities.entries()].sort(([a], [b]) => a.localeCompare(b))) {
+          const inventory = await client.query(
+            `SELECT quantity,low_stock_threshold FROM merchant_item_inventory
+             WHERE branch_id=$1 AND item_id=$2 FOR UPDATE`, [order.branch_id, itemId]);
+          if (!inventory.rowCount) continue;
+          const remaining = Number(inventory.rows[0].quantity) - quantity;
+          if (remaining < 0) {
+            throw new AppError(409, 'INSUFFICIENT_STOCK', 'Insufficient stock for an item in this order');
+          }
+          await client.query(
+            `UPDATE merchant_item_inventory SET quantity=$3,updated_at=NOW()
+             WHERE branch_id=$1 AND item_id=$2`, [order.branch_id,itemId,remaining]);
+          await client.query(
+            `INSERT INTO merchant_stock_reservations(order_id,branch_id,item_id,quantity,expires_at)
+             VALUES($1,$2,$3,$4,NOW()+INTERVAL '30 minutes')`,
+            [order.id,order.branch_id,itemId,quantity]);
+          if (Number(inventory.rows[0].quantity)>Number(inventory.rows[0].low_stock_threshold) &&
+              remaining<=Number(inventory.rows[0].low_stock_threshold)) {
+            await client.query(
+              `INSERT INTO notifications(recipient_type,recipient_id,channel,template_code,subject,payload,idempotency_key)
+               VALUES('MERCHANT',$1,'IN_APP','LOW_STOCK','Item stock below threshold',$2,$3)
+               ON CONFLICT (idempotency_key) DO NOTHING`,
+               [order.merchant_id,JSON.stringify({branch_id:order.branch_id,item_id:itemId,quantity:remaining}),
+                 'stock-order:'+order.id+':'+itemId]);
+          }
+        }
+
         // Insert Order Items
         for (const item of order.items) {
           await client.query(
@@ -515,6 +550,26 @@ export class OrderRepository {
             timelineEntry.created_at,
           ]
         );
+
+        // Reservations become confirmed only after verified provider capture and PLACED.
+        // Cancellation/rejection restores *unconfirmed* stock once (idempotent transition).
+        if (nextStatus === OrderStatus.PLACED) {
+          await client.query(
+            `UPDATE merchant_stock_reservations SET state='CONFIRMED',confirmed_at=NOW()
+             WHERE order_id=$1 AND state='HELD'`, [orderId]);
+        } else if (nextStatus === OrderStatus.CANCELLED || nextStatus === OrderStatus.REJECTED) {
+          const released = await client.query(
+            `UPDATE merchant_stock_reservations
+             SET state='RELEASED',released_at=NOW()
+             WHERE order_id=$1 AND state IN ('HELD','CONFIRMED')
+             RETURNING branch_id,item_id,quantity`, [orderId]);
+          for (const held of released.rows) {
+            await client.query(
+              `UPDATE merchant_item_inventory SET quantity=quantity+$3,updated_at=NOW()
+               WHERE branch_id=$1 AND item_id=$2`,
+              [held.branch_id,held.item_id,held.quantity]);
+          }
+        }
 
         await client.query('COMMIT');
       } catch (sqlErr) {
