@@ -23,6 +23,7 @@ export function MenuPage({search,navigate}:{search:string;navigate:(page:string)
  const [modifierOpen,setModifierOpen]=useState(false);
  const [modifierName,setModifierName]=useState("");
  const [servingOpen,setServingOpen]=useState(false);
+ const [serving,setServing]=useState<string[]>(data.servingBranches);
  const [menuOpen,setMenuOpen]=useState(false);
  const [newMenu,setNewMenu]=useState("");
  const [scope,setScope]=useState("Menu catalogue");
@@ -60,7 +61,7 @@ export function MenuPage({search,navigate}:{search:string;navigate:(page:string)
  <div className="mp-menu-extra"><label className="mp-select-control"><strong>MENU:</strong><select aria-label="Choose menu" value={data.selectedMenu} onChange={e=>update(p=>({...p,selectedMenu:e.target.value}))}>{data.menus.map(m=><option key={m}>{m}</option>)}</select><ChevronDown size={13}/></label><button className="mp-quiet-button" onClick={()=>setMenuOpen(true)}>+ Add Menu</button>
  <label className="mp-select-control"><strong>CATALOGUE SCOPE:</strong><select aria-label="Catalogue scope" value={scope} onChange={e=>setScope(e.target.value)}><option>Menu catalogue</option><option>Branch overrides</option></select></label>
  <button className="mp-quiet-button" onClick={()=>setModifierOpen(true)}><SlidersHorizontal size={16}/> Modifiers & Add-ons</button>
- <button className="mp-quiet-button" onClick={()=>setServingOpen(true)}><Store size={16}/> Branch Serving</button>
+ <button className="mp-quiet-button" onClick={()=>{setServing([...data.servingBranches]);setServingOpen(true);}}><Store size={16}/> Branch Serving</button>
  <button className="mp-quiet-button" onClick={()=>setCategoryOpen(true)}><Plus size={16}/> Add Category</button><button className="mp-quiet-button" onClick={()=>announce("Catalogue refreshed from local prototype state")} aria-label="Refresh menu"><RefreshCw size={17}/></button>
  </div>
  <div className="mp-menu-layout">
@@ -93,7 +94,7 @@ export function MenuPage({search,navigate}:{search:string;navigate:(page:string)
  <Modal open={modifierOpen} title="Modifiers & Add-ons" onClose={()=>{setModifierOpen(false);setTab("all");}}><p className="mp-muted">Create add-on choices for food items. Use Edit food item to attach modifiers to specific products.</p>
  {data.items.filter(i=>i.modifiers.length).map(i=><div className="mp-list-dialog" key={i.id}><div><strong>{i.name}</strong><span>{i.modifiers.join(", ")}</span></div></div>)}
  <form onSubmit={addModifier}><Field label="Add an option to Smash Burger"><input required value={modifierName} onChange={e=>setModifierName(e.target.value)} placeholder="e.g. Extra cheese"/></Field><button type="submit" className="mp-primary">Add modifier</button></form></Modal>
- <Modal open={servingOpen} title="Branch serving" onClose={()=>setServingOpen(false)}><p className="mp-muted">Choose which branches should offer this menu in the prototype.</p>{data.branches.map(b=><label className="mp-inline-check" key={b}><input type="checkbox" defaultChecked={b===data.branch}/> {b}</label>)}<div className="mp-dialog-actions"><button className="mp-primary" onClick={()=>{setServingOpen(false);announce("Branch serving preferences saved for this demo");}}>Save branches</button></div></Modal>
+ <Modal open={servingOpen} title="Branch serving" onClose={()=>setServingOpen(false)}><p className="mp-muted">Choose which branches should offer this menu in the prototype.</p>{data.branches.map(b=><label className="mp-inline-check" key={b}><input type="checkbox" checked={serving.includes(b)} onChange={e=>setServing(previous=>e.target.checked?[...previous,b]:previous.filter(x=>x!==b))}/> {b}</label>)}<div className="mp-dialog-actions"><button className="mp-primary" onClick={()=>{update(p=>({...p,servingBranches:serving}));setServingOpen(false);announce("Branch serving preferences saved locally");}}>Save branches</button></div></Modal>
  <Modal open={menuOpen} title="Create menu" onClose={()=>setMenuOpen(false)}><form onSubmit={e=>{e.preventDefault();if(!newMenu.trim())return;update(p=>({...p,menus:[...p.menus,newMenu],selectedMenu:newMenu}));setNewMenu("");setMenuOpen(false);announce("Menu created");}}><Field label="Menu name"><input required value={newMenu} onChange={e=>setNewMenu(e.target.value)} placeholder="e.g. Holiday Menu"/></Field><div className="mp-dialog-actions"><button className="mp-outline" type="button" onClick={()=>setMenuOpen(false)}>Cancel</button><button className="mp-primary" type="submit">Create menu</button></div></form></Modal>
  </div>;
 }
