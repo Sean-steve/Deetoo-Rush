@@ -125,6 +125,8 @@ jobs:
           node-version: 22
       - run: pnpm install --frozen-lockfile
       - run: pnpm test:foundation
+      - name: Verify paid-order capture and checkout inventory holds
+        run: pnpm test:paid-order
 
   code-analysis:
     name: CodeQL security analysis
