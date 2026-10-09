@@ -8,7 +8,7 @@ export type Document = {id:string;name:string;filename:string;date:string;status
 export type Tx = {id:string;date:string;customer:string;amount:number;payment:"M-PESA"|"Card"|"Cash";status:"Completed"|"Pending"|"Refunded";type:"Order"|"Adjustment"};
 export type Settlement = {id:string;date:string;amount:number;status:"Completed"|"Scheduled";reference:string};
 export type Notice = {id:string;text:string;time:string;read:boolean};
-export type MerchantDemo = {branch:string;branches:string[];storeStatus:"Open"|"Paused"|"Closed";orders:Order[];items:FoodItem[];staff:Staff[];documents:Document[];transactions:Tx[];settlements:Settlement[];notices:Notice[];commission:number;categories:string[];business:{legalName:string;displayName:string;description:string;type:string;phone:string;email:string;address:string;country:string};menus:string[];selectedMenu:string};
+export type MerchantDemo = {branch:string;branches:string[];storeStatus:"Open"|"Paused"|"Closed";orders:Order[];items:FoodItem[];staff:Staff[];documents:Document[];transactions:Tx[];settlements:Settlement[];notices:Notice[];commission:number;categories:string[];servingBranches:string[];business:{photo?:string;legalName:string;displayName:string;description:string;type:string;phone:string;email:string;address:string;country:string};menus:string[];selectedMenu:string};
 const images = {
  burger:"https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=640&q=82",
  wrap:"https://images.unsplash.com/photo-1626700051175-6818013e1d4f?w=640&q=82",
@@ -82,7 +82,7 @@ settlements:[
 {id:"ST-1001",date:"Sep 8, 2026",amount:11650,status:"Completed",reference:"MPESA-PAYOUT-1001"}
 ],
 notices:[{id:"n1",text:"New order received",time:"2 min ago",read:false},{id:"n2",text:"Payout processed",time:"1 hour ago",read:false},{id:"n3",text:"Menu item updated",time:"Yesterday",read:false}],
-commission:10,categories:["Breakfast","Burgers","Wraps","Sides","Drinks","Combos"],menus:["Weekend Menu (Active)","Weekday Menu","Breakfast Menu"],selectedMenu:"Weekend Menu (Active)",
+commission:10,servingBranches:["Juja Branch"],categories:["Breakfast","Burgers","Wraps","Sides","Drinks","Combos"],menus:["Weekend Menu (Active)","Weekday Menu","Breakfast Menu"],selectedMenu:"Weekend Menu (Active)",
 business:{legalName:"Deetoo Test Merchant",displayName:"Deetoo Test Merchant",description:"Local testing business serving great food through DeeToo.",type:"Restaurant",phone:"+254 700 123 456",email:"merchant@deetoo.test",address:"Kalimoni, Juja",country:"Kenya"}
 };
 type DemoCtx={data:MerchantDemo; update:(fn:(prev:MerchantDemo)=>MerchantDemo)=>void; reset:()=>void; toast:string; announce:(text:string)=>void; };
