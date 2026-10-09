@@ -9,6 +9,7 @@ import { DEMO_SERVICE_ZONE, SYSTEM_ROLES, LEDGER_SYSTEM_ACCOUNTS } from '../../.
 import { AppError } from '../middleware/error-handler';
 import { authRouter } from './auth/auth.router';
 import { adminRouter } from './admin/admin.router';
+import { merchantExperienceAdminRouter } from './admin/merchant-experience-admin.router';
 import { merchantRouter } from './merchant/merchant.router';
 import { merchantExperienceRouter } from './merchant/merchant-experience.router';
 import { merchantInventoryRouter } from './merchant/merchant-inventory.router';
@@ -39,6 +40,7 @@ export const v1Router = Router();
 // Domain Sub-routers
 v1Router.use('/auth', authRouter);
 v1Router.use('/admin/geography', geographyRouter);
+v1Router.use('/admin/merchant-experience', merchantExperienceAdminRouter);
 v1Router.use('/admin', adminRouter);
 v1Router.use('/admin/operations', operationsRouter);
 v1Router.use('/operations', operationsRouter);
