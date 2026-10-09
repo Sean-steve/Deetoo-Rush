@@ -241,6 +241,16 @@ paths:
           description: Not authorized for this merchant statement
         '404':
           description: Settlement not found
+  /merchant/experience/providers/readiness:
+    get:
+      summary: Merchant provider credential presence (not a successful connection test)
+      tags: [Merchant]
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Credential configuration flags without secrets or verified provider health
+        '403':
+          description: Merchant membership required
   /finance/merchant/experience/settlements/{settlementId}:
     get:
       summary: Merchant Phase 2 GET /finance/merchant/experience/settlements/settlementId
