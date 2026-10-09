@@ -52,7 +52,8 @@ catalogueRouter.use(async (req: AuthenticatedRequest, _res, next) => {
     if (req.method !== "GET") {
       const merchantId=await resolveMerchantId(req);
       await merchantScope(req.user!, merchantId, true, true, false);
-      await requireMerchantCapability(req.user!.id,merchantId,"MENU_WRITE");
+      if (!req.user!.roles.some(r=>["admin","ops"].includes(String(r))))
+        await requireMerchantCapability(req.user!.id,merchantId,"MENU_WRITE");
     }
     next();
   } catch (err) {
