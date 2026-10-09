@@ -30,7 +30,8 @@ merchantOrderRouter.param(
       const order = await orderService.getOrderById(id);
       await branchScope(req.user!, order.branch_id);
       await requirePaidOrder(order.id);
-      if(req.method !== "GET") await requireMerchantCapability(req.user!.id,order.merchant_id,"ORDERS_WRITE");
+      if(req.method !== "GET" && !req.user!.roles.some(r=>["admin","ops"].includes(String(r))))
+        await requireMerchantCapability(req.user!.id,order.merchant_id,"ORDERS_WRITE");
       next();
     } catch (err) {
       next(err);
