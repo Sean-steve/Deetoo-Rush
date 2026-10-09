@@ -1,6 +1,6 @@
 /* Screens 11–13 — customer-owned profile, sessions and notification inbox. */
 import {useEffect,useState} from "react";
-import {ArrowRight,Bell,Check,CheckCircle2,ChevronRight,CreditCard,House,KeyRound,Laptop,LockKeyhole,MapPin,Plus,RefreshCw,ShieldCheck,Smartphone,Trash2,UserRound,X} from "lucide-react";
+import {ArrowRight,Bell,Check,CheckCircle2,ChevronRight,CreditCard,Heart,House,KeyRound,Laptop,LockKeyhole,MapPin,Plus,RefreshCw,Settings,ShieldCheck,ShoppingBag,Smartphone,Star,Trash2,UserRound,X} from "lucide-react";
 import type {CustomerAddress,CustomerProfile,NotificationRecord} from "@deetoo/types";
 import {Badge,Button,Panel} from "../../../../packages/customer-ui/src/index";
 import type {CustomerGateway,CustomerDeviceSession} from "./customer-gateway";
@@ -75,7 +75,10 @@ function Profile({gateway,onNavigate,onAddressesChanged}:{gateway:CustomerGatewa
   <div className="dt-profile-main"><header className="dt-account-pagehead"><div><h1>My profile</h1><p>Manage your account, saved delivery addresses and preferences.</p></div>
    <Button variant="outline" onClick={()=>onNavigate("/security")}><ShieldCheck size={16}/> Security</Button></header>
   {done&&<p role="status" className="dt-live-success"><Check size={17}/>{done}</p>}{inlineError(error)}
-  <Panel className="dt-live-account-card"><div className="dt-account-section-head"><span className="dt-account-icon"><UserRound/></span><div><h2>Personal information</h2><p>Information stored in your customer account.</p></div>
+  <Panel className="dt-profile-summary"><div className="dt-profile-avatar" aria-hidden="true">{(initial?.display_name||initial?.first_name||"D").slice(0,1).toUpperCase()}</div><div className="dt-profile-identity"><h2>{initial?.display_name||[initial?.first_name,initial?.last_name].filter(Boolean).join(" ")||"Your DeeToo profile"}</h2><p>{initial?.email||"Email not provided"} <Badge variant="mint"><ShieldCheck size={14}/> Your account</Badge></p><span>{initial?.phone||"Phone not provided"}</span></div><div className="dt-profile-stats"><div><ShoppingBag size={25}/><strong>—</strong><small>See order history</small></div><div><Heart size={25}/><strong>—</strong><small>Favourites unavailable</small></div><div><Star size={25}/><strong>—</strong><small>Ratings unavailable</small></div></div></Panel>
+  <nav className="dt-profile-tabs" aria-label="Profile sections">{[["personal","Personal"],["addresses","Addresses"],["payments","Payments"],["preferences","Preferences"]].map(([id,label])=><button key={id} type="button" onClick={()=>document.getElementById("dt-profile-"+id)?.scrollIntoView({behavior:"smooth",block:"start"})}>{label}</button>)}</nav>
+  <div className="dt-profile-card-grid">
+  <Panel id="dt-profile-personal" className="dt-live-account-card dt-profile-card"><div className="dt-account-section-head"><span className="dt-account-icon"><UserRound/></span><div><h2>Personal information</h2><p>Information stored in your customer account.</p></div>
   {!editing&&<Button variant="outline" size="sm" onClick={start}>Edit profile</Button>}</div>
   <ResourceView resource={profile.state} empty="Customer profile unavailable" onRetry={profile.refresh}>{(customer:CustomerProfile)=>
    editing?<form onSubmit={e=>void update(e)} className="dt-live-account-form">
@@ -89,7 +92,7 @@ function Profile({gateway,onNavigate,onAddressesChanged}:{gateway:CustomerGatewa
     <div><dt>Display name</dt><dd>{customer.display_name||"Not provided"}</dd></div><div><dt>First / last name</dt><dd>{[customer.first_name,customer.last_name].filter(Boolean).join(" ")||"Not provided"}</dd></div>
     <div><dt>Email address</dt><dd>{customer.email||"Not provided"}</dd></div><div><dt>Phone number</dt><dd>{customer.phone||"Not provided"}</dd></div>
    </dl>}</ResourceView></Panel>
-  <Panel className="dt-live-account-card"><div className="dt-account-section-head"><span className="dt-account-icon"><MapPin/></span><div><h2>Saved addresses</h2><p>Delivery locations verified by DeeToo.</p></div>
+  <Panel id="dt-profile-addresses" className="dt-live-account-card dt-profile-card"><div className="dt-account-section-head"><span className="dt-account-icon"><MapPin/></span><div><h2>Saved addresses</h2><p>Delivery locations verified by DeeToo.</p></div>
    <Button size="sm" onClick={()=>setEditor("new")}><Plus size={16}/> Add address</Button></div>
    <ResourceView resource={addresses.state} empty="No saved addresses yet" onRetry={addresses.refresh}>{(list:CustomerAddress[])=><div className="dt-live-account-addresses">{list.map(a=><article key={a.id}>
     <span className="dt-account-icon"><House size={21}/></span><div><h3>{a.label} {a.is_default&&<Badge variant="mint">Default</Badge>}</h3><p>{a.address_line1}{a.address_line2?", "+a.address_line2:""}, {a.city}, {a.region}</p><small>{a.delivery_instructions||"Delivery address"}</small></div>
@@ -97,12 +100,12 @@ function Profile({gateway,onNavigate,onAddressesChanged}:{gateway:CustomerGatewa
      <Button variant="outline" size="sm" onClick={()=>setEditor(a)}>Edit</Button><Button variant="outline" size="sm" onClick={()=>setConfirmRemove(a)} disabled={addressBusy===a.id} aria-label={"Remove "+a.label}><Trash2 size={16}/></Button></div>
    </article>)}</div>}</ResourceView>
    <ResourceError message="New or edited address coordinates must be verified against active service zones. Use the existing checkout location picker; location fields are never guessed."/></Panel>
-  <Panel className="dt-live-account-card"><div className="dt-account-section-head"><span className="dt-account-icon"><CreditCard/></span><div><h2>Payment methods & membership</h2><p>Secure payment, rewards and Plus information</p></div></div>
+  <Panel id="dt-profile-payments" className="dt-live-account-card dt-profile-card"><div className="dt-account-section-head"><span className="dt-account-icon"><CreditCard/></span><div><h2>Payment methods & membership</h2><p>Secure payment, rewards and Plus information</p></div></div>
    <ResourceError message="Saved payment cards, DeeToo Plus and rewards do not have a verified customer backend contract. No payment instrument is shown or stored here."/></Panel>
-  <Panel className="dt-live-account-card"><div className="dt-account-section-head"><span className="dt-account-icon"><Bell/></span><div><h2>Preferences</h2><p>Notification delivery settings and privacy.</p></div></div>
+  <Panel id="dt-profile-preferences" className="dt-live-account-card dt-profile-card"><div className="dt-account-section-head"><span className="dt-account-icon"><Bell/></span><div><h2>Preferences</h2><p>Notification delivery settings and privacy.</p></div></div>
    <ResourceError message="Notification channel preferences are awaiting a consent-aware backend endpoint. Existing read settings are not persisted by this screen."/>
-   <Button variant="outline" onClick={()=>onNavigate("/notifications")}>View notifications <ArrowRight size={16}/></Button></Panel></div>
-  <aside className="dt-live-account-side"><Panel><h2>Quick links</h2>{[["Orders & tracking","/orders"],["Security & devices","/security"],["Notifications","/notifications"],["Help & support","/support"]].map(([label,path])=><button key={path} onClick={()=>onNavigate(path)}>{label}<ChevronRight size={16}/></button>)}</Panel></aside>
+   <Button variant="outline" onClick={()=>onNavigate("/notifications")}>View notifications <ArrowRight size={16}/></Button></Panel></div></div>
+  <aside className="dt-live-account-side dt-profile-rail"><Panel className="dt-quick-actions"><h2>Quick links</h2>{[["Orders & tracking","/orders"],["Security & devices","/security"],["Notifications","/notifications"],["Help & support","/support"]].map(([label,path])=><button key={path} onClick={()=>onNavigate(path)}>{label}<ChevronRight size={16}/></button>)}</Panel><Panel className="dt-plus-card"><div className="dt-plus-crown"><Star size={26}/></div><h2>DeeToo Plus</h2><p>Membership benefits require an approved customer contract before activation.</p><Badge variant="neutral">Coming soon</Badge></Panel></aside>
   {editor&&<AddressEditor gateway={gateway} original={editor==="new"?null:editor} onClose={()=>setEditor(null)} onSaved={()=>{addresses.refresh();profile.refresh();onAddressesChanged();setDone("Address saved to DeeToo.");}}/>}
   {confirmRemove&&<div className="dt-live-account-overlay"><section role="dialog" aria-modal="true" aria-label="Confirm address deletion" className="dt-live-account-modal"><h2>Remove saved address?</h2><p>This will delete the saved delivery address "{confirmRemove.label}" from DeeToo. Existing order snapshots remain unchanged.</p>
   <div><Button variant="outline" onClick={()=>setConfirmRemove(null)}>Keep address</Button><Button disabled={!!addressBusy} onClick={()=>void changeAddress(confirmRemove.id,"remove")}>Remove address</Button></div></section></div>}
