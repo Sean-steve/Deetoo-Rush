@@ -1,12 +1,12 @@
 # DeeToo Merchant — Frontend-first delivery contract
 
-**Baseline:** eight screenshots uploaded 2026-10-09. **Phase 1:** Kitchen Orders, Menu & Availability, Finance & Settlements, Business & Team. **Phase 2 reserved:** Branch Settings, Security & Sessions, Notifications, Support & Help Center.
+**Baseline:** eight screenshots uploaded 2026-10-09. **Phase 1:** Kitchen Orders, Menu & Availability, Finance & Settlements, Business & Team. **Phase 2 implemented in the same isolated prototype:** Branch Settings, Security & Sessions, Notifications, Support & Help Center. See [Phase 2 screen/flow map](frontend-first-phase2-screen-flow-map.md).
 
 **Preview URL:** `http://localhost:5174/?merchant-prototype=1` (with the Merchant Vite app running). This is an **isolated standalone frontend prototype**, not connected to production APIs. Ordinary Merchant URLs continue to render the existing Merchant application. No changes were made to server APIs, database, or the shared Customer/Rider/Admin UI. Values in the prototype are demonstrative and should not be treated as live orders, financial records or authenticated users.
 
 ## Screen and flow map
 
-- **Shell:** sidebar → any of four Phase 1 pages; Phase 2 navigation items → reserved placeholder dialog; branch switcher → branch dialog; store status → Open/Paused/Closed (local state); bell → Phase 2 reservation; profile → account dialog; global search → on-screen order filtering in Kitchen, with search scopes for other pages to be implemented.
+- **Shell:** sidebar → any of four Phase 1 pages; Phase 2 navigation items → implemented screens with local-state flows; branch switcher → branch dialog; store status → Open/Paused/Closed (local state); bell → Phase 2 reservation; profile → account dialog; global search → on-screen order filtering in Kitchen, with search scopes for other pages to be implemented.
 - **Kitchen:** All/New/Preparing/Ready/Completed filters; New order → Accept & Set Prep Time dialog → Preparing → Mark Ready → Ready → Mark Picked Up confirmation → Completed. Decline → reason dialog → remove from active queue (prototype only). Rider/contact icon → customer-contact dialog. Date range/sort controls exist.
 - **Menu:** item summary cards, category list, All/Available/Unavailable filters, catalogue search, sort, grid/list toggle, image placeholder, per-item status switch; Add food item → editor → catalogue; food overflow → Edit/Delete dialogs; Categories → list/add modal; Modifiers & Add-ons → preserved modal; Filter → reset.
 - **Finance:** KPI cards, earnings line graph, payment-method donut, commission breakdown, upcoming settlement, recent transaction table, Transactions/Settlements/Payouts/Invoices tabs; filters, search, export, settlement details and transaction actions. Data are **explicitly illustrative**, not asserted as financially correct.
@@ -58,6 +58,6 @@ Each row lists **visible controls that must be retained**, plus the backend cont
 4. Every present or partially supported control recorded above. **Current gap:** pixel-by-pixel screenshot approval and deeper nested detail workflows are still required before describing Phase 1 as visually exact.
 5. No backend hooks are introduced into the isolated prototype and ordinary Merchant route behavior is unaffected.
 
-## Phase 2
+## Phase 2 status
 
-Build the remaining four attached screens in the **same isolated frontend branch**: Branch Settings, Security & Sessions, Notifications Center, Support & Help Center. Do not merge before all eight are approved. After Phase 2 perform a complete backend mapping against current authenticated APIs, permissions and database schema, with each missing endpoint traceable back to the UI control.
+Phase 2 screens are now implemented in the **same isolated frontend branch**: Branch Settings, Security & Sessions, Notifications Center, Support & Help Center. See [the Phase 2 component and backend-gap register](frontend-first-phase2-screen-flow-map.md). Do not merge before all eight are approved. Next: screenshot acceptance and deeper nested frontend polish, followed by complete backend mapping against authenticated APIs, permissions and database schema, with missing endpoints traceable to every UI control.
