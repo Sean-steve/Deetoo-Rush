@@ -228,3 +228,66 @@ test('Merchant frontend prototype Phase 1 navigates four reference screens and l
 
   await context.close();
 });
+
+
+test('Merchant frontend prototype Phase 2 navigates branch, security, notifications, and support without an API', async ({ browser }) => {
+  const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+  const page = await context.newPage();
+  await page.goto('http://127.0.0.1:5174/?merchant-prototype=1&screen=branch');
+  await expect(page.getByRole('heading', { name: 'Branch settings' })).toBeVisible();
+  await expect(page.getByRole('navigation', { name: 'Branch settings sections' }).getByRole('button')).toHaveCount(7);
+  await page.getByRole('button', { name: 'Closed Not accepting orders' }).click();
+  await expect(page.getByRole('button', { name: /Store closed/ })).toBeVisible();
+  await page.getByRole('button', { name: 'Open Accepting orders' }).click();
+  await page.getByRole('button', { name: 'Save branch settings' }).click();
+  await expect(page.getByRole('status')).toContainText('Branch settings saved');
+
+  const nav = page.locator('.mp-sidebar nav');
+  await nav.getByRole('button', { name: 'Security & sessions' }).click();
+  await expect(page.getByRole('heading', { name: 'Security & sessions' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Active sessions' })).toBeVisible();
+  await page.getByRole('button', { name: /Manage Android/ }).click();
+  await expect(page.getByRole('dialog', { name: 'session' })).toBeVisible();
+  await page.getByRole('button', { name: 'Revoke session' }).click();
+  await expect(page.getByRole('status')).toContainText('Session revoked');
+
+  await nav.getByRole('button', { name: /Notifications/ }).click();
+  await expect(page.getByRole('heading', { name: 'Notifications' })).toBeVisible();
+  await expect(page.getByRole('button', { name: /New order received/ })).toBeVisible();
+  await page.getByRole('button', { name: 'Mark read' }).click();
+  await expect(page.getByRole('status')).toContainText('Notification marked as read');
+  await page.getByRole('button', { name: 'Notification settings' }).click();
+  await expect(page.getByRole('dialog', { name: 'prefs' })).toBeVisible();
+  await page.getByRole('button', { name: 'Save notification settings' }).click();
+
+  await nav.getByRole('button', { name: 'Support' }).click();
+  await expect(page.getByRole('heading', { name: 'Support & help center' })).toBeVisible();
+  await expect(page.getByText('Unable to receive new orders').first()).toBeVisible();
+  await page.getByPlaceholder('Type your message...').fill('Please confirm the troubleshooting steps.');
+  await page.getByRole('button', { name: 'Send message' }).click();
+  await expect(page.getByText('Please confirm the troubleshooting steps.')).toBeVisible();
+  await page.getByRole('button', { name: /Start a conversation/ }).click();
+  const createCase = page.getByRole('dialog', { name: 'new' });
+  await createCase.getByLabel('Subject').fill('Branch order routing test');
+  await createCase.getByLabel('Tell us what happened').fill('The kitchen demo needs routing guidance.');
+  await createCase.getByRole('button', { name: /Create support request/ }).click();
+  await expect(page.getByText('Branch order routing test')).toHaveCount(2);
+
+  await context.close();
+});
+
+test('Merchant frontend Phase 2 mobile navigation can reach all eight screen routes', async ({ browser }) => {
+  const context = await browser.newContext({ viewport: { width: 390, height: 844 } });
+  const page = await context.newPage();
+  await page.goto('http://127.0.0.1:5174/?merchant-prototype=1&screen=security');
+  await expect(page.getByRole('heading', { name: 'Security & sessions' })).toBeVisible();
+  await page.getByRole('button', { name: 'Collapse sidebar' }).count();
+  await page.locator('.mp-mobile-menu').click();
+  await expect(page.locator('.mp-sidebar')).toHaveClass(/mp-sidebar-open/);
+  await page.locator('.mp-sidebar nav').getByRole('button', { name: 'Branch settings' }).click();
+  await expect(page.getByRole('heading', { name: 'Branch settings' })).toBeVisible();
+  await page.locator('.mp-mobile-menu').click();
+  await page.locator('.mp-sidebar nav').getByRole('button', { name: 'Support' }).click();
+  await expect(page.getByRole('heading', { name: 'Support & help center' })).toBeVisible();
+  await context.close();
+});
