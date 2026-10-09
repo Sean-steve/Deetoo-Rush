@@ -29,6 +29,7 @@ import {
 import { AuthenticatedRequest, requireAuth } from "../auth/auth.middleware";
 import { resolveMerchantId } from "./merchant.router";
 import { catalogueService } from "./catalogue.service";
+import { requireMerchantCapability } from "./merchant-role-policy.service";
 
 export const catalogueRouter = Router();
 
@@ -48,8 +49,12 @@ catalogueRouter.use(async (req: AuthenticatedRequest, _res, next) => {
     if (req.body?.branch_id) await branchScope(req.user!, req.body.branch_id);
     for (const id of req.body?.branch_ids || [])
       await branchScope(req.user!, id);
-    if (req.method !== "GET")
-      await merchantScope(req.user!, await resolveMerchantId(req), true, true, false);
+    if (req.method !== "GET") {
+      const merchantId=await resolveMerchantId(req);
+      await merchantScope(req.user!, merchantId, true, true, false);
+      if (!req.user!.roles.some(r=>["admin","ops"].includes(String(r))))
+        await requireMerchantCapability(req.user!.id,merchantId,"MENU_WRITE");
+    }
     next();
   } catch (err) {
     next(err);

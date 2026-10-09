@@ -40,6 +40,7 @@ import {
 import { authRepository } from "../auth/auth.repository";
 import { merchantRepository } from "./merchant.repository";
 import { merchantService } from "./merchant.service";
+import { requireMerchantCapability } from "./merchant-role-policy.service";
 import { catalogueRouter } from "./catalogue.router";
 import { merchantOrderRouter } from "./merchant-orders.router";
 
@@ -58,7 +59,11 @@ merchantRouter.use("/team", async (req: AuthenticatedRequest, _res, next) => {
   try {
     if (/^\/invitations\/[^/]+\/accept$/.test(req.path)) return next();
     const merchantId = await resolveMerchantId(req);
-    await merchantScope(req.user!, merchantId, true);
+    const managerCanAccess = req.method === "GET" || (req.method === "POST" && req.path === "/invitations");
+    await merchantScope(req.user!, merchantId, true, managerCanAccess, false);
+    if (req.method === "POST" && req.path === "/invitations" &&
+        !req.user!.roles.some(r=>["admin","ops"].includes(String(r))))
+      await requireMerchantCapability(req.user!.id,merchantId,"TEAM_INVITE");
     const target = req.path.match(/^\/memberships\/([^/]+)/);
     if (target) {
       const membership = await merchantRepository.findMembershipById(target[1]);
@@ -72,6 +77,19 @@ merchantRouter.use("/team", async (req: AuthenticatedRequest, _res, next) => {
   } catch (err) {
     next(err);
   }
+});
+
+// Owner-managed restrictions on existing branch mutations. The platform's
+// RBAC/branch validation remain authoritative and cannot be widened here.
+merchantRouter.use("/branches", async (req:AuthenticatedRequest,_res,next) => {
+  try {
+    if(req.method==="GET"||req.method==="HEAD"||req.user!.roles.some(r=>["admin","ops"].includes(String(r))))return next();
+    const parts=req.path.split("/").filter(Boolean);
+    const existing=parts[0] ? await merchantRepository.findBranchById(parts[0]) : null;
+    const merchantId=existing?.merchant_id || await resolveMerchantId(req);
+    await requireMerchantCapability(req.user!.id,merchantId,"BRANCH_WRITE");
+    next();
+  }catch(error){next(error);}
 });
 
 // Mount Catalogue Sub-router (Sprint 4: Menus, Categories, Items, Modifiers, Options, Overrides)
@@ -751,6 +769,21 @@ merchantRouter.patch(
     try {
       const membershipId = req.params.id;
       const validated = UpdateMembershipSchema.parse(req.body);
+      const existing = await merchantRepository.findMembershipById(membershipId);
+      if (!existing) throw new AppError(404, "MEMBERSHIP_NOT_FOUND", "Membership not found");
+      const proposed = validated as { role_code?: string; status?: string };
+      const removesOwner = existing.role_code === "merchant_owner" &&
+        ((proposed.role_code && proposed.role_code !== "merchant_owner") ||
+         (proposed.status && proposed.status !== "ACTIVE"));
+      if (removesOwner) {
+        const all = await merchantRepository.listMembershipsByMerchant(existing.merchant_id);
+        const remainingOwners = all.filter(member =>
+          member.id !== existing.id && member.role_code === "merchant_owner" && member.status === "ACTIVE");
+        if (!remainingOwners.length)
+          throw new AppError(409, "LAST_OWNER_REQUIRED", "A merchant requires an active owner");
+        if (existing.user_id === req.user!.id)
+          throw new AppError(409, "SELF_DEMOTION_FORBIDDEN", "Owner may not demote their own account");
+      }
 
       const updated = await merchantRepository.updateMembership(
         membershipId,

@@ -10,6 +10,7 @@ import { customerRepository } from '../../apps/api/src/modules/customer/customer
 import { cartRepository } from '../../apps/api/src/modules/cart/cart.repository';
 import { checkoutService } from '../../apps/api/src/modules/cart/checkout.service';
 import { orderService } from '../../apps/api/src/modules/order/order.service';
+import { expireCheckoutStockHolds } from '../../apps/api/src/modules/merchant/stock-expiry.service';
 import { paymentService } from '../../apps/api/src/modules/payment/payment.service';
 import { paymentRepository } from '../../apps/api/src/modules/payment/payment.repository';
 import { financialPostingService } from '../../apps/api/src/modules/finance/financial-posting.service';
@@ -39,7 +40,7 @@ async function fixture(){
  const cart=await cartRepository.createCart({id:randomUUID(),customer_id:uid,branch_id:bid,currency:'KES',status:'ACTIVE',created_at:now,updated_at:now,expires_at:new Date(Date.now()+3600000).toISOString()} as any);
  const cartItem=await cartRepository.createCartItem({id:randomUUID(),cart_id:cart.id,menu_item_id:item,quantity:1,modifier_option_ids:[],created_at:now,updated_at:now});
  const quote=await checkoutService.generateQuote(uid,{address_id:address.id});
- return {uid,mid,bid,cartItem,quote};
+ return {uid,mid,bid,item,cartItem,quote};
 }
 async function pending(){const f=await fixture();const order=await orderService.createOrderFromQuote(f.uid,{quote_id:f.quote.id},randomUUID());return {...f,order};}
 async function evidence(order:any){
@@ -330,4 +331,90 @@ test('clearing a quoted basket retains immutable history and does not cancel an 
  const placed=await pending();
  await cartService.clearCart(placed.uid);
  assert.equal((await orderService.getOrderById(placed.order.id)).status,'PENDING_PAYMENT');
+});
+
+
+test('tracked checkout stock is held atomically and unpaid holds expire without refund fabrication',async()=>{
+ const f=await fixture(),db=getDbPool();
+ await db.query('INSERT INTO merchant_item_inventory(merchant_id,branch_id,item_id,quantity) VALUES($1,$2,$3,2)',
+   [f.mid,f.bid,f.item]);
+ const order=await orderService.createOrderFromQuote(f.uid,{quote_id:f.quote.id},randomUUID());
+ assert.equal((await db.query('SELECT quantity FROM merchant_item_inventory WHERE branch_id=$1 AND item_id=$2',[f.bid,f.item])).rows[0].quantity,1);
+ assert.deepEqual((await db.query('SELECT quantity,state FROM merchant_stock_reservations WHERE order_id=$1',[order.id])).rows.map(r=>[r.quantity,r.state]),[[1,'HELD']]);
+ await db.query("UPDATE merchant_stock_reservations SET expires_at=NOW()-INTERVAL '1 second' WHERE order_id=$1",[order.id]);
+ const expired=await expireCheckoutStockHolds();
+ assert.ok(expired.expired>=1);
+ assert.equal((await db.query('SELECT quantity FROM merchant_item_inventory WHERE branch_id=$1 AND item_id=$2',[f.bid,f.item])).rows[0].quantity,2);
+ assert.equal((await db.query('SELECT state FROM merchant_stock_reservations WHERE order_id=$1',[order.id])).rows[0].state,'RELEASED');
+ assert.equal((await db.query('SELECT status FROM orders WHERE id=$1',[order.id])).rows[0].status,'CANCELLED');
+ assert.equal((await expireCheckoutStockHolds()).expired,0);
+});
+test('tracked stock rejects oversell while keeping order and reservation records atomic',async()=>{
+ const f=await fixture(),db=getDbPool();
+ await db.query('INSERT INTO merchant_item_inventory(merchant_id,branch_id,item_id,quantity) VALUES($1,$2,$3,0)',
+   [f.mid,f.bid,f.item]);
+ await assert.rejects(orderService.createOrderFromQuote(f.uid,{quote_id:f.quote.id},randomUUID()));
+ assert.equal((await db.query('SELECT count(*)::int AS n FROM orders WHERE checkout_quote_id=$1',[f.quote.id])).rows[0].n,0);
+ assert.equal((await db.query('SELECT count(*)::int AS n FROM merchant_stock_reservations WHERE branch_id=$1',[f.bid])).rows[0].n,0);
+});
+test('verified capture confirms previously held stock exactly once',async()=>{
+ const f=await fixture(),db=getDbPool();
+ await db.query('INSERT INTO merchant_item_inventory(merchant_id,branch_id,item_id,quantity) VALUES($1,$2,$3,2)',
+   [f.mid,f.bid,f.item]);
+ const order=await orderService.createOrderFromQuote(f.uid,{quote_id:f.quote.id},randomUUID());
+ const {payment,result}=await evidence(order);
+ await paymentService.applyVerifiedOutcome(payment.id,result);
+ await paymentService.applyVerifiedOutcome(payment.id,result);
+ assert.equal((await db.query('SELECT quantity FROM merchant_item_inventory WHERE branch_id=$1 AND item_id=$2',[f.bid,f.item])).rows[0].quantity,1);
+ assert.equal((await db.query('SELECT state FROM merchant_stock_reservations WHERE order_id=$1',[order.id])).rows[0].state,'CONFIRMED');
+});
+
+
+test('Phase 4 merchant API: duplicate provider captures count once and tenant-scoped history/finance never leak', async()=>{
+ const {authRepository}=await import('../../apps/api/src/modules/auth/auth.repository');
+ const {signAccessToken}=await import('../../packages/auth/src/crypto');
+ const {UserRole}=await import('@deetoo/types');
+ const {createApp}=await import('../../apps/api/src/app');
+ const http=await import('node:http');
+ const f=await pending(),g=await fixture();
+ const first=await evidence(f.order);
+ await paymentService.applyVerifiedOutcome(first.payment.id,{...first.result,status:'FAILED'});
+ const second=await evidence(f.order);
+ await paymentService.applyVerifiedOutcome(second.payment.id,second.result);
+ await paymentService.applyVerifiedOutcome(first.payment.id,first.result);
+ const evidenceCount=await getDbPool().query('SELECT COUNT(*)::int AS n FROM payment_capture_evidence WHERE order_id=$1',[f.order.id]);
+ assert.equal(Number(evidenceCount.rows[0].n),2,'fixture must reproduce two provider captures on one order');
+ const owner=(await authService.registerCustomer({name:'Merchant analytics owner',email:`${randomUUID()}@example.test`,password:'Foundation-test-ONLY-893!'})).user;
+ await authRepository.setUserRoles(owner.id,[UserRole.MERCHANT_OWNER]);
+ await merchantRepository.createMembership({id:randomUUID(),user_id:owner.id,merchant_id:f.mid,
+   role_code:'merchant_owner',status:'ACTIVE',branch_ids:[f.bid],created_at:new Date().toISOString()} as any);
+ const sessionId=randomUUID();
+ await authRepository.createSession({id:sessionId,user_id:owner.id,refresh_token_hash:randomUUID(),
+   expires_at:new Date(Date.now()+3600000)});
+ const token=signAccessToken({sub:owner.id,sessionId});
+ const server=http.createServer(createApp());
+ await new Promise<void>(resolve=>server.listen(0,'127.0.0.1',resolve));
+ const base=`http://127.0.0.1:${(server.address() as any).port}/api/v1`;
+ const get=async(path:string)=>{const response=await fetch(base+path,{headers:{Authorization:'Bearer '+token}});
+   return {status:response.status,body:await response.json()};};
+ try {
+   const history=await get('/merchant/experience/orders/history?branch_id='+f.bid);
+   assert.equal(history.status,200,JSON.stringify(history.body));
+   assert.equal(history.body.data.filter((x:any)=>x.id===f.order.id).length,1,'one paid order occupies one history row');
+   const metrics=await get('/merchant/experience/orders/metrics?branch_id='+f.bid);
+   assert.equal(metrics.status,200,JSON.stringify(metrics.body));
+   assert.equal(Number(metrics.body.data.total),1,'late capture cannot inflate counted orders');
+   const finance=await get('/finance/merchant/experience/overview?branch_id='+f.bid);
+   assert.equal(finance.status,200,JSON.stringify(finance.body));
+   assert.equal(Number(finance.body.data.totals.completed_orders),0,'pending fulfilment is not a completed order');
+   assert.equal(Number(finance.body.data.totals.gmv_minor),Number((await ledgerRepository.findOrderSummary(f.order.id))!.gmv_minor));
+   for(const route of ['/merchant/experience/orders/history?branch_id='+g.bid,
+     '/merchant/experience/orders/metrics?branch_id='+g.bid,
+     '/finance/merchant/experience/overview?branch_id='+g.bid]){
+     const result=await get(route);assert.equal(result.status,403,'must deny cross-merchant branch: '+route);
+   }
+ }finally{
+   server.closeAllConnections();
+   await new Promise<void>(resolve=>server.close(()=>resolve()));
+ }
 });

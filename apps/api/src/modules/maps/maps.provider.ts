@@ -7,6 +7,7 @@ import { requireSimulationMode } from '../../db/storage-policy';
 
 import { GeocodeResult, AutocompletePrediction } from '@deetoo/types';
 import { logger } from '@deetoo/utils';
+import { AppError } from '../../middleware/error-handler';
 
 export interface IMapsProvider {
   geocode(address: string): Promise<GeocodeResult[]>;
@@ -137,11 +138,36 @@ export const NAIROBI_PRESET_LOCATIONS: Array<{
   },
 ];
 
+// Live geocoding is optional; no fake Nairobi fallback is ever used outside simulation mode.
+async function mapboxLookup(search: string, autocomplete: boolean) {
+  const token=process.env.MAPBOX_ACCESS_TOKEN;
+  if(!token)return null;
+  const url=new URL('https://api.mapbox.com/geocoding/v5/mapbox.places/'+encodeURIComponent(search)+'.json');
+  url.searchParams.set('access_token',token);
+  url.searchParams.set('country','ke');
+  url.searchParams.set('limit','8');
+  url.searchParams.set('autocomplete',autocomplete?'true':'false');
+  let response:Response;
+  try {
+    response=await fetch(url,{signal:AbortSignal.timeout(8000)});
+  } catch {
+    throw new AppError(503,'MAPS_PROVIDER_UNAVAILABLE','Mapping provider unavailable');
+  }
+  if(!response.ok)throw new AppError(503,'MAPS_PROVIDER_FAILED','Mapping provider returned an error');
+  const json=await response.json() as {features?:Array<{id:string;text:string;place_name:string;center:[number,number];context?:Array<{id:string;text:string}>}>};
+  return json.features||[];
+}
 export class MapsProvider implements IMapsProvider {
   /**
    * Geocodes an address string to coordinate results
    */
   public async geocode(address: string): Promise<GeocodeResult[]> {
+    if(!address.trim()||address.length>350)throw new AppError(400,'ADDRESS_INVALID','Valid address required');
+    const live=await mapboxLookup(address,true);
+    if(live)return live.map(item=>({
+      latitude:item.center[1],longitude:item.center[0],formatted_address:item.place_name,
+      city:item.context?.find(c=>c.id.startsWith('place.'))?.text||'Kenya',place_id:item.id
+    }));
     requireSimulationMode();
     const q = address.trim().toLowerCase();
 
@@ -179,6 +205,12 @@ export class MapsProvider implements IMapsProvider {
    * Reverse geocodes latitude and longitude into human readable address
    */
   public async reverseGeocode(lat: number, lng: number): Promise<GeocodeResult | null> {
+    if(!Number.isFinite(lat)||!Number.isFinite(lng)||lat < -90||lat > 90||lng < -180||lng > 180)
+      throw new AppError(400,'COORDINATES_INVALID','Valid latitude and longitude are required');
+    const live=await mapboxLookup(lng+','+lat,false);
+    if(live)return live[0]?{latitude:live[0].center[1],longitude:live[0].center[0],
+      formatted_address:live[0].place_name,city:live[0].context?.find(c=>c.id.startsWith('place.'))?.text||'Kenya',
+      place_id:live[0].id}:null;
     requireSimulationMode();
     if (isNaN(lat) || isNaN(lng) || lat < -90 || lat > 90 || lng < -180 || lng > 180) {
       return null;
@@ -220,6 +252,10 @@ export class MapsProvider implements IMapsProvider {
    * Provides predictive address autocomplete for search inputs
    */
   public async autocomplete(input: string): Promise<AutocompletePrediction[]> {
+    if(input.length>250)throw new AppError(400,'ADDRESS_INVALID','Search term is too long');
+    const live=await mapboxLookup(input||'Kenya',true);
+    if(live)return live.map(item=>({description:item.place_name,place_id:item.id,
+      main_text:item.text,secondary_text:item.place_name,latitude:item.center[1],longitude:item.center[0]}));
     requireSimulationMode();
     const q = input.trim().toLowerCase();
     if (!q) {

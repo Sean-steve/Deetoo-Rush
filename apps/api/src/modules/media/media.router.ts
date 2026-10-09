@@ -51,10 +51,10 @@ async function assertPurposeScope(
   if (normalized === 'RIDER_DOCUMENT' && !roles(req).has('rider')) {
     throw new AppError(403, 'MEDIA_PURPOSE_FORBIDDEN', 'Only riders can upload rider documents');
   }
-  if (normalized === 'MERCHANT_IMAGE') {
+  if (normalized === 'MERCHANT_IMAGE' || normalized === 'MERCHANT_DOCUMENT') {
     const r = roles(req);
     if (!r.has('merchant_owner') && !r.has('merchant_manager') && !r.has('admin') && !r.has('super_admin')) {
-      throw new AppError(403, 'MEDIA_PURPOSE_FORBIDDEN', 'Merchant image upload requires merchant management access');
+      throw new AppError(403, 'MEDIA_PURPOSE_FORBIDDEN', 'Merchant media upload requires merchant management access');
     }
   }
 }

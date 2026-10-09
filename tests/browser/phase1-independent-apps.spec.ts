@@ -49,11 +49,11 @@ test('Merchant Web authenticates independently and reaches merchant-scoped APIs'
   await page.goto('http://127.0.0.1:5174');
 
   await expect(page.locator('.app-switcher')).toHaveCount(0);
-  await page.getByPlaceholder('merchant.owner@deetoo.ke').fill('merchant@deetoo.ke');
+  await page.locator('.mp-live-auth input[autocomplete="username"]').fill('merchant@deetoo.ke');
   await page.locator('input[type="password"]').fill('MerchantPass123!');
-  await page.getByRole('button', { name: 'Sign In to Restaurant Console' }).click();
+  await page.getByRole('button', { name: 'Sign in', exact: true }).click();
 
-  await expect(page.getByRole('button', { name: 'Sign In to Restaurant Console' })).toHaveCount(0);
+  await expect(page.locator('.mp-sidebar')).toBeVisible({timeout:20_000});
   await expectSecureWebSession(context);
 
   const status = await page.evaluate(async () => (await fetch('/api/v1/merchant/branches')).status);
@@ -151,7 +151,7 @@ test('Phase 2 Customer discovery is visual and item customization uses a bottom 
 test('Phase 3 Merchant workspace exposes persistent store control and urgency-first kitchen board', async ({ browser }) => {
   const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
   const page = await context.newPage();
-  await page.goto('http://127.0.0.1:5174');
+  await page.goto('http://127.0.0.1:5174/?merchant-legacy=1');
 
   await page.getByPlaceholder('merchant.owner@deetoo.ke').fill('merchant@deetoo.ke');
   await page.locator('input[type="password"]').fill('MerchantPass123!');
@@ -290,4 +290,62 @@ test('Merchant frontend Phase 2 mobile navigation can reach all eight screen rou
   await page.locator('.mp-sidebar nav').getByRole('button', { name: 'Support' }).click();
   await expect(page.getByRole('heading', { name: 'Support & help center' })).toBeVisible();
   await context.close();
+});
+
+test('Merchant Phase 3 authenticated approved design retains all eight screens without seed financial data', async ({browser}) => {
+ const context=await browser.newContext({viewport:{width:1648,height:928},reducedMotion:'reduce'});
+ const page=await context.newPage();
+ await page.goto('http://127.0.0.1:5174');
+ await page.locator('.mp-live-auth input[autocomplete="username"]').fill('merchant@deetoo.ke');
+ await page.locator('.mp-live-auth input[type="password"]').fill('MerchantPass123!');
+ await page.getByRole('button',{name:'Sign in',exact:true}).click();
+ await expect(page.locator('.mp-sidebar')).toBeVisible({timeout:20_000});
+ await expect(page.getByRole('heading',{name:'Kitchen orders'})).toBeVisible();
+ await expect(page.getByText('#DT-9HY6J')).toHaveCount(0);
+ await page.screenshot({path:test.info().outputPath('merchant-live-01-kitchen.png'),fullPage:true,animations:'disabled'});
+ const routes:[string,string][]=[
+   ['Menu & availability','Menu & availability'],
+   ['Finance & settlements','Finance & settlements'],
+   ['Business & team','Business & team'],
+   ['Branch settings','Branch settings'],
+   ['Security & sessions','Security & sessions'],
+   ['Notifications','Notifications'],
+   ['Support','Support & help center'],
+   ['Kitchen orders','Kitchen orders']
+ ];
+ for(const [index,[button,title]] of routes.entries()){
+   await page.locator('.mp-sidebar nav').getByRole('button',{name:button,exact:true}).click();
+   await expect(page.getByRole('heading',{name:title,exact:true}).first()).toBeVisible();
+   await expect(page.locator('.mp-sidebar')).toBeVisible();
+   if(button!=='Kitchen orders') await page.screenshot({path:test.info().outputPath('merchant-live-'+String(index+2).padStart(2,'0')+'-'+button.toLowerCase().replace(/[^a-z0-9]+/g,'-')+'.png'),fullPage:true,animations:'disabled'});
+ }
+ await context.close();
+});
+
+
+test('Phase 4 authenticated Merchant mobile navigation retains all eight screens and hides demo order records',async({browser})=>{
+ const context=await browser.newContext({viewport:{width:390,height:844},reducedMotion:'reduce'});
+ const page=await context.newPage();
+ const pageErrors:string[]=[];page.on('pageerror',e=>pageErrors.push(e.message));
+ await page.goto('http://127.0.0.1:5174');
+ await page.locator('.mp-live-auth input[autocomplete="username"]').fill('merchant@deetoo.ke');
+ await page.locator('.mp-live-auth input[type="password"]').fill('MerchantPass123!');
+ await page.getByRole('button',{name:'Sign in',exact:true}).click();
+ await expect(page.locator('.mp-sidebar')).toBeAttached({timeout:20_000});
+ const nav=page.locator('.mp-sidebar nav');
+ for(const [label,heading] of [
+  ['Kitchen orders','Kitchen orders'],['Menu & availability','Menu & availability'],
+  ['Finance & settlements','Finance & settlements'],['Business & team','Business & team'],
+  ['Branch settings','Branch settings'],['Security & sessions','Security & sessions'],
+  ['Notifications','Notifications'],['Support','Support & help center']
+ ]){
+  await page.locator('.mp-mobile-menu').click();
+  await expect(page.locator('.mp-sidebar')).toHaveClass(/mp-sidebar-open/);
+  await nav.getByRole('button',{name:label,exact:true}).click();
+  await expect(page.getByRole('heading',{name:heading,exact:true}).first()).toBeVisible();
+  await expect(page.locator('.mp-sidebar')).not.toHaveClass(/mp-sidebar-open/);
+  await expect(page.getByText('#DT-9HY6J')).toHaveCount(0);
+ }
+ expect(pageErrors).toEqual([]);
+ await context.close();
 });
