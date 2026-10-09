@@ -54,7 +54,8 @@ export default function MerchantPrototype({live}:{live?:MerchantLiveBridge}={}){
  const categoryLabels=live?["All categories",...new Set((live.resource.categories||[]).map((x:any)=>String(x.name)))]:seedCategories;
  useEffect(()=>{
   if(!live)return;
-  setOrders((live.resource.orders||[]).map((o:any)=>({
+  const combinedOrders=[...(live.resource.orders||[]),...(live.resource.history||[]).filter((h:any)=>!(live.resource.orders||[]).some((o:any)=>o.id===h.id))].filter((o:any)=>["PLACED","PENDING_MERCHANT_ACCEPTANCE","ACCEPTED","PREPARING","READY","DELIVERED","COMPLETED"].includes(String(o.status)));
+  setOrders(combinedOrders.map((o:any)=>({
     id:String(o.id),display:o.public_code||o.order_number||o.id,
     name:o.customer_name||"Customer",item:o.items?.[0]?.item_name||"View order details",
     quantity:o.items?.[0]?.quantity||1,amount:Number(o.total_minor||0)/100,
@@ -108,7 +109,7 @@ export default function MerchantPrototype({live}:{live?:MerchantLiveBridge}={}){
  };
  const selectedOrder=orders.find(o=>o.id===activeOrder);
  const stageMeta=[["new","New orders","Respond first",Utensils],["preparing","Preparing","In the kitchen",ChefHat],["ready","Ready for pickup","Waiting for Rider",CircleCheck],["completed","Completed","Picked up & delivered",Package]] as const;
- const filteredOrders=orders.filter(o=>(orderTab==="all"||o.status===orderTab)&&(!globalQuery||[o.id,o.name,o.item].join(" ").toLowerCase().includes(globalQuery.toLowerCase()))).sort((a,b)=>orderSort==="Oldest first"?a.received-b.received:b.received-a.received);
+ const filteredOrders=orders.filter(o=>(orderTab==="all"||o.status===orderTab)&&(day==="All time"||o.received>=Date.now()-(day==="Today"?24*60*60*1000:7*24*60*60*1000))&&(!globalQuery||[o.id,o.display,o.name,o.item].join(" ").toLowerCase().includes(globalQuery.toLowerCase()))).sort((a,b)=>orderSort==="Oldest first"?a.received-b.received:b.received-a.received);
  const filteredItems=items.filter(i=>(cat==="All categories"||i.category===cat)&&(menuTab==="all"||(menuTab==="available"?i.available:!i.available))&&[i.name,i.desc,i.category].join(" ").toLowerCase().includes(menuQuery.toLowerCase())).sort((a,b)=>menuSort==="Price: Low to high"?a.price-b.price:menuSort==="Price: High to low"?b.price-a.price:a.name.localeCompare(b.name));
  const filteredStaff=staff.filter(s=>(teamTab==="All"||s.status===teamTab)&&(teamRole==="All roles"||s.role===teamRole)&&(teamBranch==="All branches"||s.branch===teamBranch)&&[s.name,s.email].join(" ").toLowerCase().includes(teamQuery.toLowerCase()));
  const revenue=[950,1800,1700,2650,3900,5100,3100,2600,3800];const payout=[700,1050,1000,1700,2300,2770,1800,1550,2400];
