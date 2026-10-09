@@ -1,10 +1,10 @@
 import type { MerchantLiveBridge } from "./MerchantLiveApp";
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { AlertTriangle, BookOpen, Check, ChevronRight, Clock3, Download, Ellipsis, FilePlus, FileText, Filter, Headphones, LifeBuoy, MessageCircle, Paperclip, Phone, Plus, Search, Send, Settings, ShieldCheck, User, Wallet, X } from "lucide-react";
 import { DemoBadge, DemoCard, DemoHeading } from "./PrototypeBranch";
 
 type CaseStatus="Open"|"In progress"|"Awaiting you"|"Resolved";
-type CaseMessage={id:number;sender:"Merchant"|"DeeToo Support";body:string;date:string;files:string[]};
+type CaseMessage={id:string|number;sender:"Merchant"|"DeeToo Support";body:string;date:string;files:string[]};
 type SupportCase={id:string;title:string;status:CaseStatus;category:string;created:string;age:string;preview:string;order?:string;messages:CaseMessage[]};
 const initial:SupportCase[]=[
 {id:"#SUP-00123",title:"Unable to receive new orders",status:"Open",category:"Orders",created:"Oct 9, 2026, 10:15 AM",age:"2 hours ago",preview:"My store is online but I'm not receiving new orders. Please...",messages:[
@@ -19,7 +19,7 @@ const initial:SupportCase[]=[
 ];
 function load<T>(key:string,def:T):T{try{const value=localStorage.getItem(key);return value?JSON.parse(value) as T:def;}catch{return def;}}
 const cats=["Orders","Payments","Menu","Business","Account","General","Other"];
-const faqs=[["How can I change my branch opening hours?","Open Branch Settings, select Operating hours and adjust the opening and closing times. Save to keep the demo state."],["What happens when I decline an order?","In the prototype, declining removes the order from your active kitchen queue. Production decisions must be confirmed by the order backend."],["How do I invite a staff member?","Open Business & Team, click Invite team member, and enter the staff member's email, role and branch access."],["How are settlements calculated?","The finance prototype uses illustrative values. The production view must use the authoritative ledger, commission contract and actual payment records."],["How does support resolution work?","Merchant replies form a conversation. DeeToo administrators investigate and propose resolution; merchant satisfaction is then recorded before closure according to permissions."]];
+const seedFaqs=[["How can I change my branch opening hours?","Open Branch Settings, select Operating hours and adjust the opening and closing times. Save to keep the demo state."],["What happens when I decline an order?","In the prototype, declining removes the order from your active kitchen queue. Production decisions must be confirmed by the order backend."],["How do I invite a staff member?","Open Business & Team, click Invite team member, and enter the staff member's email, role and branch access."],["How are settlements calculated?","The finance prototype uses illustrative values. The production view must use the authoritative ledger, commission contract and actual payment records."],["How does support resolution work?","Merchant replies form a conversation. DeeToo administrators investigate and propose resolution; merchant satisfaction is then recorded before closure according to permissions."]];
 export function PrototypeSupport({search,onNavigate,notify,live}:{search:string;onNavigate:(s:string)=>void;notify:(s:string)=>void;live?:MerchantLiveBridge}){
  const [cases,setCases]=useState<SupportCase[]>(()=>load("mp-demo-cases",initial));
  const [selected,setSelected]=useState("#SUP-00123");
@@ -30,10 +30,63 @@ export function PrototypeSupport({search,onNavigate,notify,live}:{search:string;
  const [newFiles,setNewFiles]=useState<File[]>([]),[replyFiles,setReplyFiles]=useState<File[]>([]);
  const [reply,setReply]=useState(""),[composeTab,setComposeTab]=useState("Reply");
  const [faqQuery,setFaqQuery]=useState("");
+ const [helpArticles,setHelpArticles]=useState<[string,string][]>([]),[supportPhone,setSupportPhone]=useState<string|null>(null),
+   [supportHours,setSupportHours]=useState(""),[loadError,setLoadError]=useState(""),[loading,setLoading]=useState(false);
+ const faqs=live?helpArticles:seedFaqs;
+ const loadCases=async()=>{if(!live)return;setLoading(true);
+   try{
+     const data=(await live.api.request<any>("/support/cases")).data;
+     const raw=Array.isArray(data)?data:Array.isArray(data?.cases)?data.cases:[];
+     const items:SupportCase[]=raw.map((c:any)=>({
+       id:String(c.id),title:c.subject||"Support request",
+       status:c.status==="RESOLVED"||c.status==="CLOSED"?"Resolved":
+         c.status==="IN_PROGRESS"||c.status==="INVESTIGATING"?"In progress":
+         c.status==="WAITING_CUSTOMER"||c.status==="AWAITING_MERCHANT"?"Awaiting you":"Open",
+       category:c.category||"General",created:new Date(c.created_at).toLocaleString("en-KE"),
+       age:new Date(c.created_at).toLocaleDateString("en-KE"),preview:c.description||"",
+       order:c.order_id||undefined,messages:[]
+     }));
+     setCases(items);setSelected(prev=>items.some(c=>c.id===prev)?prev:items[0]?.id||"");
+     setLoadError("");
+   }catch(e){setLoadError(e instanceof Error?e.message:String(e));}finally{setLoading(false);}
+ };
+ useEffect(()=>{if(!live)return;let active=true;void loadCases();
+   Promise.all([live.api.request<any[]>("/merchant/experience/help/articles"),
+     live.api.request<any[]>("/merchant/experience/help/contact")]).then(([articles,contacts])=>{
+     if(!active)return;
+     setHelpArticles((articles.data||[]).map((a:any)=>[String(a.title),String(a.body)]));
+     const info=(contacts.data||[]).find((c:any)=>c.phone_e164)||null;
+     setSupportPhone(info?.phone_e164||null);setSupportHours(info?.hours_text||"");
+   }).catch(e=>{if(active)setLoadError(e instanceof Error?e.message:String(e));});
+   return()=>{active=false;};
+ },[live?.branchId]);
+ useEffect(()=>{if(!live||!selected)return;let active=true;
+   live.api.request<any>(`/support/cases/${selected}`).then(r=>{if(!active)return;
+     const msgs=(r.data?.notes||[]).map((n:any)=>({
+       id:n.id,sender:n.author_role?.toLowerCase().includes("merchant")?"Merchant":"DeeToo Support",
+       body:n.body||"",date:new Date(n.created_at).toLocaleString("en-KE"),
+       files:(r.data?.attachments||[]).filter((a:any)=>a.note_id===n.id).map((a:any)=>a.file_name||a.media_id)
+     }));
+     setCases(prev=>prev.map(c=>c.id===selected?{...c,messages:msgs}:c));
+   }).catch(e=>{if(active)setLoadError(e instanceof Error?e.message:String(e));});
+   return()=>{active=false;};
+ },[live?.branchId,selected]);
+ const uploadEvidence=async(caseId:string,files:File[]):Promise<string[]>=>{
+   if(!live)return[];const result:string[]=[];
+   for(const file of files){const grant=(await live.api.request<any>("/media/uploads",{method:"POST",body:JSON.stringify({
+     purpose:"SUPPORT_ATTACHMENT",content_type:file.type,reference_type:"SUPPORT_CASE",reference_id:caseId})})).data;
+     const saved=await fetch(grant.upload_url,{method:"PUT",headers:grant.upload_headers||{"Content-Type":file.type},body:file});
+     if(!saved.ok)throw new Error("Evidence upload failed");
+     const done=(await live.api.request<any>(`/media/uploads/${grant.media_id}/complete`,{method:"POST"})).data;
+     if(done.status!=="VERIFIED")throw new Error("Evidence pending verification");
+     result.push(grant.media_id);
+   }return result;
+ };
+
  const counts=(value:string)=>value==="All"?cases.length:cases.filter(c=>c.status===value).length;
  const current=cases.find(c=>c.id===selected);
  const filtered=useMemo(()=>cases.filter(c=>(filter==="All"||c.status===filter)&&[c.title,c.category,c.preview,c.id].join(" ").toLowerCase().includes((caseQuery+" "+search).trim().toLowerCase())),[cases,filter,caseQuery,search]);
- const updateCases=(change:(v:SupportCase[])=>SupportCase[])=>setCases(prev=>{const next=change(prev);try{localStorage.setItem("mp-demo-cases",JSON.stringify(next));}catch{}return next;});
+ const updateCases=(change:(v:SupportCase[])=>SupportCase[])=>setCases(prev=>{const next=change(prev);if(!live){try{localStorage.setItem("mp-demo-cases",JSON.stringify(next));}catch{}}return next;});
  const send=(e:React.FormEvent)=>{e.preventDefault();if(!reply.trim()&&!replyFiles.length)return;if(!current)return;const msg:CaseMessage={id:Date.now(),sender:"Merchant",body:reply.trim()||"Evidence attached",date:new Date().toLocaleString("en-KE"),files:replyFiles.map(f=>f.name)};updateCases(all=>all.map(c=>c.id===selected?{...c,status:c.status==="Awaiting you"?"In progress":c.status,messages:[...c.messages,msg]}:c));setReply("");setReplyFiles([]);notify("Reply added to demo conversation");};
  const create=(e:React.FormEvent)=>{e.preventDefault();if(!newSubject.trim()||!newDescription.trim())return;const id="#SUP-"+(Math.max(...cases.map(c=>Number(c.id.slice(-5))||0))+1).toString().padStart(5,"0");const added:SupportCase={id,title:newSubject,status:"Open",category:newCategory,order:newOrder||undefined,created:new Date().toLocaleString("en-KE"),age:"Just now",preview:newDescription.slice(0,90),messages:[{id:Date.now(),sender:"Merchant",body:newDescription,date:new Date().toLocaleString("en-KE"),files:newFiles.map(f=>f.name)}]};updateCases(all=>[added,...all]);setSelected(id);setFilter("All");setCaseQuery("");setNewSubject("");setNewDescription("");setNewFiles([]);setNewOrder("");setNewKind("Support request");setDialog(null);notify("Support case created in frontend preview");};
  const requestResolution=()=>{if(!current)return;updateCases(all=>all.map(c=>c.id===selected?{...c,status:"Resolved",messages:[...c.messages,{id:Date.now(),sender:"Merchant",body:"I confirm that this issue is resolved (prototype-only closure request; actual admin approval is required).",date:new Date().toLocaleString("en-KE"),files:[]}]}:c));setDialog(null);notify("Resolution recorded locally. Real closure requires DeeToo admin approval.");};
