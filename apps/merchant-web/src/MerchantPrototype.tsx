@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
+import type { MerchantLiveBridge } from "./MerchantLiveApp";
 import { Bell, ChevronDown, ChevronRight, ChevronsLeft, Clock3, CreditCard, Download, Ellipsis, FilePlus2, Filter, Home, LayoutGrid, List, MapPin, Menu as MenuIcon, Minus, Plus, Search, Settings, ShieldCheck, Store, Trash2, Users, Utensils, Wallet, X, Check, ChefHat, CircleCheck, Package, Phone, Pencil, CalendarDays } from "lucide-react";
 import "./merchant-prototype.css";
 import "./merchant-prototype-phase2.css";
@@ -8,9 +9,9 @@ import { PrototypeNotifications } from "./PrototypeNotifications";
 import { PrototypeSupport } from "./PrototypeSupport";
 
 type Screen = "orders"|"menu"|"finance"|"team"|"branch"|"security"|"notifications"|"support";
-type Order = {id:string;name:string;item:string;quantity:number;amount:number;time:string;status:"new"|"preparing"|"ready"|"completed";rider?:string;code?:string;received:number};
-type Item = {id:number;name:string;desc:string;category:string;price:number;available:boolean;photo:string};
-type Staff = {id:number;name:string;email:string;role:"Owner"|"Manager"|"Staff";branch:string;status:"Active"|"Pending"|"Inactive"};
+type Order = {id:string;display?:string;name:string;item:string;quantity:number;amount:number;time:string;status:"new"|"preparing"|"ready"|"completed";rider?:string;code?:string;received:number};
+type Item = {id:string|number;menuId?:string;categoryId?:string;name:string;desc:string;category:string;price:number;available:boolean;photo:string};
+type Staff = {id:string|number;name:string;email:string;role:"Owner"|"Manager"|"Staff";branch:string;status:"Active"|"Pending"|"Inactive"};
 const money=(n:number)=>"Ksh "+n.toLocaleString("en-KE",{minimumFractionDigits:2,maximumFractionDigits:2});
 const initialOrders:Order[]=[
 {id:"#DT-XRSEP",name:"John Kamau",item:"Smash Burger",quantity:1,amount:971.25,time:"3:52 PM",status:"new",received:Date.now()-26*60000},
@@ -33,24 +34,75 @@ const seedStaff:Staff[]=[
 {id:3,name:"Ann Smith",email:"ann@deetoo.test",role:"Staff",branch:"Juja Branch",status:"Active"},
 {id:4,name:"David K.",email:"david@deetoo.test",role:"Staff",branch:"Juja Branch",status:"Pending"}];
 const navigation=[{section:"",links:[["Overview","orders",Home]]},{section:"OPERATIONS",links:[["Kitchen orders","orders",Utensils],["Menu & availability","menu",MenuIcon]]},{section:"BUSINESS",links:[["Finance & settlements","finance",Wallet],["Business & team","team",Users]]},{section:"ACCOUNT",links:[["Branch settings","branch",Store],["Security & sessions","security",ShieldCheck],["Notifications","notifications",Bell],["Support","support",Settings]]}] as const;
-const categoryLabels=["All categories","Breakfast","Burgers","Wraps","Sides","Drinks","Combos"];
+const seedCategories=["All categories","Breakfast","Burgers","Wraps","Sides","Drinks","Combos"];
 function Pill({children,tone="green"}:{children:React.ReactNode;tone?:string}) {return <span className={"mp-pill mp-"+tone}>{children}</span>;}
 function Summary({icon:Icon,title,value,caption,tone="green",onClick}:{icon:any;title:string;value:string|number;caption:string;tone?:string;onClick?:()=>void}) {return <button type="button" onClick={onClick} className="mp-summary"><span className={"mp-summary-icon mp-"+tone}><Icon size={23}/></span><span><small>{title}</small><strong>{value}</strong><em>{caption}</em></span>{onClick&&<ChevronRight size={18}/>}</button>;}
-export default function MerchantPrototype(){
+export default function MerchantPrototype({live}:{live?:MerchantLiveBridge}={}){
  const [screen,setScreen]=useState<Screen>(()=>{const query=new URLSearchParams(window.location.search).get("screen");return ["orders","menu","finance","team","branch","security","notifications","support"].includes(query||"")?query as Screen:"orders";}),[orders,setOrders]=useState(initialOrders),[items,setItems]=useState(initialItems),[staff,setStaff]=useState(seedStaff);
  const [store,setStore]=useState<"Open"|"Paused"|"Closed">("Open"),[storeMenu,setStoreMenu]=useState(false),[navOpen,setNavOpen]=useState(false);
  const [dialog,setDialog]=useState<string|null>(null),[activeOrder,setActiveOrder]=useState<string|null>(null),[toast,setToast]=useState("");
  const [unreadCount,setUnreadCount]=useState(3);
  const [globalQuery,setGlobalQuery]=useState(""),[orderTab,setOrderTab]=useState("all"),[day,setDay]=useState("Today"),[orderSort,setOrderSort]=useState("Oldest first");
  const [menuTab,setMenuTab]=useState("all"),[cat,setCat]=useState("All categories"),[menuQuery,setMenuQuery]=useState(""),[menuSort,setMenuSort]=useState("Name (A-Z)"),[view,setView]=useState("grid");
- const [editing,setEditing]=useState<number|null>(null),[form,setForm]=useState({name:"",description:"",category:"Burgers",price:"",email:"",role:"Staff",branch:"Juja Branch"});
- const [teamTab,setTeamTab]=useState("All"),[teamQuery,setTeamQuery]=useState(""),[teamRole,setTeamRole]=useState("All roles"),[teamBranch,setTeamBranch]=useState("All branches"),[selectedMember,setSelectedMember]=useState<number|null>(null);
+ const [editing,setEditing]=useState<string|number|null>(null),[form,setForm]=useState({name:"",description:"",category:"Burgers",price:"",email:"",role:"Staff",branch:"Juja Branch"});
+ const [teamTab,setTeamTab]=useState("All"),[teamQuery,setTeamQuery]=useState(""),[teamRole,setTeamRole]=useState("All roles"),[teamBranch,setTeamBranch]=useState("All branches"),[selectedMember,setSelectedMember]=useState<string|number|null>(null);
  const [financeTab,setFinanceTab]=useState("Transactions"),[paymentMethod,setPaymentMethod]=useState("All payment methods"),[transactionStatus,setTransactionStatus]=useState("All statuses"),[financeQuery,setFinanceQuery]=useState("");
- const notify=(text:string)=>{setToast(text);window.setTimeout(()=>setToast(""),3000);};
- const go=(value:string)=>{setScreen(value as Screen);setNavOpen(false);setGlobalQuery("");window.history.replaceState({},"",`?merchant-prototype=1&screen=${value}`);};
+ const notify=(text:string)=>{setToast(text);window.setTimeout(()=>setToast(""),4500);};
+ const categoryLabels=live?["All categories",...new Set((live.resource.categories||[]).map((x:any)=>String(x.name)))]:seedCategories;
+ useEffect(()=>{
+  if(!live)return;
+  setOrders((live.resource.orders||[]).map((o:any)=>({
+    id:String(o.id),display:o.public_code||o.order_number||o.id,
+    name:o.customer_name||"Customer",item:o.items?.[0]?.item_name||"View order details",
+    quantity:o.items?.[0]?.quantity||1,amount:Number(o.total_minor||0)/100,
+    time:new Date(o.created_at||Date.now()).toLocaleTimeString("en-KE",{hour:"numeric",minute:"2-digit"}),
+    status:(["PLACED","PENDING_MERCHANT_ACCEPTANCE"].includes(o.status)?"new":
+      ["ACCEPTED","PREPARING"].includes(o.status)?"preparing":o.status==="READY"?"ready":"completed") as Order["status"],
+    received:new Date(o.created_at||Date.now()).getTime(),rider:o.rider_name||undefined
+  })));
+  setItems((live.resource.items||[]).map((i:any)=>({
+    id:i.id,menuId:i.menu_id,categoryId:i.category_id,
+    name:i.name||"Unnamed item",desc:i.description||"",price:Number(i.price_minor||0)/100,
+    category:live.resource.categories.find((c:any)=>c.id===i.category_id)?.name||"Other",
+    photo:i.image_url||"🍽️",available:i.is_available!==false
+  })));
+  const members=(live.resource.team?.members||[]).map((m:any)=>({
+    id:m.id,name:m.user_name||m.name||m.user_email||"Team member",email:m.user_email||m.email||"",
+    role:(m.role_code==="merchant_owner"?"Owner":m.role_code==="merchant_manager"?"Manager":"Staff") as Staff["role"],
+    branch:m.branch_ids?.length?"Assigned branches":"All branches",
+    status:m.status==="ACTIVE"?"Active":m.status==="SUSPENDED"?"Inactive":"Pending"
+  }));
+  const pending=(live.resource.team?.invitations||[]).map((m:any)=>({
+    id:m.id,name:m.email||"Invitee",email:m.email||"",
+    role:(m.role_code==="merchant_owner"?"Owner":m.role_code==="merchant_manager"?"Manager":"Staff") as Staff["role"],
+    branch:"Assigned branches",status:"Pending" as const
+  }));
+  setStaff([...members,...pending]);
+  const status=String(live.branch?.operational_status||"OPEN");
+  setStore(status==="OPEN"?"Open":status==="CLOSED"?"Closed":"Paused");
+ },[live?.resource,live?.branch?.operational_status,live?.branchId]);
+ const doLive=async(path:string,method="POST",body?:unknown)=>{if(!live)return;try{
+   await live.run(path,{method,body:body===undefined?undefined:JSON.stringify(body)});
+   notify("Saved to DeeToo");setDialog(null);
+ }catch(error){notify("Unable to save: "+(error instanceof Error?error.message:String(error)));}};
+ const updateStore=(newStore:"Open"|"Paused"|"Closed")=>{
+  if(!live){setStore(newStore);return;}
+  void doLive(`/merchant/branches/${live.branchId}/status`,"POST",{
+    operational_status:newStore==="Open"?"OPEN":newStore==="Closed"?"CLOSED":"TEMPORARILY_UNAVAILABLE",
+    reason:"Merchant changed store availability"
+  });
+ };
+
+ const go=(value:string)=>{setScreen(value as Screen);setNavOpen(false);setGlobalQuery("");window.history.replaceState({},"",live?`?screen=${value}`:`?merchant-prototype=1&screen=${value}`);};
  useEffect(()=>{const shortcut=(e:KeyboardEvent)=>{if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==="k"){e.preventDefault();document.querySelector<HTMLInputElement>(".mp-global-search input")?.focus();}if(e.key==="Escape")setDialog(null);};window.addEventListener("keydown",shortcut);return()=>window.removeEventListener("keydown",shortcut);},[]);
  useEffect(()=>{const onPop=()=>{const page=new URLSearchParams(window.location.search).get("screen");if(["orders","menu","finance","team","branch","security","notifications","support"].includes(page||""))setScreen(page as Screen);};window.addEventListener("popstate",onPop);return()=>window.removeEventListener("popstate",onPop);},[]);
- const mutateOrder=(id:string,status:Order["status"])=>{setOrders(prev=>prev.map(o=>o.id===id?{...o,status}:o));setDialog(null);notify("Order "+id+" moved to "+status);};
+ const mutateOrder=(id:string,status:Order["status"])=>{
+  if(live){if(status==="completed"){notify("Pickup must be verified by the assigned rider. Await confirmed handover.");return;}
+    void doLive(`/merchant/orders/${id}/${status==="ready"?"ready":"preparing"}`);
+    return;
+  }
+  setOrders(prev=>prev.map(o=>o.id===id?{...o,status}:o));setDialog(null);notify("Order "+id+" moved to "+status);
+ };
  const selectedOrder=orders.find(o=>o.id===activeOrder);
  const stageMeta=[["new","New orders","Respond first",Utensils],["preparing","Preparing","In the kitchen",ChefHat],["ready","Ready for pickup","Waiting for Rider",CircleCheck],["completed","Completed","Picked up & delivered",Package]] as const;
  const filteredOrders=orders.filter(o=>(orderTab==="all"||o.status===orderTab)&&(!globalQuery||[o.id,o.name,o.item].join(" ").toLowerCase().includes(globalQuery.toLowerCase()))).sort((a,b)=>orderSort==="Oldest first"?a.received-b.received:b.received-a.received);
