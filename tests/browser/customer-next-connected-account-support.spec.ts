@@ -52,7 +52,7 @@ test("11 account uses backend profile, edits are persisted, preview fixtures not
  await page.getByRole("button",{name:"Edit profile"}).click();
  await page.getByLabel("Display name").fill("Updated Customer");
  await page.getByRole("button",{name:"Save changes"}).click();
- await expect(page.getByText("Updated Customer")).toBeVisible();
+ await expect(page.locator("#dt-profile-personal").getByText("Updated Customer", {exact:true})).toBeVisible();
  expect(hits).toContain("PATCH /customer/profile");
  await page.context().grantPermissions(["geolocation"]);
  await page.context().setGeolocation({latitude:-1.105,longitude:37.014});
@@ -115,6 +115,14 @@ test("11–15 screens remain width-safe on mobile",async({page})=>{
  for(const route of ["/profile","/security","/notifications","/support","/support/cases/case-1"]){
   await page.goto(route);
   await expect(page.locator(".dt-main")).toBeVisible();
-  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),"Overflow: "+route).toBe(true);
+  const measure=await page.evaluate(()=>{
+   const width=window.innerWidth;
+   const overflowing=[...document.querySelectorAll<HTMLElement>("body *")].map(el=>{
+    const box=el.getBoundingClientRect();
+    return {tag:el.tagName,cls:typeof el.className==="string"?el.className.slice(0,100):"",left:Math.round(box.left),right:Math.round(box.right),scroll:el.scrollWidth,client:el.clientWidth};
+   }).filter(box=>box.right>width+2).sort((a,b)=>b.right-a.right).slice(0,16);
+   return {width,scroll:document.documentElement.scrollWidth,overflowing};
+  });
+  expect(measure.scroll<=measure.width,"Overflow: "+route+" "+JSON.stringify(measure.overflowing)).toBe(true);
  }
 });
