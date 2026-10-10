@@ -22,7 +22,7 @@ export function CommandScreen({data,navigate,county}:{data:DemoState;navigate:(i
      <IconStat label="Active Riders" value={online.length} change="↑ Available + delivering" icon={<Users/>} tone="blue"/>
      <IconStat label="Available Riders" value={avail.length} change="Ready for dispatch" icon={<Bike/>}/>
      <IconStat label="Delayed Deliveries" value={delayed.length} change="↑ Need attention" icon={<AlertTriangle/>} tone="red"/>
-     <IconStat label="Open Incidents" value={data.phase2.incidents.length} change="Investigation queue" icon={<ShieldAlert/>} tone="red"/>
+     <IconStat label="Open Incidents" value={data.phase2.incidents.filter(x=>!["RESOLVED","CLOSED"].includes(x.status)).length} change="Investigation queue" icon={<ShieldAlert/>} tone="red"/>
      <IconStat label="Open Support Cases" value={data.phase2.support.filter(t=>!["RESOLVED","CLOSED"].includes(t.status)).length} change="Conversation queue" icon={<Headphones/>} tone="blue"/>
    </div>
    <div className="dn-command-grid">
@@ -56,10 +56,10 @@ export function CommandScreen({data,navigate,county}:{data:DemoState;navigate:(i
       {delayed.length?<table className="dn-table compact"><thead><tr><th>Order #</th><th>Delayed</th><th>Merchant</th><th>Rider</th><th>Status</th></tr></thead><tbody>{delayed.slice(0,5).map(o=><tr key={o.id} tabIndex={0} onClick={()=>navigate("dispatch")} onKeyDown={e=>e.key==="Enter"&&navigate("dispatch")}><td>#{o.id}</td><td className="danger-text">{o.delayMinutes} mins</td><td>{o.merchant}</td><td>{data.riders.find(r=>r.id===o.riderId)?.name||"Unassigned"}</td><td><Chip value={o.status}/></td></tr>)}</tbody></table>:<Empty label="No delayed deliveries"/>}
     </Card>
     <Card title={"Recent Incidents ("+data.phase2.incidents.length+")"} desc="Need investigation" action={<button className="dn-text-btn" onClick={()=>navigate("incidents")}>View all <ArrowRight size={13}/></button>}>
-      <table className="dn-table compact"><thead><tr><th>Time</th><th>Type</th><th>Description</th><th>Status</th></tr></thead><tbody>{data.phase2.incidents.map(x=><tr key={x.id} onClick={()=>navigate("incidents")}><td>{displayTime(x.createdAt)}</td><td>{x.type}</td><td>{x.title}</td><td><Chip value={x.status}/></td></tr>)}</tbody></table>
+      <table className="dn-table compact"><thead><tr><th>Time</th><th>Type</th><th>Description</th><th>Status</th></tr></thead><tbody>{data.phase2.incidents.slice(0,5).map(x=><tr key={x.id} onClick={()=>navigate("incidents")}><td>{displayTime(x.createdAt)}</td><td>{x.type}</td><td>{x.title}</td><td><Chip value={x.status}/></td></tr>)}</tbody></table>
     </Card>
     <Card title="Recent Support Cases" desc="Open conversations" action={<button className="dn-text-btn" onClick={()=>navigate("support")}>View all <ArrowRight size={13}/></button>}>
-     <table className="dn-table compact"><thead><tr><th>Time</th><th>From</th><th>Subject</th><th>Status</th></tr></thead><tbody>{data.phase2.support.map(x=><tr key={x.id} onClick={()=>navigate("support")}><td>{displayTime(x.createdAt)}</td><td>{x.participantType}</td><td>{x.subject}</td><td><Chip value={x.status}/></td></tr>)}</tbody></table>
+     <table className="dn-table compact"><thead><tr><th>Time</th><th>From</th><th>Subject</th><th>Status</th></tr></thead><tbody>{data.phase2.support.slice(0,5).map(x=><tr key={x.id} onClick={()=>navigate("support")}><td>{displayTime(x.createdAt)}</td><td>{x.participantType}</td><td>{x.subject}</td><td><Chip value={x.status}/></td></tr>)}</tbody></table>
     </Card>
    </div>
  </div>;
