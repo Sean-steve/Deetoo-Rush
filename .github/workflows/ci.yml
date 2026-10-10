@@ -187,6 +187,15 @@ jobs:
           retention-days: 10
 
 
+      - name: Upload approved Admin Phase 1 browser captures
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: admin-approved-phase1-screens
+          path: test-results/admin-phase1-*.png
+          if-no-files-found: warn
+          retention-days: 14
+
       - name: Upload approved Merchant live-screen visual evidence
         if: always()
         uses: actions/upload-artifact@v4
