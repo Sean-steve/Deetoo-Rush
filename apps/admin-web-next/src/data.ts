@@ -108,12 +108,20 @@ export type DemoAction =
   | { type:"ADD_NOTE"; orderId:string; note:string }
   | { type:"UPDATE_RIDER"; riderId:string; status:RiderStatus; reason:string }
   | { type:"REVIEW_RIDER"; riderId:string; approved:boolean; reason:string }
+  | { type:"ADD_RIDER"; name:string; phone:string; area:string }
   | { type:"RESET" };
 function logActivity(state: DemoState, action: string, text: string): HistoryEntry[] {
   return [event(action, 0, text, "Demo Admin"),...state.activity].slice(0,60);
 }
 export function reducer(state:DemoState, action:DemoAction):DemoState {
   if (action.type === "RESET") return seedDemo();
+  if (action.type === "ADD_RIDER") {
+    if (action.name.trim().length < 3 || action.phone.trim().length < 8) return state;
+    const nextId = "RDR" + String(Math.max(0, ...state.riders.map(r => Number(r.id.replace("RDR",""))||0))+1).padStart(4,"0");
+    const area = areas.find(a=>a.name===action.area)||areas[0];
+    const rider: Rider = {id: nextId, name: action.name.trim(), phone: action.phone.trim(), email:"pending-"+nextId.toLowerCase()+"@deetoo.example",status:"OFFLINE",onboarding:"PENDING_REVIEW",area,vehicle:"Motorbike",plate:"Not supplied",rating:0,deliveries:0,joinedAt:at(0),locationUpdatedAt:at(0),approved:false};
+    return {...state,riders:[rider,...state.riders],activity:logActivity(state,"New rider application",rider.name)};
+  }
   if (action.type === "ASSIGN_RIDER") {
     const rider = state.riders.find(r=>r.id === action.riderId);
     const order = state.orders.find(o=>o.id === action.orderId);
