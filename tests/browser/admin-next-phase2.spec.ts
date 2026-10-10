@@ -125,3 +125,35 @@ test("customer creation, restriction, role gate and persisted profile",async({pa
  await page.locator(".dn-profile").click();
  await expect(page.getByRole("button",{name:"Add Customer"})).toBeDisabled();
 });
+
+test("support closure requires confirmed satisfaction",async({page})=>{
+ await page.goto("/#/support");
+ await page.getByPlaceholder("Search conversations...").fill("SUP-1042");
+ await page.locator(".dn-support-item").first().click();
+ await page.getByRole("button",{name:"Escalate / Resolve"}).click();
+ const modal=page.getByRole("dialog",{name:"Admin case resolution"});
+ await expect(modal.getByLabel("New status").locator('option[value="CLOSED"]')).toHaveCount(0);
+ await modal.getByLabel("New status").selectOption("RESOLVED");
+ await modal.getByLabel("Resolution / audit note").fill("Demo issue was resolved by the dispatch team.");
+ await modal.getByRole("button",{name:"Save case status"}).click();
+ await page.getByRole("button",{name:"Satisfied",exact:true}).click();
+ await page.getByRole("button",{name:"Escalate / Resolve"}).click();
+ const closeModal=page.getByRole("dialog",{name:"Admin case resolution"});
+ await expect(closeModal.getByLabel("New status").locator('option[value="CLOSED"]')).toHaveCount(1);
+ await closeModal.getByLabel("New status").selectOption("CLOSED");
+ await closeModal.getByLabel("Resolution / audit note").fill("Participant confirmed satisfaction and admin closed the case.");
+ await closeModal.getByRole("button",{name:"Save case status"}).click();
+ await expect(page.locator(".dn-conversation-heading")).toContainText("closed",{ignoreCase:true});
+});
+test("customer CSV import creates usable local records only",async({page})=>{
+ await page.goto("/#/customers");
+ await page.getByRole("button",{name:"Import",exact:true}).click();
+ const modal=page.getByRole("dialog",{name:"Import customer demo CSV"});
+ await modal.getByLabel("CSV content").fill("name,email,phone,county\nDemo CSV User,csv.user@example.com,+254712345678,Nairobi");
+ await modal.getByRole("button",{name:"Import customers"}).click();
+ await page.getByPlaceholder("Search customers by name, phone, email...").fill("Demo CSV User");
+ await expect(page.locator(".dn-customer-table tbody tr").first()).toContainText("Demo CSV User");
+ await page.reload();
+ await page.getByPlaceholder("Search customers by name, phone, email...").fill("Demo CSV User");
+ await expect(page.locator(".dn-customer-table tbody tr").first()).toContainText("Demo CSV User");
+});
