@@ -14,7 +14,7 @@ export function MerchantsScreen({navigate,county,globalSearch,toast}:{navigate:(
  useEffect(()=>setPage(1),[tab,search,status,category,localCounty,county]);
  const filtered=all.filter(m=>(tab==="all"||tab==="branches"||tab==="performance"||tab==="approvals"&&m.status==="PENDING"||tab==="onboarding"&&m.status==="ONBOARDING"||tab==="active"&&m.status==="ACTIVE"||tab==="suspended"&&m.status==="SUSPENDED")&&(status==="all"||m.status===status)&&(category==="all"||m.category===category)&&(localCounty==="all"||m.branches.some(b=>b.county===localCounty))&&(county==="all"||m.branches.some(b=>b.county===county))&&(m.name+" "+m.id+" "+m.owner+" "+m.email).toLowerCase().includes(search.toLowerCase()));
  const shown=filtered.slice((page-1)*9,page*9),pages=Math.ceil(filtered.length/9)||1;
- const selected=all.find(m=>m.id===selectedId)||shown[0];
+ const selected=shown.find(m=>m.id===selectedId)||shown[0];
  const merchantOrders=selected?data.orders.filter(o=>o.merchant===selected.name):[];
  const branches=all.reduce((a,m)=>a+m.branches.length,0),active=all.filter(m=>m.status==="ACTIVE").length,pending=all.filter(m=>m.status==="PENDING").length,suspended=all.filter(m=>m.status==="SUSPENDED").length;
  const openCreate=()=>{setForm({name:"",category:"Restaurant",owner:"",email:"",phone:""});setModal("create");};
@@ -25,7 +25,7 @@ export function MerchantsScreen({navigate,county,globalSearch,toast}:{navigate:(
   if(modal==="edit"&&selected){if(form.name.trim().length<3||!form.email.includes("@"))return;act({type:"PHASE2_MERCHANT_EDIT",id:selected.id,...form});toast("Merchant details saved across the demo.");}
   if(modal==="review"&&selected){if(reason.trim().length<3)return;act({type:"PHASE2_MERCHANT_STATUS",id:selected.id,status:nextStatus,note:reason});toast("Merchant status and verification updated.");}
   if(modal==="branch"&&selected){if(branchForm.name.trim().length<3||branchForm.area.trim().length<2)return;act({type:"PHASE2_MERCHANT_BRANCH",id:selected.id,...branchForm});toast("Branch added to the merchant profile.");}
-  setModal(null);setReason("");setSelectedId(selected?.id||null);
+  setModal(null);setReason("");if(modal==="create")setSelectedId(null);
  };
  const exportResults=()=>{const csv=["ID,Merchant,Category,Status,Verification,Branches",...filtered.map(x=>[x.id,x.name,x.category,x.status,x.verification,String(x.branches.length)].map(s=>'"'+s.replaceAll('"','""')+'"').join(","))].join("\n");const url=URL.createObjectURL(new Blob([csv],{type:"text/csv"}));const a=document.createElement("a");a.href=url;a.download="deetoo-demo-merchants.csv";a.click();URL.revokeObjectURL(url);toast("Merchant records exported.");};
  const toOrders=()=>{if(merchantOrders.length){sessionStorage.setItem("deetoo.demo.focusOrder",merchantOrders[0].id);navigate("orders");}else toast("This merchant has no seeded orders.");};
