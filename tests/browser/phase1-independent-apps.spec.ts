@@ -144,9 +144,9 @@ test('Admin Web authenticates independently and reaches admin-scoped APIs', asyn
 });
 
 
-test('Phase 1 UI foundation exposes dense Admin layout and honors reduced motion', async ({ browser }) => {
+test('Approved Admin Phase 1 shell respects reduced motion and touch targets', async ({ browser }) => {
   const context = await browser.newContext({
-    viewport: { width: 1440, height: 900 },
+    viewport: { width: 1536, height: 1024 },
     reducedMotion: 'reduce',
   });
   const page = await context.newPage();
@@ -156,21 +156,20 @@ test('Phase 1 UI foundation exposes dense Admin layout and honors reduced motion
   await page.locator('input[type="password"]').fill('AdminPass123!');
   await page.getByRole('button', { name: 'Sign In to Platform Admin' }).click();
 
-  const workspace = page.locator('.operations-layout');
-  await expect(workspace).toHaveAttribute('data-density', 'dense');
+  const workspace = page.locator('.ar-app');
+  await expect(workspace).toBeVisible();
+  await expect(page.getByRole('heading', { name: /Operations Command Center/ })).toBeVisible();
 
-  const animationDuration = await page.locator('.operations-main').evaluate((element) => {
+  const duration = await page.locator('.ar-main').evaluate((element) => {
     const value = getComputedStyle(element).animationDuration;
     const amount = Number.parseFloat(value);
-    return value.endsWith('ms') ? amount : amount * 1000;
+    return Number.isFinite(amount) ? (value.endsWith('ms') ? amount : amount * 1000) : 0;
   });
-  expect(animationDuration).toBeLessThanOrEqual(1);
+  expect(duration).toBeLessThanOrEqual(1);
 
-  const signOutHeight = await page
-    .getByRole('button', { name: 'Sign out' })
+  const signOutHeight = await page.getByRole('button', { name: 'Sign out' })
     .evaluate((element) => element.getBoundingClientRect().height);
   expect(signOutHeight).toBeGreaterThanOrEqual(38);
-
   await context.close();
 });
 
@@ -217,8 +216,8 @@ test('Phase 3 Merchant workspace exposes persistent store control and urgency-fi
   await context.close();
 });
 
-test('Phase 3 Admin exposes control tower, query filters and narrative support workspace', async ({ browser }) => {
-  const context = await browser.newContext({ viewport: { width: 1600, height: 1000 } });
+test('Approved Admin Phase 1 provides four connected workspaces and preserves support', async ({ browser }) => {
+  const context = await browser.newContext({ viewport: { width: 1536, height: 1024 } });
   const page = await context.newPage();
   await page.goto('http://127.0.0.1:5175');
 
@@ -226,17 +225,31 @@ test('Phase 3 Admin exposes control tower, query filters and narrative support w
   await page.locator('input[type="password"]').fill('AdminPass123!');
   await page.getByRole('button', { name: 'Sign In to Platform Admin' }).click();
 
-  await expect(page.getByRole('heading', { name: 'Operations control tower' })).toBeVisible();
-  await expect(page.locator('.admin-control-kpis')).toBeVisible();
-  await expect(page.getByRole('heading', { name: 'Action required' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: /Operations Command Center/ })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Live Operations Map' })).toBeVisible();
+  await page.screenshot({ path: 'test-results/admin-phase1-command.png', fullPage: true });
 
-  await page.getByRole('button', { name: 'Orders & deliveries' }).click();
-  await expect(page.getByLabel('Order status')).toBeVisible();
+  await page.locator('.ar-sidebar').getByRole('button', { name: 'Live Dispatch' }).click();
+  await expect(page.getByRole('heading', { name: 'Live Dispatch & Tracking' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Delivery Queue' })).toBeVisible();
+  await page.screenshot({ path: 'test-results/admin-phase1-dispatch.png', fullPage: true });
 
-  await page.getByRole('button', { name: 'Case inbox' }).click();
+  await page.locator('.ar-sidebar').getByRole('button', { name: 'Orders & Deliveries' }).click();
+  await expect(page.getByRole('heading', { name: 'Orders & Deliveries' })).toBeVisible();
+  await expect(page.getByRole('tab', { name: 'Preparing' })).toBeVisible();
+  await page.screenshot({ path: 'test-results/admin-phase1-orders.png', fullPage: true });
+
+  await page.locator('.ar-sidebar').getByRole('button', { name: 'Riders & Fleet' }).click();
+  await expect(page.getByRole('heading', { name: 'Riders & Fleet' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Rider Directory' })).toBeVisible();
+  await page.screenshot({ path: 'test-results/admin-phase1-riders.png', fullPage: true });
+
+  await page.reload();
+  await expect(page.getByRole('heading', { name: 'Riders & Fleet' })).toBeVisible();
+
+  await page.locator('.ar-sidebar').getByRole('button', { name: 'Support & Conversations' }).click();
   await expect(page.getByRole('heading', { name: 'Support & case resolution' })).toBeVisible();
   await expect(page.locator('.admin-case-workspace')).toBeVisible();
-
   await context.close();
 });
 
