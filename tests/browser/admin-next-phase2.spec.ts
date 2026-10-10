@@ -51,7 +51,7 @@ test("support conversations separate public replies, private notes and admin res
  await page.getByPlaceholder("Search conversations...").fill("SUP-1042");
  await expect(page.locator(".dn-support-item").first()).toBeVisible();
  await page.locator(".dn-support-item").first().click();
- await page.getByRole("tab",{name:"Internal Note"}).click();
+ await page.getByRole("tab",{name:"Internal Note",exact:true}).click();
  await page.getByRole("textbox",{name:"Private internal note"}).fill("Escalate traffic delay to shift lead.");
  await page.getByRole("button",{name:"Save Note"}).click();
  await page.getByRole("tab",{name:/Internal Notes/}).click();
