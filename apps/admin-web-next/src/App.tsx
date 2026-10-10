@@ -12,6 +12,7 @@ import {SupportScreen} from "./screens/support";
 import {MerchantsScreen} from "./screens/merchants";
 import {CustomersScreen} from "./screens/customers";
 import "./styles.css";
+import "./phase2.css";
 type Route = {id:string;label:string;icon:React.ComponentType<{size?:number}>;phase:number};
 const groups: {name:string;items:Route[]}[]=[
  {name:"OPERATIONS",items:[{id:"command",label:"Command Center",icon:Home,phase:1},{id:"dispatch",label:"Live Dispatch",icon:Radio,phase:1},{id:"orders",label:"Orders & Deliveries",icon:Truck,phase:1},{id:"riders",label:"Riders & Fleet",icon:Bike,phase:1},{id:"incidents",label:"Incidents",icon:AlertTriangle,phase:2},{id:"support",label:"Support & Conversations",icon:Headphones,phase:2}]},
