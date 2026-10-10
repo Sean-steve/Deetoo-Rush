@@ -1,6 +1,6 @@
 import React,{useMemo,useState} from "react";
 import {Activity, AlertTriangle, ArrowRight, Bike, CalendarDays, CheckCircle2, Clock3, Headphones, MapPin, Package, ShieldAlert, ShoppingCart, TrendingUp, Users} from "lucide-react";
-import {DemoState, isActive, formatMoney, areas, orderTotal} from "../data";
+import {DemoState, isActive, formatMoney, areas, orderTotal, displayTime} from "../data";
 import {Bars, Card, Chip, DemoMap, DetailLine, Empty, IconStat, Ring, SelectBox, Tabs, TimeSeries} from "../ui";
 export function CommandScreen({data,navigate,county}:{data:DemoState;navigate:(id:string)=>void;county:string}){
  const [period,setPeriod]=useState("today");const [zone,setZone]=useState("Nairobi");
