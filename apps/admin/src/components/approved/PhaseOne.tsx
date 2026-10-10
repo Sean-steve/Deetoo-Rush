@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { useAuth } from "../../../../packages/auth/src/react";
-import { useResource, errorMessage } from "../../../../packages/ui/src/workflows";
+import { useAuth } from "../../../../../packages/auth/src/react";
+import { useResource, errorMessage } from "../../../../../packages/ui/src/workflows";
 import { AuthenticatorPanel } from "../AuthenticatorPanel";
 import {
   Activity, AlertTriangle, ArrowRight, Bell, Bike, CalendarDays, CheckCircle2,
