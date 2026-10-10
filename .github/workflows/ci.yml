@@ -92,6 +92,9 @@ jobs:
       - name: Build Admin Web independently
         run: pnpm build:admin
 
+      - name: Build design-first Admin frontend independently
+        run: pnpm build:admin-next
+
       - name: Build API independently
         run: pnpm build:api
 
@@ -171,11 +174,23 @@ jobs:
       - name: Verify independent web auth and role isolation
         run: pnpm test:phase1-browser
 
+      - name: Verify approved Admin Phase 1 frontend-only workflows and capture reference screens
+        run: pnpm test:admin-next-visual
+
       - name: Verify design-first customer preview and capture reference viewport
         run: pnpm test:customer-next-visual
 
       - name: Verify Phase B2 API-connected customer shopping with mocked backend contracts
         run: pnpm test:customer-next-connected
+
+      - name: Upload approved Admin frontend-only Phase 1 screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: admin-next-phase1-visual
+          path: visual-output/admin-next/
+          if-no-files-found: warn
+          retention-days: 14
 
       - name: Upload design-first customer screenshots and geometry
         if: always()
