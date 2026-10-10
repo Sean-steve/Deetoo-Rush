@@ -23,7 +23,7 @@ export function MerchantsScreen({navigate,county,globalSearch,toast}:{navigate:(
   if(!canManage)return;
   if(modal==="create"){if(form.name.trim().length<3||!form.email.includes("@"))return;act({type:"PHASE2_MERCHANT_CREATE",...form});setTab("onboarding");toast("New merchant added to onboarding.");}
   if(modal==="edit"&&selected){if(form.name.trim().length<3||!form.email.includes("@"))return;act({type:"PHASE2_MERCHANT_EDIT",id:selected.id,...form});toast("Merchant details saved across the demo.");}
-  if(modal==="review"&&selected){if(reason.trim().length<3)return;act({type:"PHASE2_MERCHANT_STATUS",id:selected.id,status:nextStatus,note:reason});toast("Merchant status and verification updated.");}
+  if(modal==="review"&&selected){if(reason.trim().length<3)return;act({type:"PHASE2_MERCHANT_STATUS",id:selected.id,status:nextStatus,note:reason});setTab("all");setSearch(selected.name);setStatus("all");setLocalCounty("all");setSelectedId(selected.id);toast("Merchant status and verification updated.");}
   if(modal==="branch"&&selected){if(branchForm.name.trim().length<3||branchForm.area.trim().length<2)return;act({type:"PHASE2_MERCHANT_BRANCH",id:selected.id,...branchForm});toast("Branch added to the merchant profile.");}
   setModal(null);setReason("");if(modal==="create")setSelectedId(null);
  };
