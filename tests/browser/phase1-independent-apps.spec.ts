@@ -227,22 +227,22 @@ test('Approved Admin Phase 1 provides four connected workspaces and preserves su
 
   await expect(page.getByRole('heading', { name: /Operations Command Center/ })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Live Operations Map' })).toBeVisible();
-  await page.screenshot({ path: 'test-results/admin-phase1-command.png', fullPage: true });
+  await page.screenshot({ path: 'admin-phase1-command.png', fullPage: true });
 
   await page.locator('.ar-sidebar').getByRole('button', { name: 'Live Dispatch' }).click();
   await expect(page.getByRole('heading', { name: 'Live Dispatch & Tracking' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Delivery Queue' })).toBeVisible();
-  await page.screenshot({ path: 'test-results/admin-phase1-dispatch.png', fullPage: true });
+  await page.screenshot({ path: 'admin-phase1-dispatch.png', fullPage: true });
 
   await page.locator('.ar-sidebar').getByRole('button', { name: 'Orders & Deliveries' }).click();
   await expect(page.getByRole('heading', { name: 'Orders & Deliveries' })).toBeVisible();
   await expect(page.getByRole('tab', { name: 'Preparing' })).toBeVisible();
-  await page.screenshot({ path: 'test-results/admin-phase1-orders.png', fullPage: true });
+  await page.screenshot({ path: 'admin-phase1-orders.png', fullPage: true });
 
   await page.locator('.ar-sidebar').getByRole('button', { name: 'Riders & Fleet' }).click();
   await expect(page.getByRole('heading', { name: 'Riders & Fleet' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Rider Directory' })).toBeVisible();
-  await page.screenshot({ path: 'test-results/admin-phase1-riders.png', fullPage: true });
+  await page.screenshot({ path: 'admin-phase1-riders.png', fullPage: true });
 
   await page.reload();
   await expect(page.getByRole('heading', { name: 'Riders & Fleet' })).toBeVisible();
