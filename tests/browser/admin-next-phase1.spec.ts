@@ -42,6 +42,7 @@ test("assigning a rider updates order, rider availability and command metrics af
   await page.getByPlaceholder("Search riders...").fill(rider);
   await expect(page.locator(".dn-rider-table tbody tr").first()).toContainText("on delivery",{ignoreCase:true});
   await page.reload();
+  await page.getByPlaceholder("Search riders...").fill(rider);
   await expect(page.locator(".dn-rider-table tbody tr").first()).toContainText("on delivery",{ignoreCase:true});
   await page.goto("/#/dispatch");
   await expect(page.locator(".dn-inline-kpis .dn-stat").first().locator("strong")).not.toHaveText(before||"—");
