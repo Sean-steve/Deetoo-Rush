@@ -102,6 +102,8 @@ export function reducePhaseTwo(state:PhaseTwoState,action:PhaseTwoAction):PhaseT
   return {...state,support:state.support.map(x=>x.id===action.id?{...x,status:action.actor==="ADMIN"&&!action.internal?"IN_PROGRESS":x.status,updatedAt:stamp(),messages:[...x.messages,{id:"m-"+stamp(),by:action.by,actor:action.actor,text:action.message.trim(),at:stamp(),internal:action.internal}]}:x),actions:audit(action.internal?"Internal note":"Support message",action.id)};
  }
  if(action.type==="PHASE2_SUPPORT_STATUS"){
+  const current=state.support.find(x=>x.id===action.id);
+  if(action.status==="CLOSED"&&(!current||current.status!=="RESOLVED"||current.satisfaction!=="SATISFIED"))return state;
   if(["RESOLVED","CLOSED"].includes(action.status)&&action.resolution.trim().length<5)return state;
   return {...state,support:state.support.map(x=>x.id===action.id?{...x,status:action.status,resolution:action.resolution||x.resolution,satisfaction:action.status==="RESOLVED"?"PENDING":x.satisfaction,updatedAt:stamp(),messages:[...x.messages,{id:"m-"+stamp(),by:"System",actor:"SYSTEM",text:"Case status: "+action.status.replaceAll("_"," ").toLowerCase()+(action.resolution?(". Resolution: "+action.resolution):""),at:stamp(),internal:false}]}:x),actions:audit("Support status",action.id+" → "+action.status)};
  }
