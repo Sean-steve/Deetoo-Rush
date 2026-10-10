@@ -2,7 +2,7 @@ import React, {useState} from "react";
 import {AlertTriangle, Bike, Check, ChevronDown, ChevronRight, CircleAlert, Clock3, MapPin, Minus, Package, Plus, Search, Shield, Truck, X} from "lucide-react";
 import {areas, Order, Rider, RiderStatus, OrderStatus, formatMoney, displayTime} from "./data";
 export {formatMoney,displayTime};
-export type Screen = "command"|"dispatch"|"orders"|"riders";
+export type Screen = "command"|"dispatch"|"orders"|"riders"|"incidents"|"support"|"merchants"|"customers";
 export function Chip({value}:{value:string|undefined|null}) {
   const status=(value||"Not set").toUpperCase();
   const kind=/DELIVERED|COMPLETED|AVAILABLE|VERIFIED|APPROVED|PAID|ACTIVE/.test(status)?"success":/CANCELLED|SUSPENDED|FAILED|DELAYED|CRITICAL/.test(status)?"danger":/PENDING|PREPARING|WAITING|PICKUP|OFFLINE|UNASSIGNED/.test(status)?"warning":/ASSIGNED|TRANSIT|DELIVERY|REVIEW|INVESTIGATING/.test(status)?"info":"neutral";
