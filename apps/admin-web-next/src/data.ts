@@ -50,7 +50,7 @@ export function displayTime(value: string): string { return new Date(value).toLo
 export function seedDemo(): DemoState {
   const riders: Rider[] = Array.from({length:276},(_,i) => {
     const n = i + 1;
-    const status: RiderStatus = i < 98 ? "AVAILABLE" : i < 240 ? "ON_DELIVERY" : i < 270 ? "OFFLINE" : "SUSPENDED";
+    const status: RiderStatus = i < 98 ? "AVAILABLE" : i < 108 ? "ON_DELIVERY" : i < 270 ? "OFFLINE" : "SUSPENDED";
     const area = areas[(i * 7) % areas.length];
     return {
       id: "RDR" + String(n).padStart(4, "0"), name: firstNames[i % firstNames.length] + " " + surnames[(i + Math.floor(i / 4)) % surnames.length],
