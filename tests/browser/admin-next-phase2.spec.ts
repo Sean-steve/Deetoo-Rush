@@ -61,7 +61,7 @@ test("support conversations separate public replies, private notes and admin res
  await page.getByRole("tab",{name:"Reply",exact:true}).click();
  await page.getByRole("textbox",{name:"Reply message"}).fill("Your order is being investigated. We will update you shortly.");
  await page.getByRole("button",{name:"Send",exact:true}).click();
- await expect(page.getByText("Your order is being investigated. We will update you shortly.")).toBeVisible();
+ await expect(page.locator(".dn-chat-history").getByText("Your order is being investigated. We will update you shortly.")).toBeVisible();
  await page.getByRole("button",{name:"Escalate / Resolve"}).click();
  const resolution=page.getByRole("dialog",{name:"Admin case resolution"});
  await resolution.getByLabel("New status").selectOption("RESOLVED");
@@ -72,7 +72,7 @@ test("support conversations separate public replies, private notes and admin res
  await expect(page.locator(".dn-conversation-heading")).toContainText("in progress",{ignoreCase:true});
  await page.reload();
  await page.getByPlaceholder("Search conversations...").fill("SUP-1042");
- await expect(page.getByText("Your order is being investigated. We will update you shortly.")).toBeVisible();
+ await expect(page.locator(".dn-chat-history").getByText("Your order is being investigated. We will update you shortly.")).toBeVisible();
 });
 test("merchant onboarding, approval, branch and pause flow",async({page})=>{
  await page.goto("/#/merchants");
@@ -97,7 +97,7 @@ test("merchant onboarding, approval, branch and pause flow",async({page})=>{
  await branch.getByLabel("Area").fill("Westlands");
  await branch.getByLabel("Address").fill("Westlands Road");
  await branch.getByRole("button",{name:"Save branch"}).click();
- await expect(page.getByText("Westlands flagship")).toBeVisible();
+ await expect(page.getByText("Westlands flagship",{exact:true})).toBeVisible();
  await page.getByRole("button",{name:"Pause"}).click();
  await expect(page.locator(".dn-merchant-detail")).toContainText("paused",{ignoreCase:true});
 });
