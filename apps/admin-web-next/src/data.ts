@@ -102,7 +102,7 @@ export function seedDemo(): DemoState {
     activity: [event("Demo started",0,"Shared operational workspace initialized")],
   };
 }
-export type DemoAction = PhaseTwoAction |
+export type DemoAction = PhaseTwoAction
   | { type:"ASSIGN_RIDER"; orderId:string; riderId:string }
   | { type:"UNASSIGN_RIDER"; orderId:string }
   | { type:"UPDATE_ORDER"; orderId:string; status:OrderStatus; reason?:string }
