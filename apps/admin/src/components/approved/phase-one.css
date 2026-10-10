@@ -16,7 +16,7 @@
 .ar-navitem:hover{background:#ffffff17}
 .ar-navitem.selected{background:#087c63;box-shadow:0 3px 14px #00291c44;color:white;font-weight:700}
 .ar-side-foot{padding:10px;display:grid;gap:5px;border-top:1px solid #ffffff24}
-.ar-side-foot button{background:transparent;border:0;color:#e0f8ed;display:flex;gap:12px;align-items:center;text-align:left;padding:9px 11px;font-size:12px;border-radius:6px}
+.ar-side-foot button{min-height:40px;background:transparent;border:0;color:#e0f8ed;display:flex;gap:12px;align-items:center;text-align:left;padding:9px 11px;font-size:12px;border-radius:6px}
 .ar-side-foot button:hover{background:#ffffff16}
 .ar-collapsed .ar-sidebar{width:64px;flex-basis:64px}
 .ar-collapsed .ar-brand{padding-left:8px}
