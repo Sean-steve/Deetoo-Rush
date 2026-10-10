@@ -1,4 +1,5 @@
 import { AuthenticatorPanel } from './components/AuthenticatorPanel';
+import { ApprovedPhaseOne } from './components/approved/PhaseOne';
 import {
   OperationsLayout,
   Navigation,
@@ -511,6 +512,21 @@ function AdminAppInner() {
   const selectedView = navigation.some((n) => n.id === activeTab)
     ? activeTab
     : "overview";
+  // Approved visual rebuild: Phase 1 uses one cohesive shell. Legacy workspaces
+  // remain available until their own approved design phases are integrated.
+  if (["command", "dispatch", "orders", "riders"].includes(selectedView)) {
+    return (
+      <ErrorBoundary fallbackTitle="Admin Operations Error Boundary">
+        <ApprovedPhaseOne
+          view={selectedView as "command" | "dispatch" | "orders" | "riders"}
+          available={navigation}
+          onNavigate={setActiveTab}
+          onLogout={logout}
+          userName={user?.name || user?.email}
+        />
+      </ErrorBoundary>
+    );
+  }
   return (
     <ErrorBoundary fallbackTitle="Admin Platform Operations Error Boundary">
       <OperationsLayout
