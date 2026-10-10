@@ -12,6 +12,7 @@ export function SupportScreen({navigate,globalSearch,toast}:{navigate:(x:string)
  const [newName,setNewName]=useState(""),[subject,setSubject]=useState(""),[newType,setNewType]=useState<SupportCase["participantType"]>("Customer"),[newPriority,setNewPriority]=useState<Severity>("MEDIUM"),[newOrder,setNewOrder]=useState(""),[resolution,setResolution]=useState(""),[targetStatus,setTargetStatus]=useState<SupportStatus>("IN_PROGRESS"),[mockResponse,setMockResponse]=useState("");
  const bottomRef=useRef<HTMLDivElement|null>(null);
  useEffect(()=>{if(globalSearch)setQuery(globalSearch);},[globalSearch]);
+ useEffect(()=>{const id=sessionStorage.getItem("deetoo.demo.focusSupport");if(id){setSelectedId(id);setTab("all");setQuery(id);sessionStorage.removeItem("deetoo.demo.focusSupport");}},[]);
  const counts={open:cases.filter(x=>x.status==="OPEN").length,progress:cases.filter(x=>x.status==="IN_PROGRESS").length,waiting:cases.filter(x=>x.status==="WAITING_ON_USER").length,resolved:cases.filter(x=>x.status==="RESOLVED").length};
  const filtered=cases.filter(x=>(tab==="all"||x.status===tab)&&(type==="all"||x.participantType===type)&&(priority==="all"||x.priority===priority)&&(x.id+" "+x.subject+" "+x.participantName).toLowerCase().includes(query.toLowerCase()));
  const selected=cases.find(x=>x.id===selectedId)||filtered[0];
