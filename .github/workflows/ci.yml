@@ -174,7 +174,7 @@ jobs:
       - name: Verify independent web auth and role isolation
         run: pnpm test:phase1-browser
 
-      - name: Verify approved Admin Phase 1 frontend-only workflows and capture reference screens
+      - name: Verify approved Admin Phase 1–2 frontend-only workflows and capture reference screens
         run: pnpm test:admin-next-visual
 
       - name: Verify design-first customer preview and capture reference viewport
@@ -183,11 +183,11 @@ jobs:
       - name: Verify Phase B2 API-connected customer shopping with mocked backend contracts
         run: pnpm test:customer-next-connected
 
-      - name: Upload approved Admin frontend-only Phase 1 screenshots
+      - name: Upload approved Admin frontend-only Phase 1–2 screenshots
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: admin-next-phase1-visual
+          name: admin-next-phase1-phase2-visual
           path: visual-output/admin-next/
           if-no-files-found: warn
           retention-days: 14
