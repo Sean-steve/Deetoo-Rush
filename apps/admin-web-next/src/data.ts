@@ -1,3 +1,5 @@
+import {seedPhaseTwo, reducePhaseTwo} from "./phase2Data";
+import type {PhaseTwoState, PhaseTwoAction} from "./phase2Data";
 export type OrderStatus = "PREPARING" | "RIDER_ASSIGNED" | "PICKED_UP" | "IN_TRANSIT" | "DELIVERED" | "DELAYED" | "CANCELLED";
 export type RiderStatus = "AVAILABLE" | "ON_DELIVERY" | "OFFLINE" | "SUSPENDED";
 export type AdminRole = "SUPER_ADMIN" | "OPERATIONS" | "SUPPORT";
@@ -17,7 +19,7 @@ export type Rider = {
 };
 export type Incident = { id: string; title: string; status: string; type: string; time: string };
 export type Ticket = { id: string; title: string; status: string; from: string; time: string };
-export type DemoState = { version: number; orders: Order[]; riders: Rider[]; incidents: Incident[]; tickets: Ticket[]; activity: HistoryEntry[] };
+export type DemoState = { version: number; orders: Order[]; riders: Rider[]; incidents: Incident[]; tickets: Ticket[]; activity: HistoryEntry[]; phase2: PhaseTwoState };
 export const areas: Area[] = [
   { name: "Westlands", county: "Nairobi", lat: -1.2636, lng: 36.8031 },
   { name: "Kilimani", county: "Nairobi", lat: -1.2891, lng: 36.7866 },
@@ -83,7 +85,7 @@ export function seedDemo(): DemoState {
       notes: i === 0 ? ["Please make sure the food is well done. Thank you!"] : [], history,
     };
   });
-  return { version: 1, orders, riders,
+  return { version: 2, orders, riders, phase2:seedPhaseTwo(),
     incidents: [
       {id:"INC-7842",type:"Delivery",title:"Rider accident reported",status:"Investigating",time:"09:42"},
       {id:"INC-7841",type:"Payment",title:"Failed M-PESA payments",status:"Acknowledged",time:"08:15"},
@@ -100,7 +102,7 @@ export function seedDemo(): DemoState {
     activity: [event("Demo started",0,"Shared operational workspace initialized")],
   };
 }
-export type DemoAction =
+export type DemoAction = PhaseTwoAction
   | { type:"ASSIGN_RIDER"; orderId:string; riderId:string }
   | { type:"UNASSIGN_RIDER"; orderId:string }
   | { type:"UPDATE_ORDER"; orderId:string; status:OrderStatus; reason?:string }
@@ -114,6 +116,18 @@ function logActivity(state: DemoState, action: string, text: string): HistoryEnt
   return [event(action, 0, text, "Demo Admin"),...state.activity].slice(0,60);
 }
 export function reducer(state:DemoState, action:DemoAction):DemoState {
+  if (action.type.startsWith("PHASE2_")) {
+    const next=reducePhaseTwo(state.phase2, action as PhaseTwoAction);
+    if(action.type==="PHASE2_MERCHANT_EDIT"){
+      const previous=state.phase2.merchants.find(m=>m.id===action.id);
+      return {...state,phase2:next,orders:state.orders.map(o=>o.merchant===previous?.name?{...o,merchant:action.name.trim()}:o)};
+    }
+    if(action.type==="PHASE2_CUSTOMER_EDIT"){
+      const previous=state.phase2.customers.find(c=>c.id===action.id);
+      return {...state,phase2:next,orders:state.orders.map(o=>o.customer===previous?.name?{...o,customer:action.name.trim(),customerPhone:action.phone}:o)};
+    }
+    return {...state,phase2:next};
+  }
   if (action.type === "RESET") return seedDemo();
   if (action.type === "ADD_RIDER") {
     if (action.name.trim().length < 3 || action.phone.trim().length < 8) return state;

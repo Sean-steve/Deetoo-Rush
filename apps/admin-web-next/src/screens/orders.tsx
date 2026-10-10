@@ -8,6 +8,7 @@ export function OrdersScreen({county,navigate,globalSearch,toast}:{county:string
  const [tab,setTab]=useState("all"),[search,setSearch]=useState(""),[sort,setSort]=useState("newest"),[selectedId,setSelectedId]=useState<string|null>(null);
  const [page,setPage]=useState(1),[details,setDetails]=useState("overview"),[note,setNote]=useState(""),[cancelReason,setCancelReason]=useState(""),[modal,setModal]=useState<"cancel"|"status"|"note"|null>(null),[newStatus,setNewStatus]=useState<OrderStatus>("PREPARING");
  useEffect(()=>{if(globalSearch)setSearch(globalSearch);},[globalSearch]);
+ useEffect(()=>{const id=sessionStorage.getItem("deetoo.demo.focusOrder");if(id){setSelectedId(id);setTab("all");setSearch(id);sessionStorage.removeItem("deetoo.demo.focusOrder");}},[]);
  useEffect(()=>setPage(1),[tab,search,sort,county]);
  const countyOrders=data.orders.filter(o=>county==="all"||o.pickup.county===county);
  const statuses={all:countyOrders.length,progress:countyOrders.filter(o=>isActive(o)&&o.status!=="DELAYED").length,completed:countyOrders.filter(o=>o.status==="DELIVERED").length,delayed:countyOrders.filter(o=>o.status==="DELAYED").length,cancelled:countyOrders.filter(o=>o.status==="CANCELLED").length};

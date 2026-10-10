@@ -9,6 +9,7 @@ export function RidersScreen({county,navigate,globalSearch,toast}:{county:string
  const [details,setDetails]=useState("overview"),[page,setPage]=useState(1),[modal,setModal]=useState<"approve"|"reject"|"suspend"|"reactivate"|"add"|null>(null),[reason,setReason]=useState("");
  const [newName,setNewName]=useState(""),[newPhone,setNewPhone]=useState(""),[newArea,setNewArea]=useState("Westlands");
  useEffect(()=>{if(globalSearch)setSearch(globalSearch);},[globalSearch]);
+ useEffect(()=>{const id=sessionStorage.getItem("deetoo.demo.focusRider");if(id){setSelectedId(id);setSearch(id);setTab("overview");sessionStorage.removeItem("deetoo.demo.focusRider");}},[]);
  useEffect(()=>setPage(1),[tab,search,statusFilter,county]);
  const all=data.riders.filter(r=>county==="all"||r.area.county===county);
  const shown=all.filter(r=>{
