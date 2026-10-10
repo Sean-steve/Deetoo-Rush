@@ -31,13 +31,13 @@ test("assigning a rider updates order, rider availability and command metrics af
   const selected=await page.locator(".dn-order-heading h2").innerText();
   await page.getByRole("button",{name:"Assign Rider",exact:true}).click();
   await expect(page.getByRole("dialog",{name:"Assign an eligible rider"})).toBeVisible();
-  await page.getByLabel("Eligible rider").selectOption({index:1});
-  const rider=await page.getByLabel("Eligible rider").inputValue();
+  await page.getByLabel("Eligible rider",{exact:true}).selectOption({index:1});
+  const rider=await page.getByLabel("Eligible rider",{exact:true}).inputValue();
   await page.getByRole("button",{name:"Confirm assignment"}).click();
   await expect(page.getByText(/Rider .* assigned to/)).toBeVisible();
   await page.goto("/#/orders");
   await page.getByPlaceholder("Search orders...").fill(selected.replace("#",""));
-  await expect(page.locator(".dn-order-line").first()).toContainText("RIDER_ASSIGNED",{ignoreCase:true});
+  await expect(page.locator(".dn-order-line").first()).toContainText("rider assigned",{ignoreCase:true});
   await page.goto("/#/riders");
   await page.getByPlaceholder("Search riders...").fill(rider);
   await expect(page.locator(".dn-rider-table tbody tr").first()).toContainText("on delivery",{ignoreCase:true});
@@ -52,11 +52,11 @@ test("supports order notes, cancellation, rider onboarding and role restrictions
   const first=page.locator(".dn-order-line").first();
   await first.click();
   await page.getByRole("button",{name:"+ Add internal note"}).click();
-  await page.getByLabel("Internal note").fill("Driver called the customer to confirm delivery details");
+  await page.getByLabel("Internal note",{exact:true}).fill("Driver called the customer to confirm delivery details");
   await page.getByRole("button",{name:"Save note"}).click();
   await expect(page.getByText("Driver called the customer to confirm delivery details")).toBeVisible();
   await page.getByRole("button",{name:"Cancel Order"}).click();
-  await page.getByLabel("Cancellation reason").fill("Test cancellation for visual acceptance");
+  await page.getByLabel("Cancellation reason",{exact:true}).fill("Test cancellation for visual acceptance");
   await page.getByRole("button",{name:"Confirm cancellation"}).click();
   await page.getByRole("tab",{name:/Cancelled/}).click();
   await expect(page.locator(".dn-order-line").first()).toBeVisible();
@@ -70,7 +70,7 @@ test("supports order notes, cancellation, rider onboarding and role restrictions
   await expect(page.locator(".dn-rider-table tbody tr").first()).toContainText("Test Rider");
   await page.locator(".dn-rider-table tbody tr").first().click();
   await page.getByRole("button",{name:"Approve"}).click();
-  await page.getByLabel("Rider action reason").fill("Identity and vehicle demo review approved");
+  await page.getByLabel("Rider action reason",{exact:true}).fill("Identity and vehicle demo review approved");
   await page.getByRole("button",{name:"Save rider action"}).click();
   await page.locator(".dn-profile").click();
   await page.getByLabel("Simulated role").selectOption("SUPPORT");
@@ -88,5 +88,5 @@ test("supports selective filters and explicit reset without server activity",asy
   await page.getByRole("button",{name:"Reset local demo"}).click();
   await expect(page.locator(".dn-toast")).toContainText("Demo restored");
   await page.reload();
-  await expect(page.locator(".dn-tabs")).toBeVisible();
+  await expect(page.getByRole("tablist",{name:"Rider sections"})).toBeVisible();
 });
