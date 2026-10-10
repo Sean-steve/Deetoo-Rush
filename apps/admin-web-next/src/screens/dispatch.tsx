@@ -10,6 +10,12 @@ export function DispatchScreen({county,navigate,globalSearch,toast}:{county:stri
  const [modal,setModal]=useState<"assign"|"unassign"|"advance"|null>(null),[chosenRider,setChosenRider]=useState(""),[reason,setReason]=useState("");
  const [layers,setLayers]=useState({riders:true,orders:true,merchants:true});
  useEffect(()=>{if(globalSearch)setSearch(globalSearch);},[globalSearch]);
+ useEffect(()=>{
+   const orderId=sessionStorage.getItem("deetoo.demo.focusOrder");
+   const riderId=sessionStorage.getItem("deetoo.demo.focusRider");
+   if(orderId){setSelectedId(orderId);setTab("all");sessionStorage.removeItem("deetoo.demo.focusOrder");}
+   else if(riderId){const order=data.orders.find(o=>o.riderId===riderId);if(order){setSelectedId(order.id);setTab("all");}sessionStorage.removeItem("deetoo.demo.focusRider");}
+ },[]);
  const currentCounty=county==="all"?data.orders:data.orders.filter(o=>o.pickup.county===county);
  const list=currentCounty.filter(o=>(tab==="all" || (tab==="active"?isActive(o):tab==="unassigned"?!o.riderId&&isActive(o):tab==="delayed"?o.status==="DELAYED":o.status==="DELIVERED")) && (o.id+" "+o.merchant+" "+o.customer+" "+o.area).toLowerCase().includes(search.toLowerCase()));
  const selected=currentCounty.find(o=>o.id===selectedId)||list[0];
