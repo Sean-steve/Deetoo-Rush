@@ -116,7 +116,18 @@ function logActivity(state: DemoState, action: string, text: string): HistoryEnt
   return [event(action, 0, text, "Demo Admin"),...state.activity].slice(0,60);
 }
 export function reducer(state:DemoState, action:DemoAction):DemoState {
-  if (action.type.startsWith("PHASE2_")) return {...state,phase2:reducePhaseTwo(state.phase2, action as PhaseTwoAction)};
+  if (action.type.startsWith("PHASE2_")) {
+    const next=reducePhaseTwo(state.phase2, action as PhaseTwoAction);
+    if(action.type==="PHASE2_MERCHANT_EDIT"){
+      const previous=state.phase2.merchants.find(m=>m.id===action.id);
+      return {...state,phase2:next,orders:state.orders.map(o=>o.merchant===previous?.name?{...o,merchant:action.name.trim()}:o)};
+    }
+    if(action.type==="PHASE2_CUSTOMER_EDIT"){
+      const previous=state.phase2.customers.find(c=>c.id===action.id);
+      return {...state,phase2:next,orders:state.orders.map(o=>o.customer===previous?.name?{...o,customer:action.name.trim(),customerPhone:action.phone}:o)};
+    }
+    return {...state,phase2:next};
+  }
   if (action.type === "RESET") return seedDemo();
   if (action.type === "ADD_RIDER") {
     if (action.name.trim().length < 3 || action.phone.trim().length < 8) return state;
