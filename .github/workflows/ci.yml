@@ -192,7 +192,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: admin-approved-phase1-screens
-          path: test-results/admin-phase1-*.png
+          path: admin-phase1-*.png
           if-no-files-found: warn
           retention-days: 14
 
