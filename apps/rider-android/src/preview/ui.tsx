@@ -160,13 +160,13 @@ export function BottomNav({ active, onChange }: { active: RiderTab; onChange: (n
     </Pressable>)}
   </View>;
 }
-export function PrototypeShell({ children, activeTab, onTab, currentScreen, title, subtitle, onBack, right }: {
+export function PrototypeShell({ children, activeTab, onTab, currentScreen, viewKey, title, subtitle, onBack, right }: {
   children: React.ReactNode; activeTab?: RiderTab; onTab?: (value: RiderTab) => void;
-  currentScreen: RiderScreen; title?: string; subtitle?: string; onBack?: () => void; right?: React.ReactNode;
+  currentScreen: RiderScreen; viewKey?: string; title?: string; subtitle?: string; onBack?: () => void; right?: React.ReactNode;
 }) {
   return <SafeAreaView style={S.page}>
     <Header title={title} subtitle={subtitle} onBack={onBack} right={right} />
-    <ScrollView key={currentScreen + (activeTab || '')} keyboardShouldPersistTaps="handled" contentContainerStyle={S.body}>
+    <ScrollView key={viewKey || currentScreen + (activeTab || '')} keyboardShouldPersistTaps="handled" contentContainerStyle={S.body}>
       {children}
     </ScrollView>
     {activeTab && onTab ? <BottomNav active={activeTab} onChange={onTab} /> : null}
