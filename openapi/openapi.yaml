@@ -7833,6 +7833,68 @@ paths:
         '403': {description: 'Permission denied'}
         '409': {description: 'Guarded state transition or provider unavailable'}
 
+  # Admin Next measured health and guarded configuration extension.
+  /admin/observability/dependencies:
+    get:
+      summary: 'Admin Next GET /admin/observability/dependencies — protected live route'
+      tags: [Admin]
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200': {description: 'Authorized success'}
+        '400': {description: 'Validation error'}
+        '403': {description: 'Forbidden'}
+        '409': {description: 'Unavailable or conflicting state'}
+  /admin/observability/series:
+    get:
+      summary: 'Admin Next GET /admin/observability/series — protected live route'
+      tags: [Admin]
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200': {description: 'Authorized success'}
+        '400': {description: 'Validation error'}
+        '403': {description: 'Forbidden'}
+        '409': {description: 'Unavailable or conflicting state'}
+  /admin/configuration:
+    get:
+      summary: 'Admin Next GET /admin/configuration — protected live route'
+      tags: [Admin]
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200': {description: 'Authorized success'}
+        '400': {description: 'Validation error'}
+        '403': {description: 'Forbidden'}
+        '409': {description: 'Unavailable or conflicting state'}
+  /admin/configuration/kill-switches/{key}:
+    patch:
+      summary: 'Admin Next PATCH /admin/configuration/kill-switches/{key} — protected live route'
+      tags: [Admin]
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: key
+          in: path
+          required: true
+          schema: {type: string}
+      responses:
+        '200': {description: 'Authorized success'}
+        '400': {description: 'Validation error'}
+        '403': {description: 'Forbidden'}
+        '409': {description: 'Unavailable or conflicting state'}
+  /admin/geography/counties/{code}/impact:
+    get:
+      summary: 'Admin Next GET /admin/geography/counties/{code}/impact — protected live route'
+      tags: [Admin]
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: code
+          in: path
+          required: true
+          schema: {type: string}
+      responses:
+        '200': {description: 'Authorized success'}
+        '400': {description: 'Validation error'}
+        '403': {description: 'Forbidden'}
+        '409': {description: 'Unavailable or conflicting state'}
+
 components:
   securitySchemes:
     bearerAuth:
