@@ -4,10 +4,10 @@ import {Rider,RiderStatus,formatMoney,displayTime} from "../data";
 import {useDemo,canAct} from "../store";
 import {Bars,Card,Chip,DemoMap,DetailLine,Empty,IconStat,Initials,Modal,Ring,SearchBox,SelectBox,Tabs} from "../ui";
 export function RidersScreen({county,navigate,globalSearch,toast}:{county:string;navigate:(s:string)=>void;globalSearch:string;toast:(s:string)=>void}){
- const {data,act,role}=useDemo();
+ const {data,act,role,mode}=useDemo();
  const [tab,setTab]=useState("overview"),[search,setSearch]=useState(""),[statusFilter,setStatusFilter]=useState("all"),[selectedId,setSelectedId]=useState<string|null>(null);
  const [details,setDetails]=useState("overview"),[page,setPage]=useState(1),[modal,setModal]=useState<"approve"|"reject"|"suspend"|"reactivate"|"add"|null>(null),[reason,setReason]=useState("");
- const [newName,setNewName]=useState(""),[newPhone,setNewPhone]=useState(""),[newArea,setNewArea]=useState("Westlands");
+ const [newEmail,setNewEmail]=useState(""),[newVehicle,setNewVehicle]=useState("MOTORBIKE"),[newName,setNewName]=useState(""),[newPhone,setNewPhone]=useState(""),[newArea,setNewArea]=useState("Westlands");
  useEffect(()=>{if(globalSearch)setSearch(globalSearch);},[globalSearch]);
  useEffect(()=>{const id=sessionStorage.getItem("deetoo.demo.focusRider");if(id){setSelectedId(id);setSearch(id);setTab("overview");sessionStorage.removeItem("deetoo.demo.focusRider");}},[]);
  useEffect(()=>setPage(1),[tab,search,statusFilter,county]);
@@ -24,7 +24,7 @@ export function RidersScreen({county,navigate,globalSearch,toast}:{county:string
  const canManage=canAct(role,"rider");
  const doAction=()=>{
   if(!canManage)return;
-  if(modal==="add"){if(newName.trim().length<3||newPhone.trim().length<8)return;act({type:"ADD_RIDER",name:newName.trim(),phone:newPhone.trim(),area:newArea});toast("New rider added to onboarding review.");setTab("applications");setSearch("");setSelectedId(null);}
+  if(modal==="add"){if(newName.trim().length<3||newPhone.trim().length<8)return;act({type:"ADD_RIDER",name:newName.trim(),phone:newPhone.trim(),area:newArea,email:newEmail.trim(),vehicle_type:newVehicle});toast("New rider added to onboarding review.");setTab("applications");setSearch("");setSelectedId(null);}
   else if(selected){
    if(reason.trim().length<3)return;
    if(modal==="approve"||modal==="reject")act({type:"REVIEW_RIDER",riderId:selected.id,approved:modal==="approve",reason});
@@ -32,13 +32,13 @@ export function RidersScreen({county,navigate,globalSearch,toast}:{county:string
    if(modal==="reactivate")act({type:"UPDATE_RIDER",riderId:selected.id,status:"OFFLINE",reason});
    toast("Rider action saved in the local demo.");
   }
-  setModal(null);setReason("");setNewName("");setNewPhone("");
+  setModal(null);setReason("");setNewName("");setNewPhone("");setNewEmail("");
  };
- const exportRiders=()=>{const csv=["ID,Name,Phone,Status,Verification,Vehicle,Area",...shown.map(r=>[r.id,r.name,r.phone,r.status,r.onboarding,r.vehicle,r.area.name].map(v=>'"'+v.replaceAll('"','""')+'"').join(","))].join("\n");const url=URL.createObjectURL(new Blob([csv],{type:"text/csv"}));const a=document.createElement("a");a.href=url;a.download="deetoo-demo-riders.csv";a.click();URL.revokeObjectURL(url);toast("Rider demo records exported.");};
+ const exportRiders=()=>{const csv=["ID,Name,Phone,Status,Verification,Vehicle,Area",...shown.map(r=>[r.id,r.name,r.phone,r.status,r.onboarding,r.vehicle,r.area.name].map(v=>'"'+v.replaceAll('"','""')+'"').join(","))].join("\n");const url=URL.createObjectURL(new Blob([csv],{type:"text/csv"}));const a=document.createElement("a");a.href=url;a.download=mode==="live"?"deetoo-visible-riders.csv":"deetoo-demo-riders.csv";a.click();URL.revokeObjectURL(url);toast("Rider demo records exported.");};
  return <div className="dn-screen" data-testid="screen-riders">
   <div className="dn-title-row"><div><h1>Riders & Fleet</h1><p>Manage rider onboarding, availability, performance and fleet operations.</p></div><div className="dn-title-buttons"><button className="dn-btn outline" onClick={exportRiders}><Download size={15}/> Export</button><button className="dn-btn primary" disabled={!canManage} onClick={()=>setModal("add")}><Plus size={16}/> Add Rider</button></div></div>
   <div className="dn-metrics six">
-   <IconStat label="Total Riders" value={all.length} icon={<Users/>} change="Demo directory"/>
+   <IconStat label="Total Riders" value={all.length} icon={<Users/>} change={mode==="live"?"Loaded API records":"Demo directory"}/>
    <IconStat label="Online Now" value={available.length} icon={<CheckCircle2/>} change="Ready for dispatch"/>
    <IconStat label="On Delivery" value={delivery.length} icon={<Bike/>} tone="blue" change="Currently assigned"/>
    <IconStat label="Offline" value={offline.length} icon={<UserRound/>} tone="grey" change="Not accepting orders"/>
@@ -81,7 +81,7 @@ export function RidersScreen({county,navigate,globalSearch,toast}:{county:string
      </>:<Empty label="Select a rider to view the profile"/>}
    </Card>
   </div>
-  {selected&&modal&&modal!=="add"&&<Modal title={(modal==="approve"?"Approve":modal==="reject"?"Reject":modal==="suspend"?"Suspend":"Reactivate")+" rider"} subtitle={selected.name+" · #"+selected.id} confirmText="Save rider action" onClose={()=>setModal(null)} onConfirm={doAction} disabled={reason.trim().length<3} danger={modal==="reject"||modal==="suspend"}><label className="dn-field">Reason / audit note<textarea aria-label="Rider action reason" value={reason} onChange={e=>setReason(e.target.value)} placeholder="Explain this action in the demo"/></label><p>The resulting rider status will update across all four screens.</p></Modal>}
-  {modal==="add"&&<Modal title="Add a new rider" subtitle="Creates a frontend-only rider application" confirmText="Create rider application" onClose={()=>setModal(null)} onConfirm={doAction} disabled={newName.trim().length<3||newPhone.trim().length<8}><label className="dn-field">Full name<input aria-label="Rider full name" value={newName} onChange={e=>setNewName(e.target.value)} placeholder="e.g. Jane Wanjiku"/></label><label className="dn-field">Phone number<input aria-label="Rider phone number" value={newPhone} onChange={e=>setNewPhone(e.target.value)} placeholder="+254 7..."/></label><label className="dn-field">Operating area<select aria-label="Rider operating area" value={newArea} onChange={e=>setNewArea(e.target.value)}>{[...new Set(data.riders.map(r=>r.area.name))].map(a=><option key={a}>{a}</option>)}</select></label><p>The new rider is placed under Applications awaiting approval; no real account is created.</p></Modal>}
+  {selected&&modal&&modal!=="add"&&<Modal title={(modal==="approve"?"Approve":modal==="reject"?"Reject":modal==="suspend"?"Suspend":"Reactivate")+" rider"} subtitle={selected.name+" · #"+selected.id} confirmText="Save rider action" onClose={()=>setModal(null)} onConfirm={doAction} disabled={reason.trim().length<3} danger={modal==="reject"||modal==="suspend"}><label className="dn-field">Reason / audit note<textarea aria-label="Rider action reason" value={reason} onChange={e=>setReason(e.target.value)} placeholder="Explain this action in the demo"/></label><p>{mode==="live"?"DeeToo validates the transition and makes it visible to dispatch, rider sessions and operations after refresh.":"The resulting rider status will update across the demo screens."}</p></Modal>}
+  {modal==="add"&&<Modal title="Add a new rider" subtitle={mode==="live"?"Provisions a PENDING identity and draft onboarding":"Frontend-only rider application"} confirmText="Create rider application" onClose={()=>setModal(null)} onConfirm={doAction} disabled={newName.trim().length<3||newPhone.trim().length<8||mode==="live"&&!newEmail.includes("@")}><label className="dn-field">Full name<input aria-label="Rider full name" value={newName} onChange={e=>setNewName(e.target.value)} placeholder="e.g. Jane Wanjiku"/></label><label className="dn-field">Phone number<input aria-label="Rider phone number" value={newPhone} onChange={e=>setNewPhone(e.target.value)} placeholder="+254 7..."/></label>{mode==="live"&&<><label className="dn-field">Email for account activation<input type="email" value={newEmail} onChange={e=>setNewEmail(e.target.value)} placeholder="rider@example.co.ke"/></label><label className="dn-field">Vehicle type<select value={newVehicle} onChange={e=>setNewVehicle(e.target.value)}><option value="MOTORBIKE">Motorbike</option><option value="BICYCLE">Bicycle</option><option value="CAR">Car</option></select></label></>}<label className="dn-field">Operating area<select aria-label="Rider operating area" value={newArea} onChange={e=>setNewArea(e.target.value)}>{[...new Set(data.riders.map(r=>r.area.name))].map(a=><option key={a}>{a}</option>)}</select></label><p>{mode==="live"?"The rider receives a pending account; they must activate, upload documents and pass onboarding before dispatch eligibility.":"The new rider is placed under Applications awaiting approval; no real account is created."}</p></Modal>}
  </div>;
 }
