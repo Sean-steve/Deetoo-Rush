@@ -108,3 +108,23 @@ pnpm typecheck:rider-android
 Read `src/preview/README.md` for the acceptance checklist. For the
 next phases, replace the placeholders with reviewed frontend implementations;
 do not connect the real backend until the distinct backend audit/integration stages.
+
+## Phase 2 — Rider delivery operations visual preview
+
+Phase 2 extends the same dev-only preview with six more screens and does not
+modify the connected Rider API app. Sign in with the preview OTP `123456`,
+switch **Online** on Home, then open **Deliveries** and press **Simulate new
+delivery request**. Accept before the 25-second preview timer expires.
+
+Follow: offer → active details → navigate to merchant → arrived/pickup code
+`4621` and item check → navigate to customer → arrival → delivery PIN
+`638204` or mock photo proof. Alternate decline, offer expiry, invalid codes,
+and incident reports have working preview states. Phase 2 also adds a clearly
+labelled visual acceptance shortcut for the six milestone screens.
+
+There is **no live dispatch, GPS route, camera, contact call/message, payout,
+order mutation, or support case creation** in the preview. Phase 3 and Phase 4
+navigation destinations remain explicitly marked as future work.
+
+Run `pnpm exec tsx --test tests/unit/rider_phase2_preview.test.ts` and
+`pnpm typecheck:rider-android`; see `src/preview/README.md` for the full matrix.
