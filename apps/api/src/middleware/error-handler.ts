@@ -1,4 +1,5 @@
 import { config } from '@deetoo/config';
+import { ZodError } from 'zod';
 import { Request, Response, NextFunction } from 'express';
 import { ApiErrorResponse } from '@deetoo/types';
 import { logger } from '@deetoo/utils';
@@ -26,9 +27,11 @@ export function errorHandlerMiddleware(
   next: NextFunction
 ) {
   const requestId = (req as any).requestId || 'req_unknown';
-  const statusCode = err.statusCode || (err.status && typeof err.status === 'number' ? err.status : 500);
-  const code = err.code || (statusCode >= 500 ? 'INTERNAL_ERROR' : 'BAD_REQUEST');
-  const message = statusCode >= 500 && config.isProduction
+  const isValidationError = err instanceof ZodError;
+  const statusCode = isValidationError ? 400 : (err.statusCode || (err.status && typeof err.status === 'number' ? err.status : 500));
+  const code = isValidationError ? 'VALIDATION_ERROR' : (err.code || (statusCode >= 500 ? 'INTERNAL_ERROR' : 'BAD_REQUEST'));
+  const details = isValidationError ? {issues:err.issues.map(issue=>({path:issue.path.map(String).join('.'),code:issue.code,message:issue.message}))} : err.details;
+  const message = isValidationError ? 'Request validation failed' : statusCode >= 500 && config.isProduction
     ? 'An unexpected error occurred. Please contact support.'
     : err.message || 'Unknown error occurred';
 
@@ -41,7 +44,7 @@ export function errorHandlerMiddleware(
     statusCode,
     errorCode: code,
     metadata: {
-      details: err.details,
+      details,
       stack: !config.isProduction ? err.stack : undefined,
     },
   });
@@ -50,7 +53,7 @@ export function errorHandlerMiddleware(
     error: {
       code,
       message,
-      details: statusCode >= 500 && config.isProduction ? undefined : err.details,
+      details: statusCode >= 500 && config.isProduction ? undefined : details,
       request_id: requestId,
     },
   };
