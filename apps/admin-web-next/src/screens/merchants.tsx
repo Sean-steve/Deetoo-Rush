@@ -3,6 +3,7 @@ import {ArrowRight, Ban, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, C
 import {displayTime,formatMoney,orderTotal} from "../data";
 import type {MerchantRecord} from "../phase2Data";
 import {useDemo,canAct} from "../store";
+import {apiGet} from "../live-api";
 import {Bars,Card,Chip,DetailLine,Empty,IconStat,Initials,Modal,Ring,SearchBox,SelectBox,Tabs} from "../ui";
 const categories=["Restaurant","Supermarket","Café","Pharmacy","Other"];
 const counties=["Nairobi","Kiambu","Mombasa","Nakuru","Kisumu","Machakos"];
@@ -14,9 +15,27 @@ export function MerchantsScreen({navigate,county,globalSearch,toast}:{navigate:(
  useEffect(()=>setPage(1),[tab,search,status,category,localCounty,county]);
  const filtered=all.filter(m=>(tab==="all"||tab==="branches"||tab==="performance"||tab==="approvals"&&m.status==="PENDING"||tab==="onboarding"&&m.status==="ONBOARDING"||tab==="active"&&m.status==="ACTIVE"||tab==="suspended"&&m.status==="SUSPENDED")&&(status==="all"||m.status===status)&&(category==="all"||m.category===category)&&(localCounty==="all"||m.branches.some(b=>b.county===localCounty))&&(county==="all"||m.branches.some(b=>b.county===county))&&(m.name+" "+m.id+" "+m.owner+" "+m.email).toLowerCase().includes(search.toLowerCase()));
  const shown=filtered.slice((page-1)*9,page*9),pages=Math.ceil(filtered.length/9)||1;
- const selected=shown.find(m=>m.id===selectedId)||shown[0];
+ const selectedRecord=shown.find(m=>m.id===selectedId)||shown[0];
+ const [loadedBranches,setLoadedBranches]=useState<{merchantId:string;rows:MerchantRecord["branches"]}|null>(null);
+ const [branchError,setBranchError]=useState("");
+ useEffect(()=>{
+   if(mode!=="live"||!selectedRecord?.id)return;
+   let cancelled=false;setBranchError("");
+   void apiGet("/admin/merchants/"+encodeURIComponent(selectedRecord.id)+"/branches").then(value=>{
+     if(cancelled)return;const output=value as {data?:Array<Record<string,unknown>>};
+     const branches=(Array.isArray(output.data)?output.data:[]).map(b=>({
+       id:String(b.id),name:String(b.name||"Branch"),county:String(b.region||b.county||"Unknown"),
+       area:String(b.city||b.area||""),status:(b.status==="ACTIVE"?"ACTIVE":"PAUSED") as "ACTIVE"|"PAUSED",
+       address:String(b.address_line1||b.address_text||""),orders:Number(b.total_orders||0)
+     }));
+     setLoadedBranches({merchantId:selectedRecord.id,rows:branches});
+   }).catch(e=>{if(!cancelled)setBranchError(e instanceof Error?e.message:"Branch details not available");});
+   return ()=>{cancelled=true;};
+ },[mode,selectedRecord?.id,data.phase2.merchants]);
+ const selected=mode==="live"&&selectedRecord&&loadedBranches?.merchantId===selectedRecord.id?
+   {...selectedRecord,branches:loadedBranches.rows}:selectedRecord;
  const merchantOrders=selected?data.orders.filter(o=>mode==="live"?o.merchantId===selected.id:o.merchant===selected.name):[];
- const branches=all.reduce((a,m)=>a+m.branches.length,0),active=all.filter(m=>m.status==="ACTIVE").length,pending=all.filter(m=>m.status==="PENDING").length,suspended=all.filter(m=>m.status==="SUSPENDED").length;
+ const branches=all.reduce((a,m)=>a+(mode==="live"?m.branchCount??m.branches.length:m.branches.length),0),active=all.filter(m=>m.status==="ACTIVE").length,pending=all.filter(m=>m.status==="PENDING").length,suspended=all.filter(m=>m.status==="SUSPENDED").length;
  const openCreate=()=>{setLegalName("");setForm({name:"",category:"Restaurant",owner:"",email:"",phone:""});setModal("create");};
  const openEdit=()=>{if(!selected)return;setLegalName(selected.name);setForm({name:selected.name,category:selected.category,owner:selected.owner,email:selected.email,phone:selected.phone});setModal("edit");};
  const save=()=>{
@@ -29,10 +48,10 @@ export function MerchantsScreen({navigate,county,globalSearch,toast}:{navigate:(
  };
  const exportResults=()=>{const csv=["ID,Merchant,Category,Status,Verification,Branches",...filtered.map(x=>[x.id,x.name,x.category,x.status,x.verification,String(x.branches.length)].map(s=>'"'+s.replaceAll('"','""')+'"').join(","))].join("\n");const url=URL.createObjectURL(new Blob([csv],{type:"text/csv"}));const a=document.createElement("a");a.href=url;a.download=mode==="live"?"deetoo-visible-merchants.csv":"deetoo-demo-merchants.csv";a.click();URL.revokeObjectURL(url);toast("Merchant records exported.");};
  const toOrders=()=>{if(merchantOrders.length){sessionStorage.setItem("deetoo.demo.focusOrder",merchantOrders[0].id);navigate("orders");}else toast("This merchant has no seeded orders.");};
- return <div className="dn-screen" data-testid="screen-merchants">
+ return <div className="dn-screen" data-testid="screen-merchants">{mode==="live"&&branchError&&<p role="alert" className="danger-text">Merchant branches unavailable: {branchError}</p>}
   <div className="dn-title-row"><div><h1>Merchant Management</h1><p>Manage merchant onboarding, approvals, branches and operational status.</p></div><div className="dn-title-buttons"><button className="dn-btn outline" onClick={exportResults}><Download size={15}/> Export</button><button className="dn-btn primary" disabled={!canManage} onClick={openCreate}><Plus size={16}/> Add Merchant</button></div></div>
   <div className="dn-metrics six">
-   <IconStat label="Total Merchants" value={all.length} change="In demo directory" icon={<Users/>}/>
+   <IconStat label="Total Merchants" value={all.length} change={mode==="live"?"Loaded DeeToo merchant records":"In demo directory"} icon={<Users/>}/>
    <IconStat label="Pending Approvals" value={pending} tone="amber" icon={<Clock3/>}/>
    <IconStat label="Active Merchants" value={active} icon={<CheckCircle2/>}/>
    <IconStat label="Suspended" value={suspended} tone="red" icon={<Ban/>}/>
