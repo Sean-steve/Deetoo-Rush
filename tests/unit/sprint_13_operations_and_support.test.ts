@@ -336,15 +336,15 @@ describe('Sprint 13: Operations, Support, Failure Recovery & Fraud Controls', ()
         /resolution-confirmation workflow/i,
       );
 
-      // Customer acceptance makes the case RESOLVED, never auto-CLOSED.
+      // Customer acceptance is recorded but only Admin may mark the case resolved/closed.
       const accepted = await supportService.respondToResolution(
         supportCase.id,
         customer,
         'ACCEPTED',
         'The refund resolves my issue.',
       );
-      assert.equal(accepted.status, 'RESOLVED');
-      assert.ok(accepted.resolved_at);
+      assert.equal(accepted.status, 'PARTY_CONFIRMATION');
+      assert.equal(accepted.resolved_at, null);
       assert.equal(accepted.closed_at, null);
 
       // A support agent cannot finalize; consent cannot be bypassed.
@@ -356,6 +356,7 @@ describe('Sprint 13: Operations, Support, Failure Recovery & Fraud Controls', ()
       const closed = await supportService.finalizeConfirmedCase(supportCase.id, admin);
       assert.equal(closed.status, 'CLOSED');
       assert.ok(closed.closed_at);
+      assert.ok(closed.resolved_at);
       await assert.rejects(
         () => supportService.finalizeConfirmedCase(supportCase.id, admin),
         /must accept before administrator closure/i,
