@@ -164,6 +164,7 @@ adminRouter.post(
 
       if (config.storage.mode === 'postgres' && (typeof req.body.reason !== 'string' || !req.body.reason.trim())) throw new AppError(400,'REASON_REQUIRED','An explicit administrative reason is required');
       const reason = req.body.reason || 'Administrative intervention';
+      if(targetUserId===req.user!.id)throw new AppError(409,'SELF_SUSPENSION_FORBIDDEN','An administrator cannot suspend their own session');
       await identityCommand(async () => {
       await guardSuperAdminContinuity(targetUserId,true);
       await authRepository.updateUserStatus(targetUserId, UserStatus.SUSPENDED);
@@ -388,15 +389,12 @@ adminRouter.post(
   requireRole(UserRole.SUPER_ADMIN),
   async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
-      const data = await governanceService.deactivate(
-        req.params.id,
-        req.body.reason,
-        {
-          id: req.user!.id,
-          role: UserRole.SUPER_ADMIN,
-          requestId: (req as any).requestId,
-        },
-      );
+      const data = await identityCommand(async () => {
+        await guardSuperAdminContinuity(req.params.id,true);
+        return governanceService.deactivate(
+          req.params.id,req.body.reason,{id:req.user!.id,role:UserRole.SUPER_ADMIN,requestId:(req as any).requestId}
+        );
+      });
       res.json({ data, requestId: (req as any).requestId });
     } catch (err) { next(err); }
   },
