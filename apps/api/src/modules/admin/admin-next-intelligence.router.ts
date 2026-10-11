@@ -6,6 +6,7 @@ import {requireAuth,requireRole,AuthenticatedRequest} from '../auth/auth.middlew
 import {getDbPool} from '../../db/client';
 import {withTransaction} from '../../db/transaction';
 import {AppError} from '../../middleware/error-handler';
+import {freezeCampaignRecipients,eligibleCampaignAudience,enqueueApprovedCampaign,campaignDeliverySummary} from './admin-next-campaigns.service';
 
 export const adminNextIntelligenceRouter=Router();
 adminNextIntelligenceRouter.use(requireAuth,requireRole(UserRole.SUPER_ADMIN,UserRole.ADMIN,UserRole.OPS,UserRole.SUPPORT,UserRole.FINANCE));
@@ -131,6 +132,7 @@ adminNextIntelligenceRouter.post('/communications/campaigns/:id/approve',run(asy
   if(!c)throw new AppError(404,'CAMPAIGN_NOT_FOUND','Campaign not found');
   if(c.status!=='DRAFT')throw new AppError(409,'CAMPAIGN_NOT_DRAFT','Campaign must be draft');
   if(c.created_by===req.user!.id)throw new AppError(403,'SELF_APPROVAL_NOT_ALLOWED','A second Super Admin must review the campaign');
+  await freezeCampaignRecipients(client,c);
   const r=await client.query("UPDATE admin_campaigns SET status='APPROVED',approved_by=$2,approval_reason=$3,approved_at=now(),updated_at=now() WHERE id=$1 RETURNING *",[id,req.user!.id,why]);
   await audit(client,req,'CAMPAIGN_APPROVED','CAMPAIGN',id,why,{status:'DRAFT'},{status:'APPROVED'});return r.rows[0];
  });res.json({data:row});
@@ -143,15 +145,29 @@ adminNextIntelligenceRouter.post('/communications/campaigns/:id/cancel',run(asyn
   await audit(client,req,'CAMPAIGN_CANCELLED','CAMPAIGN',id,why,{}, {status:'CANCELLED'});return r.rows[0];
  });res.json({data:row});
 }));
-// Actual delivery fanout remains deliberately blocked until subscriptions/opt-ins and configured
-// outbound transport are verified. This guard prevents marketing spam and false SENT outcomes.
-adminNextIntelligenceRouter.post('/communications/campaigns/:id/send',run(async(req,_res)=>{
- postgres();requireSuper(req);uuid.parse(req.params.id);
- throw new AppError(409,'CAMPAIGN_DELIVERY_NOT_READY','Campaign publishing requires a configured consent/audience snapshot and outbound provider; draft and approval are available');
+// Queue approved, frozen, consented recipients. The existing notification worker owns provider delivery.
+adminNextIntelligenceRouter.post('/communications/campaigns/:id/send',run(async(req,res)=>{
+ postgres();requireSuper(req);const id=uuid.parse(req.params.id);
+ const key=z.string().min(16).max(120).parse(req.headers['idempotency-key']);
+ const queued=await withTransaction(async client=>{
+  const existing=await client.query('SELECT * FROM admin_campaigns WHERE id=$1 FOR UPDATE',[id]);
+  if(!existing.rows[0])throw new AppError(404,'CAMPAIGN_NOT_FOUND','Campaign not found');
+  if(existing.rows[0].status==='QUEUED' && existing.rows[0].dispatch_idempotency_key!==key)
+   throw new AppError(409,'CAMPAIGN_ALREADY_QUEUED','Campaign has already been published with another key');
+  return enqueueApprovedCampaign(client,existing.rows[0],req.user!.id,key);
+ });
+ res.status(202).json({data:queued});
+}));
+adminNextIntelligenceRouter.get('/communications/campaigns/:id/delivery',run(async(req,res)=>{
+ postgres();const id=uuid.parse(req.params.id);
+ const c=await getDbPool().query('SELECT id,status,recipient_count FROM admin_campaigns WHERE id=$1',[id]);
+ if(!c.rows[0])throw new AppError(404,'CAMPAIGN_NOT_FOUND','Campaign not found');
+ res.json({data:{...c.rows[0],breakdown:await campaignDeliverySummary(getDbPool(),id)}});
 }));
 
 adminNextIntelligenceRouter.get('/communications/audience-preview',run(async(req,res)=>{
  postgres();const kind=audience.parse(req.query.audience||'ALL');
- const totals=await getDbPool().query('SELECT (SELECT count(*)::int FROM customer_profiles cp JOIN users u ON u.id=cp.user_id WHERE u.status=\'ACTIVE\') AS customers,(SELECT count(*)::int FROM merchant_memberships mm JOIN users u ON u.id=mm.user_id WHERE u.status=\'ACTIVE\' AND mm.status=\'ACTIVE\') AS merchant_memberships,(SELECT count(*)::int FROM rider_profiles rp JOIN users u ON u.id=rp.user_id WHERE u.status=\'ACTIVE\') AS riders');
- res.json({data:{audience:kind,active_population_estimate:totals.rows[0],eligible_confirmed:0,send_ready:false,explanation:'Counts are unconsented population estimates, not delivery eligible recipients.'}});
+ const channel=z.enum(['IN_APP','EMAIL','SMS','PUSH']).parse(req.query.channel||'IN_APP');
+ const eligible=await eligibleCampaignAudience(getDbPool(),{audience:kind,channel});
+ res.json({data:{audience:kind,channel,eligible_confirmed:eligible.length,limit:250,over_limit:eligible.length>250,consent_source:'SELF_SERVICE',explanation:'Confirmed recipients are active users explicitly subscribed to this channel; freezing occurs on independent approval.'}});
 }));
