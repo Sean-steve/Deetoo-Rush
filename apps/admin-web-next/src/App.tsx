@@ -13,7 +13,9 @@ import {MerchantsScreen} from "./screens/merchants";
 import {CustomersScreen} from "./screens/customers";
 import {GeographyScreen} from "./screens/geography";
 import {PaymentsScreen} from "./screens/payments";
+import {PaymentsLive} from "./screens/payments-live";
 import {SettlementsScreen} from "./screens/settlements";
+import {SettlementsLive} from "./screens/settlements-live";
 import {FinancialScreen} from "./screens/financial";
 import {AnalyticsScreen} from "./screens/analytics";
 import {NotificationsScreen} from "./screens/notifications";
@@ -92,8 +94,10 @@ function Workspace(){
    {(mode==="live"||previewState==="normal")&&screen==="merchants"&&<MerchantsScreen county={selectedCounty} navigate={navigate} globalSearch={searchText} toast={screenToast}/>}
    {(mode==="live"||previewState==="normal")&&screen==="customers"&&<CustomersScreen county={selectedCounty} navigate={navigate} globalSearch={searchText} toast={screenToast}/>}
    {(mode==="live"||previewState==="normal")&&screen==="geography"&&<GeographyScreen navigate={navigate} county={selectedCounty} toast={screenToast}/>}
-   {(mode==="live"||previewState==="normal")&&screen==="payments"&&<PaymentsScreen navigate={navigate} globalSearch={searchText} toast={screenToast}/>}
-   {(mode==="live"||previewState==="normal")&&screen==="settlements"&&<SettlementsScreen navigate={navigate} toast={screenToast}/>}
+   {mode==="live"&&screen==="payments"&&<PaymentsLive navigate={navigate}/>}
+   {mode==="demo"&&previewState==="normal"&&screen==="payments"&&<PaymentsScreen navigate={navigate} globalSearch={searchText} toast={screenToast}/>}
+   {mode==="live"&&screen==="settlements"&&<SettlementsLive navigate={navigate}/>}
+   {mode==="demo"&&previewState==="normal"&&screen==="settlements"&&<SettlementsScreen navigate={navigate} toast={screenToast}/>}
    {(mode==="live"||previewState==="normal")&&screen==="financial"&&<FinancialScreen navigate={navigate} toast={screenToast}/>}
    {(mode==="live"||previewState==="normal")&&screen==="analytics"&&<AnalyticsScreen navigate={navigate} toast={screenToast}/>}
    {(mode==="live"||previewState==="normal")&&screen==="notifications"&&<NotificationsScreen navigate={navigate} toast={screenToast}/>}
