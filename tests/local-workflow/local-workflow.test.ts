@@ -240,3 +240,24 @@ test('Phase 5: real Admin provisioning cannot skip merchant or rider onboarding'
   await new Promise<void>(resolve=>server.close(()=>resolve()));
  }
 });
+
+
+test('Phase 5: customer support intake applies Redis-backed rate limiting before authentication',async()=>{
+ const server=createServer(createApp());
+ await new Promise<void>(resolve=>server.listen(0,'127.0.0.1',resolve));
+ const url='http://127.0.0.1:'+(server.address() as any).port+'/api/v1/customer/support/cases';
+ try{
+  for(let n=0;n<13;n++){
+   const response=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});
+   assert.equal(response.status,n<12?401:429,'support case attempt '+(n+1));
+   if(n===12){
+    const body=await response.json() as any;
+    assert.equal(body.error?.code,'RATE_LIMIT_EXCEEDED');
+    assert.ok(response.headers.has('retry-after'));
+   }else await response.arrayBuffer();
+  }
+ }finally{
+  server.closeAllConnections();
+  await new Promise<void>(resolve=>server.close(()=>resolve()));
+ }
+});
