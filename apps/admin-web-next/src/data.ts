@@ -10,7 +10,7 @@ export type AdminRole = "SUPER_ADMIN" | "ADMIN" | "OPERATIONS" | "SUPPORT" | "FI
 export type Area = { name: string; county: string; lat: number; lng: number };
 export type HistoryEntry = { at: string; event: string; by: string; detail: string };
 export type Order = {
-  id: string; merchant: string; area: string; pickup: Area; destination: Area;
+  id: string; merchant: string; merchantId?: string; customerId?: string; area: string; pickup: Area; destination: Area;
   customer: string; customerPhone: string; riderId: string | null; status: OrderStatus;
   createdAt: string; etaMinutes: number; delayMinutes: number; subtotal: number; deliveryFee: number; serviceFee: number;
   items: { name: string; qty: number; price: number }[]; paymentMethod: "M-PESA" | "Card" | "Cash";
