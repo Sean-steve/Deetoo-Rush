@@ -1,4 +1,5 @@
 import { scopedResponseMiddleware } from '../../middleware/scoped-response';
+import {createAuthRateLimiter} from '../auth/rate-limit.middleware';
 import {z} from 'zod';
 import {verifyAdminSupportCase} from '../admin/admin-next-support-validation';
 import { AppError } from '../../middleware/error-handler';
@@ -1163,8 +1164,10 @@ participantSupportRouter.post(
 import {enforceCustomerSupportIntake} from '../admin/admin-next-control.router';
 export const customerSupportRouter = Router();
 
+const customerCaseIntakeLimiter=createAuthRateLimiter({keyPrefix:'api:customer:support-case',windowMs:60000,max:12});
 customerSupportRouter.post(
   "/cases",
+  customerCaseIntakeLimiter,
   requireAuth,
   enforceCustomerSupportIntake,
   async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
