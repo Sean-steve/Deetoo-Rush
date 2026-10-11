@@ -17,7 +17,7 @@ export function CustomersScreen({navigate,county,globalSearch,toast}:{navigate:(
  const filtered=all.filter(c=>(tab==="all"||tab==="active"&&c.status==="ACTIVE"||tab==="restricted"&&c.status==="RESTRICTED"||tab==="suspended"&&c.status==="SUSPENDED"||tab==="new"&&Date.parse(c.joinedAt)>Date.parse("2026-09-01T00:00:00Z"))&&(status==="all"||c.status===status)&&(localCounty==="all"||c.county===localCounty)&&(county==="all"||c.county===county)&&(c.id+" "+c.name+" "+c.phone+" "+c.email).toLowerCase().includes(search.toLowerCase()));
  const showing=filtered.slice((page-1)*10,page*10),pages=Math.ceil(filtered.length/10)||1;
  const selected=all.find(c=>c.id===selectedId)||showing[0];
- const orders=selected?data.orders.filter(o=>o.customer===selected.name):[];
+ const orders=selected?data.orders.filter(o=>mode==="live"?o.customerId===selected.id:o.customer===selected.name):[];
  const support=selected?data.phase2.support.filter(x=>x.participantType==="Customer"&&x.participantName===selected.name):[];
  const active=all.filter(x=>x.status==="ACTIVE").length,restricted=all.filter(x=>x.status==="RESTRICTED").length,suspended=all.filter(x=>x.status==="SUSPENDED").length;
  const openAdd=()=>{setForm({name:"",phone:"",email:"",county:"Nairobi"});setModal("add");};
