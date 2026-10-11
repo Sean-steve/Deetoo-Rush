@@ -400,7 +400,7 @@ export function Phase1RiderPreview() {
   }
 
   if (screen === 'dashboard') {
-    return <PrototypeShell currentScreen={screen} activeTab={tab} onTab={setTab} right={<Pressable accessibilityRole="button" accessibilityLabel="Sign out" onPress={logout} style={{ minHeight: 44, minWidth: 58, justifyContent: 'center', alignItems: 'flex-end' }}><Text style={{ color: '#fff', fontSize: 13, fontWeight: '800' }}>Log out</Text></Pressable>}>
+    return <PrototypeShell currentScreen={screen} activeTab={tab} onTab={setTab} viewKey={tab === 'Deliveries' ? deliveryState.screen + ':' + deliveryState.status : screen + ':' + tab} right={<Pressable accessibilityRole="button" accessibilityLabel="Sign out" onPress={logout} style={{ minHeight: 44, minWidth: 58, justifyContent: 'center', alignItems: 'flex-end' }}><Text style={{ color: '#fff', fontSize: 13, fontWeight: '800' }}>Log out</Text></Pressable>}>
       {tab === 'Home' ? renderDashboard() :
         tab === 'Deliveries' ?
           <Phase2DeliveryScreens
