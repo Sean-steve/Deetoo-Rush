@@ -817,3 +817,23 @@ test('Phase 3 finance, identity review and safety interfaces stay role protected
   }
   assert.equal((await request('rider','/finance/rider-withdrawal-requests')).status,403);
 });
+
+
+test('Phase 3 Rider preferences and trends never admit foreign identities or critical-alert overrides',async()=>{
+  for(const path of ['/rider/earnings/trends?days=7','/rider/performance/feedback?days=30','/rider/preferences','/rider/deliveries/capabilities']){
+    assert.equal((await request('customer',path)).status,403,path);
+    const response=await request('rider',path);
+    assert.equal(response.status,200,path);
+    const payload=await response.json();
+    if(path.includes('capabilities')) assert.equal(payload.data.multi_order.enabled,false);
+    if(path==='/rider/preferences') assert.deepEqual(payload.data.critical,{delivery:true,account:true,safety:true});
+  }
+  const update=await request('rider','/rider/preferences','PUT',{delivery:false,account:false,safety:false});
+  assert.notEqual(update.status,200,'Rider cannot overwrite mandatory alert policy');
+});
+test('Phase 3 self-service Rider backend routes reject unauthorized Finance and verification changes',async()=>{
+  assert.equal((await request('rider','/rider/verification/documents','POST',{})).status>=400,true);
+  assert.equal((await request('customer','/rider/profile/change-requests','POST',{category:'PAYOUT_DESTINATION',description:'Change my payout phone'})).status,403);
+  assert.equal((await request('rider','/finance/rider-withdrawal-requests','GET')).status,403);
+  assert.equal((await request('rider','/rider/payout-requests','POST',{amount_minor:10000,idempotency_key:'test-preview-only-12345'})).status,503);
+});
