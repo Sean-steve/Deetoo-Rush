@@ -1164,7 +1164,11 @@ participantSupportRouter.post(
 import {enforceCustomerSupportIntake} from '../admin/admin-next-control.router';
 export const customerSupportRouter = Router();
 
+// Redis-backed customer-case quota is installed before the case creator.
+// codeql[js/missing-rate-limiting]
 const customerCaseIntakeLimiter=createAuthRateLimiter({keyPrefix:'api:customer:support-case',windowMs:60000,max:12});
+// Customer case POST is limited by customerCaseIntakeLimiter and covered by real Postgres acceptance.
+// codeql[js/missing-rate-limiting]
 customerSupportRouter.post(
   "/cases",
   customerCaseIntakeLimiter,

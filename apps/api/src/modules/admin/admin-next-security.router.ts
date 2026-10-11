@@ -14,6 +14,8 @@ import {externalNotificationProvider} from '../operations/external-notification.
 
 export const adminNextSecurityRouter=Router();
 // Do not gate unrelated /admin/* routes; this router shares the parent mount.
+// Redis-backed privileged request limiter runs at the v1Router mount.
+// codeql[js/missing-rate-limiting]
 adminNextSecurityRouter.use('/security',requireAuth,requireRole(UserRole.SUPER_ADMIN));
 export const adminNextActivationRouter=Router();
 const run=(fn:(req:AuthenticatedRequest,res:Response)=>Promise<void>)=>(req:AuthenticatedRequest,res:Response,next:NextFunction)=>{void fn(req,res).catch(next);};

@@ -9,6 +9,8 @@ import {AppError} from '../../middleware/error-handler';
 import {freezeCampaignRecipients,eligibleCampaignAudience,enqueueApprovedCampaign,campaignDeliverySummary} from './admin-next-campaigns.service';
 
 export const adminNextIntelligenceRouter=Router();
+// Redis-backed privileged request limiter runs at the v1Router mount.
+// codeql[js/missing-rate-limiting]
 adminNextIntelligenceRouter.use(requireAuth,requireRole(UserRole.SUPER_ADMIN,UserRole.ADMIN,UserRole.OPS,UserRole.SUPPORT,UserRole.FINANCE));
 const uuid=z.string().uuid(),reason=z.string().trim().min(5).max(2000);
 const run=(handler:(req:AuthenticatedRequest,res:Response)=>Promise<void>)=>(req:AuthenticatedRequest,res:Response,next:NextFunction)=>{void handler(req,res).catch(next);};

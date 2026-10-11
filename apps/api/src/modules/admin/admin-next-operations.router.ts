@@ -14,6 +14,8 @@ import {authRepository} from '../auth/auth.repository';
 import {verifyAdminSupportCase} from './admin-next-support-validation';
 
 export const adminNextOperationsRouter=Router();
+// Redis-backed privileged request limiter runs at the v1Router mount.
+// codeql[js/missing-rate-limiting]
 adminNextOperationsRouter.use(requireAuth);
 const run=(handler:(req:AuthenticatedRequest,res:Response)=>Promise<void>)=>(req:AuthenticatedRequest,res:Response,next:NextFunction)=>{void handler(req,res).catch(next);};
 const uuid=z.string().uuid();

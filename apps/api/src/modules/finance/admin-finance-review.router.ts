@@ -8,6 +8,8 @@ import {AppError} from '../../middleware/error-handler';
 import {withTransaction} from '../../db/transaction';
 
 export const adminFinanceReviewRouter=Router();
+// Redis-backed privileged request limiter runs at the v1Router mount.
+// codeql[js/missing-rate-limiting]
 adminFinanceReviewRouter.use(requireAuth,requireRole(UserRole.ADMIN,UserRole.FINANCE));
 const params=z.object({id:z.string().uuid()});
 const explanation=z.object({reason:z.string().trim().min(5).max(2000)});

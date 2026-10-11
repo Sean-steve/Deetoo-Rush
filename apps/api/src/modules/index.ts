@@ -48,6 +48,8 @@ export const v1Router = Router();
 // Rate-limit privileged reads as well as writes, with the existing Redis-backed
 // multi-instance limiter. Dedicated auth and mutation limits remain enforced.
 const privilegedApiRateLimiter = createAuthRateLimiter({keyPrefix:'api:privileged:read',windowMs:60000,max:600});
+// Redis-backed privilegedApiRateLimiter protects all mounted Admin and finance routes.
+// codeql[js/missing-rate-limiting]
 v1Router.use(['/admin','/finance/ops','/auth/broadcast-consent'],privilegedApiRateLimiter);
 
 // Domain Sub-routers

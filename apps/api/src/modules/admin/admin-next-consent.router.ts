@@ -10,6 +10,8 @@ import {AppError} from '../../middleware/error-handler';
  * Applies to all broadcast classifications. Transactional receipts/order notifications are separate. */
 export const adminNextConsentRouter=Router();
 // A scoped guard must not intercept public /auth/invitations/activate in the parent mount.
+// Redis-backed privileged request limiter runs at the v1Router mount.
+// codeql[js/missing-rate-limiting]
 adminNextConsentRouter.use('/broadcast-consent',requireAuth);
 const run=(handler:(req:AuthenticatedRequest,res:Response)=>Promise<void>)=>(req:AuthenticatedRequest,res:Response,next:NextFunction)=>{void handler(req,res).catch(next);};
 const requirePg=()=>{if(config.storage.mode!=='postgres')throw new AppError(409,'POSTGRES_REQUIRED','Consent preferences require durable storage');};
