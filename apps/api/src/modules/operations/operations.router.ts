@@ -1156,11 +1156,13 @@ participantSupportRouter.post(
   },
 );
 
+import {enforceCustomerSupportIntake} from '../admin/admin-next-control.router';
 export const customerSupportRouter = Router();
 
 customerSupportRouter.post(
   "/cases",
   requireAuth,
+  enforceCustomerSupportIntake,
   async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
       const viewer = {
