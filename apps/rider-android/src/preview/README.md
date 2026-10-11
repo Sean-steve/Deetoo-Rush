@@ -49,3 +49,51 @@ pnpm exec tsx --test tests/unit/rider_phase1_preview.test.ts
 pnpm typecheck:rider-android
 pnpm build:rider-android
 ```
+
+
+## Phase 2 — Delivery Operations (approved screens 7–12)
+
+Choose **Deliveries** from the five-tab navigation after signing in with preview
+credentials, then go **Online** on Home to simulate a new offer. This adds
+frontend-only screens to the existing Phase 1 preview; the normal connected
+Rider app is not modified.
+
+| Screen | Primary acceptance checks |
+| --- | --- |
+| 7 Incoming Delivery Request | Start a simulated offer, observe the 25-second timer, expected **rider pay** versus food item price, merchant/customer addresses; accept/decline/expire and replay. |
+| 8 Active Delivery Details | Accepted-order milestone tracker, full item list, merchant and recipient information, contact actions, issue reporting, start merchant navigation. |
+| 9 Navigate to Merchant | Illustrative map and pickup marker, 1.2 km/5 min ETA, route guidance, merchant contact, confirm merchant arrival. |
+| 10 Merchant Pickup Confirmation | Arrived status, item-by-item list, explicit item-count confirmation, pickup reference `4621`, prevent pickup before verification, missing-item issue. |
+| 11 Navigate to Customer | Customer route, 4.8 km/23 min ETA, route guidance, contact actions, address/intercom instructions, confirm arrival. |
+| 12 Customer Handover & Delivery Confirmation | Arrived status, customer PIN `638204` **or** staged mock photo proof, verified handover gate, failure/incident report, block completion with unresolved customer issue. |
+
+The delivery process is a **pure reducer** in `phase2-model.ts` and all UI is in
+`Phase2DeliveryScreens.tsx`. The reducer rejects illegal stage skips
+(e.g. delivery completion before customer arrival). Declined or expired orders
+cannot be accepted. Reports remain attached to the active mock delivery; rider
+actions do not resolve or close them. Even after verification, all completions
+are **simulation only** and do not record a real transaction.
+
+The **Show visual acceptance shortcuts** panel permits independently loading any
+one of the six screen states. It is visibly labelled as a demo and does not bypass
+server authorization, because no server is connected. The new screen stages
+reset the scroll position on Android.
+
+**Phase 2 exclusions:** live assignment, countdown synchronization,
+backend-authenticated order records, actual GPS / directions / ETA tracking,
+real phone calls/messages, upload of package or handover photographs,
+authoritative PIN/OTP verification, support case creation, completion of
+deliveries and financial ledger entries. The static map and placeholder
+contact actions are deliberate.
+
+### Run checks
+
+```bash
+pnpm exec tsx --test tests/unit/rider_phase2_preview.test.ts
+pnpm typecheck:rider-android
+pnpm build:rider-android
+```
+
+Review the six Android screen states on a narrow physical device/emulator before
+requesting Phase 3. Phase 3 starts with Screen 13 (Delivery Completion Summary)
+and Screen 14 (Active Deliveries & Multiple Orders) and continues to Screen 18.
