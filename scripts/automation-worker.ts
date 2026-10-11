@@ -3,6 +3,7 @@ import { logger } from '@deetoo/utils';
 import { closeDbPool } from '../apps/api/src/db/client';
 import { expireCheckoutStockHolds } from '../apps/api/src/modules/merchant/stock-expiry.service';
 import { automationService } from '../apps/api/src/modules/operations/automation.service';
+import {processDueAdminReports,sampleAdminDependencies} from '../apps/api/src/modules/admin/admin-next-report-worker';
 
 if (config.storage.mode !== 'postgres') {
   throw new Error('Automation worker requires PostgreSQL storage');
@@ -20,6 +21,8 @@ const intervals = {
   finance: Number(process.env.AUTOMATION_FINANCE_BATCH_INTERVAL_MS || 15 * 60_000),
   onboarding: Number(process.env.AUTOMATION_ONBOARDING_INTERVAL_MS || 5 * 60_000),
   stockHolds: Number(process.env.AUTOMATION_STOCK_HOLD_INTERVAL_MS || 60_000),
+  adminReports: Number(process.env.AUTOMATION_ADMIN_REPORT_INTERVAL_MS || 60_000),
+  dependencySamples: Number(process.env.AUTOMATION_DEPENDENCY_SAMPLE_INTERVAL_MS || 60_000),
 };
 
 const lastRun: Record<keyof typeof intervals, number> = {
@@ -30,6 +33,8 @@ const lastRun: Record<keyof typeof intervals, number> = {
   finance: 0,
   onboarding: 0,
   stockHolds: 0,
+  adminReports: 0,
+  dependencySamples: 0,
 };
 
 async function runDue(
@@ -70,6 +75,8 @@ while (!stopping) {
   await runDue('finance', () => automationService.prepareFinancialBatches());
   await runDue('onboarding', () => automationService.refreshMerchantReadiness());
   await runDue('stockHolds', () => expireCheckoutStockHolds());
+  await runDue('adminReports', () => processDueAdminReports());
+  await runDue('dependencySamples', () => sampleAdminDependencies());
   await new Promise((resolve) => setTimeout(resolve, 1000));
 }
 
