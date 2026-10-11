@@ -18,7 +18,7 @@ const settingDetails:Record<keyof SystemSettings,string>={
  supportSlaMinutes:"Target time for support follow-up review."
 };
 export function SystemScreen({navigate,toast}:{navigate:(s:string)=>void;toast:(s:string)=>void}){
- const {data,act,role}=useDemo(),state=data.phase4,canManage=canAct(role,"system");
+ const {data,act,role,mode}=useDemo(),state=data.phase4,canManage=canAct(role,"system");
  const [tab,setTab]=useState("health"),[query,setQuery]=useState(""),[filter,setFilter]=useState("all"),[selectedId,setSelectedId]=useState<string|null>(null);
  const [modal,setModal]=useState<"health"|"setting"|null>(null),[targetStatus,setTargetStatus]=useState<ServiceStatus>("HEALTHY"),[settingKey,setSettingKey]=useState<keyof SystemSettings>("maintenance"),[settingValue,setSettingValue]=useState("false"),[reason,setReason]=useState("");
  const components=state.components.filter(c=>(filter==="all"||c.status===filter)&&(c.name+" "+c.group).toLowerCase().includes(query.toLowerCase()));
@@ -26,7 +26,7 @@ export function SystemScreen({navigate,toast}:{navigate:(s:string)=>void;toast:(
  const good=state.components.filter(c=>c.status==="HEALTHY").length;
  const degraded=state.components.filter(c=>c.status==="DEGRADED").length;
  const down=state.components.filter(c=>c.status==="DOWN").length;
- const operational=good===state.components.length?"HEALTHY":down?"DEGRADED":"PARTIAL";
+ const operational=state.components.length===0?"UNKNOWN":good===state.components.length?"HEALTHY":down?"DEGRADED":"PARTIAL";
  const activeIncidents=data.phase2.incidents.filter(i=>!["RESOLVED","CLOSED"].includes(i.status));
  const metrics=state.components.map(c=>c.latencyMs);
  const settingsEntries=Object.entries(state.settings) as [keyof SystemSettings,boolean|number][];
@@ -47,13 +47,13 @@ export function SystemScreen({navigate,toast}:{navigate:(s:string)=>void;toast:(
  return <div className="dn-screen" data-testid="screen-system">
   <div className="dn-title-row"><div><h1>System Health & Configuration</h1><p>Understand platform health, review incidents and manage controlled operational preferences.</p></div><div className="dn-title-buttons"><button className="dn-btn outline" onClick={()=>setTab("audit")}><FileClock size={15}/> Configuration Audit</button><button className="dn-btn primary" disabled={!canManage} onClick={()=>{setTab("settings");}}><Settings2 size={15}/> Manage Settings</button></div></div>
   <div className="dn-metrics five">
-   <IconStat label="Overall Demo Health" value={operational==="HEALTHY"?"Healthy":"Attention"} icon={<HeartPulse/>} tone={operational==="HEALTHY"?"green":"amber"}/>
+   <IconStat label="Overall Demo Health" value={operational==="UNKNOWN"?"Not sampled":operational==="HEALTHY"?"Healthy":"Attention"} icon={<HeartPulse/>} tone={operational==="HEALTHY"?"green":"amber"}/>
    <IconStat label="Healthy Components" value={good} icon={<CheckCircle2/>}/>
    <IconStat label="Degraded Components" value={degraded} tone="amber" icon={<AlertTriangle/>}/>
    <IconStat label="Down Components" value={down} tone="red" icon={<XCircle/>}/>
    <IconStat label="Active Incidents" value={activeIncidents.length} tone="blue" icon={<Activity/>}/>
   </div>
-  <div className="dn-system-banner"><span className="dn-p4-event-icon"><Activity size={20}/></span><div><b>Illustrative status data — no live backend monitoring</b><p>Metrics, uptime percentages, queues and service checks on this page are deterministic fixtures or manually simulated changes. Actual service probes will be integrated later.</p></div><Chip value={operational}/></div>
+  <div className="dn-system-banner"><span className="dn-p4-event-icon"><Activity size={20}/></span><div><b>{mode==="live"?"Measured database, PostGIS and Redis probes":"Illustrative status data — no live backend monitoring"}</b><p>{mode==="live"?"The API reports live dependency readiness. Historical uptime is shown only when real monitoring samples have been recorded.":"Metrics, uptime percentages, queues and service checks on this page are deterministic fixtures or manually simulated changes. Actual service probes will be integrated later."}</p></div><Chip value={operational}/></div>
   <Tabs ariaLabel="System health sections" value={tab} onChange={setTab} tabs={[{key:"health",label:"Service Health"},{key:"settings",label:"Platform Configuration"},{key:"incidents",label:"Incident & Performance Overview"},{key:"audit",label:"System Audit Log"}]}/>
   {tab==="health"&&<div className="dn-p4-system-grid">
    <Card title="Service Component Status" desc="Editable demo statuses and fixed reference metrics" className="dn-p4-system-list">
@@ -61,11 +61,11 @@ export function SystemScreen({navigate,toast}:{navigate:(s:string)=>void;toast:(
     <div className="dn-p4-service-list">{components.map(c=><button className={"dn-p4-service "+(selected?.id===c.id?"active":"")} key={c.id} onClick={()=>setSelectedId(c.id)}><span className="dn-p4-event-icon">{getIcon(c.group)}</span><span><b>{c.name}</b><small>{c.group} · sample latency {c.latencyMs}ms</small></span><Chip value={c.status}/></button>)}{!components.length&&<Empty label="No services match the current filters"/>}</div>
    </Card>
    <div className="dn-p4-system-center">
-    <Card title="Service Performance" desc="Reference-only telemetry illustrations"><div className="dn-p4-performance-pair"><div><b>{Math.round(metrics.reduce((n,x)=>n+x,0)/metrics.length)} ms</b><small>Average seeded latency</small></div><div><b>{(state.components.reduce((n,x)=>n+x.uptime,0)/state.components.length).toFixed(2)}%</b><small>Average illustrated uptime</small></div></div><TimeSeries values={metrics.concat(metrics.slice(0,3))} labels={["T1","","T3","","T5","","T7","","T9","","","T13"]} fill/><p className="dn-helper">No real event streams, probes or latency samples have been collected.</p></Card>
+    <Card title="Service Performance" desc="Reference-only telemetry illustrations"><div className="dn-p4-performance-pair"><div><b>{metrics.length?Math.round(metrics.reduce((n,x)=>n+x,0)/metrics.length)+" ms":"No samples"}</b><small>Average seeded latency</small></div><div><b>{mode==="live"?"Not measured":state.components.length?(state.components.reduce((n,x)=>n+x.uptime,0)/state.components.length).toFixed(2)+"%":"—"}</b><small>{mode==="live"?"Uptime requires monitoring history":"Average illustrated uptime"}</small></div></div><TimeSeries values={metrics.concat(metrics.slice(0,3))} labels={["T1","","T3","","T5","","T7","","T9","","","T13"]} fill/><p className="dn-helper">{mode==="live"?"Live dependency readiness; provider SLO statistics are not inferred.":"No real event streams, probes or latency samples have been collected."}</p></Card>
     <Card title="Platform Dependencies" desc="Design-stage connectivity summary"><div className="dn-p4-dependencies">{["API Gateway","Redis / Job Queue","PostgreSQL / PostGIS","M-PESA & Card Providers"].map((x,i)=><div key={x}><span>{i<2?<Server size={16}/>:<Database size={16}/>}</span><div><b>{x}</b><small>Mock availability reference</small></div><Chip value={i===3?"DEGRADED":"PREVIEW"}/></div>)}</div></Card>
    </div>
    <Card title="Selected Service Inspector" desc="No remote restart or service action is executed" className="dn-p4-system-detail">
-    {selected?<><div className="dn-p4-inspection"><span className="dn-p4-event-icon">{getIcon(selected.group)}</span><div><h2>{selected.name}</h2><p>{selected.group}</p></div></div><DetailLine label="Component ID">{selected.id}</DetailLine><DetailLine label="Status"><Chip value={selected.status}/></DetailLine><DetailLine label="Sample latency">{selected.latencyMs} ms</DetailLine><DetailLine label="Illustrative uptime">{selected.uptime}%</DetailLine><DetailLine label="Monitoring mode">Simulation</DetailLine><div className="dn-p4-warning"><AlertTriangle size={15}/>{selected.detail}</div><button className="dn-btn primary full" disabled={!canManage} onClick={editStatus}>Update Demo Health Status</button></>:<Empty label="Choose a service"/>}
+    {selected?<><div className="dn-p4-inspection"><span className="dn-p4-event-icon">{getIcon(selected.group)}</span><div><h2>{selected.name}</h2><p>{selected.group}</p></div></div><DetailLine label="Component ID">{selected.id}</DetailLine><DetailLine label="Status"><Chip value={selected.status}/></DetailLine><DetailLine label="Sample latency">{selected.latencyMs} ms</DetailLine><DetailLine label="Uptime">{mode==="live"?"Not established":selected.uptime+"%"}</DetailLine><DetailLine label="Monitoring mode">{mode==="live"?"Backend probe":"Simulation"}</DetailLine><div className="dn-p4-warning"><AlertTriangle size={15}/>{selected.detail}</div><button className="dn-btn primary full" disabled={!canManage||mode==="live"} title={mode==="live"?"Measured status cannot be overridden":undefined} onClick={editStatus}>{mode==="live"?"Measured Health — Read Only":"Update Demo Health Status"}</button></>:<Empty label="Choose a service"/>}
    </Card>
   </div>}
   {tab==="settings"&&<div className="dn-p4-settings-grid">
