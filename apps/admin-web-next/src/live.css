@@ -1,0 +1,18 @@
+/* Real backend identity, resource and failure states — preserve accepted 16-screen visual language */
+.dn-live-auth{min-height:100vh;background:#eff4f1;display:grid;place-items:center;padding:25px;color:#20364a}
+.dn-live-login{width:min(460px,calc(100vw - 40px));padding:36px;background:white;border-radius:15px;box-shadow:0 15px 55px #15382a18;display:grid;gap:16px}
+.dn-live-login .dn-logo{margin:0 0 12px;padding:10px 0;background:transparent;color:#014e36}
+.dn-live-login h1{font-size:25px;margin:0;color:#153d32}
+.dn-live-login p,.dn-live-login small{font-size:12px;color:#647984;line-height:1.6;margin:0}
+.dn-live-login .dn-field{width:100%}
+.dn-live-login .dn-field input{width:100%}
+.dn-live-login .dn-login-error{color:#ad303e;background:#fef1f3;border-radius:8px;padding:10px}
+.dn-live-banner{display:flex;align-items:center;gap:11px;margin-bottom:14px;background:#edf8f1;border:1px solid #c5e8d3;border-radius:9px;padding:11px 14px;color:#12724c}
+.dn-live-banner>div{display:flex;flex-direction:column;flex:1;gap:3px}
+.dn-live-banner strong{font-size:11px}
+.dn-live-banner span{font-size:10px;color:#527b68}
+.dn-live-resources{display:flex;gap:12px;align-items:center;background:#fff8eb;border:1px solid #f2e0bb;border-radius:8px;padding:12px;margin-bottom:11px;color:#a06922}
+.dn-live-resources>div,.dn-live-resources>span{flex:1;min-width:0;font-size:11px}
+.dn-live-resources p{font-size:10px;color:#866b45;line-height:1.6;margin:5px 0}
+.dn-live-resources .dn-btn{white-space:nowrap}
+@media(max-width:740px){.dn-live-banner,.dn-live-resources{flex-wrap:wrap}.dn-live-banner .dn-btn,.dn-live-resources .dn-btn{margin-left:auto}}
