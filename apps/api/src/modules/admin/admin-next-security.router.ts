@@ -13,7 +13,8 @@ import {governanceService} from './governance.service';
 import {externalNotificationProvider} from '../operations/external-notification.provider';
 
 export const adminNextSecurityRouter=Router();
-adminNextSecurityRouter.use(requireAuth,requireRole(UserRole.SUPER_ADMIN));
+// Do not gate unrelated /admin/* routes; this router shares the parent mount.
+adminNextSecurityRouter.use('/security',requireAuth,requireRole(UserRole.SUPER_ADMIN));
 export const adminNextActivationRouter=Router();
 const run=(fn:(req:AuthenticatedRequest,res:Response)=>Promise<void>)=>(req:AuthenticatedRequest,res:Response,next:NextFunction)=>{void fn(req,res).catch(next);};
 const runPublic=(fn:(req:Request,res:Response)=>Promise<void>)=>(req:Request,res:Response,next:NextFunction)=>{void fn(req,res).catch(next);};
