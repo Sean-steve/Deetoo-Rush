@@ -62,3 +62,23 @@ Four complete frontend-only workspaces extend the same persisted `DemoState`, no
 Roles: simulated Operations may configure coverage and reconcile demo transactions, while simulated Super Admin approves refunds, payout batches and commercial-policy changes. Real authentication and server authorization await the backend stage.
 
 **Review gate:** 1536×1024 visual screenshots (09–12) plus cross-screen browser tests. Screenshot comparison against the approved originals remains a separate sign-off requirement. Run `pnpm dev:admin-next` and `pnpm test:admin-next-visual`.
+
+## Phase 4 — Final Admin frontend screens 13–16
+
+All **16 approved screens** now live in one independent `admin-web-next` app. Phase 4 extends the persisted demo store to **version 4**; existing Phase 1–3 browser data remains intact.
+
+- `#/analytics` — operational metrics and charts calculated from current demo orders, customer/merchant records, support, incidents and finance; county and sample-date filters; CSV export; saved report filters. Scheduled reports are preferences only, **no scheduler**.
+- `#/notifications` — internal notification center, unread state and navigation, composition of campaign drafts, reusable templates, simulated Super Admin send authorization and audience previews. **No real messages** are delivered.
+- `#/security` — admin directory, invited accounts, role matrix, simulated account restrictions, MFA indicators and session revocation, protected last active Super Admin, auditable changes. **No live identity provider, MFA challenge, or session tokens**.
+- `#/system` — component status (all fixture telemetry), incident linking, simulated platform settings with reasoned changes and audit history. Service checks are illustrative and no backend settings change.
+
+**Configuration is a tab within Screen 16**; it is not a seventeenth screen. The new phase uses `phase4Data.ts` and the same shared browser store as the earlier screens. The top-bar simulated role selector adds Finance and Viewer roles to help review UI restrictions; role authorization remains frontend-only and is not production security.
+
+### Visual and workflow acceptance
+- `pnpm dev:admin-next` — preview on port 5178.
+- `pnpm build:admin-next` — standalone build.
+- `pnpm test:admin-next-visual` — browser acceptance and screenshots for **all 16 screens** at 1536×1024.
+- Screenshots: `visual-output/admin-next/01-*.png` to `16-*.png`.
+- Pixel-parity versus original approved mockups requires separate side-by-side design review. Phase 4 completion is **not backend approval**.
+
+Do not merge stacked design PRs or connect real DeeToo services before the user's design acceptance. Backend mapping must inventory supported/unsupported UI capabilities, then build missing backend APIs without removing visual components.
