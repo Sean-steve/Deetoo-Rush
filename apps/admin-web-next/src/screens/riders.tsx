@@ -59,7 +59,7 @@ export function RidersScreen({county,navigate,globalSearch,toast}:{county:string
       <div className="dn-map-rider-legend"><span>🟢 Available ({available.length})</span><span>🔵 On Delivery ({delivery.length})</span><span>⚪ Offline ({offline.length})</span><span>🔴 Suspended ({suspended.length})</span></div>
     </Card>
     <div className="dn-rider-small-panels">
-     <Card title="Rider Performance" desc="{mode==="live"?"Loaded records; no historic ride buckets are synthesized":"Illustrative demo delivery activity"}"><Bars color="#0dbd71" values={[12,22,15,26,18,30,25,22,34,30,27,22,31,34]} labels={["1","","","","7","","","","14","","","","21","28"]}/></Card>
+     <Card title="Rider Performance" desc={mode==="live"?"Live rider records; historical series unavailable":"Illustrative demo delivery activity"}><Bars color="#0dbd71" values={[12,22,15,26,18,30,25,22,34,30,27,22,31,34]} labels={["1","","","","7","","","","14","","","","21","28"]}/></Card>
      <Card title="Fleet & Vehicles"><Ring number={all.length} label="Vehicles" parts={[{name:"Motorbike",value:all.filter(r=>r.vehicle==="Motorbike").length,color:"#00a960"},{name:"Bicycle",value:all.filter(r=>r.vehicle==="Bicycle").length,color:"#f79620"}]}/></Card>
     </div>
    </div>
