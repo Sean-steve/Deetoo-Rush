@@ -146,7 +146,7 @@ jobs:
         with:
           languages: javascript-typescript
       - uses: github/codeql-action/analyze@v3
-      - name: Enforce high-severity CodeQL SARIF gate
+      - name: Inventory full-repository CodeQL findings (new-issue check evaluated separately)
         run: node scripts/codeql-sarif-high-gate.mjs
 
   browser-acceptance:
