@@ -72,7 +72,7 @@ function payout(x:unknown,kind:"MERCHANT"|"RIDER"):PayoutBatch {
  return {id:str(p.id),kind,status:(s==="PAID"?"PAID":s==="APPROVED"?"APPROVED":s==="PROCESSING"?"PROCESSING":s==="FAILED"?"FAILED":s==="CANCELLED"?"REJECTED":"DRAFT"),period:str(p.period_start||p.settlement_period||p.period,"Recorded period"),createdAt:when(p.created_at),approvedAt:str(p.approved_at)||undefined,paidAt:str(p.paid_at)||undefined,reference:str(p.provider_reference)||undefined,reason:str(p.failure_reason)||undefined,totalAmount:minor(kind==="RIDER"?p.amount_minor:p.net_settlement_amount_minor),payeeCount:1,itemCount:arr(p.lines||p.items).length,items:arr(p.lines||p.items).map(x=>({orderId:str(x.order_id),payeeId:str(kind==="RIDER"?x.rider_id:x.merchant_id),payeeName:str(x.payee_name,"Partner"),amount:minor(x.amount_minor)}))};
 }
 function account(x:unknown):AdminAccount{const a=obj(x),roles=arr(a.roles).map(x=>str(x.code));const rawRoles=Array.isArray(a.roles)?a.roles.map(x=>typeof x==="string"?x:str(obj(x).code)):[];
- const role=rawRoles.includes("super_admin")?"SUPER_ADMIN":rawRoles.includes("finance")?"FINANCE":rawRoles.includes("support")?"SUPPORT":rawRoles.includes("ops")?"OPERATIONS":"VIEWER";
+ const role=rawRoles.includes("super_admin")?"SUPER_ADMIN":rawRoles.includes("finance")?"FINANCE":rawRoles.includes("support")?"SUPPORT":rawRoles.includes("admin")?"ADMIN":rawRoles.includes("ops")?"OPERATIONS":"VIEWER";
  const raw=status(a.status);return {id:str(a.id),name:name(a,str(a.email,"Admin")),email:str(a.email),role,status:raw==="ACTIVE"?"ACTIVE":raw==="PENDING"?"INVITED":"SUSPENDED",mfaEnabled:bool(a.mfa_enabled||a.mfa_verified),lastSeen:when(a.last_login_at||a.last_login),createdAt:when(a.created_at)};}
 export function emptyLiveData():DemoState{
  const base=seedDemo();
@@ -194,11 +194,11 @@ export async function performLiveAction(a:LiveAction,data:DemoState,identity:Jso
  case "PHASE4_CAMPAIGN_SEND":{await apiMutation("/admin/communications/campaigns/"+id()+"/send","POST",{idempotency_key:crypto.randomUUID()});return "Consented campaign queued. Delivery is pending provider confirmation.";}
  case "PHASE4_CAMPAIGN_CANCEL":await apiMutation("/admin/communications/campaigns/"+id()+"/cancel","POST",{reason});return "Campaign cancelled.";
  case "PHASE4_TEMPLATE_SAVE":{const body={name:a.name,title:a.title,body:a.body,channel:a.channel};if(a.id)await apiMutation("/admin/communications/templates/"+id(),"PATCH",{...body,reason:"Template edited by admin"});else await apiMutation("/admin/communications/templates","POST",body);return "Template saved.";}
- case "PHASE4_ADMIN_INVITE":{const roles:Record<string,string>={OPERATIONS:"ops",SUPPORT:"support",FINANCE:"finance",SUPER_ADMIN:"admin",VIEWER:"support"};
+ case "PHASE4_ADMIN_INVITE":{const roles:Record<string,string>={OPERATIONS:"ops",SUPPORT:"support",FINANCE:"finance",ADMIN:"admin"};
     await apiMutation("/admin/security/invitations","POST",{name:a.name,email:a.email,staff_role:roles[str(a.role)]||"support",reason});
     return "Staff invitation recorded. Delivery acceptance depends on verified email provider; invitee remains PENDING until activation.";
    }
-   case "PHASE4_ADMIN_ROLE":{const roles:Record<string,string>={SUPER_ADMIN:"super_admin",OPERATIONS:"ops",SUPPORT:"support",FINANCE:"finance"};const role=roles[str(a.role)];if(!role)unsupported(type);await apiMutation("/admin/users/"+id()+"/roles","POST",{roles:[role],reason});return "Role assignment reviewed.";}
+   case "PHASE4_ADMIN_ROLE":{const roles:Record<string,string>={SUPER_ADMIN:"super_admin",OPERATIONS:"ops",SUPPORT:"support",FINANCE:"finance",ADMIN:"admin"};const role=roles[str(a.role)];if(!role)unsupported(type);await apiMutation("/admin/users/"+id()+"/roles","POST",{roles:[role],reason});return "Role assignment reviewed.";}
  case "PHASE4_ADMIN_STATUS":await apiMutation("/admin/users/"+id()+"/"+(a.status==="ACTIVE"?"reactivate":"suspend"),"POST",{reason});return "Admin account status changed.";
  case "PHASE4_SESSION_REVOKE":await apiMutation("/admin/security/sessions/"+id()+"/revoke","POST",{reason});return "Session revoked.";
  case "PHASE4_ADMIN_MFA":{if(a.enabled===true)throw new LiveApiError("MFA can only be enrolled by the account owner through /auth/mfa/enroll.",409,"MFA_OWNER_ENROLLMENT_REQUIRED");
