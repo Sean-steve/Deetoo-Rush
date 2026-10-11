@@ -763,3 +763,57 @@ test('completed Customer order never exposes assigned Rider live location or del
   assert.equal(body.data.rider,null);
   assert.ok(!body.data.deliveryOtp);
 });
+
+
+test('Phase 3 Rider history never reveals other riders or active delivery customer details',async()=>{
+  const own=await request('rider', '/rider/deliveries/history');
+  assert.equal(own.status,200);
+  const list=JSON.stringify(await own.json());
+  assert.equal(list.includes(otherDelivery.id),false);
+  assert.equal(list.includes(ownDelivery.dropoff_address_text),false);
+  const foreign=await request('rider','/rider/deliveries/history/'+otherDelivery.id);
+  assert.equal(foreign.status,404);
+  const unfinished=await request('rider','/rider/deliveries/history/'+ownDelivery.id);
+  assert.equal(unfinished.status,404);
+});
+test('Phase 3 Rider safety intake enforces assigned delivery and incident ownership',async()=>{
+  const data={
+    type:'UNSAFE_LOCATION',summary:'Suspicious activity near delivery site',
+    details:'A threatening situation occurred near the assigned drop off location.',
+    location_text:'Westlands Nairobi',delivery_id:ownDelivery.id,
+  };
+  const denied=await request('rider2','/rider/incidents','POST',data);
+  assert.equal(denied.status,403);
+  const customer=await request('customer','/rider/incidents','POST',data);
+  assert.equal(customer.status,403);
+  const accepted=await request('rider','/rider/incidents','POST',data);
+  assert.equal(accepted.status,201);
+  const payload=await accepted.json(),incidentId=payload.data?.id;
+  assert.ok(incidentId);
+  const own=await request('rider','/rider/incidents/'+incidentId);
+  assert.equal(own.status,200);
+  const foreign=await request('rider2','/rider/incidents/'+incidentId);
+  assert.equal(foreign.status,404);
+  const list=await request('rider2','/rider/incidents');
+  assert.equal(list.status,200);
+  assert.equal(JSON.stringify(await list.json()).includes(incidentId),false);
+});
+test('Phase 3 Rider support case rejects a foreign order before creating a cross-party case',async()=>{
+  const input={
+    subject:'Other rider payment issue',description:'Please check the delivery payment for this case.',
+    category:'ORDER_ISSUE',order_id:otherOrder.id,
+  };
+  const result=await request('rider','/support/cases','POST',input);
+  assert.equal(result.status,403);
+  const valid=await request('rider','/support/cases','POST',{...input,order_id:ownOrder.id});
+  assert.equal(valid.status,201);
+});
+test('Phase 3 finance, identity review and safety interfaces stay role protected',async()=>{
+  const pathsToDeny=['/rider/verification/checklist','/rider/payout-requests','/rider/incidents','/rider/deliveries/history'];
+  for(const path of pathsToDeny){
+    assert.equal((await request(null,path)).status,401,path);
+    assert.equal((await request('customer',path)).status,403,path);
+    assert.equal((await request('admin',path)).status,403,path);
+  }
+  assert.equal((await request('rider','/finance/rider-withdrawal-requests')).status,403);
+});
