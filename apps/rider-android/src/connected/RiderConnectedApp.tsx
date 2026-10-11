@@ -419,7 +419,7 @@ export function RiderConnectedApp() {
               <View style={{width:'85%',backgroundColor:C.green,borderRadius:6,height:Math.max(5,135*num(x.total_minor)/max)}}/><Text style={[S.meta,{fontSize:9}]}>{String(x.date).slice(5)}</Text></View>;})}
           </View>}
       </Panel>
-      <Panel title="Wallet & payouts"><Row title="Wallet available" value={toKes(wallet?.available_earnings_minor)}/><Row title="Cash owed" value={toKes(wallet?.cash_outstanding_minor)}/>
+      <Panel title="Wallet & payouts"><Row title="Wallet available" value={toKes(wallet?.available_earnings_minor)}/><Row title="Cash owed" value={toKes(wallet?.cash_owed_minor)}/>
         <Button label="View wallet" onPress={()=>go(17)}/><View style={{height:8}}/><Button outline label="Payout requests" onPress={()=>go(18)}/></Panel>
     </Page>;break;
     case 17:body=<Page title="Rider Wallet & Cash Management" subtitle="Screen 17 • Ledger-owned funds and cash obligations">
@@ -427,7 +427,7 @@ export function RiderConnectedApp() {
         <Metric title="Available to withdraw" value={toKes(wallet?.available_earnings_minor)}/>
         <Metric title="Pending earnings" value={toKes(wallet?.pending_earnings_minor)} tone="blue"/>
         <Metric title="Cash collected" value={toKes(wallet?.cash_collected_minor)} tone="orange"/>
-        <Metric title="Cash outstanding" value={toKes(wallet?.cash_outstanding_minor)} tone="orange"/>
+        <Metric title="Cash outstanding" value={toKes(wallet?.cash_owed_minor)} tone="orange"/>
       </View>
       <Panel title="Reconciliation">
         <Row title="Ledger reconciled" value={wallet?.ledger_reconciled?'Yes':'Needs review'}/>
