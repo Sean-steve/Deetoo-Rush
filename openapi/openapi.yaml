@@ -7993,7 +7993,7 @@ paths:
     post:
       summary: 'DeeToo Admin Next Phase 2 POST /auth/invitations/activate'
       tags: [Auth]
-      security: [{ bearerAuth: [] }]
+      security: []
       responses:
         '200': {description: 'Success'}
         '400': {description: 'Invalid request'}
