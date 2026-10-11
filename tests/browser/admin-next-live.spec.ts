@@ -1,5 +1,5 @@
 import {test,expect} from "@playwright/test";
-const titles:[
+const titles=[
  ["command","Operations Command Center"],["dispatch","Live Dispatch"],["orders","Orders & Deliveries"],["riders","Riders & Fleet"],["incidents","Incident Management"],
  ["support","Support & Conversations"],["merchants","Merchant Management"],["customers","Customer Management"],["geography","Geography & Service Coverage"],
  ["payments","Payments & Refunds"],["settlements","Settlements & Payouts"],["financial","Financial Control Center"],["analytics","Analytics & Reports"],
