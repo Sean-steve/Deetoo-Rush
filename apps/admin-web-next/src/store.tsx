@@ -3,7 +3,7 @@ import {seedPhaseThree} from "./phase3Data";
 import {seedPhaseTwo} from "./phase2Data";
 import React,{createContext,useContext,useEffect,useReducer,useState,useCallback} from "react";
 import {AdminRole,DemoAction,DemoState,reducer,seedDemo} from "./data";
-import {emptyLiveData,loadLive,liveIdentityRole,LiveApiError,performLiveAction,signIn,signOut} from "./live-api";
+import {emptyLiveData,loadLive,liveIdentityRole,LiveApiError,performLiveAction,signIn,signOut,apiMutation} from "./live-api";
 import type {ResourceName,ResourceState,Json} from "./live-api";
 const KEY="deetoo.admin-next.phase1.v1";
 export const ADMIN_NEXT_MODE: "demo"|"live"=import.meta.env.VITE_ADMIN_NEXT_MODE==="demo"?"demo":"live";
@@ -18,7 +18,7 @@ type Store={
  data:DemoState;act:(a:DemoAction)=>void;role:AdminRole;setRole:(r:AdminRole)=>void;reset:()=>void;
  mode:"demo"|"live";phase:"loading"|"ready"|"auth"|"error";identity:Json|null;
  resources:Partial<Record<ResourceName,ResourceState>>;notice:string;clearNotice:()=>void;refresh:()=>Promise<void>;
- login:(identifier:string,password:string)=>Promise<void>;logout:()=>Promise<void>;
+ login:(identifier:string,password:string)=>Promise<void>;logout:()=>Promise<void>;verifyMfa:(code:string)=>Promise<void>;
 };
 const Context=createContext<Store|null>(null);
 export function DemoProvider({children}:{children:React.ReactNode}){
@@ -28,7 +28,7 @@ function DemoStore({children}:{children:React.ReactNode}){
  const [data,dispatch]=useReducer(reducer,undefined,load);
  const [role,setRole]=useState<AdminRole>("SUPER_ADMIN");
  useEffect(()=>{localStorage.setItem(KEY,JSON.stringify(data));},[data]);
- const value:Store={mode:"demo",phase:"ready",identity:null,resources:{},notice:"",clearNotice:()=>{},refresh:async()=>{},login:async()=>{},logout:async()=>{},data,act:dispatch,role,setRole,reset:()=>dispatch({type:"RESET"})};
+ const value:Store={mode:"demo",phase:"ready",identity:null,resources:{},notice:"",clearNotice:()=>{},refresh:async()=>{},login:async()=>{},logout:async()=>{},verifyMfa:async()=>{},data,act:dispatch,role,setRole,reset:()=>dispatch({type:"RESET"})};
  return <Context.Provider value={value}>{children}</Context.Provider>;
 }
 function LiveStore({children}:{children:React.ReactNode}){
@@ -63,7 +63,8 @@ function LiveStore({children}:{children:React.ReactNode}){
  };
  const logout=async()=>{try{await signOut();}catch{}setData(emptyLiveData());setIdentity(null);setRoleNoop();setPhase("auth");setNotice("Signed out of DeeToo.");};
  const setRoleNoop=()=>setLiveRole("VIEWER");
- const value:Store={data,act,role,setRole:()=>setNotice("Your role is assigned by the DeeToo identity service; it cannot be simulated in live mode."),reset:()=>setNotice("Reset is disabled in live mode; no server data was changed."),mode:"live",phase,identity,resources,notice,clearNotice:()=>setNotice(""),refresh,login,logout};
+ const verifyMfa=async(code:string)=>{await apiMutation("/auth/mfa/verify","POST",{code});setNotice("MFA verified by DeeToo for your active session.");};
+ const value:Store={data,act,role,verifyMfa,setRole:()=>setNotice("Your role is assigned by the DeeToo identity service; it cannot be simulated in live mode."),reset:()=>setNotice("Reset is disabled in live mode; no server data was changed."),mode:"live",phase,identity,resources,notice,clearNotice:()=>setNotice(""),refresh,login,logout};
  return <Context.Provider value={value}>{children}</Context.Provider>;
 }
 export function useDemo(){const context=useContext(Context);if(!context)throw new Error("Admin data provider is missing");return context;}
