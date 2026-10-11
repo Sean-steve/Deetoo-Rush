@@ -7,7 +7,7 @@ import {apiMutation,apiGet} from "../live-api";
 import {Bars,Card,Chip,DetailLine,Empty,IconStat,Initials,Modal,Ring,SearchBox,SelectBox,Tabs} from "../ui";
 const counties=["Nairobi","Kiambu","Mombasa","Nakuru","Kisumu","Machakos"];
 export function CustomersScreen({navigate,county,globalSearch,toast}:{navigate:(s:string)=>void;county:string;globalSearch:string;toast:(s:string)=>void}){
- const {data,act,role,mode,refresh}=useDemo(),all=data.phase2.customers,canManage=canAct(role,"customer"),canDelete=canAct(role,"delete");
+ const {data,act,role,mode,refresh}=useDemo(),all=data.phase2.customers,canManage=canAct(role,"customer")&&(mode!=="live"||role==="SUPER_ADMIN"),canDelete=canAct(role,"delete")&&(mode!=="live"||role==="SUPER_ADMIN");
  const [tab,setTab]=useState("all"),[search,setSearch]=useState(""),[status,setStatus]=useState("all"),[localCounty,setLocalCounty]=useState("all"),[selectedId,setSelectedId]=useState<string|null>(null),[detail,setDetail]=useState("overview"),[page,setPage]=useState(1);
  const [modal,setModal]=useState<"add"|"edit"|"status"|"note"|"address"|"import"|null>(null),[nextStatus,setNextStatus]=useState<CustomerRecord["status"]>("ACTIVE"),[reason,setReason]=useState(""),[form,setForm]=useState({name:"",phone:"",email:"",county:"Nairobi"}),[address,setAddress]=useState({label:"Home",area:"",county:"Nairobi"}),[csvText,setCsvText]=useState(""),[importError,setImportError]=useState("");
  const [importMessage,setImportMessage]=useState(""),[recipient,setRecipient]=useState(""),[phone,setPhone]=useState(""),[latitude,setLatitude]=useState(""),[longitude,setLongitude]=useState(""),[addressReason,setAddressReason]=useState(""),[busy,setBusy]=useState(false);
