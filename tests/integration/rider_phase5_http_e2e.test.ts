@@ -20,7 +20,10 @@ async function request(role: string, path: string, method = 'GET', body?: unknow
     headers: { authorization: 'Bearer '+tokens[role], 'content-type':'application/json' },
     ...(method !== 'GET' ? {body:JSON.stringify(body??{})} : {}),
   });
-  return { status: response.status, body: await response.json() as any };
+  const raw=await response.text();
+  let decoded: any;
+  try { decoded=JSON.parse(raw); } catch { decoded={message:raw.slice(0,200)}; }
+  return { status: response.status, body: decoded };
 }
 async function must(role:string,path:string,status:number,method='GET',body?:unknown) {
   const response = await request(role,path,method,body);
@@ -90,10 +93,18 @@ test('Phase 5: all Rider-only Phase 3 routes reject another role before reading 
 });
 
 test('Phase 5: Rider cannot forge Admin incident, resolve cases or Finance withdrawals',async()=>{
-  for (const path of ['/admin/operations/incidents','/finance/payouts','/finance/rider-withdrawal-requests']) {
+  for (const path of ['/admin/operations/incidents','/finance/rider-withdrawal-requests']) {
     const r=await request('rider',path);
-    assert.ok([403,404].includes(r.status),'Rider should have no Admin/Finance access: '+path+' '+r.status);
+    assert.ok([403,404].includes(r.status),'Rider should have no Admin/Finance write access: '+path+' '+r.status);
   }
+  // /finance/payouts GET is intentionally available to Riders with their
+  // own rider_id scope; never confuse scoped history with Finance approval.
+  const own=await request('rider','/finance/payouts');
+  assert.equal(own.status,200,'Rider may read their own redacted payout history');
+  const foreign=await request('rider','/finance/payouts?rider_id='+randomUUID());
+  assert.equal(foreign.status,403,'Rider must not access another payout owner');
+  const approve=await request('rider','/finance/payouts/'+randomUUID()+'/approve','POST',{});
+  assert.equal(approve.status,403,'Rider cannot authorize payout approval');
   const r=await request('rider','/operations/incidents');
   assert.ok([403,404].includes(r.status),'No staff incident investigation reads');
 });
