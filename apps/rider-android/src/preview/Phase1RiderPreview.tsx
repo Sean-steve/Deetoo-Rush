@@ -215,7 +215,7 @@ export function Phase1RiderPreview() {
     const docRows: RiderDocument[] = ['idFront', 'idBack', 'selfie', 'licence'];
     return <PrototypeShell currentScreen={screen} title="Document Verification" subtitle="Add the documents needed to review your eligibility." onBack={() => goto('registration')}>
       <HeroRider title="Get verified" sub="Your identity and transport documents keep the platform safe." />
-      <Panel><OnboardingTracker step={1} /></Panel>
+      <Panel><OnboardingTracker step={2} /></Panel>
       <Panel title="Required documents">
         <Text style={[S.sub, { marginBottom: 10 }]}>Add simulated uploads below. No real ID or images are stored or sent.</Text>
         {docRows.map((kind, index) => {
@@ -242,7 +242,7 @@ export function Phase1RiderPreview() {
     const options: RiderVehicleType[] = ['Motorcycle', 'Bicycle', 'Car / Van'];
     return <PrototypeShell currentScreen={screen} title="Vehicle & Equipment" subtitle="Tell us how you plan to deliver." onBack={() => goto('documents')}>
       <HeroRider title="Ready for the road?" sub="Add your vehicle and the equipment you will use." />
-      <Panel><OnboardingTracker step={2} /></Panel>
+      <Panel><OnboardingTracker step={3} /></Panel>
       <Panel title="1. Vehicle type">
         <View style={{ gap: 9 }}>
           {options.map((type) => <Pressable key={type} accessibilityRole="radio" accessibilityState={{ checked: vehicle.type === type }} onPress={() => { updateVehicle({ type }); setFeedback(''); }} style={[S.split, { padding: 13, borderWidth: 1.5, borderRadius: 14, borderColor: vehicle.type === type ? C.green : C.border, backgroundColor: vehicle.type === type ? '#EBFBF2' : '#fff' }]}>
@@ -287,7 +287,7 @@ export function Phase1RiderPreview() {
       'The application has entered the demonstration review queue.';
     return <PrototypeShell currentScreen={screen} title="Onboarding Status" subtitle="Track every step of your rider application." onBack={() => goto('vehicle')}>
       <HeroRider title="Almost there!" sub="Track your verification progress and the next action." />
-      <Panel><OnboardingTracker step={3} /></Panel>
+      <Panel><OnboardingTracker step={4} /></Panel>
       <Notice title={statusLabel[application]} body={help} tone={application === 'changes_requested' ? 'red' : application === 'approved' ? 'green' : 'orange'} />
       <Panel title="Step status">
         {steps.map((step, i) => <View key={step.name} style={{ flexDirection: 'row', gap: 10, alignItems: 'center', paddingVertical: 11, borderBottomWidth: i < 3 ? 1 : 0, borderColor: C.border }}>
