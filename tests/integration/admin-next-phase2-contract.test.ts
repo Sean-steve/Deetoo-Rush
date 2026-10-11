@@ -44,6 +44,8 @@ test('Admin Next Phase 2: anonymous access is denied for every new endpoint, inc
    ...routes(adminNextConsentRouter).map(r=>({...r,prefix:'/auth'})),
    ...routes(adminFinanceReviewRouter).map(r=>({...r,prefix:'/finance/ops'}))
   ];
+  const inviteResponse=await fetch(host+'/auth/invitations/activate',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});
+  assert.equal(inviteResponse.status,409,'Public token activation must reach the durable invitation handler without Bearer auth; fixture storage is unsupported');
   for(const r of definitions){
    const path=(r.prefix+r.path).replace(/:(?:type)/g,'INCIDENT').replace(/:(?:key)/g,'auto_dispatch_paused').replace(/:(?:code)/g,'047').replace(/:[A-Za-z]+/g,id);
    const response=await fetch(host+path,{method:r.method,headers:{'Content-Type':'application/json'},...(r.method==='GET'?{}:{body:'{}'})});
