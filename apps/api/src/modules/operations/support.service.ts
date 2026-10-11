@@ -28,7 +28,6 @@ import { mediaService } from "../media/media.service";
 import { merchantRepository } from "../merchant/merchant.repository";
 import { riderRepository } from "../rider/rider.repository";
 import { deliveryRepository } from "../order/delivery.repository";
-import { paymentRepository } from "../payment/payment.repository";
 
 export interface SupportViewer {
   id: string;
