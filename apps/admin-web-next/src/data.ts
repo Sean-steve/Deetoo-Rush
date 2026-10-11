@@ -6,7 +6,7 @@ import {seedPhaseTwo, reducePhaseTwo} from "./phase2Data";
 import type {PhaseTwoState, PhaseTwoAction} from "./phase2Data";
 export type OrderStatus = "PREPARING" | "RIDER_ASSIGNED" | "PICKED_UP" | "IN_TRANSIT" | "DELIVERED" | "DELAYED" | "CANCELLED";
 export type RiderStatus = "AVAILABLE" | "ON_DELIVERY" | "OFFLINE" | "SUSPENDED";
-export type AdminRole = "SUPER_ADMIN" | "OPERATIONS" | "SUPPORT" | "FINANCE" | "VIEWER";
+export type AdminRole = "SUPER_ADMIN" | "ADMIN" | "OPERATIONS" | "SUPPORT" | "FINANCE" | "VIEWER";
 export type Area = { name: string; county: string; lat: number; lng: number };
 export type HistoryEntry = { at: string; event: string; by: string; detail: string };
 export type Order = {
