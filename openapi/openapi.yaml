@@ -115,7 +115,7 @@ paths:
       responses:
         '201':
           description: Authenticated and scope-checked action or read model
-  /finance/rider-withdrawal-requests/:
+  /finance/rider-withdrawal-requests:
     get:
       operationId: get_finance_rider_withdrawal_requests_
       summary: Finance Phase 3 reviewed backend capability
