@@ -5,19 +5,19 @@ import {amount,eligiblePayoutItems,financeEntries,payoutTotal} from "../phase3Da
 import {useDemo,canAct} from "../store";
 import {Bars,Card,Chip,DetailLine,Empty,IconStat,Modal,Ring,SearchBox,SelectBox,Tabs,TimeSeries} from "../ui";
 export function FinancialScreen({navigate,toast}:{navigate:(screen:string)=>void;toast:(s:string)=>void}){
- const {data,act,role}=useDemo(),state=data.phase3,canControl=canAct(role,"finance");
+ const {data,act,role,mode}=useDemo(),state=data.phase3,canControl=canAct(role,"finance")&&mode==="demo";
  const [tab,setTab]=useState("ledger"),[search,setSearch]=useState(""),[entryType,setEntryType]=useState("all"),[period,setPeriod]=useState("all"),[selectedId,setSelectedId]=useState<string|null>(null),[modal,setModal]=useState(false),[reason,setReason]=useState("");
  const [commission,setCommission]=useState(String(state.control.commissionRate)),[riderShare,setRiderShare]=useState(String(state.control.riderDeliveryShare)),[reserve,setReserve]=useState(String(state.control.reservePercent));
- const entries=financeEntries(state,data.orders);
+ const entries=mode==="live"?(data.live?.ledger||[]):financeEntries(state,data.orders);
  const filtered=entries.filter(e=>(entryType==="all"||e.type===entryType)&&(e.id+" "+e.reference+" "+e.description+" "+(e.orderId||"")).toLowerCase().includes(search.toLowerCase())&&(period==="all"||e.date.startsWith(period)));
  const selected=entries.find(e=>e.id===selectedId)||filtered[0];
- const collected=entries.filter(e=>e.type==="Collection").reduce((n,e)=>n+e.credit,0);
+ const collected=mode==="live"?(data.live?.payments||[]).reduce((n,e)=>n+e.captured,0):entries.filter(e=>e.type==="Collection").reduce((n,e)=>n+e.credit,0);
  const out=entries.reduce((n,e)=>n+e.debit,0);
- const refunded=entries.filter(e=>e.type==="Refund").reduce((n,e)=>n+e.debit,0);
+ const refunded=mode==="live"?(data.live?.payments||[]).reduce((n,e)=>n+e.refunded,0):entries.filter(e=>e.type==="Refund").reduce((n,e)=>n+e.debit,0);
  const payout=entries.filter(e=>e.type.includes("payout")).reduce((n,e)=>n+e.debit,0);
- const openExceptions=state.issues.filter(i=>i.status==="OPEN").length+state.refunds.filter(r=>r.status==="PENDING").length;
- const monthly=useMemo(()=>Array.from({length:12},(_,i)=>data.orders.filter((_,n)=>n%12===i).reduce((sum,o)=>sum+(o.paymentStatus==="Paid"?orderTotal(o):0),0)),[data.orders]);
- const payoutLiability=state.payouts.filter(b=>b.status!=="REJECTED"&&b.status!=="PAID").reduce((s,b)=>s+payoutTotal(b),0)+eligiblePayoutItems(state,data.orders,data.riders,"MERCHANT").concat(eligiblePayoutItems(state,data.orders,data.riders,"RIDER")).reduce((s,i)=>s+i.amount,0);
+ const openExceptions=mode==="live"?(data.live?.overview.reconciliation.mismatched||0)+(data.live?.overview.reconciliation.manual_review||0):state.issues.filter(i=>i.status==="OPEN").length+state.refunds.filter(r=>r.status==="PENDING").length;
+ const monthly=useMemo(()=>mode==="live"?(data.live?.analytics.payments.map(p=>p.captured)||[]):Array.from({length:12},(_,i)=>data.orders.filter((_,n)=>n%12===i).reduce((sum,o)=>sum+(o.paymentStatus==="Paid"?orderTotal(o):0),0)),[data.orders,data.live,mode]);
+ const payoutLiability=mode==="live"?(data.live?.overview.balances.MERCHANT_PAYABLE||0)+(data.live?.overview.balances.RIDER_PAYABLE||0):state.payouts.filter(b=>b.status!=="REJECTED"&&b.status!=="PAID").reduce((s,b)=>s+payoutTotal(b),0)+eligiblePayoutItems(state,data.orders,data.riders,"MERCHANT").concat(eligiblePayoutItems(state,data.orders,data.riders,"RIDER")).reduce((s,i)=>s+i.amount,0);
  const postSettlementRefunds=state.refunds.filter(r=>r.status==="APPROVED"&&state.payouts.some(b=>b.status==="PAID"&&b.items.some(i=>i.orderId===r.orderId)));
  const saveControl=()=>{
   const nums=[Number(commission),Number(riderShare),Number(reserve)];
@@ -26,23 +26,23 @@ export function FinancialScreen({navigate,toast}:{navigate:(screen:string)=>void
   setModal(false);setReason("");toast("Commercial rules saved for future demo settlements; existing batches remain unchanged.");
  };
  const gotoOrder=(id:string)=>{sessionStorage.setItem("deetoo.demo.focusOrder",id);navigate("orders");};
- const exportLedger=()=>{const values=[["Entry","Type","Reference","Debit KES","Credit KES","Status"],...filtered.map(e=>[e.id,e.type,e.reference,String(e.debit),String(e.credit),e.status])];const csv=values.map(r=>r.map(x=>'"'+x.replaceAll('"','""')+'"').join(",")).join("\n");const url=URL.createObjectURL(new Blob([csv],{type:"text/csv"}));const a=document.createElement("a");a.href=url;a.download="deetoo-demo-financial-ledger.csv";a.click();URL.revokeObjectURL(url);toast("Financial demo ledger exported as CSV.");};
- const diffByPeriod=monthly.map(v=>Math.max(0,v*0.63));
- const net=collected-out;
+ const exportLedger=()=>{const values=[["Entry","Type","Reference","Debit KES","Credit KES","Status"],...filtered.map(e=>[e.id,e.type,e.reference,String(e.debit),String(e.credit),e.status])];const csv=values.map(r=>r.map(x=>'"'+x.replaceAll('"','""')+'"').join(",")).join("\n");const url=URL.createObjectURL(new Blob([csv],{type:"text/csv"}));const a=document.createElement("a");a.href=url;a.download=mode==="live"?"deetoo-live-journal-visible.csv":"deetoo-demo-financial-ledger.csv";a.click();URL.revokeObjectURL(url);toast("Financial demo ledger exported as CSV.");};
+ const diffByPeriod=mode==="live"?(data.live?.analytics.payments.map(p=>p.refunded)||[]):monthly.map(v=>Math.max(0,v*0.63));
+ const net=mode==="live"?collected-refunded-payout:collected-out;
  return <div className="dn-screen" data-testid="screen-financial">
   <div className="dn-title-row"><div><h1>Financial Control Center</h1><p>Monitor collections, refunds, settlement liabilities, reconciliation and commercial policies.</p></div><div className="dn-title-buttons"><button className="dn-btn outline" onClick={exportLedger}><Download size={15}/> Export Ledger</button><button className="dn-btn primary" onClick={()=>{setCommission(String(state.control.commissionRate));setRiderShare(String(state.control.riderDeliveryShare));setReserve(String(state.control.reservePercent));setModal(true);}} disabled={!canControl}><Settings2 size={15}/> Commercial Controls</button></div></div>
   <div className="dn-metrics five">
-   <IconStat label="Recorded Collections" value={amount(collected)} icon={<ArrowUpRight/>} change="Simulated gross inflow"/>
+   <IconStat label="Recorded Collections" value={amount(collected)} icon={<ArrowUpRight/>} change={mode==="live"?"Captured payments reported by provider":"Simulated gross inflow"}/>
    <IconStat label="Approved Refunds" value={amount(refunded)} tone="red" icon={<ArrowDownRight/>}/>
    <IconStat label="Marked Payouts" value={amount(payout)} tone="blue" icon={<Landmark/>}/>
-   <IconStat label="Net Recorded Flow" value={amount(net)} icon={<Wallet/>} foot="Inflow less recorded outflow"/>
-   <IconStat label="Open Review Items" value={openExceptions+postSettlementRefunds.length} tone="amber" icon={<AlertTriangle/>}/>
+   <IconStat label="Net Recorded Flow" value={amount(net)} icon={<Wallet/>} foot={mode==="live"?"Captured less refunds and payout journal items":"Inflow less recorded outflow"}/>
+   <IconStat label="Open Review Items" value={mode==="live"?openExceptions:openExceptions+postSettlementRefunds.length} tone="amber" icon={<AlertTriangle/>}/>
   </div>
   <div className="dn-financial-top">
-   <Card title="Financial Performance Overview" desc="Derived from sample order records — illustrative period distribution" action={<SelectBox label="Performance window" value={period} onChange={setPeriod} options={[{value:"all",label:"All demo dates"},{value:"2026-10",label:"October 2026"},{value:"2026-09",label:"September 2026"}]}/>}>
-    <div className="dn-fin-performance"><div><span>Gross Collections</span><strong>{amount(collected)}</strong><small>Order payments recorded in the demo</small></div><div><span>Recorded Outflow</span><strong>{amount(out)}</strong><small>Approved refunds and marked payouts</small></div><div><span>Outstanding Partner Liability</span><strong>{amount(payoutLiability)}</strong><small>Unbatched, draft and approved earnings</small></div></div>
+   <Card title="Financial Performance Overview" desc={mode==="live"?"Server-bucketed captured payments and refunds (KES major units)":"Derived from sample order records — illustrative period distribution"} action={<SelectBox label="Performance window" value={period} onChange={setPeriod} options={[{value:"all",label:mode==="live"?"Available server buckets":"All demo dates"},{value:"2026-10",label:"October 2026"},{value:"2026-09",label:"September 2026"}]}/>}>
+    <div className="dn-fin-performance"><div><span>Gross Collections</span><strong>{amount(collected)}</strong><small>{mode==="live"?"Captured provider payments":"Order payments recorded in the demo"}</small></div><div><span>Recorded Outflow</span><strong>{amount(out)}</strong><small>{mode==="live"?"Refunds and posted payout journal entries":"Approved refunds and marked payouts"}</small></div><div><span>Outstanding Partner Liability</span><strong>{amount(payoutLiability)}</strong><small>{mode==="live"?"Ledger merchant and rider payables":"Unbatched, draft and approved earnings"}</small></div></div>
     <div className="dn-fin-dual-chart"><TimeSeries values={monthly} labels={["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"]} color="#07a867" fill/><Bars values={diffByPeriod} labels={["Jan","","Mar","","May","","Jul","","Sep","","Nov",""]} color="#1683df"/></div>
-    <div className="dn-legend"><span className="g">● Sample collections</span><span className="b">● Illustrative trend</span></div>
+    <div className="dn-legend"><span className="g">● {mode==="live"?"Provider captures":"Sample collections"}</span><span className="b">● {mode==="live"?"Real refunds":"Illustrative trend"}</span></div>
    </Card>
    <Card title="Financial Distribution" desc="Recorded inflows and outflows">
     <Ring number={amount(out)} label="Outflow" parts={[{name:"Refunds",value:refunded,color:"#fa5164"},{name:"Merchant payouts",value:entries.filter(e=>e.type==="Merchant payout").reduce((n,e)=>n+e.debit,0),color:"#008e59"},{name:"Rider payouts",value:entries.filter(e=>e.type==="Rider payout").reduce((n,e)=>n+e.debit,0),color:"#2488e7"}]}/>
