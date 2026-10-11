@@ -1,4 +1,6 @@
 import { scopedResponseMiddleware } from '../../middleware/scoped-response';
+import {z} from 'zod';
+import {verifyAdminSupportCase} from '../admin/admin-next-support-validation';
 import { AppError } from '../../middleware/error-handler';
 import { orderScope, deny } from "../auth/scope";
 import { deliveryRepository } from "../order/delivery.repository";
@@ -432,8 +434,7 @@ operationsRouter.get(
         status: req.query.status as any,
         priority: req.query.priority as any,
         order_id: req.query.order_id as any,
-        limit: req.query.limit ? Number(req.query.limit) : 50,
-        offset: req.query.offset ? Number(req.query.offset) : 0,
+        ...z.object({limit:z.coerce.number().int().min(1).max(100).default(50),offset:z.coerce.number().int().min(0).default(0)}).parse(req.query),
       };
       const result = await supportService.listCases(filter, viewer);
       res.json({ success: true, data: result });
@@ -479,8 +480,9 @@ operationsRouter.post(
   async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
       const viewer = buildViewer(req);
+      const verified = await verifyAdminSupportCase(req.body);
       const newCase = await supportService.createCase({
-        ...req.body,
+        ...verified,
         creator: {
           id: viewer.id,
           name: viewer.name,
