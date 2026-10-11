@@ -1,4 +1,7 @@
 import React, { useReducer, useState } from 'react';
+import { ActiveDeliveriesScreen, DeliveryCompletionScreen, DeliveryHistoryScreen } from './Phase3Deliveries';
+import { EarningsDashboard, PayoutsScreen, RiderWalletScreen } from './Phase3Finance';
+import { initialWallet, walletReducer, type FinanceView, type MockStopState } from './phase3-model';
 import { ActivityIndicator, Pressable, Text, View } from 'react-native';
 import {
   emptyDocuments, emptyRegistration, emptyVehicle, kes, mockActivity,
@@ -53,6 +56,11 @@ export function Phase1RiderPreview() {
   const [showMap, setShowMap] = useState(true);
   const [demoOfflineReason, setDemoOfflineReason] = useState<'none' | 'outside_zone' | 'review_pending'>('none');
   const [deliveryState, dispatchDelivery] = useReducer(deliveryReducer, initialDeliveryState);
+  const [deliveryView, setDeliveryView] = useState<'operations' | 'completion' | 'active' | 'history'>('active');
+  const [financeView, setFinanceView] = useState<FinanceView>('earnings');
+  const [mockStop, setMockStop] = useState<MockStopState>(0);
+  const [walletState, dispatchWallet] = useReducer(walletReducer, initialWallet);
+  const [phase3Notice, setPhase3Notice] = useState('');
 
   const updateReg = (key: keyof RiderRegistration, value: string) => setRegistration(prev => ({ ...prev, [key]: value }));
   const updateVehicle = (patch: Partial<RiderVehicle>) => setVehicle(prev => ({ ...prev, ...patch }));
@@ -116,6 +124,11 @@ export function Phase1RiderPreview() {
   function logout() {
     setAuthenticated(false); setOnline(false); setTab('Home');
     dispatchDelivery({ type: 'RESET' });
+    dispatchWallet({ type: 'RESET' });
+    setDeliveryView('active');
+    setFinanceView('earnings');
+    setMockStop(0);
+    setPhase3Notice('');
     setIdentifier(''); setPassword(''); setOtp(''); setAuthMode('login'); goto('login');
   }
   function requestOnlineToggle() {
@@ -379,7 +392,7 @@ export function Phase1RiderPreview() {
       <Panel title="Available orders" action={<Tag label={online ? 'Waiting' : 'Offline'} tone={online ? 'orange' : 'neutral'} />}>
         <Notice title={online ? "You're ready!" : 'Go online to receive requests'} body={online ? 'Visit Deliveries to simulate new incoming orders in Phase 2.' : 'Order assignment is disabled while offline.'} />
         <View style={{ height: 10 }} />
-        <Button label="Open delivery operations →" onPress={() => setTab('Deliveries')} />
+        <Button label="Open delivery operations →" onPress={() => { setDeliveryView('operations'); setTab('Deliveries'); }} />
       </Panel>
       <Panel title="Recent deliveries">
         {sampleOrders.map((order, i) => <View key={order.id} style={{ flexDirection: 'row', paddingVertical: 11, gap: 10, borderBottomWidth: i < sampleOrders.length - 1 ? 1 : 0, borderColor: C.border, alignItems: 'center' }}>
@@ -401,22 +414,61 @@ export function Phase1RiderPreview() {
   }
 
   if (screen === 'dashboard') {
-    return <PrototypeShell currentScreen={screen} activeTab={tab} onTab={setTab} viewKey={tab === 'Deliveries' ? deliveryState.screen + ':' + deliveryState.status : screen + ':' + tab} right={<Pressable accessibilityRole="button" accessibilityLabel="Sign out" onPress={logout} style={{ minHeight: 44, minWidth: 58, justifyContent: 'center', alignItems: 'flex-end' }}><Text style={{ color: '#fff', fontSize: 13, fontWeight: '800' }}>Log out</Text></Pressable>}>
+    return <PrototypeShell currentScreen={screen} activeTab={tab} onTab={setTab}
+      viewKey={tab === 'Deliveries'
+        ? 'delivery:' + deliveryView + ':' + (deliveryView === 'operations' ? deliveryState.screen + ':' + deliveryState.status : '')
+        : tab === 'Earnings' ? 'earnings:' + financeView : screen + ':' + tab} right={<Pressable accessibilityRole="button" accessibilityLabel="Sign out" onPress={logout} style={{ minHeight: 44, minWidth: 58, justifyContent: 'center', alignItems: 'flex-end' }}><Text style={{ color: '#fff', fontSize: 13, fontWeight: '800' }}>Log out</Text></Pressable>}>
       {tab === 'Home' ? renderDashboard() :
         tab === 'Deliveries' ?
-          <Phase2DeliveryScreens
-            state={deliveryState}
-            dispatch={dispatchDelivery}
-            online={online}
-            approved={appApproved}
-            onHome={() => setTab('Home')}
-          /> :
+          <View style={{ gap: 15 }}>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+              <View style={{ flex: 1, minWidth: 125 }}><Button outline label="Active orders" onPress={() => { setDeliveryView('active'); setPhase3Notice(''); }} /></View>
+              <View style={{ flex: 1, minWidth: 110 }}><Button outline label="History" onPress={() => { setDeliveryView('history'); setPhase3Notice(''); }} /></View>
+              <View style={{ flex: 1, minWidth: 145 }}><Button outline label="Delivery flow" onPress={() => { setDeliveryView('operations'); setPhase3Notice(''); }} /></View>
+            </View>
+            {phase3Notice ? <Notice title="Preview action" body={phase3Notice} tone="blue" /> : null}
+            {deliveryView === 'operations' && deliveryState.status !== 'delivered' ?
+              <Phase2DeliveryScreens
+                state={deliveryState}
+                dispatch={dispatchDelivery}
+                online={online}
+                approved={appApproved}
+                onHome={() => setTab('Home')}
+              /> :
+              (deliveryView === 'completion' || (deliveryView === 'operations' && deliveryState.status === 'delivered')) ?
+                <DeliveryCompletionScreen
+                  state={deliveryState}
+                  sampleOnly={deliveryView === 'completion' || deliveryState.status !== 'delivered'}
+                  onHistory={() => { setDeliveryView('history'); setPhase3Notice(''); }}
+                  onNext={() => { dispatchDelivery({ type: 'RESET' }); setDeliveryView('operations'); setPhase3Notice(''); }}
+                /> :
+                deliveryView === 'history' ?
+                  <DeliveryHistoryScreen
+                    onActive={() => { setDeliveryView('active'); setPhase3Notice(''); }}
+                    onCompletion={() => { setDeliveryView('completion'); setPhase3Notice(''); }}
+                  /> :
+                  <ActiveDeliveriesScreen
+                    stop={mockStop}
+                    setStop={setMockStop}
+                    openOperations={() => { setDeliveryView('operations'); setPhase3Notice(''); }}
+                    openCompletion={() => { setDeliveryView('completion'); setPhase3Notice(''); }}
+                    openHistory={() => { setDeliveryView('history'); setPhase3Notice(''); }}
+                    onToast={setPhase3Notice}
+                  />}
+          </View> :
+        tab === 'Earnings' ?
+          financeView === 'earnings' ?
+            <EarningsDashboard onWallet={() => setFinanceView('wallet')} onPayout={() => setFinanceView('payouts')} /> :
+          financeView === 'wallet' ?
+            <RiderWalletScreen wallet={walletState} dispatch={dispatchWallet}
+              onEarnings={() => setFinanceView('earnings')} onPayout={() => setFinanceView('payouts')} /> :
+            <PayoutsScreen wallet={walletState} dispatch={dispatchWallet}
+              onWallet={() => setFinanceView('wallet')} onEarnings={() => setFinanceView('earnings')} /> :
         <View style={{ gap: 16 }}>
           <Text style={S.h1}>{tab}</Text>
           <Notice title={tab + ' • upcoming implementation'} body={
-            tab === 'Earnings' ? 'Screens 13–18, including earnings, wallet and payouts, arrive in Phase 3.' :
-            tab === 'Inbox' ? 'Notifications and support arrive in Phase 4.' :
-            'Rider profile, documents, preferences and security arrive in Phase 4.'
+            tab === 'Inbox' ? 'Notifications and support conversations arrive in Phase 4.' :
+            'Rider profile, documents, preferences, safety and security arrive in Phase 4.'
           } tone="blue" />
           <Panel title="Navigation preview"><Text style={S.sub}>The five-tab navigation is working. This destination is deliberately not a fake production screen.</Text></Panel>
           <Button label="Back to dashboard" onPress={() => setTab('Home')} />
