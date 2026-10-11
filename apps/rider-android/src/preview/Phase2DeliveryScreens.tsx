@@ -196,7 +196,7 @@ export function Phase2DeliveryScreens({ state, dispatch, online, approved, onHom
       <Panel title="Delivery notes"><Text style={S.sub}>{demoOrder.customerNote}</Text></Panel>
       <View style={{ flexDirection: 'row', gap: 9 }}>
         <View style={{ flex: 1 }}><Button outline label="Decline" onPress={() => dispatch({ type: 'DECLINE' })} /></View>
-        <View style={{ flex: 2 }}><Button label="✓ Accept Order" onPress={() => dispatch({ type: 'ACCEPT' })} /></View>
+        <View style={{ flex: 2 }}><Button label="✓ Accept Order" disabled={!online || !approved} onPress={() => dispatch({ type: 'ACCEPT' })} /></View>
       </View>
       <Text style={[S.meta, { textAlign: 'center' }]}>Estimated pay is sample data; real dispatch and payments are not connected.</Text>
     </>;
