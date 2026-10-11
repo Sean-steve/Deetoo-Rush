@@ -61,6 +61,12 @@ tags:
 security:
 - bearerAuth: []
 paths:
+  /rider/deliveries/capabilities:
+    get:
+      summary: Rider dispatch multi-order capability and fail-closed stacking gate
+      tags: [Rider]
+      security: [{ bearerAuth: [] }]
+      responses: { '200': { description: Server-owned assignment capacity and feature state } }
   /rider/earnings/trends:
     get:
       summary: Rider-scoped earning trends using posted earning records (minor units)

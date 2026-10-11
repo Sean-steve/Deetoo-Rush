@@ -6,7 +6,8 @@ CREATE TABLE IF NOT EXISTS rider_withdrawal_requests (
  currency TEXT NOT NULL DEFAULT 'KES' CHECK(currency='KES'),
  idempotency_key TEXT NOT NULL,
  status TEXT NOT NULL DEFAULT 'REQUESTED' CHECK(status IN ('REQUESTED','QUEUED_FOR_BATCH','BATCHED','REJECTED')),
- payout_id UUID REFERENCES rider_payouts(id) ON DELETE RESTRICT,
+ -- One finance batch links to at most one Rider request to prevent double accounting.
+ payout_id UUID UNIQUE REFERENCES rider_payouts(id) ON DELETE RESTRICT,
  reviewed_by UUID REFERENCES users(id),
  reviewed_at TIMESTAMPTZ,
  rejection_reason TEXT,

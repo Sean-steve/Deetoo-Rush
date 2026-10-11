@@ -60,6 +60,19 @@ function safeHistory(delivery:any,earning:any) {
   };
 }
 const terminal = ['DELIVERED','FAILED','CANCELLED'];
+/**
+ * A dispatch capability contract for approved multi-order Screen 14.
+ * No feature flag may override the single-active-order invariant yet.
+ */
+riderExtendedRouter.get('/deliveries/capabilities',async(req:AuthenticatedRequest,res:Response,next:NextFunction)=>{
+  try{
+    await ownRider(req);
+    res.json({data:{multi_order:{enabled:false,max_active_deliveries:1,
+      reason_code:'DISPATCH_STACKING_NOT_CERTIFIED',
+      message:'Multiple concurrent deliveries are unavailable until dispatch sequencing, rider custody and earnings are certified.'}}});
+  }catch(e){next(e);}
+});
+
 riderExtendedRouter.get('/deliveries/history', async(req:AuthenticatedRequest,res:Response,next:NextFunction)=>{
   try {
     const rider=await ownRider(req);
