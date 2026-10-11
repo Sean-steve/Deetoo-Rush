@@ -46,7 +46,7 @@ test("Super Admin creates a pending merchant owner from verified onboarding fiel
  await expect(page.getByText("Live DeeToo backend")).toBeVisible();
  await page.getByRole("button",{name:/Add Merchant/}).click();
  await page.getByLabel("Registered legal business name").fill("Registered Test Kitchen Limited");
- await page.getByLabel("Business name").fill("Test Kitchen");
+ await page.getByLabel("Business name",{exact:true}).fill("Test Kitchen");
  await page.getByLabel("Owner", {exact:true}).fill("Merchant Owner");
  await page.getByLabel("Email",{exact:true}).fill("merchant.owner@example.test");
  await page.getByLabel("Phone",{exact:true}).fill("+254700111222");
