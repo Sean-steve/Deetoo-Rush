@@ -177,8 +177,8 @@ jobs:
       - name: Verify approved Admin Phase 1–4 frontend-only workflows and capture reference screens
         run: pnpm test:admin-next-visual
 
-      - name: Verify 16 Admin screens with authenticated DeeToo API contracts and no demo fallback
-        run: pnpm exec playwright test -c playwright.admin-next-live.config.ts
+      - name: Phase 5 — verify 16 live Admin screens, recovery, staff isolation and cross-app contracts
+        run: pnpm test:admin-next-live
 
       - name: Verify design-first customer preview and capture reference viewport
         run: pnpm test:customer-next-visual
@@ -300,5 +300,5 @@ jobs:
         with:
           node-version: 22
       - run: pnpm install --frozen-lockfile
-      - name: Validate real database payment, merchant fulfilment, rider dispatch, pickup OTP and delivered completion
+      - name: Phase 5 — validate payment, fulfilment, rider delivery, verified support, pending onboarding and cross-role denials
         run: pnpm test:local-workflow
