@@ -1,7 +1,7 @@
 import {seedPhaseFour} from "./phase4Data";
 import {seedPhaseThree} from "./phase3Data";
 import {seedPhaseTwo} from "./phase2Data";
-import React,{createContext,useContext,useEffect,useReducer,useState,useCallback} from "react";
+import React,{createContext,useContext,useEffect,useReducer,useState,useCallback,useRef} from "react";
 import {AdminRole,DemoAction,DemoState,reducer,seedDemo} from "./data";
 import {emptyLiveData,loadLive,liveIdentityRole,LiveApiError,performLiveAction,signIn,signOut,apiMutation} from "./live-api";
 import type {ResourceName,ResourceState,Json} from "./live-api";
@@ -38,18 +38,47 @@ function LiveStore({children}:{children:React.ReactNode}){
  const [identity,setIdentity]=useState<Json|null>(null);
  const [resources,setResources]=useState<Store["resources"]>({});
  const [notice,setNotice]=useState("");
+ const latestRequest=useRef(0);
  const refresh=useCallback(async()=>{
+  const request=++latestRequest.current;
   try {
    const snapshot=await loadLive();
+   if(request!==latestRequest.current)return;
    setData(snapshot.data);setResources(snapshot.resources);setIdentity(snapshot.identity);
    setLiveRole(liveIdentityRole(snapshot.identity));setPhase("ready");
   }catch(e){
+   if(request!==latestRequest.current)return;
    setData(emptyLiveData());setIdentity(null);setResources({});
    if(e instanceof LiveApiError&&(e.status===401||e.status===403)){setPhase("auth");setNotice(e.message);}
    else{setPhase("error");setNotice(e instanceof Error?e.message:"Unable to load the DeeToo API.");}
   }
  },[]);
  useEffect(()=>{void refresh();},[refresh]);
+ // Events contain only invalidation metadata; all sensitive resources are reloaded through
+ // authorized REST endpoints. Focus and bounded polling cover roles without admin stream rights.
+ useEffect(()=>{
+   if(phase!=="ready"||!identity)return;
+   let last=0,queued:ReturnType<typeof setTimeout>|null=null;
+   const invalidated=()=>{if(document.visibilityState==="hidden")return;
+      const delay=Math.max(0,8000-(Date.now()-last));
+      if(queued)return;
+      queued=setTimeout(()=>{queued=null;last=Date.now();void refresh();},delay);
+   };
+   const visible=()=>{if(document.visibilityState==="visible")invalidated();};
+   window.addEventListener("focus",invalidated);
+   document.addEventListener("visibilitychange",visible);
+   const periodic=setInterval(invalidated,45000);
+   let stream:EventSource|null=null;
+   if(["SUPER_ADMIN","ADMIN","OPERATIONS"].includes(role)&&typeof EventSource!=="undefined"){
+     stream=new EventSource("/api/v1/realtime/stream?channels="+encodeURIComponent("admin:orders,admin:dispatch,admin:operations"),{withCredentials:true});
+     stream.onmessage=invalidated;
+     stream.addEventListener("order.updated",invalidated);
+     stream.addEventListener("support.case_created",invalidated);
+     // Auth can expire; browser EventSource reconnects. REST refresh remains authoritative.
+   }
+   return ()=>{if(queued)clearTimeout(queued);clearInterval(periodic);
+      window.removeEventListener("focus",invalidated);document.removeEventListener("visibilitychange",visible);stream?.close();};
+ },[phase,identity?.id,role,refresh]);
  const act=(a:DemoAction)=>{
   if(!identity){setNotice("Sign in to DeeToo before changing operational data.");return;}
   void (async()=>{
