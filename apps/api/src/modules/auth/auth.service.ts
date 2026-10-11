@@ -3,6 +3,8 @@ import { requestDurableIdentity, confirmDurableOtp } from './identity-delivery';
 import { requireSimulationMode } from '../../db/storage-policy';
 import { transactionalService } from '../../db/transaction';
 import { merchantRepository } from "../merchant/merchant.repository";
+import { riderRepository } from '../rider/rider.repository';
+import { getDbPool } from '../../db/client';
 /**
  * DEETOO - Authentication Business Logic Service
  * Implements authentication, session lifecycle, rotation, and password flows
@@ -77,6 +79,44 @@ export class AuthService {
       customer_id,
       created_at: user.created_at,
     };
+  }
+
+  /** Self-service Rider identity: LOGIN allowed, dispatch blocked until staff approval. */
+  public async registerRider(params:{
+    name:string;email?:string;phone_e164:string;password:string;
+    address:string;emergency_contact_name:string;emergency_contact_phone:string;
+    requestId?:string;ipAddress?:string;deviceInfo?:string;
+  }): Promise<LoginResponse & {refreshToken:string}> {
+    if(config.storage.mode!=='postgres')
+      throw new AppError(503,'RIDER_REGISTRATION_STORAGE_REQUIRED','Rider registration requires durable storage');
+    const email=params.email?normalizeEmail(params.email):null;
+    const phone=normalizePhoneE164(params.phone_e164);
+    if((email && await authRepository.findUserByEmail(email)) ||
+       await authRepository.findUserByPhone(phone))
+      throw new AppError(409,'IDENTITY_CONFLICT','A user already exists with that email or phone');
+    const id=crypto.randomUUID();
+    const user=await authRepository.createUser({
+      id,email,phone_e164:phone,password_hash:await hashPassword(params.password),status:UserStatus.ACTIVE,
+    });
+    await authRepository.setUserRoles(id,[UserRole.RIDER]);
+    const nameParts=params.name.trim().split(/\s+/);
+    const rider=await riderRepository.createProfile({
+      userId:id,firstName:nameParts.shift()||params.name.trim(),
+      lastName:nameParts.join(' ')||'Rider',phone,
+      onboardingStatus:'DRAFT' as any,
+      serviceZoneIds:[],
+    });
+    await getDbPool().query(
+      'INSERT INTO rider_contact_details(rider_id,address_text,emergency_contact_name,emergency_contact_phone) VALUES($1,$2,$3,$4)',
+      [rider.id,params.address.trim(),params.emergency_contact_name.trim(),normalizePhoneE164(params.emergency_contact_phone)]);
+    await authRepository.createAuditLog({
+      actor_user_id:id,actor_role:UserRole.RIDER,action:AuditAction.USER_REGISTERED,
+      resource_type:'USER',resource_id:id,request_id:params.requestId,
+      metadata:{registration_flow:'RIDER_SELF_SERVE',phone_verification_required:true},
+    });
+    return this.createSessionAndTokens(user,{
+      ipAddress:params.ipAddress,deviceInfo:params.deviceInfo,requestId:params.requestId,
+    });
   }
 
   /**

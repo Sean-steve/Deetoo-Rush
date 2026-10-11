@@ -65,6 +65,16 @@ export const CustomerRegisterSchema = z
     path: ['email'],
   });
 
+export const RiderRegisterSchema = z.object({
+  name:z.string().trim().min(3).max(120),
+  email:z.string().email().optional(),
+  phone_e164:PhoneE164Schema,
+  password:PasswordSchema,
+  address:z.string().trim().min(5).max(250),
+  emergency_contact_name:z.string().trim().min(3).max(120),
+  emergency_contact_phone:PhoneE164Schema,
+}).strict();
+
 export const LoginSchema = z.object({
   identifier: z.string().min(3, 'Email or phone number is required'),
   password: z.string().min(1, 'Password is required'),

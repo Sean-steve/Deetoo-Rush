@@ -17,6 +17,7 @@ import { getDbPool } from '../../db/client';
 import { config } from '@deetoo/config';
 import { AppError } from '../../middleware/error-handler';
 import { riderResponse } from './rider-response';
+import { supportService } from '../operations/support.service';
 
 export const riderExtendedRouter = Router();
 riderExtendedRouter.use(requireAuth, requireRole('rider'));
@@ -159,4 +160,23 @@ riderExtendedRouter.get('/incidents/:incidentId/evidence',async(req:Authenticate
     const result=await getDbPool().query('SELECT id,media_object_id,description,created_at FROM rider_incident_evidence WHERE incident_id=$1 ORDER BY created_at DESC',[incident.id]);
     res.json({data:{evidence:result.rows},requestId:(req as any).requestId});
   }catch(error){next(error);}
+});
+
+// Profile, verified vehicle and payout-destination changes enter Support governance;
+// no direct backend identity or bank destination change is made by a Rider.
+riderExtendedRouter.post('/profile/change-requests',async(req:AuthenticatedRequest,res:Response,next:NextFunction)=>{
+  try{
+    const rider=await ownRider(req);
+    const input=z.object({
+      category:z.enum(['PERSONAL','VEHICLE','PAYOUT_DESTINATION','ACCOUNT_DEACTIVATION','ACCOUNT_DELETION']),
+      description:z.string().trim().min(15).max(1200),
+    }).strict().parse(req.body);
+    const created=await supportService.createCase({
+      rider_id:rider.id,category:'ACCOUNT_UPDATE',priority:'MEDIUM',
+      subject:'Rider '+input.category.toLowerCase().replace(/_/g,' ')+' review',
+      description:input.description,
+      creator:{id:req.user!.id,name:'Rider',role:'rider'},
+    });
+    res.status(201).json({data:{case_id:created.id,case_number:created.case_number,status:created.status},note:'An authorized administrator must verify and apply this request'});
+  }catch(e){next(e);}
 });
