@@ -128,3 +128,43 @@ navigation destinations remain explicitly marked as future work.
 
 Run `pnpm exec tsx --test tests/unit/rider_phase2_preview.test.ts` and
 `pnpm typecheck:rider-android`; see `src/preview/README.md` for the full matrix.
+
+## Phase 3 — delivery completion, history, earnings, wallet and payouts
+
+Phase 3 extends the **dev-only frontend preview** with screens 13–18. Run:
+
+```bash
+EXPO_PUBLIC_RIDER_UI_MODE=mock pnpm --filter @deetoo/rider-android start
+```
+
+From the five-tab navigation:
+
+- **Deliveries → Active orders**: two-order sample delivery sequence; stop
+  advance and route-optimization request are local, with fixed dispatch order.
+- **Deliveries → History**: completed/cancelled/failed search and date filters,
+  details, sample fees and review status.
+- **Deliveries → Delivery flow**: finish Phase 2 handover using demo PIN
+  `638204` (or staged photo) to see the Screen 13 completion summary.
+  Screen 13 can also be previewed from Active orders.
+- **Earnings**: daily/weekly/monthly visual charts, categorized income, delivery
+  stats and achievements. Go to Wallet or Payouts from quick actions.
+- **Rider Wallet**: visibly distinct withdrawable funds, pending payouts,
+  earnings, customer cash held and amount awaiting reconciliation. Cash
+  discrepancy requests only enter a local under-review state.
+- **Payouts & Transactions**: enter a Kenyan M-PESA destination, amount
+  (minimum KSh 100, at most the mock available balance) and explicit
+  confirmation. Submit a **demo-only** request and inspect processing,
+  completed and failed states. In the demo receipt, simulate success/failure;
+  failure releases reserved amounts once.
+
+**No real money moves.** Preview balances and references are fixtures; no
+M-PESA account connection, order mutation, or financial ledger posting occurs.
+Inbox and Profile are reserved for Phase 4.
+
+```bash
+pnpm exec tsx --test tests/unit/rider_phase3_preview.test.ts
+pnpm typecheck:rider-android
+pnpm build:rider-android
+```
+
+See `src/preview/README.md` for the full Phase 3 Android acceptance matrix.
