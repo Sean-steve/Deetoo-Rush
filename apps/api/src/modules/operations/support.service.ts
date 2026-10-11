@@ -419,7 +419,8 @@ export class SupportService {
     await operationsRepository.resetSupportConfirmations(caseId, participants);
 
     const updated = await operationsRepository.updateSupportCase(caseId, {
-      status: participants.length ? "PARTY_CONFIRMATION" : "RESOLVED",
+      // Even cases without linked participants require Admin finalization.
+      status: "PARTY_CONFIRMATION",
       resolution_code: resolutionCode as any,
       resolution_notes: resolutionNotes,
       resolution_proposed_at: now,
