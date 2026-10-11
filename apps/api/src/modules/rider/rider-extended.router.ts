@@ -18,6 +18,7 @@ import { config } from '@deetoo/config';
 import { AppError } from '../../middleware/error-handler';
 import { riderResponse } from './rider-response';
 import { supportService } from '../operations/support.service';
+import { riderWalletService } from '../finance/rider-wallet.service';
 
 export const riderExtendedRouter = Router();
 riderExtendedRouter.use(requireAuth, requireRole('rider'));
@@ -184,6 +185,15 @@ riderExtendedRouter.post('/profile/change-requests',async(req:AuthenticatedReque
       category:z.enum(['PERSONAL','VEHICLE','PAYOUT_DESTINATION','ACCOUNT_DEACTIVATION','ACCOUNT_DELETION']),
       description:z.string().trim().min(15).max(1200),
     }).strict().parse(req.body);
+    if (input.category==='ACCOUNT_DEACTIVATION'||input.category==='ACCOUNT_DELETION') {
+      const [active,wallet]=await Promise.all([
+        deliveryRepository.findActiveByRiderId(rider.id),
+        riderWalletService.getWallet(rider.id),
+      ]);
+      if (active) throw new AppError(409,'RIDER_ACCOUNT_ACTIVE_DELIVERY','Complete or escalate your active delivery before requesting account closure');
+      if (Number(wallet.cash_owed_minor)>0 || wallet.cash_restricted || !wallet.ledger_reconciled)
+        throw new AppError(409,'RIDER_ACCOUNT_FINANCIAL_HOLD','Outstanding cash or reconciliation must be reviewed before account closure');
+    }
     const created=await supportService.createCase({
       rider_id:rider.id,category:'ACCOUNT_UPDATE',priority:'MEDIUM',
       subject:'Rider '+input.category.toLowerCase().replace(/_/g,' ')+' review',
