@@ -138,3 +138,126 @@ test('local paid order completes merchant, dispatch, pickup, tracking, delivery 
  assert.equal((await deliveryRepository.getProofsByDeliveryId(delivery.id)).length,1);
  await riderService.goOffline(rider.user.id);
 });
+
+
+/**
+ * Phase 5 four-party boundary acceptance, against a real, isolated PostgreSQL
+ * and Express app (no HTTP interception, no seeded display fixtures).
+ * Existing tests above exercise capture, dispatch, OTP, earnings and refunds.
+ */
+test('Phase 5: Admin and legacy Operations reject forged support participants and preserve paginated totals',async()=>{
+ const f=await fixture('CARD');
+ const order=await orderService.createOrderFromQuote(f.uid,{quote_id:f.quote.id},randomUUID());
+ const staff=await authService.registerCustomer({name:'Phase 5 Support',email:randomUUID()+'@example.test',password:'Acceptance-only-893!'});
+ await authRepository.setUserRoles(staff.user.id,[UserRole.SUPER_ADMIN]);
+ const outsider=await authService.registerCustomer({name:'Unrelated Party',email:randomUUID()+'@example.test',password:'Acceptance-only-893!'});
+ const server=createServer(createApp());
+ await new Promise<void>(resolve=>server.listen(0,'127.0.0.1',resolve));
+ const base='http://127.0.0.1:'+(server.address() as any).port+'/api/v1';
+ const call=async(method:string,path:string,access?:string,body?:unknown)=>{
+  const response=await fetch(base+path,{method,headers:{
+   ...(access?{Authorization:'Bearer '+access}:{}),
+   ...(body?{'Content-Type':'application/json'}:{})
+  },...(body?{body:JSON.stringify(body)}:{})});
+  return {status:response.status,json:await response.json() as any};
+ };
+ const details={customer_id:f.uid,order_id:order.id,category:'ORDER_ISSUE',priority:'HIGH',
+  subject:'Review pending delivery',description:'Customer raised a delivery review request.'};
+ try{
+  assert.equal((await call('POST','/admin/support/cases',undefined,details)).status,401);
+  assert.equal((await call('POST','/admin/support/cases',f.token,details)).status,403);
+  assert.equal((await call('POST','/operations/support/cases',f.token,details)).status,403);
+  for(const path of ['/admin/support/cases','/operations/support/cases']){
+   assert.equal((await call('POST',path,staff.accessToken,{...details,customer_id:undefined})).status,400,'Unverified participant on '+path);
+   assert.equal((await call('POST',path,staff.accessToken,{...details,customer_id:randomUUID()})).status,404,'Unknown participant on '+path);
+   const wrong=await call('POST',path,staff.accessToken,{...details,customer_id:outsider.user.id});
+   assert.equal(wrong.status,409,'Foreign order/participant pair on '+path);
+   assert.equal(wrong.json.error?.code,'SUPPORT_ORDER_PARTY_MISMATCH');
+  }
+  const created=await call('POST','/admin/support/cases',staff.accessToken,details);
+  assert.equal(created.status,201,JSON.stringify(created.json));
+  const legacy=await call('POST','/operations/support/cases',staff.accessToken,{...details,subject:'Independent review case'});
+  assert.equal(legacy.status,201,JSON.stringify(legacy.json));
+  const caseId=created.json.data.id;
+  const saved=await getDbPool().query('SELECT customer_id,order_id FROM support_cases WHERE id=$1',[caseId]);
+  assert.equal(saved.rows[0].customer_id,f.uid);
+  assert.equal(saved.rows[0].order_id,order.id);
+  const notes=await getDbPool().query('SELECT body FROM support_case_notes WHERE case_id=$1',[caseId]);
+  assert.ok(notes.rowCount && notes.rowCount>=1,'Initial case message is durable');
+  const first=await call('GET','/operations/support/cases?limit=1&offset=0',staff.accessToken);
+  assert.equal(first.status,200);
+  assert.equal(first.json.data.cases.length,1);
+  assert.ok(first.json.data.total>=2,'Total includes pages beyond first');
+  const later=await call('GET','/operations/support/cases?limit=1&offset=100000',staff.accessToken);
+  assert.equal(later.status,200);
+  assert.equal(later.json.data.cases.length,0);
+  assert.equal(later.json.data.total,first.json.data.total,'Empty pages retain total');
+  assert.equal((await call('GET','/operations/support/cases?limit=-2',staff.accessToken)).status,400);
+  assert.equal((await call('GET','/operations/support/cases?limit=not-a-number',staff.accessToken)).status,400);
+  assert.equal((await call('GET','/operations/support/cases?limit=101',staff.accessToken)).status,400);
+  assert.equal((await call('GET','/operations/support/cases/'+caseId,f.token)).status,403);
+ }finally{
+  server.closeAllConnections();
+  await new Promise<void>(resolve=>server.close(()=>resolve()));
+ }
+});
+
+test('Phase 5: real Admin provisioning cannot skip merchant or rider onboarding',async()=>{
+ const staff=await authService.registerCustomer({name:'Phase 5 Administrator',email:randomUUID()+'@example.test',password:'Acceptance-only-893!'});
+ await authRepository.setUserRoles(staff.user.id,[UserRole.SUPER_ADMIN]);
+ const regular=await authService.registerCustomer({name:'Phase 5 Customer',email:randomUUID()+'@example.test',password:'Acceptance-only-893!'});
+ const server=createServer(createApp());
+ await new Promise<void>(resolve=>server.listen(0,'127.0.0.1',resolve));
+ const url='http://127.0.0.1:'+(server.address() as any).port+'/api/v1/admin/governance/provision';
+ const provision=async(access:string,body:Record<string,unknown>)=>{
+  const result=await fetch(url,{method:'POST',headers:{Authorization:'Bearer '+access,'Content-Type':'application/json'},body:JSON.stringify(body)});
+  return {status:result.status,json:await result.json() as any};
+ };
+ try{
+  const merchantInput={subject_type:'MERCHANT',name:'Phase 5 Merchant Owner',email:randomUUID()+'@example.test',
+   merchant_legal_name:'Phase Five Foods Limited',merchant_display_name:'Phase Five Foods',reason:'Controlled acceptance provisioning'};
+  assert.equal((await provision(regular.accessToken,merchantInput)).status,403);
+  const merchant=await provision(staff.accessToken,merchantInput);
+  assert.equal(merchant.status,201,JSON.stringify(merchant.json));
+  assert.equal(merchant.json.data.requires_activation,true);
+  assert.equal(merchant.json.data.user.status,'PENDING');
+  const merchantId=merchant.json.data.resource.id;
+  const owner=await getDbPool().query('SELECT status,approval_status FROM merchants WHERE id=$1',[merchantId]);
+  assert.equal(owner.rows[0].approval_status,'DRAFT');
+  assert.notEqual(owner.rows[0].status,'ACTIVE');
+  const rider=await provision(staff.accessToken,{subject_type:'RIDER',name:'Phase 5 Rider',
+   email:randomUUID()+'@example.test',phone_e164:'+254700555123',
+   vehicle_type:'MOTORBIKE',reason:'Controlled acceptance provisioning'});
+  assert.equal(rider.status,201,JSON.stringify(rider.json));
+  assert.equal(rider.json.data.user.status,'PENDING');
+  const row=await getDbPool().query('SELECT onboarding_status,work_status FROM rider_profiles WHERE user_id=$1',[rider.json.data.user.id]);
+  assert.equal(row.rows[0].onboarding_status,'DRAFT');
+  assert.equal(row.rows[0].work_status,'OFFLINE');
+  const recorded=await getDbPool().query("SELECT COUNT(*)::int AS n FROM account_governance_events WHERE actor_user_id=$1 AND action='PROVISIONED'",[staff.user.id]);
+  assert.equal(recorded.rows[0].n,2,'Both privileged creations have audit events');
+ }finally{
+  server.closeAllConnections();
+  await new Promise<void>(resolve=>server.close(()=>resolve()));
+ }
+});
+
+
+test('Phase 5: customer support intake applies Redis-backed rate limiting before authentication',async()=>{
+ const server=createServer(createApp());
+ await new Promise<void>(resolve=>server.listen(0,'127.0.0.1',resolve));
+ const url='http://127.0.0.1:'+(server.address() as any).port+'/api/v1/customer/support/cases';
+ try{
+  for(let n=0;n<13;n++){
+   const response=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});
+   assert.equal(response.status,n<12?401:429,'support case attempt '+(n+1));
+   if(n===12){
+    const body=await response.json() as any;
+    assert.equal(body.error?.code,'RATE_LIMIT_EXCEEDED');
+    assert.ok(response.headers.has('retry-after'));
+   }else await response.arrayBuffer();
+  }
+ }finally{
+  server.closeAllConnections();
+  await new Promise<void>(resolve=>server.close(()=>resolve()));
+ }
+});

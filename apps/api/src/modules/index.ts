@@ -8,8 +8,15 @@ import { ApiResponse } from '@deetoo/types';
 import { DEMO_SERVICE_ZONE, SYSTEM_ROLES, LEDGER_SYSTEM_ACCOUNTS } from '../../../../scripts/db-seed';
 import { AppError } from '../middleware/error-handler';
 import { authRouter } from './auth/auth.router';
+import { createAuthRateLimiter } from './auth/rate-limit.middleware';
 import { adminRouter } from './admin/admin.router';
 import { merchantExperienceAdminRouter } from './admin/merchant-experience-admin.router';
+import {adminNextOperationsRouter} from './admin/admin-next-operations.router';
+import {adminNextIntelligenceRouter} from './admin/admin-next-intelligence.router';
+import {adminNextControlRouter} from './admin/admin-next-control.router';
+import {adminNextConsentRouter} from './admin/admin-next-consent.router';
+import {adminNextSecurityRouter,adminNextActivationRouter} from './admin/admin-next-security.router';
+import {adminFinanceReviewRouter} from './finance/admin-finance-review.router';
 import { merchantRouter } from './merchant/merchant.router';
 import { merchantExperienceRouter } from './merchant/merchant-experience.router';
 import { merchantInventoryRouter } from './merchant/merchant-inventory.router';
@@ -38,11 +45,24 @@ import { mapsProvider } from './maps/maps.provider';
 
 export const v1Router = Router();
 
+// Rate-limit privileged reads as well as writes, with the existing Redis-backed
+// multi-instance limiter. Dedicated auth and mutation limits remain enforced.
+const privilegedApiRateLimiter = createAuthRateLimiter({keyPrefix:'api:privileged:read',windowMs:60000,max:600});
+// Redis-backed privilegedApiRateLimiter protects all mounted Admin and finance routes.
+// codeql[js/missing-rate-limiting]
+v1Router.use(['/admin','/finance/ops','/auth/broadcast-consent'],privilegedApiRateLimiter);
+
 // Domain Sub-routers
 v1Router.use('/auth', authRouter);
+v1Router.use('/auth', adminNextConsentRouter);
+v1Router.use('/auth', adminNextActivationRouter);
 v1Router.use('/admin/geography', geographyRouter);
 v1Router.use('/admin/merchant-experience', merchantExperienceAdminRouter);
 v1Router.use('/admin', adminRouter);
+v1Router.use('/admin', adminNextOperationsRouter);
+v1Router.use('/admin', adminNextIntelligenceRouter);
+v1Router.use('/admin', adminNextControlRouter);
+v1Router.use('/admin', adminNextSecurityRouter);
 v1Router.use('/admin/operations', operationsRouter);
 v1Router.use('/operations', operationsRouter);
 v1Router.use('/customer/support', customerSupportRouter);
@@ -62,6 +82,7 @@ v1Router.use('/orders', orderRouter);
 v1Router.use('/payments', paymentRouter);
 v1Router.use('/finance/disbursements', disbursementRouter);
 v1Router.use('/finance/ops', financeOpsRouter);
+v1Router.use('/finance/ops', adminFinanceReviewRouter);
 v1Router.use('/finance', financeRouter);
 v1Router.use('/trust', trustRouter);
 v1Router.use('/rider', riderRouter);

@@ -1,0 +1,133 @@
+/* DeeToo Admin Next — Phase 3, applied after approved phases 1–2 */
+.dn-metrics.five .dn-stat strong{font-size:17px;overflow:visible;white-space:normal}
+.dn-geo-grid{display:grid;grid-template-columns:minmax(240px,.79fr) minmax(375px,1.36fr) minmax(310px,.96fr);gap:11px;align-items:start}
+.dn-geo-directory{min-height:725px;display:flex;flex-direction:column}
+.dn-geo-directory .dn-toolbar{gap:5px}
+.dn-geo-directory .dn-search{min-width:90px}
+.dn-geo-directory .dn-select select{max-width:104px}
+.dn-geo-county-list{height:559px;overflow-y:auto;padding-right:3px;scrollbar-width:thin}
+.dn-geo-county{height:39px;min-height:39px;display:flex;align-items:center;gap:8px;width:100%;background:#fff;border:0;border-bottom:1px solid #edf1f5;border-radius:4px;padding:5px 7px;text-align:left;color:#32455f}
+.dn-geo-county:hover{background:#f4faf6}
+.dn-geo-county.selected{background:#e7f7ed;box-shadow:inset 3px 0 #009963}
+.dn-geo-county>span:nth-child(2){font-size:10.5px;flex:1}
+.dn-geo-county .dn-chip{font-size:8.5px}
+.dn-geo-led{height:8px;width:8px;border-radius:50%;flex:none}
+.dn-geo-led.on{background:#05a65c;box-shadow:0 0 0 3px #ddf7e8}
+.dn-geo-led.off{background:#c3cbd6}
+.dn-geo-arrow{font-size:17px;color:#8ba0b2}
+.dn-geo-summary{border-top:1px solid #e6edf3;padding:14px 3px 4px;margin-top:auto;color:#18334a}
+.dn-geo-summary strong{display:block;font-size:12px}
+.dn-geo-summary span{display:block;font-size:10px;color:#7890a5;margin-top:3px}
+.dn-geo-progress{height:6px;background:#e6efeb;border-radius:5px;overflow:hidden;margin-top:9px}
+.dn-geo-progress>div{height:100%;background:linear-gradient(90deg,#0eaf73,#007955);border-radius:5px;max-width:100%}
+.dn-geo-middle{min-width:0;display:grid;gap:11px}
+.dn-geo-map{height:467px;background:#e9f1e7;position:relative;overflow:hidden;border:1px solid #dce9df;border-radius:8px}
+.dn-geo-map svg{position:absolute;inset:0;height:100%;width:100%}
+.dn-geo-pin{position:absolute;border:2px solid #fff;box-shadow:0 2px 5px #2b634a50;border-radius:50%;height:11px;width:11px;transform:translate(-50%,-50%);z-index:2;padding:0}
+.dn-geo-pin.enabled{background:#00aa65}
+.dn-geo-pin.paused{background:#d2d7dc}
+.dn-geo-pin.selected{width:19px;height:19px;border:4px solid white;outline:2px solid #03784c;z-index:4}
+.dn-geo-map-legend{position:absolute;bottom:12px;left:12px;display:flex;gap:12px;background:#fffc;padding:8px 10px;box-shadow:0 3px 12px #315a3d18;border-radius:5px;color:#496879;font-size:10px}
+.dn-geo-map-legend span:nth-child(1){color:#078856}.dn-geo-map-legend span:nth-child(2){color:#aeb4bc}
+.dn-geo-middle-bottom{display:grid;grid-template-columns:1.1fr 1fr;gap:11px}
+.dn-geo-readiness{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:10px}
+.dn-geo-readiness>div{border:1px solid #e8edf2;border-radius:6px;padding:8px 5px;text-align:center;display:flex;align-items:center;flex-direction:column;gap:4px;color:#07925c}
+.dn-geo-readiness b{font-size:18px;color:#1c3048}
+.dn-geo-readiness span{font-size:9px;color:#6b7f96}
+.dn-helper{font-size:10.5px;color:#7389a0;line-height:1.55}
+.dn-geo-detail{min-height:726px}
+.dn-geo-detail>.dn-card-title{display:none}
+.dn-geo-selected{display:flex;align-items:center;gap:12px;border-bottom:1px solid #e8edf2;padding-bottom:15px;margin-bottom:13px;color:#028b58}
+.dn-geo-selected>div{flex:1}
+.dn-geo-selected h2{font-size:18px;letter-spacing:-.04em;color:#182942;margin:0 0 6px}
+.dn-geo-selected p{color:#768ba2;margin:7px 0 0;font-size:10px}
+.dn-geo-detail h3{font-size:12px;margin:20px 0 9px}
+.dn-geo-action-status{display:flex;align-items:center;justify-content:space-between;padding:11px;background:#effaf4;border:1px solid #cdeada;border-radius:7px;font-size:11px;font-weight:700}
+.dn-toggle{height:24px;width:46px;border-radius:15px;background:#c5cdd4;border:0;padding:2px;display:flex;align-items:center;justify-content:flex-start}
+.dn-toggle.on{background:#069c69;justify-content:flex-end}
+.dn-toggle span{width:20px;height:20px;display:block;background:#fff;border-radius:50%;box-shadow:0 1px 4px #0003}
+.dn-btn.full{width:100%;margin-top:12px}
+.dn-geo-warning{background:#fff3e4;color:#9c671d;padding:11px;margin-top:12px;display:flex;align-items:flex-start;gap:8px;border-radius:6px;font-size:10px;line-height:1.5}
+.dn-geo-zones{max-height:208px;overflow-y:auto;scrollbar-width:thin}
+.dn-geo-zones>div{display:flex;align-items:center;gap:6px;padding:8px 1px;border-bottom:1px solid #e9edf1}
+.dn-geo-zones>div>div{flex:1;min-width:0}
+.dn-geo-zones b{font-size:10.5px;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dn-geo-zones small{font-size:9px;color:#7a8ea3;display:block;margin-top:4px}
+.dn-geo-zones button{font-size:9px;padding:4px 6px;border:1px solid #d9e6ec;background:white;border-radius:4px;color:#2f5268}
+.dn-geo-rules,.dn-fin-rules{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.dn-geo-rules>div,.dn-fin-rules>div{border:1px solid #e8eef4;border-radius:6px;padding:17px}
+.dn-geo-rules h3,.dn-fin-rules h3{font-size:12px}
+.dn-geo-rules p,.dn-fin-rules p{font-size:11px;color:#647f93;line-height:1.7}
+.dn-fin-workspace,.dn-settlement-layout{display:grid;grid-template-columns:minmax(655px,1.7fr) minmax(335px,.83fr);gap:11px;align-items:start}
+.dn-fin-list,.dn-settlement-register{min-height:650px}
+.dn-fin-list>.dn-card-title,.dn-settlement-register>.dn-card-title,.dn-fin-ledger-card>.dn-card-title{display:none}
+.dn-fin-table{min-width:675px}
+.dn-fin-table th,.dn-fin-table td{padding:11px 8px}
+.dn-fin-table td{max-width:170px;overflow:hidden;text-overflow:ellipsis}
+.dn-fin-table td small{display:block;font-size:9px;color:#93a1b2;margin-top:5px}
+.dn-fin-sidebar,.dn-settlement-sidebar,.dn-financial-side{display:grid;gap:11px;min-width:0}
+.dn-fin-inspector{display:flex;gap:10px;align-items:center;border-bottom:1px solid #edf0f4;padding:7px 0 14px;margin-bottom:9px}
+.dn-fin-inspect-icon{width:47px;height:47px;min-width:47px;background:#e8f8ee;color:#007a53;display:grid;place-items:center;border-radius:10px}
+.dn-fin-inspector h2{font-size:17px;margin:0 0 6px}
+.dn-fin-inspector p{color:#798aa2;font-size:10px;margin:6px 0 0}
+.dn-fin-actionbar{display:flex;gap:7px;flex-wrap:wrap;border-top:1px solid #edf1f5;margin-top:13px;padding-top:13px}
+.dn-fin-actionbar .dn-btn{font-size:10px;padding:0 10px}
+.dn-fin-methods{display:grid;gap:10px}
+.dn-fin-methods>div{display:grid;grid-template-columns:1fr auto;gap:4px;font-size:10px;color:#455f7a}
+.dn-fin-methods .dn-geo-progress{grid-column:1/-1;margin:2px 0}
+.dn-fin-note{background:#f4faf7;border-left:3px solid #0ba16b;padding:12px;color:#57786c;font-size:11px;line-height:1.7;border-radius:4px}
+.dn-fin-refund-item{display:flex;flex-wrap:wrap;justify-content:space-between;gap:7px;border-bottom:1px solid #e8eef3;padding:10px 0;font-size:10.5px}
+.dn-fin-refund-item p{width:100%;margin:0;font-size:10px;color:#698198}
+.dn-settlement-main{display:grid;gap:11px}
+.dn-settlement-controls{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px}
+.dn-settlement-controls>.dn-tabs{border:0}
+.dn-settlement-controls>.dn-tabs button{background:#f5f8f9;border-radius:6px;border:1px solid #e8edf2}
+.dn-settlement-controls>.dn-tabs button.selected{background:#005d4a;color:white;border-color:#005d4a}
+.dn-settlement-table{min-width:670px}
+.dn-settlement-table td,.dn-settlement-table th{padding:13px 8px}
+.dn-settlement-tip{margin-top:15px;padding:11px;background:#f0faf5;color:#4b745f;border-radius:6px;display:flex;gap:9px;align-items:flex-start;font-size:10px;line-height:1.6}
+.dn-settlement-secondary{display:grid;grid-template-columns:1.1fr .9fr;gap:11px}
+.dn-settlement-earnings{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.dn-settlement-earnings>div{border:1px solid #edf2f4;border-radius:6px;padding:10px}
+.dn-settlement-earnings span{display:block;font-size:10px;color:#687d95}
+.dn-settlement-earnings strong{display:block;font-size:16px;letter-spacing:-.04em;margin-top:6px}
+.dn-settlement-selected{display:flex;justify-content:space-between;align-items:center;gap:7px;margin:7px 0 15px}
+.dn-settlement-selected h2{font-size:18px;margin:0}
+.dn-settlement-selected p{font-size:10px;color:#7589a0;margin:5px 0 0}
+.dn-settlement-payee-list{max-height:330px;overflow:auto;margin:10px 0;scrollbar-width:thin}
+.dn-settlement-payee-list>div,.dn-settlement-payee-list>button{display:flex;align-items:center;gap:7px;width:100%;border:0;border-bottom:1px solid #e9eef3;background:white;padding:10px 2px;text-align:left}
+.dn-settlement-payee-list>div>span,.dn-settlement-payee-list>button>span{flex:1}
+.dn-settlement-payee-list b,.dn-settlement-payee-list strong{font-size:10px;color:#28445b}
+.dn-settlement-payee-list small{font-size:9px;color:#8294a9;display:block;margin-top:5px}
+.dn-settlement-payee-list p{color:#75869e;font-size:10px}
+.dn-financial-top{display:grid;grid-template-columns:minmax(400px,1.4fr) minmax(255px,.78fr) minmax(235px,.73fr);gap:11px;align-items:stretch}
+.dn-financial-top .dn-card{min-height:310px}
+.dn-fin-performance{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin:8px 0}
+.dn-fin-performance>div{padding:10px;border:1px solid #e8eef3;border-radius:6px}
+.dn-fin-performance span{display:block;font-size:9.5px;color:#71839b}
+.dn-fin-performance strong{display:block;font-size:16px;color:#17223a;letter-spacing:-.05em;margin:7px 0}
+.dn-fin-performance small{font-size:9px;color:#8297a8}
+.dn-fin-dual-chart{display:grid;grid-template-columns:1.4fr .75fr;gap:12px;align-items:end;min-height:150px}
+.dn-fin-dual-chart .dn-timeseries{height:160px}
+.dn-fin-dual-chart .dn-bars{height:150px}
+.dn-financial-top .dn-ring{height:110px;width:110px;min-width:110px}
+.dn-financial-top .dn-ring>div{height:72px;width:72px}
+.dn-financial-top .dn-ring b{font-size:12px;white-space:nowrap}
+.dn-financial-top .dn-ring-key{font-size:9px}
+.dn-financial-top .dn-detail-line span,.dn-financial-top .dn-detail-line strong{font-size:9.5px}
+.dn-fin-policy-warning{display:flex;gap:6px;background:#fff5ea;border-radius:6px;color:#985e20;font-size:10px;line-height:1.5;padding:10px;margin-top:11px}
+.dn-financial-bottom{display:grid;grid-template-columns:minmax(680px,1.55fr) minmax(290px,.74fr);gap:11px;align-items:start}
+.dn-financial-exceptions{display:grid;grid-template-columns:1fr 1fr;gap:14px;padding:13px 0}
+.dn-financial-exceptions>div{padding:12px;border:1px solid #e9eef3;border-radius:7px}
+.dn-financial-exceptions h3{font-size:12px;margin:0 0 13px}
+.dn-fin-alert-row{display:flex;gap:9px;align-items:center;padding:10px 0;border-bottom:1px solid #e9eef3;color:#eb4457}
+.dn-fin-alert-row>div{flex:1;min-width:0;color:#1a324b}
+.dn-fin-alert-row b{display:block;font-size:10px}
+.dn-fin-alert-row small{display:block;margin-top:5px;color:#7d8aa0;font-size:9px}
+.dn-financial-exceptions .dn-btn{margin-top:13px}
+.dn-fin-rules{grid-template-columns:1fr 1fr}
+.dn-positive{color:#0a8f5b!important;font-weight:700}
+@media(max-width:1550px){.dn-geo-grid{grid-template-columns:minmax(228px,.79fr) minmax(330px,1.18fr) minmax(270px,.95fr)}.dn-geo-middle-bottom{grid-template-columns:1fr}.dn-financial-top{grid-template-columns:1.4fr 1fr}.dn-financial-top>.dn-card:last-child{grid-column:1/-1;min-height:auto}.dn-fin-workspace,.dn-settlement-layout{grid-template-columns:minmax(600px,1.5fr) minmax(300px,.85fr)}}
+@media(max-width:1250px){.dn-geo-grid{grid-template-columns:minmax(225px,.9fr) minmax(340px,1.3fr)}.dn-geo-detail{grid-column:1/-1;min-height:unset}.dn-fin-workspace,.dn-settlement-layout,.dn-financial-bottom{grid-template-columns:1fr}.dn-fin-sidebar,.dn-settlement-sidebar,.dn-financial-side{grid-template-columns:1fr 1fr}.dn-financial-top{grid-template-columns:1fr 1fr}.dn-financial-top>.dn-card:last-child{grid-column:1/-1}.dn-financial-side .dn-card:last-child{align-self:start}.dn-fin-list,.dn-settlement-register{min-height:auto}}
+@media(max-width:850px){.dn-geo-grid,.dn-financial-top{grid-template-columns:1fr}.dn-geo-detail{grid-column:auto}.dn-geo-middle-bottom{grid-template-columns:1fr 1fr}.dn-financial-top>.dn-card:last-child{grid-column:auto}.dn-fin-sidebar,.dn-settlement-sidebar,.dn-financial-side{grid-template-columns:1fr}.dn-financial-exceptions{grid-template-columns:1fr}.dn-settlement-secondary{grid-template-columns:1fr 1fr}}
+@media(max-width:650px){.dn-geo-middle-bottom,.dn-settlement-secondary,.dn-fin-performance,.dn-fin-dual-chart,.dn-fin-rules,.dn-geo-rules{grid-template-columns:1fr}.dn-geo-map{height:360px}.dn-fin-table,.dn-settlement-table{min-width:660px}.dn-settlement-controls{flex-direction:column;align-items:stretch}.dn-metrics.five .dn-stat strong{font-size:15px}}

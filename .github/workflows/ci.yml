@@ -2,7 +2,7 @@ name: Deetoo CI Pipeline
 
 on:
   push:
-    branches: [main, master, develop, 'phase-*']
+    branches: [main, master, develop, 'phase-*', 'feat/admin-next-design-first-phase*', 'feat/admin-next-backend-phase*']
   pull_request:
     branches: [main, master, develop]
 
@@ -92,6 +92,9 @@ jobs:
       - name: Build Admin Web independently
         run: pnpm build:admin
 
+      - name: Build design-first Admin frontend independently
+        run: pnpm build:admin-next
+
       - name: Build API independently
         run: pnpm build:api
 
@@ -143,6 +146,8 @@ jobs:
         with:
           languages: javascript-typescript
       - uses: github/codeql-action/analyze@v3
+      - name: Inventory full-repository CodeQL findings (new-issue check evaluated separately)
+        run: node scripts/codeql-sarif-high-gate.mjs
 
   browser-acceptance:
     name: Independent web browser acceptance
@@ -171,11 +176,26 @@ jobs:
       - name: Verify independent web auth and role isolation
         run: pnpm test:phase1-browser
 
+      - name: Verify approved Admin Phase 1–4 frontend-only workflows and capture reference screens
+        run: pnpm test:admin-next-visual
+
+      - name: Phase 5 — verify 16 live Admin screens, recovery, staff isolation and cross-app contracts
+        run: pnpm test:admin-next-live
+
       - name: Verify design-first customer preview and capture reference viewport
         run: pnpm test:customer-next-visual
 
       - name: Verify Phase B2 API-connected customer shopping with mocked backend contracts
         run: pnpm test:customer-next-connected
+
+      - name: Upload approved Admin frontend-only Phase 1–4 screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: admin-next-all-16-screens-visual
+          path: visual-output/admin-next/
+          if-no-files-found: warn
+          retention-days: 14
 
       - name: Upload design-first customer screenshots and geometry
         if: always()
@@ -282,5 +302,5 @@ jobs:
         with:
           node-version: 22
       - run: pnpm install --frozen-lockfile
-      - name: Validate real database payment, merchant fulfilment, rider dispatch, pickup OTP and delivered completion
+      - name: Phase 5 — validate payment, fulfilment, rider delivery, verified support, pending onboarding and cross-role denials
         run: pnpm test:local-workflow

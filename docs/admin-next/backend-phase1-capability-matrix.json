@@ -1,0 +1,1439 @@
+{
+  "title": "DeeToo Admin Next Phase 1 Backend Integration Capability Matrix",
+  "date": "2026-10-11",
+  "auditType": "Static source code; runtime not verified",
+  "baseline": {
+    "frontend": "feat/admin-next-design-first-phase4 @ 32af9e498e83d7b21a59a948024f2decf19766c3",
+    "branch": "audit/admin-next-backend-phase1",
+    "apiPrefix": "/api/v1",
+    "previousPhases": "Visual/screens completed and approved; no API connected in admin-web-next"
+  },
+  "legend": {
+    "R": "REUSE: existing suitable server route/service at code level",
+    "E": "EXTEND: backend exists but DTO, policy, read model or UX contract is incomplete",
+    "N": "NEW: necessary backend contract or store not identified",
+    "UI": "UI-ONLY: preserve UX; no production API write should be introduced"
+  },
+  "summary": {
+    "all": 157,
+    "UI": 6,
+    "E": 48,
+    "R": 87,
+    "N": 16
+  },
+  "entries": [
+    {
+      "id": "ADM-00-01",
+      "screen": "00 Shared shell",
+      "frontend": "apps/admin-web-next/src/App.tsx",
+      "status": "UI",
+      "component": "Navigation and cross-screen links",
+      "existing_api": "Client routes; preserve route IDs and deep-link context",
+      "required": "No API required; typed route/query state replaces transient sessionStorage links."
+    },
+    {
+      "id": "ADM-00-02",
+      "screen": "00 Shared shell",
+      "frontend": "apps/admin-web-next/src/App.tsx",
+      "status": "E",
+      "component": "Admin authentication and profile",
+      "existing_api": "GET /auth/me; POST /auth/login; POST /auth/logout",
+      "required": "Replace fake role selector with real cookie/token session; recover 401 and MFA step-up."
+    },
+    {
+      "id": "ADM-00-03",
+      "screen": "00 Shared shell",
+      "frontend": "apps/admin-web-next/src/App.tsx",
+      "status": "E",
+      "component": "Role selector and viewer mode",
+      "existing_api": "Roles and guards in auth.middleware.ts and @deetoo/types",
+      "required": "Real backend roles: super_admin, admin, ops, support, finance; VIEWER is preview-only."
+    },
+    {
+      "id": "ADM-00-04",
+      "screen": "00 Shared shell",
+      "frontend": "apps/admin-web-next/src/App.tsx",
+      "status": "R",
+      "component": "Global search across entities",
+      "existing_api": "GET /operations/search",
+      "required": "Map IDs and entity types; enforce redaction and role scopes."
+    },
+    {
+      "id": "ADM-00-05",
+      "screen": "00 Shared shell",
+      "frontend": "apps/admin-web-next/src/App.tsx",
+      "status": "E",
+      "component": "County selector and filter propagation",
+      "existing_api": "GET /admin/geography/counties; GET /admin/orders; GET /admin/riders",
+      "required": "Use 3-digit code, URL-level filter propagation and supported county fields."
+    },
+    {
+      "id": "ADM-00-06",
+      "screen": "00 Shared shell",
+      "frontend": "apps/admin-web-next/src/App.tsx",
+      "status": "E",
+      "component": "Alert bell and unread count",
+      "existing_api": "GET /operations/incidents; GET /operations/support/cases; GET /operations/notifications",
+      "required": "Build scoped aggregate/read model; outbound notification log != admin inbox."
+    },
+    {
+      "id": "ADM-00-07",
+      "screen": "00 Shared shell",
+      "frontend": "apps/admin-web-next/src/App.tsx",
+      "status": "R",
+      "component": "Live updates/invalidation",
+      "existing_api": "GET /realtime/stream; GET /realtime/events",
+      "required": "Stream only invalidations; refetch authorized resources and retry on disconnect."
+    },
+    {
+      "id": "ADM-00-08",
+      "screen": "00 Shared shell",
+      "frontend": "apps/admin-web-next/src/App.tsx",
+      "status": "UI",
+      "component": "Reset demo and simulated role / state controls",
+      "existing_api": "No production mutation endpoint",
+      "required": "Remove from live mode or keep behind explicit QA/demo flag; never reset real data."
+    },
+    {
+      "id": "ADM-00-09",
+      "screen": "00 Shared shell",
+      "frontend": "apps/admin-web-next/src/App.tsx",
+      "status": "UI",
+      "component": "Loading, empty, errors and retry",
+      "existing_api": "Request IDs + error middleware",
+      "required": "Keep all accepted states; network abort, pagination and retry per resource."
+    },
+    {
+      "id": "ADM-00-10",
+      "screen": "00 Shared shell",
+      "frontend": "apps/admin-web-next/src/App.tsx",
+      "status": "E",
+      "component": "Money / dates / identifiers across all screens",
+      "existing_api": "@deetoo/types; @deetoo/api-client",
+      "required": "Backend UUIDs, ISO dates, integer KES minor units and canonical enums; never use mock DR IDs or float totals."
+    },
+    {
+      "id": "ADM-01-01",
+      "screen": "01 Operations Command Center",
+      "frontend": "apps/admin-web-next/src/screens/command.tsx",
+      "status": "R",
+      "component": "KPI cards: active, completed, delayed, riders",
+      "existing_api": "GET /operations/control-tower; GET /admin/dispatch/metrics; GET /admin/riders/metrics",
+      "required": "Aggregate current authoritative operations."
+    },
+    {
+      "id": "ADM-01-02",
+      "screen": "01 Operations Command Center",
+      "frontend": "apps/admin-web-next/src/screens/command.tsx",
+      "status": "R",
+      "component": "Financial summary and revenue KPI",
+      "existing_api": "GET /finance/ops/overview; GET /finance/profitability",
+      "required": "Use captured financial state/ledger amounts, not order subtotal guesses."
+    },
+    {
+      "id": "ADM-01-03",
+      "screen": "01 Operations Command Center",
+      "frontend": "apps/admin-web-next/src/screens/command.tsx",
+      "status": "E",
+      "component": "Live map and rider/order pins",
+      "existing_api": "GET /admin/dispatch/deliveries; GET /admin/riders; GET /realtime/stream",
+      "required": "Add secure/map-ready live rider coordinates and provider tile/route support."
+    },
+    {
+      "id": "ADM-01-04",
+      "screen": "01 Operations Command Center",
+      "frontend": "apps/admin-web-next/src/screens/command.tsx",
+      "status": "E",
+      "component": "Order volume/revenue graphs by period",
+      "existing_api": "GET /admin/orders; GET /finance/ops/overview",
+      "required": "Historical time buckets, timezone and reconciliation-aware aggregates missing."
+    },
+    {
+      "id": "ADM-01-05",
+      "screen": "01 Operations Command Center",
+      "frontend": "apps/admin-web-next/src/screens/command.tsx",
+      "status": "E",
+      "component": "Service/health summary",
+      "existing_api": "GET /health/ready; GET /operations/launch-readiness",
+      "required": "Need per-service monitor aggregates; readiness is not fleet/service SLO."
+    },
+    {
+      "id": "ADM-01-06",
+      "screen": "01 Operations Command Center",
+      "frontend": "apps/admin-web-next/src/screens/command.tsx",
+      "status": "E",
+      "component": "Top performing areas",
+      "existing_api": "GET /operations/supply; GET /admin/geography/zones",
+      "required": "Add county/zone historical grouped reporting."
+    },
+    {
+      "id": "ADM-01-07",
+      "screen": "01 Operations Command Center",
+      "frontend": "apps/admin-web-next/src/screens/command.tsx",
+      "status": "R",
+      "component": "Delayed deliveries with drill-down",
+      "existing_api": "GET /admin/dispatch/stuck; GET /admin/orders/:id",
+      "required": "Respect delivery status vocabulary and risk/SLA evaluation."
+    },
+    {
+      "id": "ADM-01-08",
+      "screen": "01 Operations Command Center",
+      "frontend": "apps/admin-web-next/src/screens/command.tsx",
+      "status": "R",
+      "component": "Incident and support previews",
+      "existing_api": "GET /operations/incidents; GET /operations/support/cases",
+      "required": "Paginate/filter; show severity and queue counts."
+    },
+    {
+      "id": "ADM-02-01",
+      "screen": "02 Live Dispatch & Tracking",
+      "frontend": "apps/admin-web-next/src/screens/dispatch.tsx",
+      "status": "R",
+      "component": "Delivery queue/status/search/filters",
+      "existing_api": "GET /admin/dispatch/deliveries; GET /admin/dispatch/metrics",
+      "required": "Use server pagination, allowed filter values and live event refetch."
+    },
+    {
+      "id": "ADM-02-02",
+      "screen": "02 Live Dispatch & Tracking",
+      "frontend": "apps/admin-web-next/src/screens/dispatch.tsx",
+      "status": "R",
+      "component": "Selected delivery, order and addresses",
+      "existing_api": "GET /admin/dispatch/deliveries/:id; GET /operations/orders/unified/:id",
+      "required": "Join canonical order ID and delivery ID."
+    },
+    {
+      "id": "ADM-02-03",
+      "screen": "02 Live Dispatch & Tracking",
+      "frontend": "apps/admin-web-next/src/screens/dispatch.tsx",
+      "status": "R",
+      "component": "Eligible rider list / distance / availability",
+      "existing_api": "GET /admin/dispatch/deliveries/:id/eligible-riders; GET /admin/dispatch/deliveries/:id/candidates",
+      "required": "Use server eligibility and availability, not mock proximity."
+    },
+    {
+      "id": "ADM-02-04",
+      "screen": "02 Live Dispatch & Tracking",
+      "frontend": "apps/admin-web-next/src/screens/dispatch.tsx",
+      "status": "R",
+      "component": "Manual rider assignment / reassignment",
+      "existing_api": "POST /admin/dispatch/deliveries/:id/assign; POST /admin/dispatch/deliveries/:id/unassign",
+      "required": "Reason, concurrency/idempotency and state-machine restrictions required."
+    },
+    {
+      "id": "ADM-02-05",
+      "screen": "02 Live Dispatch & Tracking",
+      "frontend": "apps/admin-web-next/src/screens/dispatch.tsx",
+      "status": "R",
+      "component": "Trigger dispatch/scan stuck",
+      "existing_api": "POST /admin/dispatch/deliveries/:id/trigger; GET /admin/dispatch/stuck",
+      "required": "Server must own workflow."
+    },
+    {
+      "id": "ADM-02-06",
+      "screen": "02 Live Dispatch & Tracking",
+      "frontend": "apps/admin-web-next/src/screens/dispatch.tsx",
+      "status": "E",
+      "component": "Confirm operational milestone / force complete",
+      "existing_api": "POST /admin/dispatch/deliveries/:id/force-complete; rider delivery lifecycle endpoints",
+      "required": "Do not expose arbitrary status updates; handover and proof-of-delivery guards."
+    },
+    {
+      "id": "ADM-02-07",
+      "screen": "02 Live Dispatch & Tracking",
+      "frontend": "apps/admin-web-next/src/screens/dispatch.tsx",
+      "status": "E",
+      "component": "Map/satellite/routes/real-time rider positions",
+      "existing_api": "GET /rider/location is publish-only; GET /realtime/stream; maps provider",
+      "required": "Real tiles/routing/provider, coordinate read authorization, stale-position handling."
+    },
+    {
+      "id": "ADM-02-08",
+      "screen": "02 Live Dispatch & Tracking",
+      "frontend": "apps/admin-web-next/src/screens/dispatch.tsx",
+      "status": "E",
+      "component": "Escalate to incident and contact rider",
+      "existing_api": "GET /operations/incidents; POST /operations/support/cases",
+      "required": "No general staffed incident-create route; build context-aware escalation, verified contact relay."
+    },
+    {
+      "id": "ADM-03-01",
+      "screen": "03 Orders & Deliveries",
+      "frontend": "apps/admin-web-next/src/screens/orders.tsx",
+      "status": "R",
+      "component": "Search/filter/sort/paginate/export list",
+      "existing_api": "GET /admin/orders; GET /operations/search",
+      "required": "CSV/print can be client generated from scoped authorized data; check full export scope."
+    },
+    {
+      "id": "ADM-03-02",
+      "screen": "03 Orders & Deliveries",
+      "frontend": "apps/admin-web-next/src/screens/orders.tsx",
+      "status": "R",
+      "component": "Order timeline/status/line items",
+      "existing_api": "GET /admin/orders/:id; GET /operations/orders/unified/:id",
+      "required": "Normalize server order and delivery timelines."
+    },
+    {
+      "id": "ADM-03-03",
+      "screen": "03 Orders & Deliveries",
+      "frontend": "apps/admin-web-next/src/screens/orders.tsx",
+      "status": "R",
+      "component": "Customer/merchant/rider details and navigation",
+      "existing_api": "GET /admin/customers/:id; GET /admin/merchants/:id; GET /admin/riders/:id",
+      "required": "Only disclose permitted fields."
+    },
+    {
+      "id": "ADM-03-04",
+      "screen": "03 Orders & Deliveries",
+      "frontend": "apps/admin-web-next/src/screens/orders.tsx",
+      "status": "R",
+      "component": "Payment detail drill-down",
+      "existing_api": "GET /finance/ops/payments; GET /payments/order/:orderId",
+      "required": "Never infer payment capture from order state."
+    },
+    {
+      "id": "ADM-03-05",
+      "screen": "03 Orders & Deliveries",
+      "frontend": "apps/admin-web-next/src/screens/orders.tsx",
+      "status": "R",
+      "component": "Assign/reassign courier",
+      "existing_api": "GET /admin/dispatch/deliveries; POST /admin/dispatch/deliveries/:id/assign",
+      "required": "Resolve delivery ID associated with order before mutating."
+    },
+    {
+      "id": "ADM-03-06",
+      "screen": "03 Orders & Deliveries",
+      "frontend": "apps/admin-web-next/src/screens/orders.tsx",
+      "status": "R",
+      "component": "Cancel order with reason",
+      "existing_api": "POST /admin/orders/:id/cancel",
+      "required": "Canonical allowed transitions, refund implications and audit evidence."
+    },
+    {
+      "id": "ADM-03-07",
+      "screen": "03 Orders & Deliveries",
+      "frontend": "apps/admin-web-next/src/screens/orders.tsx",
+      "status": "E",
+      "component": "General administrative status editing",
+      "existing_api": "POST /admin/dispatch/deliveries/:id/force-complete (restricted)",
+      "required": "No general arbitrary order-status PATCH; preserve UI but enforce allowed domain commands."
+    },
+    {
+      "id": "ADM-03-08",
+      "screen": "03 Orders & Deliveries",
+      "frontend": "apps/admin-web-next/src/screens/orders.tsx",
+      "status": "N",
+      "component": "Internal order notes",
+      "existing_api": "No admin order-note endpoint located",
+      "required": "Add audited order-note thread or link to support; preserve note composer."
+    },
+    {
+      "id": "ADM-03-09",
+      "screen": "03 Orders & Deliveries",
+      "frontend": "apps/admin-web-next/src/screens/orders.tsx",
+      "status": "E",
+      "component": "Support/communication actions",
+      "existing_api": "POST /operations/support/cases; participant notification service",
+      "required": "Open scoped conversation; direct contact requires verified relay/consent."
+    },
+    {
+      "id": "ADM-04-01",
+      "screen": "04 Riders & Fleet",
+      "frontend": "apps/admin-web-next/src/screens/riders.tsx",
+      "status": "R",
+      "component": "Rider list/search/filters/metrics",
+      "existing_api": "GET /admin/riders; GET /admin/riders/metrics",
+      "required": "Canonical availability/onboarding/approval states."
+    },
+    {
+      "id": "ADM-04-02",
+      "screen": "04 Riders & Fleet",
+      "frontend": "apps/admin-web-next/src/screens/riders.tsx",
+      "status": "R",
+      "component": "Rider profile and details",
+      "existing_api": "GET /admin/riders/:id",
+      "required": "Use user ID vs rider profile ID correctly."
+    },
+    {
+      "id": "ADM-04-03",
+      "screen": "04 Riders & Fleet",
+      "frontend": "apps/admin-web-next/src/screens/riders.tsx",
+      "status": "R",
+      "component": "Rider create/onboard",
+      "existing_api": "POST /admin/governance/provision",
+      "required": "Creates PENDING account; no instant activation or bypass onboarding."
+    },
+    {
+      "id": "ADM-04-04",
+      "screen": "04 Riders & Fleet",
+      "frontend": "apps/admin-web-next/src/screens/riders.tsx",
+      "status": "R",
+      "component": "Approve/reject/suspend/reactivate",
+      "existing_api": "POST /admin/riders/:id/approve; /reject; /suspend; /reactivate",
+      "required": "Include reason, audited guarded actions and real service-zone eligibility."
+    },
+    {
+      "id": "ADM-04-05",
+      "screen": "04 Riders & Fleet",
+      "frontend": "apps/admin-web-next/src/screens/riders.tsx",
+      "status": "R",
+      "component": "Service zone assignment",
+      "existing_api": "POST /admin/riders/:id/zones",
+      "required": "Server validated zones, not user-typed county names."
+    },
+    {
+      "id": "ADM-04-06",
+      "screen": "04 Riders & Fleet",
+      "frontend": "apps/admin-web-next/src/screens/riders.tsx",
+      "status": "E",
+      "component": "Live track/last known location on map",
+      "existing_api": "POST /rider/location; GET /admin/riders/:id; GET /realtime/stream",
+      "required": "Read-side live location, expiration and consent/scope verification."
+    },
+    {
+      "id": "ADM-04-07",
+      "screen": "04 Riders & Fleet",
+      "frontend": "apps/admin-web-next/src/screens/riders.tsx",
+      "status": "E",
+      "component": "Vehicles and active assignments",
+      "existing_api": "GET /rider/vehicles; GET /admin/dispatch/deliveries",
+      "required": "Add admin-safe vehicle roster and cross-reference by rider ID."
+    },
+    {
+      "id": "ADM-04-08",
+      "screen": "04 Riders & Fleet",
+      "frontend": "apps/admin-web-next/src/screens/riders.tsx",
+      "status": "E",
+      "component": "Rider performance and earnings charts",
+      "existing_api": "GET /rider/performance; GET /trust/riders/:riderId/performance; GET /rider/earnings",
+      "required": "Historical admin fleet analytics/period filters required."
+    },
+    {
+      "id": "ADM-04-09",
+      "screen": "04 Riders & Fleet",
+      "frontend": "apps/admin-web-next/src/screens/riders.tsx",
+      "status": "E",
+      "component": "Export/new application forms",
+      "existing_api": "GET /admin/riders; POST /admin/governance/provision",
+      "required": "CSV can be client side; provisioning requires phone/role/identity contracts."
+    },
+    {
+      "id": "ADM-05-01",
+      "screen": "05 Incident Management",
+      "frontend": "apps/admin-web-next/src/screens/incidents.tsx",
+      "status": "R",
+      "component": "Incident dashboard, list, severity/type filters",
+      "existing_api": "GET /operations/overview; GET /operations/incidents",
+      "required": "Server paginated incident records and counts."
+    },
+    {
+      "id": "ADM-05-02",
+      "screen": "05 Incident Management",
+      "frontend": "apps/admin-web-next/src/screens/incidents.tsx",
+      "status": "R",
+      "component": "Incident detail, related entities",
+      "existing_api": "GET /operations/incidents/:id; GET /operations/orders/unified/:id",
+      "required": "Canonical incident relations and incident timeline."
+    },
+    {
+      "id": "ADM-05-03",
+      "screen": "05 Incident Management",
+      "frontend": "apps/admin-web-next/src/screens/incidents.tsx",
+      "status": "R",
+      "component": "Acknowledge/investigate/assign",
+      "existing_api": "POST /operations/incidents/:id/acknowledge; /investigate; /assign",
+      "required": "Map accepted state changes to real workflow."
+    },
+    {
+      "id": "ADM-05-04",
+      "screen": "05 Incident Management",
+      "frontend": "apps/admin-web-next/src/screens/incidents.tsx",
+      "status": "R",
+      "component": "Resolve/dismiss/reopen/escalate",
+      "existing_api": "POST /operations/incidents/:id/resolve; /dismiss; /reopen",
+      "required": "Escalation may be severity/state-specific; no unrestricted status patch."
+    },
+    {
+      "id": "ADM-05-05",
+      "screen": "05 Incident Management",
+      "frontend": "apps/admin-web-next/src/screens/incidents.tsx",
+      "status": "R",
+      "component": "Internal notes and timeline audit",
+      "existing_api": "POST /operations/incidents/:id/timeline",
+      "required": "Role-gated note attribution."
+    },
+    {
+      "id": "ADM-05-06",
+      "screen": "05 Incident Management",
+      "frontend": "apps/admin-web-next/src/screens/incidents.tsx",
+      "status": "N",
+      "component": "Manual Report Incident action",
+      "existing_api": "OperationalIncidentService.raiseIncident exists; POST /operations/incidents absent",
+      "required": "Expose guarded creation with category, valid linked IDs and audit."
+    },
+    {
+      "id": "ADM-05-07",
+      "screen": "05 Incident Management",
+      "frontend": "apps/admin-web-next/src/screens/incidents.tsx",
+      "status": "E",
+      "component": "Evidence/attachment display and upload",
+      "existing_api": "Media API exists; no incident-to-media association confirmed",
+      "required": "Add scoped media references, signing/access policies and retention."
+    },
+    {
+      "id": "ADM-05-08",
+      "screen": "05 Incident Management",
+      "frontend": "apps/admin-web-next/src/screens/incidents.tsx",
+      "status": "E",
+      "component": "Analytics resolution trends by category",
+      "existing_api": "GET /operations/incidents",
+      "required": "Use server summaries or periodic aggregations for long time windows."
+    },
+    {
+      "id": "ADM-06-01",
+      "screen": "06 Support & Conversations",
+      "frontend": "apps/admin-web-next/src/screens/support.tsx",
+      "status": "R",
+      "component": "Inbox filters, assignment and case detail",
+      "existing_api": "GET /operations/support/cases; GET /operations/support/cases/:id; POST .../:id/assign",
+      "required": "Roles, pagination, priority, participant joins."
+    },
+    {
+      "id": "ADM-06-02",
+      "screen": "06 Support & Conversations",
+      "frontend": "apps/admin-web-next/src/screens/support.tsx",
+      "status": "R",
+      "component": "Create case and link order/participant",
+      "existing_api": "POST /operations/support/cases",
+      "required": "Resolve authoritative actor/party identities, not arbitrary free-text senders."
+    },
+    {
+      "id": "ADM-06-03",
+      "screen": "06 Support & Conversations",
+      "frontend": "apps/admin-web-next/src/screens/support.tsx",
+      "status": "R",
+      "component": "Threaded participant messages",
+      "existing_api": "POST /support/cases/:id/messages; GET /operations/support/cases/:id",
+      "required": "Never impersonate participants or manufacture responses."
+    },
+    {
+      "id": "ADM-06-04",
+      "screen": "06 Support & Conversations",
+      "frontend": "apps/admin-web-next/src/screens/support.tsx",
+      "status": "R",
+      "component": "Private/internal notes",
+      "existing_api": "POST /operations/support/cases/:id/notes",
+      "required": "Visibility scopes must not leak internal notes to participants."
+    },
+    {
+      "id": "ADM-06-05",
+      "screen": "06 Support & Conversations",
+      "frontend": "apps/admin-web-next/src/screens/support.tsx",
+      "status": "R",
+      "component": "Attachments and signed download",
+      "existing_api": "GET /operations/support/cases/:id/attachments/:mediaId/read-url; media services",
+      "required": "Upload association requires scoped media and storage readiness."
+    },
+    {
+      "id": "ADM-06-06",
+      "screen": "06 Support & Conversations",
+      "frontend": "apps/admin-web-next/src/screens/support.tsx",
+      "status": "R",
+      "component": "Escalation/status/resolve",
+      "existing_api": "POST /operations/support/cases/:id/status; /resolve",
+      "required": "Real statuses differ from demo; preserve full conversation."
+    },
+    {
+      "id": "ADM-06-07",
+      "screen": "06 Support & Conversations",
+      "frontend": "apps/admin-web-next/src/screens/support.tsx",
+      "status": "R",
+      "component": "Participant accepts/disputes resolution",
+      "existing_api": "POST /support/cases/:id/resolution-response; POST /operations/support/cases/:id/finalize",
+      "required": "Customer/merchant/rider must respond from own authenticated accounts."
+    },
+    {
+      "id": "ADM-06-08",
+      "screen": "06 Support & Conversations",
+      "frontend": "apps/admin-web-next/src/screens/support.tsx",
+      "status": "R",
+      "component": "Admin exceptional force-close",
+      "existing_api": "POST /operations/support/cases/:id/force-close",
+      "required": "Super Admin only with reason, visible audit and policy."
+    },
+    {
+      "id": "ADM-06-09",
+      "screen": "06 Support & Conversations",
+      "frontend": "apps/admin-web-next/src/screens/support.tsx",
+      "status": "UI",
+      "component": "Simulate participant reply button",
+      "existing_api": "No live impersonation by design",
+      "required": "Keep QA-preview-only; production requires real participant interaction."
+    },
+    {
+      "id": "ADM-06-10",
+      "screen": "06 Support & Conversations",
+      "frontend": "apps/admin-web-next/src/screens/support.tsx",
+      "status": "E",
+      "component": "Support order/payment/rider context",
+      "existing_api": "GET /operations/orders/unified/:id; GET /operations/support/cases/:id",
+      "required": "Add DTO joins and permission filtering where missing."
+    },
+    {
+      "id": "ADM-07-01",
+      "screen": "07 Merchant Management",
+      "frontend": "apps/admin-web-next/src/screens/merchants.tsx",
+      "status": "R",
+      "component": "Merchant directory, status/filter/verification",
+      "existing_api": "GET /admin/merchants; GET /admin/merchants/:id",
+      "required": "Map status vs approval_status and onboarding stage separately."
+    },
+    {
+      "id": "ADM-07-02",
+      "screen": "07 Merchant Management",
+      "frontend": "apps/admin-web-next/src/screens/merchants.tsx",
+      "status": "R",
+      "component": "Create merchant/provision owner",
+      "existing_api": "POST /admin/merchants; POST /admin/governance/provision",
+      "required": "Choose controlled provisioning flow, no duplicate owner account."
+    },
+    {
+      "id": "ADM-07-03",
+      "screen": "07 Merchant Management",
+      "frontend": "apps/admin-web-next/src/screens/merchants.tsx",
+      "status": "R",
+      "component": "Approval/rejection/suspend/reactivate",
+      "existing_api": "POST /admin/merchants/:id/approve; /reject; /suspend; /reactivate",
+      "required": "Require notes and real onboarding gates."
+    },
+    {
+      "id": "ADM-07-04",
+      "screen": "07 Merchant Management",
+      "frontend": "apps/admin-web-next/src/screens/merchants.tsx",
+      "status": "R",
+      "component": "Profile business/contact edit",
+      "existing_api": "PATCH /admin/merchants/:id",
+      "required": "Super Admin authority for protected fields."
+    },
+    {
+      "id": "ADM-07-05",
+      "screen": "07 Merchant Management",
+      "frontend": "apps/admin-web-next/src/screens/merchants.tsx",
+      "status": "R",
+      "component": "Branch directory/create/edit/status",
+      "existing_api": "GET/POST /admin/merchants/:id/branches; PATCH /admin/branches/:id; POST .../suspend, /reactivate",
+      "required": "Reconcile operational pause vs admin suspension state."
+    },
+    {
+      "id": "ADM-07-06",
+      "screen": "07 Merchant Management",
+      "frontend": "apps/admin-web-next/src/screens/merchants.tsx",
+      "status": "R",
+      "component": "KYC documents and manual verification",
+      "existing_api": "GET /admin/merchant-experience/documents; POST .../documents/:id/review",
+      "required": "Preserve review state, media access, expiry and authorization."
+    },
+    {
+      "id": "ADM-07-07",
+      "screen": "07 Merchant Management",
+      "frontend": "apps/admin-web-next/src/screens/merchants.tsx",
+      "status": "E",
+      "component": "Merchant order/performance charts",
+      "existing_api": "GET /admin/orders; GET /finance/profitability; GET /merchant/experience/orders/metrics",
+      "required": "Admin-scoped merchant historical read model and period filters."
+    },
+    {
+      "id": "ADM-07-08",
+      "screen": "07 Merchant Management",
+      "frontend": "apps/admin-web-next/src/screens/merchants.tsx",
+      "status": "R",
+      "component": "Merchant payouts and settlement tab",
+      "existing_api": "GET /finance/settlements; GET /finance/merchant/statement",
+      "required": "Financial privacy/merchant scope; backend statuses and money minor units."
+    },
+    {
+      "id": "ADM-07-09",
+      "screen": "07 Merchant Management",
+      "frontend": "apps/admin-web-next/src/screens/merchants.tsx",
+      "status": "R",
+      "component": "Merchant branch zone assignments",
+      "existing_api": "POST /admin/branches/:branchId/service-zones",
+      "required": "Polygon eligibility/hierarchy readiness."
+    },
+    {
+      "id": "ADM-07-10",
+      "screen": "07 Merchant Management",
+      "frontend": "apps/admin-web-next/src/screens/merchants.tsx",
+      "status": "E",
+      "component": "Administrative CSV exports/activity",
+      "existing_api": "GET /admin/merchants; GET /admin/audit; GET /admin/governance/events",
+      "required": "Expose resource-scoped audit stream/export paging if needed."
+    },
+    {
+      "id": "ADM-08-01",
+      "screen": "08 Customer Management",
+      "frontend": "apps/admin-web-next/src/screens/customers.tsx",
+      "status": "R",
+      "component": "Directory/search/paging/detail",
+      "existing_api": "GET /admin/customers; GET /admin/customers/:id",
+      "required": "Read server cursor/offset and sensitive DTOs."
+    },
+    {
+      "id": "ADM-08-02",
+      "screen": "08 Customer Management",
+      "frontend": "apps/admin-web-next/src/screens/customers.tsx",
+      "status": "R",
+      "component": "Customer registration/create",
+      "existing_api": "POST /admin/governance/provision (subject_type CUSTOMER)",
+      "required": "Creates PENDING identity; requires activation/verification workflow."
+    },
+    {
+      "id": "ADM-08-03",
+      "screen": "08 Customer Management",
+      "frontend": "apps/admin-web-next/src/screens/customers.tsx",
+      "status": "R",
+      "component": "Correct customer name/email/phone",
+      "existing_api": "PATCH /admin/governance/users/:id",
+      "required": "Audited Super Admin correction, prevent identifier conflicts."
+    },
+    {
+      "id": "ADM-08-04",
+      "screen": "08 Customer Management",
+      "frontend": "apps/admin-web-next/src/screens/customers.tsx",
+      "status": "E",
+      "component": "Restrict/suspend/reactivate/delete",
+      "existing_api": "POST /admin/governance/users/:id/deactivate; /reactivate",
+      "required": "Backend PENDING/ACTIVE/SUSPENDED/DISABLED; no RESTRICTED or true DELETE contract."
+    },
+    {
+      "id": "ADM-08-05",
+      "screen": "08 Customer Management",
+      "frontend": "apps/admin-web-next/src/screens/customers.tsx",
+      "status": "E",
+      "component": "Address view / add / manage",
+      "existing_api": "GET /admin/customers/:id; /customer/addresses CRUD (self only)",
+      "required": "Admin address mutation needs explicit audited authorization and location validation."
+    },
+    {
+      "id": "ADM-08-06",
+      "screen": "08 Customer Management",
+      "frontend": "apps/admin-web-next/src/screens/customers.tsx",
+      "status": "R",
+      "component": "Order history and spending",
+      "existing_api": "GET /admin/orders; GET /admin/orders/:id",
+      "required": "Merchant/amount/source joins; avoid counting unpaid or refunded as spent."
+    },
+    {
+      "id": "ADM-08-07",
+      "screen": "08 Customer Management",
+      "frontend": "apps/admin-web-next/src/screens/customers.tsx",
+      "status": "R",
+      "component": "Support history/messages",
+      "existing_api": "GET /operations/support/cases (customer filter)",
+      "required": "Deep-link real case IDs and redact other parties."
+    },
+    {
+      "id": "ADM-08-08",
+      "screen": "08 Customer Management",
+      "frontend": "apps/admin-web-next/src/screens/customers.tsx",
+      "status": "R",
+      "component": "Payment tab/refund history",
+      "existing_api": "GET /finance/ops/payments; GET /payments/admin/:id/refunds",
+      "required": "Sensitive finance role restrictions; support display may need summary DTO."
+    },
+    {
+      "id": "ADM-08-09",
+      "screen": "08 Customer Management",
+      "frontend": "apps/admin-web-next/src/screens/customers.tsx",
+      "status": "E",
+      "component": "Notes and customer audit",
+      "existing_api": "GET /admin/governance/events; GET /admin/audit",
+      "required": "Add customer-specific note management with author/visibility and retention."
+    },
+    {
+      "id": "ADM-08-10",
+      "screen": "08 Customer Management",
+      "frontend": "apps/admin-web-next/src/screens/customers.tsx",
+      "status": "N",
+      "component": "CSV import, export",
+      "existing_api": "Bulk admin import/provision API not found",
+      "required": "Safe bulk invite, duplicate validation, dry run, per-record result, limits and audit."
+    },
+    {
+      "id": "ADM-09-01",
+      "screen": "09 Geography & Service Coverage",
+      "frontend": "apps/admin-web-next/src/screens/geography.tsx",
+      "status": "R",
+      "component": "47 county list and operating toggles",
+      "existing_api": "GET /admin/geography/counties; PATCH /admin/geography/counties/:code",
+      "required": "3-digit codes, PostgreSQL-backed; enable does not guarantee delivery reach."
+    },
+    {
+      "id": "ADM-09-02",
+      "screen": "09 Geography & Service Coverage",
+      "frontend": "apps/admin-web-next/src/screens/geography.tsx",
+      "status": "R",
+      "component": "County search/status/zone counts",
+      "existing_api": "GET /admin/geography/counties",
+      "required": "Pagination optional; derived active polygon zone counts."
+    },
+    {
+      "id": "ADM-09-03",
+      "screen": "09 Geography & Service Coverage",
+      "frontend": "apps/admin-web-next/src/screens/geography.tsx",
+      "status": "R",
+      "component": "Service markets and hierarchy",
+      "existing_api": "GET/POST /admin/geography/markets; PATCH /admin/geography/zones/:id/hierarchy",
+      "required": "Market county code and zone UUID validation."
+    },
+    {
+      "id": "ADM-09-04",
+      "screen": "09 Geography & Service Coverage",
+      "frontend": "apps/admin-web-next/src/screens/geography.tsx",
+      "status": "R",
+      "component": "Zones list/create/update/pause",
+      "existing_api": "GET /admin/service-zones; POST /admin/service-zones; PATCH /admin/service-zones/:id",
+      "required": "PostGIS polygon boundaries and service status, not just point/area labels."
+    },
+    {
+      "id": "ADM-09-05",
+      "screen": "09 Geography & Service Coverage",
+      "frontend": "apps/admin-web-next/src/screens/geography.tsx",
+      "status": "E",
+      "component": "County delivery base fee and ETA overrides",
+      "existing_api": "service_zones.config; /admin/geography/counties has enabled only",
+      "required": "Define authoritative county/market/zone pricing and ETA precedence."
+    },
+    {
+      "id": "ADM-09-06",
+      "screen": "09 Geography & Service Coverage",
+      "frontend": "apps/admin-web-next/src/screens/geography.tsx",
+      "status": "E",
+      "component": "Kenya polygon map drawing/editing",
+      "existing_api": "service_zones.boundary; GET /admin/geography/zones; maps.provider.ts",
+      "required": "Production GIS boundary DTO plus mapping provider; no invented schematic as GIS truth."
+    },
+    {
+      "id": "ADM-09-07",
+      "screen": "09 Geography & Service Coverage",
+      "frontend": "apps/admin-web-next/src/screens/geography.tsx",
+      "status": "E",
+      "component": "Readiness: nearby riders, merchants, active orders",
+      "existing_api": "GET /operations/supply; GET /operations/control-tower; GET /admin/orders",
+      "required": "County-scoped aggregate and status accuracy."
+    },
+    {
+      "id": "ADM-09-08",
+      "screen": "09 Geography & Service Coverage",
+      "frontend": "apps/admin-web-next/src/screens/geography.tsx",
+      "status": "E",
+      "component": "Impact warnings/history on disabling coverage",
+      "existing_api": "GET /admin/dispatch/deliveries; PATCH /admin/geography/counties/:code",
+      "required": "Preflight impact for active orders and governed reason/audit history."
+    },
+    {
+      "id": "ADM-10-01",
+      "screen": "10 Payments & Refunds",
+      "frontend": "apps/admin-web-next/src/screens/payments.tsx",
+      "status": "R",
+      "component": "Payments list/filters/details/methods",
+      "existing_api": "GET /finance/ops/payments; GET /payments/admin/all; GET /payments/:id",
+      "required": "Actual PaymentStatus and reconciliation state; provider event references."
+    },
+    {
+      "id": "ADM-10-02",
+      "screen": "10 Payments & Refunds",
+      "frontend": "apps/admin-web-next/src/screens/payments.tsx",
+      "status": "R",
+      "component": "M-PESA/card lifecycle/exception audit",
+      "existing_api": "GET /finance/ops/payments; GET /finance/ops/reconciliation",
+      "required": "Provider callback proof and idempotency are service-owned."
+    },
+    {
+      "id": "ADM-10-03",
+      "screen": "10 Payments & Refunds",
+      "frontend": "apps/admin-web-next/src/screens/payments.tsx",
+      "status": "R",
+      "component": "Payment and order drill-down",
+      "existing_api": "GET /payments/order/:orderId; GET /finance/orders/:orderId",
+      "required": "Use payment ID vs order ID distinctly."
+    },
+    {
+      "id": "ADM-10-04",
+      "screen": "10 Payments & Refunds",
+      "frontend": "apps/admin-web-next/src/screens/payments.tsx",
+      "status": "R",
+      "component": "Refund creation/full and partial",
+      "existing_api": "POST /payments/admin/:id/refunds",
+      "required": "amount_minor and reason_code with audited idempotency; this route creates real commands."
+    },
+    {
+      "id": "ADM-10-05",
+      "screen": "10 Payments & Refunds",
+      "frontend": "apps/admin-web-next/src/screens/payments.tsx",
+      "status": "R",
+      "component": "Refund history",
+      "existing_api": "GET /payments/admin/:id/refunds",
+      "required": "Map REQUESTED/APPROVED/SUCCEEDED/FAILED to UI; never assume immediate success."
+    },
+    {
+      "id": "ADM-10-06",
+      "screen": "10 Payments & Refunds",
+      "frontend": "apps/admin-web-next/src/screens/payments.tsx",
+      "status": "R",
+      "component": "Refund approval",
+      "existing_api": "POST /payments/admin/refunds/:id/approve",
+      "required": "Review separation and command/provider response, server role gate."
+    },
+    {
+      "id": "ADM-10-07",
+      "screen": "10 Payments & Refunds",
+      "frontend": "apps/admin-web-next/src/screens/payments.tsx",
+      "status": "N",
+      "component": "Refund rejection with reason",
+      "existing_api": "No refund reject route/service identified",
+      "required": "Add reject for eligible unapproved refunds, separate actor/audit guard."
+    },
+    {
+      "id": "ADM-10-08",
+      "screen": "10 Payments & Refunds",
+      "frontend": "apps/admin-web-next/src/screens/payments.tsx",
+      "status": "R",
+      "component": "Per-payment reconciliation",
+      "existing_api": "POST /payments/admin/:id/reconcile; GET /finance/ops/reconciliation",
+      "required": "Provider evidence requirements; do not blindly treat UI checkbox as settled."
+    },
+    {
+      "id": "ADM-10-09",
+      "screen": "10 Payments & Refunds",
+      "frontend": "apps/admin-web-next/src/screens/payments.tsx",
+      "status": "E",
+      "component": "Exception resolution with custom note",
+      "existing_api": "GET /finance/ops/reconciliation; operations recovery routes",
+      "required": "Need reviewer outcome/reason and durable case closure, no fake provider match."
+    },
+    {
+      "id": "ADM-10-10",
+      "screen": "10 Payments & Refunds",
+      "frontend": "apps/admin-web-next/src/screens/payments.tsx",
+      "status": "E",
+      "component": "CSV export and refund/KPI graphs",
+      "existing_api": "GET /finance/ops/overview; GET /finance/ops/payments",
+      "required": "Backend pagination/role-scoped export and grouped summaries."
+    },
+    {
+      "id": "ADM-11-01",
+      "screen": "11 Settlements & Payouts",
+      "frontend": "apps/admin-web-next/src/screens/settlements.tsx",
+      "status": "R",
+      "component": "Merchant settlement list/detail",
+      "existing_api": "GET /finance/settlements; GET /finance/merchant/statement",
+      "required": "Use canonical settlement lines/status and payout destination."
+    },
+    {
+      "id": "ADM-11-02",
+      "screen": "11 Settlements & Payouts",
+      "frontend": "apps/admin-web-next/src/screens/settlements.tsx",
+      "status": "R",
+      "component": "Rider payout list/detail",
+      "existing_api": "GET /finance/payouts; GET /rider/earnings",
+      "required": "Rider earnings and payouts are not a flat percentage of delivery fee."
+    },
+    {
+      "id": "ADM-11-03",
+      "screen": "11 Settlements & Payouts",
+      "frontend": "apps/admin-web-next/src/screens/settlements.tsx",
+      "status": "E",
+      "component": "Create/calculation preview",
+      "existing_api": "POST /finance/settlements/calculate; POST /finance/payouts/calculate",
+      "required": "Existing calculation is per merchant/rider and period, not global arbitrary-order batch."
+    },
+    {
+      "id": "ADM-11-04",
+      "screen": "11 Settlements & Payouts",
+      "frontend": "apps/admin-web-next/src/screens/settlements.tsx",
+      "status": "R",
+      "component": "Approve merchant/rider payout",
+      "existing_api": "POST /finance/settlements/:id/approve; POST /finance/payouts/:id/approve",
+      "required": "Self-approval blocked in services for calculated_by."
+    },
+    {
+      "id": "ADM-11-05",
+      "screen": "11 Settlements & Payouts",
+      "frontend": "apps/admin-web-next/src/screens/settlements.tsx",
+      "status": "N",
+      "component": "Reject and release a draft batch",
+      "existing_api": "No finance settlement/payout reject routes identified",
+      "required": "Guarded reject/cancel API must release reservations without duplicate payout."
+    },
+    {
+      "id": "ADM-11-06",
+      "screen": "11 Settlements & Payouts",
+      "frontend": "apps/admin-web-next/src/screens/settlements.tsx",
+      "status": "R",
+      "component": "Initiate disbursement",
+      "existing_api": "POST /finance/settlements/:id/pay; POST /finance/payouts/:id/pay; GET /finance/disbursements/destinations",
+      "required": "Destination verification, encryption and provider configured prerequisites."
+    },
+    {
+      "id": "ADM-11-07",
+      "screen": "11 Settlements & Payouts",
+      "frontend": "apps/admin-web-next/src/screens/settlements.tsx",
+      "status": "R",
+      "component": "Paid/failed/processing state",
+      "existing_api": "GET /finance/disbursements; provider callback",
+      "required": "Only provider success advances to PAID; never offer direct Mark Paid in live mode."
+    },
+    {
+      "id": "ADM-11-08",
+      "screen": "11 Settlements & Payouts",
+      "frontend": "apps/admin-web-next/src/screens/settlements.tsx",
+      "status": "E",
+      "component": "Methodology: commission/rider rates/reserve",
+      "existing_api": "GET /finance/ops/commercial/commission-rules; /rider-earning-rules",
+      "required": "Replace demo percentages with actual earning rules and ledger snapshots."
+    },
+    {
+      "id": "ADM-11-09",
+      "screen": "11 Settlements & Payouts",
+      "frontend": "apps/admin-web-next/src/screens/settlements.tsx",
+      "status": "E",
+      "component": "Payout allocation and eligibility previews",
+      "existing_api": "GET /finance/ops/money-out/approval-queue; GET /finance/settlements",
+      "required": "Add page/per-payee allocations with settled-order conflict detection."
+    },
+    {
+      "id": "ADM-11-10",
+      "screen": "11 Settlements & Payouts",
+      "frontend": "apps/admin-web-next/src/screens/settlements.tsx",
+      "status": "E",
+      "component": "Payout CSV and audit",
+      "existing_api": "GET /finance/settlements; GET /finance/payouts; GET /finance/disbursements",
+      "required": "Privacy, approved export and provider-reference masking."
+    },
+    {
+      "id": "ADM-12-01",
+      "screen": "12 Financial Control Center",
+      "frontend": "apps/admin-web-next/src/screens/financial.tsx",
+      "status": "R",
+      "component": "Ledger accounts and balances",
+      "existing_api": "GET /finance/accounts; GET /finance/accounts/:id/entries",
+      "required": "Immutable double-entry accounts are authoritative."
+    },
+    {
+      "id": "ADM-12-02",
+      "screen": "12 Financial Control Center",
+      "frontend": "apps/admin-web-next/src/screens/financial.tsx",
+      "status": "R",
+      "component": "Journal entries and transaction inspector",
+      "existing_api": "GET /finance/transactions; GET /finance/ops/journal",
+      "required": "Use debit/credit minor units, accounting direction and posted status."
+    },
+    {
+      "id": "ADM-12-03",
+      "screen": "12 Financial Control Center",
+      "frontend": "apps/admin-web-next/src/screens/financial.tsx",
+      "status": "R",
+      "component": "Financial KPI overview",
+      "existing_api": "GET /finance/ops/overview; GET /finance/profitability",
+      "required": "Server-derived balances and liabilities."
+    },
+    {
+      "id": "ADM-12-04",
+      "screen": "12 Financial Control Center",
+      "frontend": "apps/admin-web-next/src/screens/financial.tsx",
+      "status": "R",
+      "component": "Settlement and refund reconciliation exceptions",
+      "existing_api": "GET /finance/ops/reconciliation; GET /finance/reconciliation/report",
+      "required": "Use real audit evidence and provider financial state."
+    },
+    {
+      "id": "ADM-12-05",
+      "screen": "12 Financial Control Center",
+      "frontend": "apps/admin-web-next/src/screens/financial.tsx",
+      "status": "R",
+      "component": "Manual financial adjustments request/approve/reject",
+      "existing_api": "GET/POST /finance/adjustments; POST /finance/adjustments/:id/approve; /reject",
+      "required": "Non-self approval and reason; preserve adjustment workflow as extra subview."
+    },
+    {
+      "id": "ADM-12-06",
+      "screen": "12 Financial Control Center",
+      "frontend": "apps/admin-web-next/src/screens/financial.tsx",
+      "status": "R",
+      "component": "Commission rule change",
+      "existing_api": "GET/POST /finance/ops/commercial/commission-rules",
+      "required": "Effective periods; rate stored as fraction, not UI 15 numeric percent."
+    },
+    {
+      "id": "ADM-12-07",
+      "screen": "12 Financial Control Center",
+      "frontend": "apps/admin-web-next/src/screens/financial.tsx",
+      "status": "R",
+      "component": "Rider earning rules",
+      "existing_api": "GET/POST /finance/ops/commercial/rider-earning-rules",
+      "required": "Backend rule is base/distance/wait/bonus, not demo delivery-fee share."
+    },
+    {
+      "id": "ADM-12-08",
+      "screen": "12 Financial Control Center",
+      "frontend": "apps/admin-web-next/src/screens/financial.tsx",
+      "status": "N",
+      "component": "Merchant reserve rate",
+      "existing_api": "No authoritative merchant reserve commercial-rule endpoint identified",
+      "required": "Define reserve financial policy and ledger posting; no silent percentage simulation."
+    },
+    {
+      "id": "ADM-12-09",
+      "screen": "12 Financial Control Center",
+      "frontend": "apps/admin-web-next/src/screens/financial.tsx",
+      "status": "E",
+      "component": "Historical cashflow, performance charts",
+      "existing_api": "GET /finance/ops/overview; GET /finance/profitability",
+      "required": "Date-series server aggregates and currencies, not synthetic bins."
+    },
+    {
+      "id": "ADM-12-10",
+      "screen": "12 Financial Control Center",
+      "frontend": "apps/admin-web-next/src/screens/financial.tsx",
+      "status": "E",
+      "component": "CSV export and audit",
+      "existing_api": "GET /finance/transactions; GET /admin/audit",
+      "required": "Need complete paginated finance export, strict authorization."
+    },
+    {
+      "id": "ADM-13-01",
+      "screen": "13 Analytics & Reports",
+      "frontend": "apps/admin-web-next/src/screens/analytics.tsx",
+      "status": "R",
+      "component": "Orders/deliveries/fleet/merchant KPIs",
+      "existing_api": "GET /operations/control-tower; GET /admin/riders/metrics; GET /admin/orders",
+      "required": "Use consistent reporting dates and statuses."
+    },
+    {
+      "id": "ADM-13-02",
+      "screen": "13 Analytics & Reports",
+      "frontend": "apps/admin-web-next/src/screens/analytics.tsx",
+      "status": "R",
+      "component": "Revenue/refunds/payouts KPIs",
+      "existing_api": "GET /finance/ops/overview; GET /finance/profitability; GET /finance/ops/payments",
+      "required": "No demo random ten-bin series in production."
+    },
+    {
+      "id": "ADM-13-03",
+      "screen": "13 Analytics & Reports",
+      "frontend": "apps/admin-web-next/src/screens/analytics.tsx",
+      "status": "E",
+      "component": "County/date/status filters and trend charts",
+      "existing_api": "GET /operations/supply; GET /finance/profitability",
+      "required": "Historical time bucket query endpoints and server-side zone filtering."
+    },
+    {
+      "id": "ADM-13-04",
+      "screen": "13 Analytics & Reports",
+      "frontend": "apps/admin-web-next/src/screens/analytics.tsx",
+      "status": "E",
+      "component": "Merchant ranking and service quality",
+      "existing_api": "GET /admin/merchants; GET /finance/profitability; GET /trust/riders/:riderId/performance",
+      "required": "Aggregate by branch, period, delivery and paid/refunded metrics."
+    },
+    {
+      "id": "ADM-13-05",
+      "screen": "13 Analytics & Reports",
+      "frontend": "apps/admin-web-next/src/screens/analytics.tsx",
+      "status": "UI",
+      "component": "Cross-screen drilldown",
+      "existing_api": "Reuse existing scoped detail APIs",
+      "required": "Preserve IDs, filters and back navigation."
+    },
+    {
+      "id": "ADM-13-06",
+      "screen": "13 Analytics & Reports",
+      "frontend": "apps/admin-web-next/src/screens/analytics.tsx",
+      "status": "E",
+      "component": "CSV export",
+      "existing_api": "Existing paginated GET APIs",
+      "required": "Dedicated export job/stream for large filtered periods and role-safe fields."
+    },
+    {
+      "id": "ADM-13-07",
+      "screen": "13 Analytics & Reports",
+      "frontend": "apps/admin-web-next/src/screens/analytics.tsx",
+      "status": "N",
+      "component": "Saved report definitions",
+      "existing_api": "No admin saved-report storage or CRUD route found",
+      "required": "Add private report definitions with owner and shared scopes."
+    },
+    {
+      "id": "ADM-13-08",
+      "screen": "13 Analytics & Reports",
+      "frontend": "apps/admin-web-next/src/screens/analytics.tsx",
+      "status": "N",
+      "component": "Weekly/monthly automated report delivery",
+      "existing_api": "No admin report schedule/recipient pipeline found",
+      "required": "Job scheduler, scoped signed exports, delivery preferences, retries."
+    },
+    {
+      "id": "ADM-14-01",
+      "screen": "14 Notifications & Communications",
+      "frontend": "apps/admin-web-next/src/screens/notifications.tsx",
+      "status": "R",
+      "component": "Outbound notification register/status",
+      "existing_api": "GET /operations/notifications; POST /operations/notifications/:id/retry",
+      "required": "This is provider delivery log, not a per-admin alert inbox."
+    },
+    {
+      "id": "ADM-14-02",
+      "screen": "14 Notifications & Communications",
+      "frontend": "apps/admin-web-next/src/screens/notifications.tsx",
+      "status": "N",
+      "component": "Admin notification inbox/read-unread/read all",
+      "existing_api": "Participant /support or /customer/support notification reads only",
+      "required": "Add authenticated admin audience feed/read state, count and bulk read."
+    },
+    {
+      "id": "ADM-14-03",
+      "screen": "14 Notifications & Communications",
+      "frontend": "apps/admin-web-next/src/screens/notifications.tsx",
+      "status": "N",
+      "component": "Message template list/edit/create",
+      "existing_api": "NotificationService has renderDefaultSubject but no template CRUD",
+      "required": "Add versioned templates, languages, safe variable substitution and approval."
+    },
+    {
+      "id": "ADM-14-04",
+      "screen": "14 Notifications & Communications",
+      "frontend": "apps/admin-web-next/src/screens/notifications.tsx",
+      "status": "N",
+      "component": "Compose customer/merchant/rider campaign",
+      "existing_api": "NotificationService.sendNotification is internal, no admin campaign API",
+      "required": "Add campaigns/drafts, audience snapshots, opt-in/unsubscribe checks and preview."
+    },
+    {
+      "id": "ADM-14-05",
+      "screen": "14 Notifications & Communications",
+      "frontend": "apps/admin-web-next/src/screens/notifications.tsx",
+      "status": "E",
+      "component": "Audience count and segmentation",
+      "existing_api": "GET /admin/customers; GET /admin/merchants; GET /admin/riders",
+      "required": "New privacy-aware server eligible-recipient count; not directory totals."
+    },
+    {
+      "id": "ADM-14-06",
+      "screen": "14 Notifications & Communications",
+      "frontend": "apps/admin-web-next/src/screens/notifications.tsx",
+      "status": "N",
+      "component": "Campaign approval/send/cancel",
+      "existing_api": "No campaign review/broadcast endpoint located",
+      "required": "Dual-control where necessary, idempotent outbox, quotas/abuse guard and audit."
+    },
+    {
+      "id": "ADM-14-07",
+      "screen": "14 Notifications & Communications",
+      "frontend": "apps/admin-web-next/src/screens/notifications.tsx",
+      "status": "E",
+      "component": "Delivery analytics and receipts",
+      "existing_api": "GET /operations/notifications; outbound provider callbacks",
+      "required": "Expose delivery receipts/rates grouped by campaign and provider."
+    },
+    {
+      "id": "ADM-14-08",
+      "screen": "14 Notifications & Communications",
+      "frontend": "apps/admin-web-next/src/screens/notifications.tsx",
+      "status": "E",
+      "component": "Operational alerts and deep links",
+      "existing_api": "GET /operations/incidents; GET /operations/support/cases; GET /operations/notifications",
+      "required": "Generate per-user notifications from permitted entities, not global broadcast."
+    },
+    {
+      "id": "ADM-15-01",
+      "screen": "15 Identity, Access & Security",
+      "frontend": "apps/admin-web-next/src/screens/security.tsx",
+      "status": "R",
+      "component": "Admin directory/detail/filter/status",
+      "existing_api": "GET /admin/users; GET /admin/users/:id",
+      "required": "Filter role=staff on server and redact PII by role."
+    },
+    {
+      "id": "ADM-15-02",
+      "screen": "15 Identity, Access & Security",
+      "frontend": "apps/admin-web-next/src/screens/security.tsx",
+      "status": "R",
+      "component": "Provision administrator (pending activation)",
+      "existing_api": "POST /admin/governance/provision (STAFF)",
+      "required": "Creates PENDING staff account; not an actual email invitation."
+    },
+    {
+      "id": "ADM-15-03",
+      "screen": "15 Identity, Access & Security",
+      "frontend": "apps/admin-web-next/src/screens/security.tsx",
+      "status": "N",
+      "component": "Send invite/activation/password setup",
+      "existing_api": "Governance returns requires_activation; no admin invite-delivery contract",
+      "required": "Verified invitation lifecycle, expiry, token hashing, anti-account-enumeration."
+    },
+    {
+      "id": "ADM-15-04",
+      "screen": "15 Identity, Access & Security",
+      "frontend": "apps/admin-web-next/src/screens/security.tsx",
+      "status": "R",
+      "component": "Role change",
+      "existing_api": "POST /admin/users/:id/roles",
+      "required": "Super Admin only, server audited."
+    },
+    {
+      "id": "ADM-15-05",
+      "screen": "15 Identity, Access & Security",
+      "frontend": "apps/admin-web-next/src/screens/security.tsx",
+      "status": "R",
+      "component": "Suspend/reactivate identity",
+      "existing_api": "POST /admin/users/:id/suspend; /reactivate; /admin/governance/users/:id/*",
+      "required": "Use distinct authority for admin vs governance; block self/last Super Admin."
+    },
+    {
+      "id": "ADM-15-06",
+      "screen": "15 Identity, Access & Security",
+      "frontend": "apps/admin-web-next/src/screens/security.tsx",
+      "status": "R",
+      "component": "Role/permission matrix display",
+      "existing_api": "@deetoo/auth ROLE_PERMISSIONS_MAP; GET /auth/me",
+      "required": "Expose supported capability DTO/version, not frontend hardcoded grants."
+    },
+    {
+      "id": "ADM-15-07",
+      "screen": "15 Identity, Access & Security",
+      "frontend": "apps/admin-web-next/src/screens/security.tsx",
+      "status": "R",
+      "component": "MFA self-enrollment/challenge",
+      "existing_api": "POST /auth/mfa/enroll; POST /auth/mfa/verify",
+      "required": "Cannot enroll another admin on their behalf."
+    },
+    {
+      "id": "ADM-15-08",
+      "screen": "15 Identity, Access & Security",
+      "frontend": "apps/admin-web-next/src/screens/security.tsx",
+      "status": "N",
+      "component": "Admin mandate or reset another user's MFA",
+      "existing_api": "No Super Admin MFA-policy/reset API located",
+      "required": "Step-up, recovery policy, audit, cannot toggle an MFA flag directly."
+    },
+    {
+      "id": "ADM-15-09",
+      "screen": "15 Identity, Access & Security",
+      "frontend": "apps/admin-web-next/src/screens/security.tsx",
+      "status": "R",
+      "component": "Own device/session inspect/revoke",
+      "existing_api": "GET /auth/sessions; POST /auth/sessions/:id/revoke; /revoke-all",
+      "required": "Scoped to current user."
+    },
+    {
+      "id": "ADM-15-10",
+      "screen": "15 Identity, Access & Security",
+      "frontend": "apps/admin-web-next/src/screens/security.tsx",
+      "status": "N",
+      "component": "Admin inspect/revoke another user's sessions",
+      "existing_api": "No admin cross-user session list/revoke endpoint found",
+      "required": "Super Admin controlled with reason, invalidate refresh/access immediately."
+    },
+    {
+      "id": "ADM-15-11",
+      "screen": "15 Identity, Access & Security",
+      "frontend": "apps/admin-web-next/src/screens/security.tsx",
+      "status": "E",
+      "component": "Last Super Admin protection and audit",
+      "existing_api": "GET /admin/users; GET /admin/audit; role/status write routes",
+      "required": "Enforce invariant transactionally on backend, not only browser."
+    },
+    {
+      "id": "ADM-16-01",
+      "screen": "16 System Health & Configuration",
+      "frontend": "apps/admin-web-next/src/screens/system.tsx",
+      "status": "R",
+      "component": "Basic health/readiness/DB/PostGIS/Redis checks",
+      "existing_api": "GET /health; GET /health/live; GET /health/ready",
+      "required": "Show actual probe state, may return 503; health endpoints not full observability."
+    },
+    {
+      "id": "ADM-16-02",
+      "screen": "16 System Health & Configuration",
+      "frontend": "apps/admin-web-next/src/screens/system.tsx",
+      "status": "N",
+      "component": "Service dependency cards/latency/uptime history",
+      "existing_api": "No admin per-service time series/health aggregator located",
+      "required": "Read-only observability gateway, redacted metrics with environment and freshness."
+    },
+    {
+      "id": "ADM-16-03",
+      "screen": "16 System Health & Configuration",
+      "frontend": "apps/admin-web-next/src/screens/system.tsx",
+      "status": "R",
+      "component": "Launch readiness gates",
+      "existing_api": "GET /operations/launch-readiness; PATCH /operations/launch-readiness/:gate",
+      "required": "Restricted operational evidence and approval flow."
+    },
+    {
+      "id": "ADM-16-04",
+      "screen": "16 System Health & Configuration",
+      "frontend": "apps/admin-web-next/src/screens/system.tsx",
+      "status": "R",
+      "component": "Operational kill switches",
+      "existing_api": "GET /operations/kill-switches; POST /operations/kill-switches",
+      "required": "Only supported keys, check active service enforcement and audit."
+    },
+    {
+      "id": "ADM-16-05",
+      "screen": "16 System Health & Configuration",
+      "frontend": "apps/admin-web-next/src/screens/system.tsx",
+      "status": "R",
+      "component": "Dispatch tuning/config",
+      "existing_api": "GET /admin/dispatch/config; PUT /admin/dispatch/config",
+      "required": "Validate concurrency and safe bounds."
+    },
+    {
+      "id": "ADM-16-06",
+      "screen": "16 System Health & Configuration",
+      "frontend": "apps/admin-web-next/src/screens/system.tsx",
+      "status": "E",
+      "component": "Support SLA and numeric threshold settings",
+      "existing_api": "operations/sla.service.ts; dispatch config; operational_kill_switches",
+      "required": "No unified, audited mutable settings contract for these exact UI keys."
+    },
+    {
+      "id": "ADM-16-07",
+      "screen": "16 System Health & Configuration",
+      "frontend": "apps/admin-web-next/src/screens/system.tsx",
+      "status": "E",
+      "component": "Maintenance/accept orders/support/notification toggles",
+      "existing_api": "GET/POST /operations/kill-switches; service config",
+      "required": "Define exact supported switch keys and consumers; don't invent global switches."
+    },
+    {
+      "id": "ADM-16-08",
+      "screen": "16 System Health & Configuration",
+      "frontend": "apps/admin-web-next/src/screens/system.tsx",
+      "status": "UI",
+      "component": "Actual service restart/health override",
+      "existing_api": "No API should change measured health by fiat",
+      "required": "Keep preview-only status simulator; real status from health probes, annotation via incident."
+    },
+    {
+      "id": "ADM-16-09",
+      "screen": "16 System Health & Configuration",
+      "frontend": "apps/admin-web-next/src/screens/system.tsx",
+      "status": "R",
+      "component": "Incident list and investigation drilldown",
+      "existing_api": "GET /operations/incidents; GET /operations/incidents/:id",
+      "required": "Server-authoritative operational cases."
+    },
+    {
+      "id": "ADM-16-10",
+      "screen": "16 System Health & Configuration",
+      "frontend": "apps/admin-web-next/src/screens/system.tsx",
+      "status": "E",
+      "component": "Settings audit/config history",
+      "existing_api": "GET /admin/audit; GET /operations/launch-readiness; operational_kill_switches",
+      "required": "Add filtering by switch, actor and time; include pre/post and reason."
+    }
+  ]
+}

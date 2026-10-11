@@ -1,4 +1,7 @@
 import { scopedResponseMiddleware } from '../../middleware/scoped-response';
+import {createAuthRateLimiter} from '../auth/rate-limit.middleware';
+import {z} from 'zod';
+import {verifyAdminSupportCase} from '../admin/admin-next-support-validation';
 import { AppError } from '../../middleware/error-handler';
 import { orderScope, deny } from "../auth/scope";
 import { deliveryRepository } from "../order/delivery.repository";
@@ -432,8 +435,7 @@ operationsRouter.get(
         status: req.query.status as any,
         priority: req.query.priority as any,
         order_id: req.query.order_id as any,
-        limit: req.query.limit ? Number(req.query.limit) : 50,
-        offset: req.query.offset ? Number(req.query.offset) : 0,
+        ...z.object({limit:z.coerce.number().int().min(1).max(100).default(50),offset:z.coerce.number().int().min(0).default(0)}).parse(req.query),
       };
       const result = await supportService.listCases(filter, viewer);
       res.json({ success: true, data: result });
@@ -479,8 +481,9 @@ operationsRouter.post(
   async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
       const viewer = buildViewer(req);
+      const verified = await verifyAdminSupportCase(req.body);
       const newCase = await supportService.createCase({
-        ...req.body,
+        ...verified,
         creator: {
           id: viewer.id,
           name: viewer.name,
@@ -940,12 +943,14 @@ operationsRouter.post(
   async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
       const viewer = buildViewer(req);
-      await operationsRepository.setKillSwitch(
-        req.body.keyName,
-        Boolean(req.body.enabled),
-        viewer.name,
-        req.body.description,
-      );
+      const allowed = ['auto_dispatch_paused','zone_paused_all','payment_mpesa_paused','live_tracking_paused'];
+      if (!allowed.includes(req.body.keyName) || typeof req.body.enabled !== 'boolean') {
+        throw new AppError(400,'KILL_SWITCH_INVALID','Use a supported kill switch and an explicit boolean value');
+      }
+      if (typeof req.body.description !== 'string' || req.body.description.trim().length < 5) {
+        throw new AppError(400,'REASON_REQUIRED','A reason is required for operational switch changes');
+      }
+      await operationsRepository.setKillSwitch(req.body.keyName,req.body.enabled,viewer.name,req.body.description);
       const switches = await operationsRepository.getKillSwitches();
       res.json({ success: true, data: switches });
     } catch (err) {
@@ -1156,11 +1161,19 @@ participantSupportRouter.post(
   },
 );
 
+import {enforceCustomerSupportIntake} from '../admin/admin-next-control.router';
 export const customerSupportRouter = Router();
 
+// Redis-backed customer-case quota is installed before the case creator.
+// codeql[js/missing-rate-limiting]
+const customerCaseIntakeLimiter=createAuthRateLimiter({keyPrefix:'api:customer:support-case',windowMs:60000,max:12});
+// Customer case POST is limited by customerCaseIntakeLimiter and covered by real Postgres acceptance.
+// codeql[js/missing-rate-limiting]
 customerSupportRouter.post(
   "/cases",
+  customerCaseIntakeLimiter,
   requireAuth,
+  enforceCustomerSupportIntake,
   async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
       const viewer = {

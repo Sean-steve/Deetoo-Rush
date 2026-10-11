@@ -1,4 +1,6 @@
 import { transactionalService } from '../../db/transaction';
+import {config} from '@deetoo/config';
+import {getDbPool} from '../../db/client';
 /**
  * DEETOO - Central Pricing Engine (PricingService)
  * Authoritative backend calculations for items, modifiers, delivery fee, service fee,
@@ -272,7 +274,13 @@ export class PricingService {
     }
 
     // Estimated delivery duration: prep default + ~3 min/km
-    const estimatedDurationMin = (branch.prep_default_min || 20) + Math.round((distanceMeters / 1000) * 3);
+    let etaBufferMin=0;
+    if(config.storage.mode==='postgres'&&params.zoneId){
+      const {rows}=await getDbPool().query("SELECT config->>'eta_buffer_min' AS eta_buffer_min FROM service_zones WHERE id=$1",[params.zoneId]);
+      const buffer=Number(rows[0]?.eta_buffer_min||0);
+      if(Number.isSafeInteger(buffer)&&buffer>=0&&buffer<=120)etaBufferMin=buffer;
+    }
+    const estimatedDurationMin = (branch.prep_default_min || 20) + Math.round((distanceMeters / 1000) * 3) + etaBufferMin;
 
     const deliveryRule = await cartRepository.getDeliveryPricingRuleForZone(params.zoneId);
     // Eligibility uses the approved straight-line radius; fee distance retains its road estimate.

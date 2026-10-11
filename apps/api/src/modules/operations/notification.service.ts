@@ -1,6 +1,7 @@
 import { transactionalService, withTransaction } from '../../db/transaction';
 import { requireSimulationMode } from '../../db/storage-policy';
 import { config } from '@deetoo/config';
+import { getDbPool } from '../../db/client';
 import { externalNotificationProvider } from './external-notification.provider';
 /**
  * DEETOO - Multi-Channel Notification Service
@@ -77,6 +78,27 @@ export class NotificationService {
    */
   private async dispatch(record: NotificationRecord): Promise<NotificationRecord> {
     const now = new Date().toISOString();
+
+    // Recheck subscriptions at delivery, not only on approval or enqueue. An opt-out must
+    // suppress a queued broadcast even when the provider worker is delayed.
+    if (record.template_code === 'ADMIN_CAMPAIGN' && config.storage.mode === 'postgres') {
+      const campaignId = String(record.payload?.campaignId || '');
+      const gate = await getDbPool().query(
+        "SELECT c.status,u.status AS user_status,bc.consented,COALESCE((SELECT value='true'::jsonb FROM admin_configuration WHERE key='notification_campaign_paused'),false) AS paused FROM admin_campaigns c JOIN users u ON u.id=$2 LEFT JOIN admin_broadcast_consents bc ON bc.user_id=u.id AND bc.channel=$3 WHERE c.id=$1",
+        [campaignId,record.recipient_id,record.channel]
+      );
+      const g = gate.rows[0];
+      if (g?.paused === true) {
+        return (await operationsRepository.updateNotification(record.id,{
+          status:'QUEUED',scheduled_at:new Date(Date.now()+5*60_000).toISOString()
+        })) || record;
+      }
+      if (!g || g.status !== 'QUEUED' || g.user_status !== 'ACTIVE' || g.consented !== true) {
+        return (await operationsRepository.updateNotification(record.id,{
+          status:'CANCELLED',failure_code:'BROADCAST_CONSENT_WITHDRAWN',failure_reason:'Recipient is no longer eligible for this broadcast',scheduled_at:undefined
+        })) || record;
+      }
+    }
 
     try {
       let providerRef: string;

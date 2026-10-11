@@ -5,6 +5,7 @@ import { mediaService } from './media.service';
 import { deliveryRepository } from '../order/delivery.repository';
 import { riderRepository } from '../rider/rider.repository';
 import { DeliveryStatus } from '@deetoo/types';
+import {operationsRepository} from '../operations/operations.repository';
 
 export const mediaRouter = Router();
 mediaRouter.use(requireAuth);
@@ -48,6 +49,16 @@ async function assertPurposeScope(
     return;
   }
 
+  if (normalized === 'ADMIN_INCIDENT') {
+    const viewer=roles(req);
+    if (!viewer.has('super_admin') && !viewer.has('admin') && !viewer.has('ops'))
+      throw new AppError(403,'MEDIA_INCIDENT_FORBIDDEN','Only Operations or Admin may attach incident evidence');
+    if (!referenceId || !/^[0-9a-f]{8}-[0-9a-f-]{27,}$/.test(referenceId))
+      throw new AppError(400,'MEDIA_REFERENCE_REQUIRED','Valid incident ID required');
+    const incident=await operationsRepository.getIncidentById(referenceId);
+    if (!incident) throw new AppError(404,'INCIDENT_NOT_FOUND','Incident not found');
+    return;
+  }
   if (normalized === 'RIDER_DOCUMENT' && !roles(req).has('rider')) {
     throw new AppError(403, 'MEDIA_PURPOSE_FORBIDDEN', 'Only riders can upload rider documents');
   }
@@ -128,7 +139,7 @@ mediaRouter.get(
       const privilegedPurposes: '*' | string[] = r.has('admin') || r.has('super_admin')
         ? '*'
         : r.has('ops')
-          ? ['DELIVERY_PROOF', 'DELIVERY_INCIDENT', 'RIDER_DOCUMENT', 'MERCHANT_IMAGE', 'SUPPORT_ATTACHMENT']
+          ? ['DELIVERY_PROOF', 'DELIVERY_INCIDENT', 'RIDER_DOCUMENT', 'MERCHANT_IMAGE', 'SUPPORT_ATTACHMENT', 'ADMIN_INCIDENT']
           : r.has('support')
             ? ['DELIVERY_PROOF', 'DELIVERY_INCIDENT', 'SUPPORT_ATTACHMENT']
             : [];
