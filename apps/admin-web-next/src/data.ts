@@ -117,7 +117,7 @@ export type DemoAction = PhaseTwoAction | PhaseThreeAction | PhaseFourAction
   | { type:"ADD_NOTE"; orderId:string; note:string }
   | { type:"UPDATE_RIDER"; riderId:string; status:RiderStatus; reason:string }
   | { type:"REVIEW_RIDER"; riderId:string; approved:boolean; reason:string }
-  | { type:"ADD_RIDER"; name:string; phone:string; area:string }
+  | { type:"ADD_RIDER"; name:string; phone:string; area:string; email?:string; vehicle_type?:string }
   | { type:"RESET" };
 function logActivity(state: DemoState, action: string, text: string): HistoryEntry[] {
   return [event(action, 0, text, "Demo Admin"),...state.activity].slice(0,60);
