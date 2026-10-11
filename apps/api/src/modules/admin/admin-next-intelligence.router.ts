@@ -52,9 +52,33 @@ adminNextIntelligenceRouter.delete('/reports/:id',run(async(req,res)=>{
  if(!result.rows[0])throw new AppError(404,'REPORT_NOT_FOUND','Saved report not found');res.json({data:result.rows[0]});
 }));
 
+adminNextIntelligenceRouter.post('/reports/:id/delivery',run(async(req,res)=>{
+ postgres();const id=uuid.parse(req.params.id);
+ const body=z.object({enabled:z.boolean(),cadence:z.enum(['WEEKLY','MONTHLY']).optional()}).parse(req.body);
+ if(body.enabled&&(!process.env.RESEND_API_KEY||!process.env.AUTH_EMAIL_FROM))
+  throw new AppError(503,'REPORT_EMAIL_NOT_CONFIGURED','Email delivery provider is not configured');
+ const result=await withTransaction(async client=>{
+  const existing=await client.query('SELECT * FROM admin_saved_reports WHERE id=$1 AND owner_id=$2 FOR UPDATE',[id,req.user!.id]);
+  if(!existing.rows[0])throw new AppError(404,'REPORT_NOT_FOUND','Saved report not found');
+  const cadence=body.cadence||existing.rows[0].cadence;
+  if(body.enabled&&cadence==='MANUAL')throw new AppError(400,'REPORT_CADENCE_REQUIRED','Choose weekly or monthly delivery');
+  const updated=await client.query(
+   "UPDATE admin_saved_reports SET cadence=$3,delivery_enabled=$4,next_run_at=CASE WHEN $4=false THEN NULL WHEN $3='WEEKLY' THEN now()+interval '7 days' ELSE now()+interval '1 month' END,updated_at=now() WHERE id=$1 AND owner_id=$2 RETURNING id,name,cadence,delivery_enabled,next_run_at",
+   [id,req.user!.id,cadence,body.enabled]);
+  return updated.rows[0];
+ });
+ res.json({data:result});
+}));
+adminNextIntelligenceRouter.get('/reports/:id/delivery-history',run(async(req,res)=>{
+ postgres();const id=uuid.parse(req.params.id);
+ const {rows}=await getDbPool().query('SELECT dr.id,dr.cadence_slot,dr.status,dr.error_code,dr.created_at,n.status AS notification_status FROM admin_report_delivery_runs dr JOIN admin_saved_reports r ON r.id=dr.report_id AND r.owner_id=$2 LEFT JOIN notifications n ON n.id=dr.notification_id WHERE dr.report_id=$1 ORDER BY dr.created_at DESC LIMIT 50',[id,req.user!.id]);
+ res.json({data:rows});
+}));
+
 const analyticalFilters=z.object({from:z.string().datetime().optional(),to:z.string().datetime().optional(),county_code:z.string().regex(/^\d{3}$/).optional(),bucket:z.enum(['day','week','month']).default('day')});
 adminNextIntelligenceRouter.get('/analytics/series',run(async(req,res)=>{
- postgres();const {from,to,county_code,bucket}=analyticalFilters.parse(req.query);
+ postgres();
+ if(!req.user!.roles.some(r=>[UserRole.ADMIN,UserRole.SUPER_ADMIN,UserRole.FINANCE].includes(r)))throw new AppError(403,'FINANCE_ANALYTICS_RESTRICTED','Revenue data requires Finance or Admin');const {from,to,county_code,bucket}=analyticalFilters.parse(req.query);
  if(from&&to&&Date.parse(from)>Date.parse(to))throw new AppError(400,'DATE_RANGE_INVALID','Start date must be before end date');
  if(from&&to&&Date.parse(to)-Date.parse(from)>366*86400000)throw new AppError(400,'DATE_RANGE_TOO_LARGE','Maximum reporting range is 366 days');
  // Buckets are whitelisted; money is captured payment minor units, not mock order totals.
@@ -63,7 +87,8 @@ adminNextIntelligenceRouter.get('/analytics/series',run(async(req,res)=>{
  res.json({data:{orders:orders.rows,payments:payments.rows},meta:{bucket,timezone:'Africa/Nairobi',currency:'KES',money_unit:'minor'}});
 }));
 adminNextIntelligenceRouter.get('/analytics/top-merchants',run(async(req,res)=>{
- postgres();const {from,to,county_code}=analyticalFilters.parse(req.query);
+ postgres();
+ if(!req.user!.roles.some(r=>[UserRole.ADMIN,UserRole.SUPER_ADMIN,UserRole.FINANCE].includes(r)))throw new AppError(403,'FINANCE_ANALYTICS_RESTRICTED','Merchant GMV requires Finance or Admin');const {from,to,county_code}=analyticalFilters.parse(req.query);
  const result=await getDbPool().query('SELECT m.id,m.display_name AS name,count(o.id)::int AS orders,coalesce(sum(o.total_minor) FILTER(WHERE o.status=\'COMPLETED\'),0)::bigint::text AS completed_gmv_minor FROM orders o JOIN merchant_branches b ON b.id=o.branch_id JOIN merchants m ON m.id=b.merchant_id LEFT JOIN service_zones z ON z.id=o.service_zone_id WHERE ($1::timestamptz IS NULL OR o.created_at >= $1) AND ($2::timestamptz IS NULL OR o.created_at < $2) AND ($3::text IS NULL OR z.county_code=$3) GROUP BY m.id,m.display_name ORDER BY orders DESC LIMIT 20',[from||null,to||null,county_code||null]);
  res.json({data:result.rows,meta:{currency:'KES',money_unit:'minor',metric_note:'Completed order GMV is not identical to captured net revenue'}});
 }));
