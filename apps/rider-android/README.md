@@ -59,3 +59,52 @@ FCM. The API also requires the Firebase service-account environment variables
 notifications.
 
 The existing `apps/rider` browser implementation remains a simulator only.
+
+
+## Rider visual redesign — Phase 1 (screens 1–6)
+
+Run the **isolated frontend-only visual preview** using a development build:
+
+```bash
+EXPO_PUBLIC_RIDER_UI_MODE=mock pnpm --filter @deetoo/rider-android start
+```
+
+On Windows PowerShell set the environment variable before running the start script.
+Use the Android simulator or your connected Android device. Restart Metro when switching
+between live and mock mode. The regular Rider app remains unchanged when the environment
+variable is absent or not equal to `mock`; mock preview is disabled in release builds.
+
+The preview intentionally contains **no API calls**, no real login/OTP/SMS,
+no uploads of personal documents, no GPS tracking, no real rider approval,
+no live dispatch and no payments. It is not a production authentication method.
+
+The six reviewed primary screens are:
+
+1. Login & Authentication — identifier validation, password visibility,
+   mocked sign-in code `123456`, recovery and registration navigation.
+2. Rider Registration — required personal, contact, Kenyan address and emergency-contact fields.
+3. Document Verification — staged demo ID, selfie and licence attachments;
+   licence requirement depends on vehicle choice.
+4. Vehicle & Equipment Registration — vehicle type, details, simulated documents
+   and equipment checklists with validation.
+5. Onboarding Status — submitted, under-review, changes-requested, resubmission
+   and approved visual states, with visibly marked *simulation* controls.
+6. Rider Dashboard — availability toggle, visual eligibility restrictions,
+   today/weekly summary, sample delivery records, Nairobi illustrative service-zone map.
+
+The **approved navigation standard** is Home, Deliveries, Earnings, Inbox and Profile.
+Only Home is complete in Phase 1. Other destinations are deliberately marked
+as future-phase placeholders to avoid implying functional backend integration.
+All six screens support Android-sized scrolling, accessible touch targets and
+inline validation/feedback. Demo values are sample data, not production records.
+
+Run the pure workflow-model tests:
+
+```bash
+pnpm exec tsx --test tests/unit/rider_phase1_preview.test.ts
+pnpm typecheck:rider-android
+```
+
+Read `src/preview/README.md` for the acceptance checklist. For the
+next phases, replace the placeholders with reviewed frontend implementations;
+do not connect the real backend until the distinct backend audit/integration stages.
