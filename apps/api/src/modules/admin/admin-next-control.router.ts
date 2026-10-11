@@ -24,7 +24,8 @@ adminNextControlRouter.get('/observability/series',run(async(_req,_res)=>{
 adminNextControlRouter.get('/configuration',run(async(_req,res)=>{
  postgres();const switches=await operationsRepository.getKillSwitches();
  const supported=Object.fromEntries(KILL_SWITCHES.map(key=>[key,switches[key]||{enabled:false,configured:false}]));
- res.json({data:{kill_switches:supported,unsupported_keys:['maintenance','support_intake','notification_delivery','support_sla_minutes'],source:'operational_kill_switches',write_requires:'super_admin',note:'Only supported keys shown here are backed by existing operations controls.'}});
+ const flags=await getDbPool().query("SELECT key,value,updated_at FROM admin_configuration WHERE key IN ('notification_campaign_paused','support_intake_paused','maintenance_banner')");
+ res.json({data:{kill_switches:supported,settings:flags.rows,unsupported_keys:['support_sla_minutes','notification_delivery_global_pause'],source:'operational_kill_switches + admin_configuration',write_requires:'super_admin',note:'Campaign and customer support pauses are enforced; maintenance is a read-only banner indicator, not an outage switch.'}});
 }));
 adminNextControlRouter.patch('/configuration/kill-switches/:key',requireRole(UserRole.SUPER_ADMIN),run(async(req,res)=>{
  postgres();const key=z.enum(KILL_SWITCHES).parse(req.params.key);
@@ -37,6 +38,30 @@ adminNextControlRouter.patch('/configuration/kill-switches/:key',requireRole(Use
  });
  res.json({data:row});
 }));
+const CONTROLLED_SETTINGS=['notification_campaign_paused','support_intake_paused','maintenance_banner'] as const;
+adminNextControlRouter.patch('/configuration/settings/:key',requireRole(UserRole.SUPER_ADMIN),run(async(req,res)=>{
+ postgres();const key=z.enum(CONTROLLED_SETTINGS).parse(req.params.key);
+ const body=z.object({enabled:z.boolean(),reason:z.string().trim().min(10).max(2000)}).parse(req.body);
+ const row=await withTransaction(async client=>{
+  const previous=await client.query('SELECT value FROM admin_configuration WHERE key=$1 FOR UPDATE',[key]);
+  if(!previous.rows[0])throw new AppError(503,'SETTING_NOT_INSTALLED','Configuration migration 040 is not applied');
+  const result=await client.query('UPDATE admin_configuration SET value=$2::jsonb,updated_by=$3,updated_at=now() WHERE key=$1 RETURNING key,value,updated_at',[key,JSON.stringify(body.enabled),req.user!.id]);
+  await client.query('INSERT INTO admin_change_audit(actor_id,action,resource_type,reason,before_values,after_values) VALUES($1,$2,$3,$4,$5::jsonb,$6::jsonb)',[req.user!.id,'ADMIN_SETTING_CHANGED','CONFIGURATION',body.reason,JSON.stringify({key,enabled:previous.rows[0].value}),JSON.stringify({key,enabled:body.enabled})]);
+  return result.rows[0];
+ });
+ res.json({data:row});
+}));
+/** Actual customer support intake enforcement. In-progress cases and replies remain available. */
+export async function enforceCustomerSupportIntake(_req:any,_res:Response,next:NextFunction){
+ try{
+  if(config.storage.mode==='postgres'){
+   const setting=await getDbPool().query("SELECT value FROM admin_configuration WHERE key='support_intake_paused'");
+   if(setting.rows[0]?.value===true)throw new AppError(503,'SUPPORT_INTAKE_PAUSED','New customer support requests are temporarily paused; existing cases remain accessible');
+  }
+  next();
+ }catch(error){next(error);}
+}
+
 adminNextControlRouter.get('/geography/counties/:code/impact',run(async(req,res)=>{
  postgres();const code=z.string().regex(/^\d{3}$/).parse(req.params.code);
  const result=await getDbPool().query("SELECT c.code,c.name,c.enabled,(SELECT count(*)::int FROM orders o JOIN service_zones z ON z.id=o.service_zone_id WHERE z.county_code=c.code AND o.status NOT IN ('COMPLETED','REJECTED','CANCELLED')) AS active_orders,(SELECT count(*)::int FROM deliveries d JOIN orders o ON o.id=d.order_id JOIN service_zones z ON z.id=o.service_zone_id WHERE z.county_code=c.code AND d.status NOT IN ('DELIVERED','CANCELLED','FAILED')) AS active_deliveries,(SELECT count(*)::int FROM service_zones z WHERE z.county_code=c.code AND z.status='ACTIVE' AND z.boundary IS NOT NULL) AS active_polygon_zones FROM operating_counties c WHERE c.code=$1",[code]);
