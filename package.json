@@ -63,7 +63,8 @@
     "test:merchant-staging": "tsx scripts/merchant-staging-release-gate.ts",
     "dev:admin-next": "vite --config apps/admin-web-next/vite.config.ts",
     "build:admin-next": "vite build --config apps/admin-web-next/vite.config.ts",
-    "test:admin-next-visual": "playwright test --config playwright.admin-next.config.ts"
+    "test:admin-next-visual": "playwright test --config playwright.admin-next.config.ts",
+    "test:admin-next-live": "playwright test --config playwright.admin-next-live.config.ts"
   },
   "dependencies": {
     "@google/genai": "^2.4.0",
