@@ -1,3 +1,4 @@
+import {apiGet} from "../live-api";
 import React,{useMemo,useState} from "react";
 import {Activity,ArrowRight,BarChart3,CalendarDays,CheckCircle2,Download,FileBarChart2,FilePlus2,Filter,LineChart,Package,Plus,Save,TrendingUp,Users,Wallet} from "lucide-react";
 import {orderTotal} from "../data";
@@ -14,27 +15,43 @@ const downloadCsv=(name:string,headers:string[],rows:(string|number)[][])=>{
  const anchor=document.createElement("a");anchor.href=url;anchor.download=name;anchor.click();URL.revokeObjectURL(url);
 };
 export function AnalyticsScreen({navigate,toast}:{navigate:(s:string)=>void;toast:(s:string)=>void}){
- const {data,act,role}=useDemo(),canSave=canAct(role,"analytics");
+ const {data,act,role,mode}=useDemo(),canSave=canAct(role,"analytics");
  const [tab,setTab]=useState("overview"),[metric,setMetric]=useState<ReportMetric>("ORDERS"),[range,setRange]=useState<ReportRange>("ALL"),[county,setCounty]=useState("all"),[query,setQuery]=useState(""),[selectedReport,setSelectedReport]=useState<string|null>(null);
  const [modal,setModal]=useState<"save"|"remove"|null>(null),[name,setName]=useState(""),[reason,setReason]=useState(""),[cadence,setCadence]=useState<SavedReport["cadence"]>("MANUAL"),[notes,setNotes]=useState("");
- const anchorTime=Math.max(...data.orders.map(o=>Date.parse(o.createdAt)));
+ const [liveSeries,setLiveSeries]=useState(data.live?.analytics||{orders:[],payments:[]});
+ const [liveTop,setLiveTop]=useState<{name:string;orders:number}[]>([]);
+ const [liveError,setLiveError]=useState("");
+ React.useEffect(()=>{
+   if(mode!=="live")return;let active=true;
+   const end=new Date(),start=new Date(end.getTime()-(range==="TODAY"?86400000:range==="7D"?7*86400000:range==="30D"?30*86400000:366*86400000));
+   const code=data.phase3.coverage.find(c=>c.county===county)?.code;
+   const q=new URLSearchParams({bucket:"day",from:start.toISOString(),to:end.toISOString()});if(code)q.set("county_code",code);
+   void Promise.all([apiGet("/admin/analytics/series?"+q.toString()),apiGet("/admin/analytics/top-merchants?"+q.toString())]).then(([result,top])=>{
+    if(!active)return;const raw=(result as {data?:unknown}).data as {orders?:unknown[];payments?:unknown[]}|undefined;
+    const records=Array.isArray(raw?.orders)?raw.orders as Record<string,unknown>[]:[],funds=Array.isArray(raw?.payments)?raw.payments as Record<string,unknown>[]:[];
+    setLiveSeries({orders:records.map(x=>({bucket:String(x.bucket),orders:Number(x.orders)||0,completed:Number(x.completed)||0,cancelled:Number(x.cancelled)||0})),payments:funds.map(x=>({bucket:String(x.bucket),captured:Number(x.captured_minor||0)/100,refunded:Number(x.refunded_minor||0)/100}))});
+    const items=(top as {data?:unknown}).data;setLiveTop(Array.isArray(items)?items.map(x=>({name:String(x.name||x.display_name||"Merchant"),orders:Number(x.orders)||0})):[]);setLiveError("");
+   }).catch(e=>{if(active)setLiveError(e instanceof Error?e.message:"Analytics query failed");});
+   return ()=>{active=false;};
+ },[mode,range,county,data.phase3.coverage]);
+  const anchorTime=Math.max(...data.orders.map(o=>Date.parse(o.createdAt)));
  const days=range==="TODAY"?1:range==="7D"?7:range==="30D"?30:Infinity;
  const eligibleDate=(value:string)=>range==="ALL"||Date.parse(value)>=anchorTime-(days*86400000);
  const orders=useMemo(()=>data.orders.filter(o=>(county==="all"||o.pickup.county===county)&&eligibleDate(o.createdAt)),[data.orders,county,range,anchorTime]);
  const completed=orders.filter(o=>o.status==="DELIVERED"),cancelled=orders.filter(o=>o.status==="CANCELLED");
- const gross=orders.filter(o=>o.paymentStatus==="Paid").reduce((v,o)=>v+orderTotal(o),0);
+ const gross=mode==="live"?liveSeries.payments.reduce((v,p)=>v+p.captured,0):orders.filter(o=>o.paymentStatus==="Paid").reduce((v,o)=>v+orderTotal(o),0);
  const customers=new Set(orders.map(o=>o.customer)).size;
  const merchantCount=new Set(orders.map(o=>o.merchant)).size;
  const activeRiders=new Set(orders.filter(o=>o.riderId).map(o=>o.riderId)).size;
  const incidents=data.phase2.incidents.filter(x=>eligibleDate(x.createdAt)&&(county==="all"||x.location.includes(county)));
  const support=data.phase2.support.filter(x=>eligibleDate(x.createdAt));
  const payout=data.phase3.payouts.filter(x=>eligibleDate(x.createdAt));
- const indicators:Record<ReportMetric,number>={ORDERS:orders.length,REVENUE:gross,DELIVERIES:completed.length,MERCHANTS:merchantCount,CUSTOMERS:customers,SUPPORT:support.length,INCIDENTS:incidents.length,PAYOUTS:payout.length};
+ const indicators:Record<ReportMetric,number>={ORDERS:mode==="live"?liveSeries.orders.reduce((n,p)=>n+p.orders,0):orders.length,REVENUE:gross,DELIVERIES:mode==="live"?liveSeries.orders.reduce((n,p)=>n+p.completed,0):completed.length,MERCHANTS:merchantCount,CUSTOMERS:customers,SUPPORT:support.length,INCIDENTS:incidents.length,PAYOUTS:payout.length};
  const countyOptions=["all",...new Set([...data.phase3.coverage.map(c=>c.county)])];
  const trend=Array.from({length:10},(_,i)=>orders.filter((_,idx)=>idx%10===i));
- const series=trend.map(group=>metric==="REVENUE"?group.filter(o=>o.paymentStatus==="Paid").reduce((n,o)=>n+orderTotal(o),0):metric==="DELIVERIES"?group.filter(o=>o.status==="DELIVERED").length:group.length);
+ const series=mode==="live"?(metric==="REVENUE"?liveSeries.payments.map(p=>p.captured):metric==="DELIVERIES"?liveSeries.orders.map(p=>p.completed):metric==="ORDERS"?liveSeries.orders.map(p=>p.orders):[]):trend.map(group=>metric==="REVENUE"?group.filter(o=>o.paymentStatus==="Paid").reduce((n,o)=>n+orderTotal(o),0):metric==="DELIVERIES"?group.filter(o=>o.status==="DELIVERED").length:group.length);
  const categories=["PREPARING","RIDER_ASSIGNED","PICKED_UP","IN_TRANSIT","DELAYED","DELIVERED","CANCELLED"];
- const topMerchants=Array.from(orders.reduce((map,o)=>{map.set(o.merchant,(map.get(o.merchant)||0)+1);return map;},new Map<string,number>()).entries()).sort((a,b)=>b[1]-a[1]).slice(0,7);
+ const topMerchants=mode==="live"?liveTop.map(x=>[x.name,x.orders] as [string,number]):Array.from(orders.reduce((map,o)=>{map.set(o.merchant,(map.get(o.merchant)||0)+1);return map;},new Map<string,number>()).entries()).sort((a,b)=>b[1]-a[1]).slice(0,7);
  const saved=data.phase4.reports.filter(r=>(r.name+" "+r.metric+" "+r.county).toLowerCase().includes(query.toLowerCase()));
  const metricText=(m:ReportMetric,value:number)=>m==="REVENUE"?amount(value):String(value);
  const csvRows=():{headers:string[];rows:(string|number)[][]}=>{
@@ -57,19 +74,20 @@ export function AnalyticsScreen({navigate,toast}:{navigate:(s:string)=>void;toas
  const openReport=(r:SavedReport)=>{setMetric(r.metric);setRange(r.range);setCounty(r.county);setTab("overview");toast("Saved reporting filters restored.");};
  return <div className="dn-screen" data-testid="screen-analytics">
   <div className="dn-title-row"><div><h1>Analytics & Reports</h1><p>Explore operational performance, business trends and shareable reports from a connected demo dataset.</p></div><div className="dn-title-buttons"><button className="dn-btn outline" onClick={exportReport}><Download size={15}/> Export CSV</button><button className="dn-btn primary" disabled={!canSave} onClick={()=>{setName("");setNotes("");setCadence("MANUAL");setModal("save");}}><FilePlus2 size={15}/> Save Report</button></div></div>
+  {mode==="live"&&liveError&&<div role="alert" className="dn-live-resources"><strong>Unable to load analytics:</strong> {liveError}</div>}
   <div className="dn-metrics six">
-   <IconStat label="Orders" value={orders.length} icon={<Package/>} foot="Current selected filters"/>
+   <IconStat label="Orders" value={indicators.ORDERS} icon={<Package/>} foot="Current selected filters"/>
    <IconStat label="Gross Paid Value" value={amount(gross)} icon={<Wallet/>}/>
-   <IconStat label="Completed Deliveries" value={completed.length} icon={<CheckCircle2/>}/>
+   <IconStat label="Completed Deliveries" value={indicators.DELIVERIES} icon={<CheckCircle2/>}/>
    <IconStat label="Unique Customers" value={customers} tone="blue" icon={<Users/>}/>
-   <IconStat label="Completion Rate" value={(orders.length?(completed.length/orders.length*100):0).toFixed(1)+"%"} icon={<TrendingUp/>}/>
+   <IconStat label="Completion Rate" value={(indicators.ORDERS?(indicators.DELIVERIES/indicators.ORDERS*100):0).toFixed(1)+"%"} icon={<TrendingUp/>}/>
    <IconStat label="Support Cases" value={support.length} tone="amber" icon={<Activity/>}/>
   </div>
   <Card className="dn-analytics-filterbar"><div className="dn-toolbar"><SelectBox label="Analytics metric" value={metric} onChange={x=>setMetric(x as ReportMetric)} options={metrics.map(([value,label])=>({value,label}))}/><SelectBox label="Analytics date range" value={range} onChange={x=>setRange(x as ReportRange)} options={ranges.map(([value,label])=>({value,label}))}/><SelectBox label="Analytics county" value={county} onChange={setCounty} options={countyOptions.map(c=>({value:c,label:c==="all"?"Kenya (All Counties)":c}))}/><span className="dn-inline-demo">Sample-period reporting · no live analytics</span><button className="dn-text-btn" onClick={()=>{setMetric("ORDERS");setRange("ALL");setCounty("all");}}>Reset filters</button></div></Card>
   <Tabs ariaLabel="Analytics sections" tabs={[{key:"overview",label:"Performance Overview"},{key:"merchants",label:"Merchant & Category"},{key:"delivery",label:"Delivery Quality"},{key:"saved",label:"Saved Reports ("+data.phase4.reports.length+")"}]} value={tab} onChange={setTab}/>
   {tab!=="saved"&&<div className="dn-analytics-grid">
-   <Card title={metrics.find(x=>x[0]===metric)?.[1]+" Trend"} desc="Ten deterministic bins from filtered sample records" action={<span className="dn-inline-demo">{metricText(metric,indicators[metric])} total</span>}>
-    <TimeSeries values={series} labels={["1","","","","5","","","","","10"]} fill/><div className="dn-legend"><span className="g">● Dataset total {metricText(metric,indicators[metric])}</span><span>Sample distribution — not time-series telemetry</span></div>
+   <Card title={metrics.find(x=>x[0]===metric)?.[1]+" Trend"} desc={mode==="live"?"Actual API date buckets for the selected filters":"Ten deterministic bins from filtered sample records"} action={<span className="dn-inline-demo">{metricText(metric,indicators[metric])} total</span>}>
+    {series.length?<TimeSeries values={series} labels={mode==="live"?(metric==="REVENUE"?liveSeries.payments.map(p=>p.bucket.slice(5,10)):liveSeries.orders.map(p=>p.bucket.slice(5,10))):["1","","","","5","","","","","10"]} fill/>:<Empty label={mode==="live"?"No server time-series available for this metric":"No matching records"}/>}<div className="dn-legend"><span className="g">● {mode==="live"?"Recorded by backend":"Dataset total"} {metricText(metric,indicators[metric])}</span><span>{mode==="live"?"Real reporting periods":"Sample distribution — not time-series telemetry"}</span></div>
    </Card>
    <Card title="Order Status Mix" desc="Share of currently filtered order records"><Ring number={orders.length} label="Orders" parts={categories.map((s,i)=>({name:s.replaceAll("_"," "),value:orders.filter(o=>o.status===s).length,color:["#ffb02c","#3393e4","#6e89ed","#17b0ae","#f45d52","#00a96c","#a5aebe"][i]}))}/></Card>
    <Card title="Operational Highlights" desc="Drill into the underlying demo workspaces">
