@@ -8059,21 +8059,6 @@ paths:
         '400': {description: 'Invalid request'}
         '403': {description: 'Permission denied'}
         '409': {description: 'Conflict or blocked action'}
-    patch:
-      summary: 'DeeToo Admin Next Phase 2 PATCH /admin/configuration/settings/{key}'
-      tags: [Admin]
-      security: [{ bearerAuth: [] }]
-      parameters:
-        - name: key
-          in: path
-          required: true
-          schema: {type: string}
-      responses:
-        '200': {description: 'Success'}
-        '400': {description: 'Invalid request'}
-        '403': {description: 'Permission denied'}
-        '409': {description: 'Conflict or blocked action'}
-
 components:
   securitySchemes:
     bearerAuth:
