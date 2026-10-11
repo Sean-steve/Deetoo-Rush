@@ -69,6 +69,7 @@ function LiveStore({children}:{children:React.ReactNode}){
 export function useDemo(){const context=useContext(Context);if(!context)throw new Error("Admin data provider is missing");return context;}
 export function canAct(role:AdminRole,action:"order"|"dispatch"|"rider"|"review"|"reset"|"incident"|"support"|"resolve"|"merchant"|"customer"|"delete"|"geography"|"payment"|"refund"|"settlement"|"payout"|"finance"|"analytics"|"communications"|"security"|"system"):boolean{
  if(role==="SUPER_ADMIN")return true;
+ if(role==="ADMIN")return !["reset","security","system","delete"].includes(action);
  if(role==="OPERATIONS")return !["reset","customer","delete","refund","settlement","payout","finance","security","system","communications"].includes(action);
  if(role==="FINANCE")return ["payment","refund","settlement","payout","finance","analytics"].includes(action);
  if(role==="SUPPORT")return ["support","communications"].includes(action);
