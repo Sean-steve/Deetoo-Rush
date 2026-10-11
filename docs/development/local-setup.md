@@ -45,3 +45,38 @@ The server will start on `http://localhost:3000`:
 - **Type Checking**: `npm run check-types`
 - **Test Suite**: `npm test`
 - **Production Build**: `npm run build`
+
+## Troubleshooting: sign-in reports `RATE_LIMIT_UNAVAILABLE`
+
+All Customer, Merchant, Rider and Admin sign-ins go through the same API
+authentication limiter. In PostgreSQL mode that limiter normally uses Redis.
+
+Start or restart the Redis container, then verify a response:
+
+```bash
+docker compose up -d redis
+docker compose ps redis
+docker compose exec redis redis-cli ping    # PONG
+```
+
+From the host, the development `REDIS_URL` should be
+`redis://127.0.0.1:6379`. If the **API itself runs in Docker Compose**
+on the same service network, use `redis://redis:6379` instead.
+Verify that the API process loads the intended `.env`, that the port is
+reachable, and inspect `docker compose logs --tail=50 redis` if it is not.
+Restart `pnpm dev:api` after correcting environment variables.
+
+In `APP_ENV=development` only, a Redis outage now switches authentication
+limiting to **bounded per-process memory counters**, retaining both the
+per-IP limit and the IP+identifier limit. A warning is logged once per
+outage, and shared Redis enforcement resumes when the connection recovers.
+This is for single-process local development, **not a replacement for Redis**
+in distributed environments. `APP_ENV=staging` and `APP_ENV=production`
+continue to return 503 `RATE_LIMIT_UNAVAILABLE` when Redis is unavailable;
+restore the shared Redis service, do not bypass authentication protection.
+
+To exercise regression coverage, run:
+
+```bash
+pnpm exec tsx --test tests/unit/auth-rate-limiter.test.ts
+```
