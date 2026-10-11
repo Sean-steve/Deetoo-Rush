@@ -274,6 +274,13 @@ export function RiderConnectedApp() {
         <Row title="Verification" value={checklist?.ready?'Ready':checklist?.required?'Pending':'Not required'}/>
         {entries(checklist?.missing).map((x:any)=><Text key={String(x)} style={[S.sub,{color:C.red}]}>{String(x).replace(/_/g,' ')}</Text>)}
       </Panel>
+      <Panel title="Verify your phone number">
+        <Text style={S.sub}>A live DeeToo verification code is sent to your registered phone. This is not a demo OTP.</Text>
+        <Row title="Phone" value={user?.phone_e164||'Not registered'}/>
+        <Button outline label="Send phone verification code" onPress={()=>void run(()=>api.requestPhoneVerification(user?.phone_e164||''),'Verification code requested.')}/>
+        {field('phoneOtp','Enter SMS verification code','','number-pad')}
+        <Button label="Confirm phone code" disabled={!form.phoneOtp||busy} onPress={()=>void run(()=>api.confirmPhoneVerification(user?.phone_e164||'',form.phoneOtp||''),'Phone verification sent to DeeToo. Refresh status.')}/>
+      </Panel>
       <Button label="Submit for administrative review" onPress={()=>void run(()=>api.submitOnboarding(),'Application submitted for review.')} disabled={busy}/>
       <Button outline label="Documents" onPress={()=>go(3)}/><Button outline label="Equipment & Vehicle" onPress={()=>go(4)}/>
       <Button outline label="Back to Home" onPress={()=>go(6)}/>
