@@ -30,7 +30,7 @@ export function CustomersScreen({navigate,county,globalSearch,toast}:{navigate:(
   }).catch(e=>{if(!cancelled)setDetailsError(e instanceof Error?e.message:"Address details could not be loaded");});
   return ()=>{cancelled=true;};
  },[mode,selected?.id,data.phase2.customers]);
- const visibleAddresses=mode==="live"?(loadedAddresses?.customerId===selected?.id?loadedAddresses.rows:[]):selected?.addresses||[];
+ const visibleAddresses=mode==="live"?(loadedAddresses&&selected&&loadedAddresses.customerId===selected.id?loadedAddresses.rows:[]):selected?.addresses||[];
  const orders=selected?data.orders.filter(o=>mode==="live"?o.customerId===selected.id:o.customer===selected.name):[];
  const support=selected?data.phase2.support.filter(x=>x.participantType==="Customer"&&x.participantName===selected.name):[];
  const active=all.filter(x=>x.status==="ACTIVE").length,restricted=all.filter(x=>x.status==="RESTRICTED").length,suspended=all.filter(x=>x.status==="SUSPENDED").length;
