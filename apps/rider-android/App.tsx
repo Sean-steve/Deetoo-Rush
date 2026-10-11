@@ -3,25 +3,18 @@ import React from 'react';
 import { StatusBar } from 'react-native';
 import { RiderNativeApp } from './src/RiderNativeApp';
 import { RiderFrontendApp } from './src/preview/RiderFrontendApp';
+import { RiderConnectedApp } from './src/connected/RiderConnectedApp';
 import { shouldUseRiderFrontendMock } from './src/preview/preview-mode';
 
-// The approved visual experience is isolated until the backend-mapping phase.
-// Never switch a production build to mock mode accidentally.
-const previewEnabled = shouldUseRiderFrontendMock(
-  __DEV__,
-  process.env.EXPO_PUBLIC_RIDER_UI_MODE,
-);
+// Approved Rider frontend is the normal Android experience (including release).
+// Design acceptance fixtures require an explicit dev-only mock opt-in.
+// The original backend-connected app is a temporary dev rollback path only.
+const mock = shouldUseRiderFrontendMock(__DEV__, process.env.EXPO_PUBLIC_RIDER_UI_MODE);
+const legacy = __DEV__ && process.env.EXPO_PUBLIC_RIDER_UI_MODE === 'legacy';
 
 export default function App() {
-  return previewEnabled ? (
-    <>
-      <StatusBar barStyle="light-content" backgroundColor="#0C2338" />
-      <RiderFrontendApp />
-    </>
-  ) : (
-    <>
-      <StatusBar barStyle="dark-content" />
-      <RiderNativeApp />
-    </>
-  );
+  return <>
+    <StatusBar barStyle={mock || !legacy ? 'light-content' : 'dark-content'} backgroundColor="#0C2338" />
+    {mock ? <RiderFrontendApp /> : legacy ? <RiderNativeApp /> : <RiderConnectedApp />}
+  </>;
 }
