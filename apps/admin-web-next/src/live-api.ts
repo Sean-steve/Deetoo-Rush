@@ -9,7 +9,7 @@ import type {IncidentCase,SupportCase,MerchantRecord,CustomerRecord} from "./pha
 import type {PhaseThreeState,CountyCoverage,ServiceZone,RefundRequest,PayoutBatch} from "./phase3Data";
 import type {PhaseFourState,AdminAccount,HealthComponent} from "./phase4Data";
 export type Json=Record<string,unknown>;
-export type ResourceName="orders"|"dispatch"|"riders"|"incidents"|"support"|"merchants"|"customers"|"counties"|"zones"|"payments"|"settlements"|"payouts"|"finance"|"reports"|"campaigns"|"templates"|"inbox"|"users"|"health"|"config"|"analytics"|"sessions";
+export type ResourceName="orders"|"dispatch"|"riders"|"incidents"|"support"|"merchants"|"customers"|"counties"|"zones"|"payments"|"journal"|"settlements"|"payouts"|"finance"|"reports"|"campaigns"|"templates"|"inbox"|"users"|"health"|"config"|"analytics"|"sessions";
 export type ResourceState={status:"ready"|"error"|"restricted";error?:string;total?:number};
 export type LiveSnapshot={data:DemoState;resources:Partial<Record<ResourceName,ResourceState>>;identity:Json};
 const API="/api/v1";
@@ -79,7 +79,8 @@ export function emptyLiveData():DemoState{
  return {...base,orders:[],riders:[],incidents:[],tickets:[],activity:[],
    phase2:{incidents:[],support:[],merchants:[],customers:[],actions:[]},
    phase3:{coverage:[],zones:[],refunds:[],issues:[],reconciledOrders:[],payouts:[],control:{commissionRate:0,riderDeliveryShare:0,reservePercent:0,currency:"KES"},logs:[]},
-   phase4:{reports:[],campaigns:[],notifications:[],templates:[],admins:[],sessions:[],components:[],settings:{maintenance:false,orderIntake:false,riderDispatch:false,supportIntake:false,notificationDelivery:false,autoAssign:false,maxActiveOrders:0,supportSlaMinutes:0},logs:[]}};
+   phase4:{reports:[],campaigns:[],notifications:[],templates:[],admins:[],sessions:[],components:[],settings:{maintenance:false,orderIntake:false,riderDispatch:false,supportIntake:false,notificationDelivery:false,autoAssign:false,maxActiveOrders:0,supportSlaMinutes:0},logs:[]},
+   live:{payments:[],ledger:[],overview:{balances:{},paymentCount:0,reconciliation:{}},analytics:{orders:[],payments:[]}}};
 }
 export class LiveApiError extends Error{constructor(message:string,public status:number,public code:string){super(message);this.name="LiveApiError";}}
 function errorBody(x:unknown){const o=obj(x),e=obj(o.error);return {code:str(e.code||o.code,"REQUEST_FAILED"),message:str(e.message||o.message||o.error,"Request could not be completed")};}
@@ -101,7 +102,7 @@ function payload(x:unknown):unknown{const o=obj(x);return o.data??o;}
 function list(x:unknown,...keys:string[]):Json[]{const r=payload(x),o=obj(r);if(Array.isArray(r))return arr(r);for(const k of keys){if(Array.isArray(o[k]))return arr(o[k]);}return [];}
 function shortId(x:unknown){return encodeURIComponent(str(x));}
 const resources:Record<ResourceName,string>={
- orders:"/admin/orders?limit=100&page=1",dispatch:"/admin/dispatch/deliveries?limit=100&page=1",riders:"/admin/riders?limit=100&page=1",incidents:"/operations/incidents?limit=100",support:"/operations/support/cases?limit=100",merchants:"/admin/merchants?limit=100",customers:"/admin/customers?limit=100",counties:"/admin/geography/counties",zones:"/admin/service-zones?limit=100",payments:"/finance/ops/payments?limit=100",settlements:"/finance/settlements",payouts:"/finance/payouts",finance:"/finance/ops/overview",reports:"/admin/reports?limit=100",campaigns:"/admin/communications/campaigns?limit=100",templates:"/admin/communications/templates",inbox:"/admin/notifications?limit=100",users:"/admin/users?limit=100&role=staff",health:"/admin/observability/dependencies",config:"/admin/configuration",analytics:"/admin/analytics/series?bucket=day",sessions:"/auth/sessions"
+ orders:"/admin/orders?limit=100&page=1",dispatch:"/admin/dispatch/deliveries?limit=100&page=1",riders:"/admin/riders?limit=100&page=1",incidents:"/operations/incidents?limit=100",support:"/operations/support/cases?limit=100",merchants:"/admin/merchants?limit=100",customers:"/admin/customers?limit=100",counties:"/admin/geography/counties",zones:"/admin/service-zones?limit=100",payments:"/finance/ops/payments?limit=100",journal:"/finance/ops/journal",settlements:"/finance/settlements",payouts:"/finance/payouts",finance:"/finance/ops/overview",reports:"/admin/reports?limit=100",campaigns:"/admin/communications/campaigns?limit=100",templates:"/admin/communications/templates",inbox:"/admin/notifications?limit=100",users:"/admin/users?limit=100&role=staff",health:"/admin/observability/dependencies",config:"/admin/configuration",analytics:"/admin/analytics/series?bucket=day",sessions:"/auth/sessions"
 };
 const liveRoles=(identity:Json)=>{const raw=Array.isArray(identity.roles)?identity.roles:[];const x=raw.map(r=>typeof r==="string"?r:str(obj(r).code));return x.includes("super_admin")?"SUPER_ADMIN":x.includes("finance")?"FINANCE":x.includes("ops")||x.includes("admin")?"OPERATIONS":x.includes("support")?"SUPPORT":"VIEWER";};
 export function liveIdentityRole(identity:Json){return liveRoles(identity);}
@@ -124,9 +125,15 @@ export async function loadLive(signal?:AbortSignal):Promise<LiveSnapshot>{
    case "customers":d.phase2.customers=rows.map(canonicalCustomer);break;
    case "counties":d.phase3.coverage=rows.map(coverage);break;
    case "zones":d.phase3.zones=rows.map(z=>({id:str(z.id),county:county(z),name:name(z),enabled:status(z.status)==="ACTIVE",fee:minor(z.delivery_fee_minor),eta:num(z.eta_minutes),notes:str(z.description)}));break;
-   case "payments":d.phase3.refunds=[];break;
+   case "payments":d.live!.payments=rows.map(p=>({id:str(p.id),orderId:str(p.order_id),reference:str(p.provider_reference,p.id as string),method:status(p.method),status:status(p.internal_status),reconciliation:status(p.reconciliation_status),amount:minor(p.amount_minor),captured:minor(p.captured_minor),refunded:minor(p.refunded_minor),date:when(p.created_at),provider:status(p.provider)}));break;
+   case "journal":d.live!.ledger=rows.map(e=>{const details=obj(e.details),tx=status(details.transaction_type);const amount=minor(e.amount_minor);const outgoing=/REFUND|PAYOUT|WITHDRAWAL|DISBURSEMENT/.test(tx);
+    return {id:str(e.id),date:when(e.effective_at),type:tx==="REFUND"?"Refund":tx.includes("MERCHANT")?"Merchant payout":tx.includes("RIDER")?"Rider payout":outgoing?"Outgoing":"Collection",reference:str(details.reference_id||e.id),description:str(e.event),debit:outgoing?amount:0,credit:outgoing?0:amount,status:status(e.status),orderId:status(details.reference_type)==="ORDER"?str(details.reference_id):null};});break;
    case "settlements":d.phase3.payouts.push(...rows.map(p=>payout(p,"MERCHANT")));break;
    case "payouts":d.phase3.payouts.push(...rows.map(p=>payout(p,"RIDER")));break;
+   case "finance":{const b=obj(o.account_balances),bal:Record<string,number>={};for(const [k,v] of Object.entries(b))bal[k]=minor(v);
+     const reconciliation=obj(o.reconciliation),rec:Record<string,number>={};for(const [k,v] of Object.entries(reconciliation))rec[k]=num(v);
+     d.live!.overview={balances:bal,paymentCount:num(o.payment_count),reconciliation:rec};break;}
+   case "analytics":{d.live!.analytics={orders:arr(o.orders).map(e=>({bucket:str(e.bucket),orders:num(e.orders),completed:num(e.completed),cancelled:num(e.cancelled)})),payments:arr(o.payments).map(e=>({bucket:str(e.bucket),captured:minor(e.captured_minor),refunded:minor(e.refunded_minor)}))};break;}
    case "reports":d.phase4.reports=rows.map(r=>({id:str(r.id),name:str(r.name),metric:status(r.metric) as "ORDERS",range:"ALL",county:str(obj(r.filters).county_code,"all"),cadence:status(r.cadence) as "MANUAL",createdAt:when(r.created_at),notes:"Saved on DeeToo"}));break;
    case "campaigns":d.phase4.campaigns=rows.map(c=>({id:str(c.id),title:str(c.title),body:str(c.body),audience:status(c.audience) as "ALL",channel:status(c.channel) as "IN_APP",priority:status(c.priority) as "NORMAL",status:status(c.status)==="SENT"?"SENT":status(c.status)==="CANCELLED"?"CANCELLED":"DRAFT",createdAt:when(c.created_at),recipientCount:num(c.recipient_count),templateId:str(c.template_id)||null}));break;
    case "templates":d.phase4.templates=rows.map(t=>({id:str(t.id),name:str(t.name),title:str(t.title),body:str(t.body),channel:status(t.channel) as "IN_APP"}));break;
