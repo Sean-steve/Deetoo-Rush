@@ -11,6 +11,10 @@ import {IncidentsScreen} from "./screens/incidents";
 import {SupportScreen} from "./screens/support";
 import {MerchantsScreen} from "./screens/merchants";
 import {CustomersScreen} from "./screens/customers";
+import {GeographyScreen} from "./screens/geography";
+import {PaymentsScreen} from "./screens/payments";
+import {SettlementsScreen} from "./screens/settlements";
+import {FinancialScreen} from "./screens/financial";
 import "./styles.css";
 import "./phase2.css";
 type Route = {id:string;label:string;icon:React.ComponentType<{size?:number}>;phase:number};
@@ -21,7 +25,7 @@ const groups: {name:string;items:Route[]}[]=[
  {name:"INTELLIGENCE",items:[{id:"analytics",label:"Analytics & Reports",icon:BarChart3,phase:4},{id:"notifications",label:"Notifications",icon:Bell,phase:4}]},
  {name:"ADMINISTRATION",items:[{id:"security",label:"Identity & Security",icon:ShieldCheck,phase:4},{id:"system",label:"System Health",icon:Activity,phase:4},{id:"configuration",label:"Configuration",icon:Settings,phase:4}]},
 ];
-function routeFromHash():Screen {const part=location.hash.replace(/^#\/?/,"").split("?")[0];return ["command","dispatch","orders","riders","incidents","support","merchants","customers"].includes(part)?part as Screen:"command";}
+function routeFromHash():Screen {const part=location.hash.replace(/^#\/?/,"").split("?")[0];return ["command","dispatch","orders","riders","incidents","support","merchants","customers","geography","payments","settlements","financial"].includes(part)?part as Screen:"command";}
 export function AdminNext(){return <DemoProvider><Workspace/></DemoProvider>;}
 function Workspace(){
  const {data,role,setRole,reset}=useDemo();
@@ -38,7 +42,7 @@ function Workspace(){
  useEffect(()=>{const change=()=>setScreen(routeFromHash());addEventListener("hashchange",change);return()=>removeEventListener("hashchange",change);},[]);
  useEffect(()=>{if(toast){const timer=setTimeout(()=>setToast(""),3500);return()=>clearTimeout(timer);}},[toast]);
  const navigate=(id:string)=>{
-   if(!["command","dispatch","orders","riders","incidents","support","merchants","customers"].includes(id)){const p=groups.flatMap(g=>g.items).find(x=>x.id===id);setToast((p?.label||"This area")+" is planned for Phase "+(p?.phase||2)+".");return;}
+   if(!["command","dispatch","orders","riders","incidents","support","merchants","customers","geography","payments","settlements","financial"].includes(id)){const p=groups.flatMap(g=>g.items).find(x=>x.id===id);setToast((p?.label||"This area")+" is planned for Phase "+(p?.phase||2)+".");return;}
    const view=id as Screen;location.hash="/"+view;setScreen(view);window.scrollTo({top:0,behavior:"smooth"});
  };
  const search=(e:React.FormEvent)=>{e.preventDefault();const text=quickSearch.trim();if(!text)return;setSearchText(text);navigate(/^RDR/i.test(text)||/rider/i.test(text)?"riders":/^INC/i.test(text)||/incident/i.test(text)?"incidents":/^SUP/i.test(text)||/support/i.test(text)?"support":/^MER/i.test(text)||/merchant/i.test(text)?"merchants":/^CUS/i.test(text)||/customer/i.test(text)?"customers":"orders");};
@@ -46,7 +50,7 @@ function Workspace(){
  return <div className={"dn-app "+(collapsed?"dn-collapsed":"")}>
  <aside className="dn-sidebar">
   <div className="dn-logo"><span className="dn-logo-mark"><span/></span><strong>DeeToo<small>Rush</small></strong></div>
-  <div className="dn-sidebar-links">{groups.map(group=><div key={group.name} className="dn-nav-group"><div className="dn-nav-head">{group.name}</div>{group.items.map(item=><button key={item.id} title={item.label+(item.phase>1?" · Phase "+item.phase:"")} className={"dn-nav-link "+(screen===item.id?"active ":"")+(item.phase>2?"future":"")} onClick={()=>navigate(item.id)} aria-current={screen===item.id?"page":undefined}><item.icon size={18}/><span>{item.label}</span></button>)}</div>)}</div>
+  <div className="dn-sidebar-links">{groups.map(group=><div key={group.name} className="dn-nav-group"><div className="dn-nav-head">{group.name}</div>{group.items.map(item=><button key={item.id} title={item.label+(item.phase>1?" · Phase "+item.phase:"")} className={"dn-nav-link "+(screen===item.id?"active ":"")+(item.phase>3?"future":"")} onClick={()=>navigate(item.id)} aria-current={screen===item.id?"page":undefined}><item.icon size={18}/><span>{item.label}</span></button>)}</div>)}</div>
   <button className="dn-sidebar-collapse" onClick={()=>setCollapsed(v=>!v)}><ChevronLeft size={17}/><span>{collapsed?"Expand":"Collapse"} Sidebar</span></button>
  </aside>
  <div className="dn-page">
@@ -70,6 +74,10 @@ function Workspace(){
    {previewState==="normal"&&screen==="support"&&<SupportScreen navigate={navigate} globalSearch={searchText} toast={setToast}/>}
    {previewState==="normal"&&screen==="merchants"&&<MerchantsScreen county={selectedCounty} navigate={navigate} globalSearch={searchText} toast={setToast}/>}
    {previewState==="normal"&&screen==="customers"&&<CustomersScreen county={selectedCounty} navigate={navigate} globalSearch={searchText} toast={setToast}/>}
+   {previewState==="normal"&&screen==="geography"&&<GeographyScreen navigate={navigate} county={selectedCounty} toast={setToast}/>}
+   {previewState==="normal"&&screen==="payments"&&<PaymentsScreen navigate={navigate} globalSearch={searchText} toast={setToast}/>}
+   {previewState==="normal"&&screen==="settlements"&&<SettlementsScreen navigate={navigate} toast={setToast}/>}
+   {previewState==="normal"&&screen==="financial"&&<FinancialScreen navigate={navigate} toast={setToast}/>}
   </main>
  </div>
  {toast&&<div className="dn-toast" role="status">{toast}<button onClick={()=>setToast("")} aria-label="Dismiss notification"><X size={14}/></button></div>}
