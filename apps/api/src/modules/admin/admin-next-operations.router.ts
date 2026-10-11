@@ -113,7 +113,7 @@ adminNextOperationsRouter.post('/customers/import',requireRole(UserRole.SUPER_AD
  const out=[] as any[];
  for(const item of items){
   try{
-   const created=await governanceService.provision({subject_type:'CUSTOMER',name:item.name,email:item.email,phone_e164:item.phone_e164,reason:'Approved administrator customer import'}, {id:req.user!.id,role:UserRole.SUPER_ADMIN,requestId:(req as any).requestId});
+   const created=await withTransaction(()=>governanceService.provision({subject_type:'CUSTOMER',name:item.name,email:item.email,phone_e164:item.phone_e164,reason:'Approved administrator customer import'}, {id:req.user!.id,role:UserRole.SUPER_ADMIN,requestId:(req as any).requestId}));
    out.push({email:item.email,status:'CREATED',user_id:created.user.id,requires_activation:true});
   }catch(error){out.push({email:item.email,status:'FAILED',code:error instanceof AppError?error.code:'PROVISION_FAILED'});}
  }
