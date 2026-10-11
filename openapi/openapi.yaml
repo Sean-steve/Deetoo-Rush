@@ -61,6 +61,231 @@ tags:
 security:
 - bearerAuth: []
 paths:
+  /admin/riders/{riderId}/verification:
+    get:
+      operationId: get_admin_riders_riderId_verification
+      summary: Admin Phase 3 reviewed backend capability
+      tags: [Admin]
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: riderId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Authenticated and scope-checked action or read model
+  /admin/riders/{riderId}/verification/documents/{documentId}/review:
+    post:
+      operationId: post_admin_riders_riderId_verification_documents_documentId_review
+      summary: Admin Phase 3 reviewed backend capability
+      tags: [Admin]
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: riderId
+          in: path
+          required: true
+          schema: { type: string }
+        - name: documentId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '201':
+          description: Authenticated and scope-checked action or read model
+  /admin/riders/{riderId}/verification/equipment/review:
+    post:
+      operationId: post_admin_riders_riderId_verification_equipment_review
+      summary: Admin Phase 3 reviewed backend capability
+      tags: [Admin]
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: riderId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '201':
+          description: Authenticated and scope-checked action or read model
+  /auth/register/rider:
+    post:
+      operationId: post_auth_register_rider
+      summary: Auth Phase 3 reviewed backend capability
+      tags: [Auth]
+      responses:
+        '201':
+          description: Authenticated and scope-checked action or read model
+  /finance/rider-withdrawal-requests/:
+    get:
+      operationId: get_finance_rider_withdrawal_requests_
+      summary: Finance Phase 3 reviewed backend capability
+      tags: [Finance]
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Authenticated and scope-checked action or read model
+  /finance/rider-withdrawal-requests/{requestId}/link-payout:
+    post:
+      operationId: post_finance_rider_withdrawal_requests_requestId_link_payout
+      summary: Finance Phase 3 reviewed backend capability
+      tags: [Finance]
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: requestId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '201':
+          description: Authenticated and scope-checked action or read model
+  /finance/rider-withdrawal-requests/{requestId}/review:
+    post:
+      operationId: post_finance_rider_withdrawal_requests_requestId_review
+      summary: Finance Phase 3 reviewed backend capability
+      tags: [Finance]
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: requestId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '201':
+          description: Authenticated and scope-checked action or read model
+  /rider/deliveries/history:
+    get:
+      operationId: get_rider_deliveries_history
+      summary: Rider Phase 3 reviewed backend capability
+      tags: [Rider]
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Authenticated and scope-checked action or read model
+  /rider/deliveries/history/{historyId}:
+    get:
+      operationId: get_rider_deliveries_history_historyId_
+      summary: Rider Phase 3 reviewed backend capability
+      tags: [Rider]
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: historyId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Authenticated and scope-checked action or read model
+  /rider/incidents:
+    get:
+      operationId: get_rider_incidents
+      summary: Rider Phase 3 reviewed backend capability
+      tags: [Rider]
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Authenticated and scope-checked action or read model
+    post:
+      operationId: post_rider_incidents
+      summary: Rider Phase 3 reviewed backend capability
+      tags: [Rider]
+      security: [{ bearerAuth: [] }]
+      responses:
+        '201':
+          description: Authenticated and scope-checked action or read model
+  /rider/incidents/{incidentId}:
+    get:
+      operationId: get_rider_incidents_incidentId_
+      summary: Rider Phase 3 reviewed backend capability
+      tags: [Rider]
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: incidentId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Authenticated and scope-checked action or read model
+  /rider/incidents/{incidentId}/evidence:
+    post:
+      operationId: post_rider_incidents_incidentId_evidence
+      summary: Rider Phase 3 reviewed backend capability
+      tags: [Rider]
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: incidentId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '201':
+          description: Authenticated and scope-checked action or read model
+    get:
+      operationId: get_rider_incidents_incidentId_evidence
+      summary: Rider Phase 3 reviewed backend capability
+      tags: [Rider]
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: incidentId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Authenticated and scope-checked action or read model
+  /rider/payout-requests:
+    get:
+      operationId: get_rider_payout_requests
+      summary: Rider Phase 3 reviewed backend capability
+      tags: [Rider]
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Authenticated and scope-checked action or read model
+    post:
+      operationId: post_rider_payout_requests
+      summary: Rider Phase 3 reviewed backend capability
+      tags: [Rider]
+      security: [{ bearerAuth: [] }]
+      responses:
+        '201':
+          description: Authenticated and scope-checked action or read model
+  /rider/profile/change-requests:
+    post:
+      operationId: post_rider_profile_change_requests
+      summary: Rider Phase 3 reviewed backend capability
+      tags: [Rider]
+      security: [{ bearerAuth: [] }]
+      responses:
+        '201':
+          description: Authenticated and scope-checked action or read model
+  /rider/verification/checklist:
+    get:
+      operationId: get_rider_verification_checklist
+      summary: Rider Phase 3 reviewed backend capability
+      tags: [Rider]
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Authenticated and scope-checked action or read model
+  /rider/verification/documents:
+    post:
+      operationId: post_rider_verification_documents
+      summary: Rider Phase 3 reviewed backend capability
+      tags: [Rider]
+      security: [{ bearerAuth: [] }]
+      responses:
+        '201':
+          description: Authenticated and scope-checked action or read model
+  /rider/verification/equipment:
+    post:
+      operationId: post_rider_verification_equipment
+      summary: Rider Phase 3 reviewed backend capability
+      tags: [Rider]
+      security: [{ bearerAuth: [] }]
+      responses:
+        '201':
+          description: Authenticated and scope-checked action or read model
   /merchant/experience/orders/{orderId}/contact:
     get:
       summary: Merchant contact capabilities without revealing customer contact details
