@@ -148,3 +148,69 @@ variants side by side with the approved mockups at narrow Android widths;
 inspect scroll behavior, keyboard overlap, touch targets and large text settings.
 Only after all 24 frontend screens pass acceptance will DeeToo backend
 capability mapping begin.
+
+
+## Phase 4 — Rider Account, Communication & Safety (screens 19–24)
+
+Phase 4 completes the 24 approved primary screen frontend previews. The original
+\`RiderNativeApp\`, backend, identity and payment services remain untouched.
+Run with \`EXPO_PUBLIC_RIDER_UI_MODE=mock\` on an Android development build.
+
+| Screen | Entry and key mock interactions |
+|---|---|
+| **19 Performance & Ratings** | **Profile → Performance & Ratings** or Home quick action; daily/weekly/monthly chart selectors, customer feedback, achievements, stats and coaching tips. |
+| **20 Notifications Center** | **Inbox → Alerts**; unread badges, all/Orders/Earnings/Account/Support/Updates filters, mark read/all read, preferences, deep links to other mock screens. |
+| **21 Rider Support Center** | **Inbox → Support Cases**; create categorized case, associate with a known demonstration order, search/filter, inspect cases and FAQ. Safety category connects to Screen 23. |
+| **22 Support Conversation** | Select a case; full threaded rider/agent/system history, message composer, staged attachment filename, order link, feedback, **I'm satisfied** or **Request Follow-up**. No rider resolution control. |
+| **23 Safety & Incident Reporting** | **Profile → Safety & Incidents**, Home quick action or Support; emergency guidance (no call initiated), four-step report (details, location, evidence, review), optional sample order, list and investigation timeline. |
+| **24 Rider Profile & Settings** | **Profile**; personal, vehicle, document, M-PESA destination, mock security, preferences, notifications, account-management requests, and links to performance, safety, support. |
+
+### Exact navigation standard
+
+\`Home · Deliveries · Earnings · Inbox · Profile\`. The previously approved
+bottom bar remains unchanged. Support and Notifications are subdivisions of
+**Inbox**. Performance, Safety and Settings are subdivisions of **Profile**.
+
+### State and administrative authority contract
+
+- A case remains a multi-participant conversation; rider feedback never marks
+  it Resolved. Resolved fixtures are **view only**; the rider has **no close
+  or resolve control**. A dissatisfied rider can request follow-up and reopen
+  the *local mock* state while retaining the existing message history.
+- Incident reporting doesn't directly acknowledge, investigate, or resolve
+  incidents. Admin-state fixtures demonstrate the appearance of investigation.
+- "Attachment" adds a demo filename to local UI only; neither image bytes nor
+  identity documents are read, captured, or sent.
+- Critical delivery/identity/security/safety notifications cannot be disabled
+  through the prototype preference toggles. Read/unread changes are local.
+- Editing identifying information, verified transport, or M-PESA destinations
+  moves the **mock account status to Reverification required**; it never
+  authorizes an actual production edit or changes provider payout details.
+- Account deactivation/deletion are requests, not immediate destructive
+  operations. They are blocked by an active delivery or outstanding cash and
+  do not modify the real account or delete any data.
+- Emergency assistance is visible without completing an incident form, but
+  **does not call emergency services**. In a real emergency use the device's
+  dialer and your local emergency contacts. The illustrated map is not GPS.
+- Data and amounts are examples only. React state lasts for this demo session
+  and resets upon sign-out. No persistence, live notifications, real support,
+  geolocation, authentication, photo upload or payment provider integration.
+
+### Phase 4 test commands
+
+\`\`\`bash
+pnpm exec tsx --test tests/unit/rider_phase4_preview.test.ts
+pnpm typecheck:rider-android
+pnpm build:rider-android
+\`\`\`
+
+### Visual acceptance gate
+
+Review each screen against the approved mobile mockup at narrow Android
+viewport widths and with larger accessibility fonts. Verify safe-area insets,
+keyboard avoidance, scrolling, touch targets, error, unread, empty, pending,
+review, satisfied/dissatisfied and resolved-readonly states. Screens may
+contain smaller nested scrollable sections; never introduce a second
+primary bottom navigation bar. Only after acceptance of the full **24-screen
+frontend** should separate backend capability audit, missing backend
+development, integration and end-to-end testing begin.
