@@ -49,3 +49,16 @@ The Phase 2 mock records are seeded by `src/phase2Data.ts` and stored under `Dem
 `pnpm test:admin-next-visual` runs both Phase 1 and Phase 2 browser suites. Phase 2 screenshot captures are available in `visual-output/admin-next/05-*.png` through `08-*.png`, at the approved 1536×1024 reference viewport. Visual parity still requires side-by-side review before design approval.
 
 The next stage remains **Phase 3 frontend-only**, not backend integration.
+
+## Phase 3 — Geographic and financial operations (screens 09–12)
+
+Four complete frontend-only workspaces extend the same persisted `DemoState`, now **v3**, with backward migration of Phase 1 and 2 data. All transitions are local and do not contact payment providers, banks, geographic services or DeeToo APIs.
+
+- `#/geography` — all 47 Kenyan counties with simulated service on/off controls, county delivery rules, new service zones, existing-order safety warnings and change history. County points on the map are schematic and **not authoritative county polygons**.
+- `#/payments` — seeded order-based collection view, refund request/review lifecycle, full/partial refund accounting, per-payment reconciliation, provider-like exceptions, audit trail and CSV export. Requested/refunded amounts cannot exceed the original paid order. No real refunds are issued.
+- `#/settlements` — merchant and rider share calculation from **delivered, paid** demo orders, no duplicate batching, draft/approve/reject/mark-paid lifecycle, payee allocations, immutable KES snapshot and logged demo references. No actual payouts are made.
+- `#/financial` — collected and approved money-flow ledger, derived outstanding partner liabilities, refund and exception review, commercial commission/rider/reserve controls, immutable previous batches and audit history.
+
+Roles: simulated Operations may configure coverage and reconcile demo transactions, while simulated Super Admin approves refunds, payout batches and commercial-policy changes. Real authentication and server authorization await the backend stage.
+
+**Review gate:** 1536×1024 visual screenshots (09–12) plus cross-screen browser tests. Screenshot comparison against the approved originals remains a separate sign-off requirement. Run `pnpm dev:admin-next` and `pnpm test:admin-next-visual`.
