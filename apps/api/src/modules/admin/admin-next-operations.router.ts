@@ -137,6 +137,29 @@ adminNextOperationsRouter.post('/security/sessions/:id/revoke',requireRole(UserR
  });
  res.json({data:result});
 }));
+adminNextOperationsRouter.get('/operations/incidents/:id/evidence',requireRole(UserRole.ADMIN,UserRole.OPS),run(async(req,res)=>{
+ asPostgres();const id=uuid.parse(req.params.id);
+ const result=await getDbPool().query(
+  "SELECT e.id,e.incident_id,e.media_object_id,e.added_by,e.created_at,m.content_type,m.byte_size,m.status AS media_status FROM admin_incident_evidence e JOIN media_objects m ON m.id=e.media_object_id WHERE e.incident_id=$1 ORDER BY e.created_at DESC LIMIT 100",
+  [id]);
+ res.json({data:result.rows,note:'Use authorized GET /media/:id/read-url to retrieve a short-lived private signed link'});
+}));
+adminNextOperationsRouter.post('/operations/incidents/:id/evidence',requireRole(UserRole.ADMIN,UserRole.OPS),run(async(req,res)=>{
+ asPostgres();const id=uuid.parse(req.params.id);
+ const body=z.object({media_id:uuid,reason:z.string().trim().min(5).max(2000)}).parse(req.body);
+ const row=await withTransaction(async client=>{
+  const incident=await client.query('SELECT id FROM operational_incidents WHERE id=$1 FOR UPDATE',[id]);
+  if(!incident.rows[0])throw new AppError(404,'INCIDENT_NOT_FOUND','Incident not found');
+  const media=await client.query("SELECT id FROM media_objects WHERE id=$1 AND owner_user_id=$2 AND purpose='ADMIN_INCIDENT' AND status='VERIFIED' AND reference_id=$3 FOR UPDATE",[body.media_id,req.user!.id,id]);
+  if(!media.rows[0])throw new AppError(403,'INCIDENT_MEDIA_NOT_VERIFIED','Evidence must be a verified, incident-bound private upload owned by the actor');
+  const attached=await client.query('INSERT INTO admin_incident_evidence(incident_id,media_object_id,added_by,reason) VALUES($1,$2,$3,$4) ON CONFLICT(incident_id,media_object_id) DO NOTHING RETURNING *',[id,body.media_id,req.user!.id,body.reason]);
+  if(!attached.rows[0])throw new AppError(409,'EVIDENCE_ALREADY_ATTACHED','This file is already attached to the incident');
+  await audit(client,req,'INCIDENT_EVIDENCE_ATTACHED','INCIDENT',id,body.reason,{},{evidence_id:attached.rows[0].id,media_id:body.media_id});
+  return attached.rows[0];
+ });
+ res.status(201).json({data:row});
+}));
+
 adminNextOperationsRouter.get('/governance/changes',requireRole(UserRole.SUPER_ADMIN,UserRole.ADMIN,UserRole.FINANCE),run(async(req,res)=>{
  asPostgres();const {limit,offset}=paginator.parse(req.query);
  const {rows}=await getDbPool().query('SELECT id,actor_id,action,resource_type,resource_id,reason,before_values,after_values,created_at FROM admin_change_audit ORDER BY created_at DESC LIMIT $1 OFFSET $2',[limit,offset]);
