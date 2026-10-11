@@ -588,7 +588,1881 @@ export class OperationsRepository {
       const count = await pool.query(query.replace('SELECT *', 'SELECT COUNT(*)::int AS total'), params);
       const limit = filter.limit ?? 50;
       const offset = filter.offset ?? 0;
-      query += ` ORDER BY created_at DESC, id DESC LIMIT ${idx++} OFFSET ${idx++}`;
+      query += ' ORDER BY created_at DESC, id DESC LIMIT 
+      const res = await pool.query(query, [...params, limit, offset]);
+      return {
+        cases: res.rows.map((r: any) => this.mapSupportCase(r)),
+        total: Number(count.rows[0]?.total ?? 0),
+      };
+    } catch {
+      allowMemoryAdapter();
+      // fallback
+    }
+
+    let items = Array.from(this.supportCases.values());
+    if (filter.customer_id) items = items.filter((c) => c.customer_id === filter.customer_id);
+    if (filter.merchant_id) items = items.filter((c) => c.merchant_id === filter.merchant_id);
+    if (filter.rider_id) items = items.filter((c) => c.rider_id === filter.rider_id);
+    if (filter.order_id) items = items.filter((c) => c.order_id === filter.order_id);
+    if (filter.status) items = items.filter((c) => c.status === filter.status);
+    if (filter.priority) items = items.filter((c) => c.priority === filter.priority);
+
+    items.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+    const total = items.length;
+    const limit = filter.limit || 50;
+    const offset = filter.offset || 0;
+    return {
+      cases: items.slice(offset, offset + limit),
+      total,
+    };
+  }
+
+  public async updateSupportCase(id: string, updates: Partial<SupportCase>): Promise<SupportCase | null> {
+    const existing = await this.getSupportCaseById(id);
+    if (!existing) return null;
+
+    const now = new Date().toISOString();
+    const updated: SupportCase = {
+      ...existing,
+      ...updates,
+      updated_at: now,
+    };
+
+    try {
+      await pool.query(
+        `UPDATE support_cases SET
+          status = $1, priority = $2, resolution_code = $3, resolution_notes = $4,
+          assigned_agent_id = $5, assigned_agent_name = $6, refund_id = $7,
+          resolved_at = $8, resolution_proposed_at = $9, disputed_at = $10,
+          closed_at = $11, updated_at = $12
+        WHERE id = $13`,
+        [
+          updated.status,
+          updated.priority,
+          updated.resolution_code || null,
+          updated.resolution_notes || null,
+          updated.assigned_agent_id || null,
+          updated.assigned_agent_name || null,
+          updated.refund_id || null,
+          updated.resolved_at || null,
+          (updated as any).resolution_proposed_at || null,
+          (updated as any).disputed_at || null,
+          (updated as any).closed_at || null,
+          updated.updated_at,
+          id,
+        ]
+      );
+    } catch {
+      allowMemoryAdapter();
+      // fallback
+    }
+
+    this.supportCases.set(id, updated);
+    return updated;
+  }
+
+  public async addSupportCaseNote(note: SupportCaseNote): Promise<SupportCaseNote> {
+    try {
+      await pool.query(
+        `INSERT INTO support_case_notes (
+          id, case_id, author_user_id, author_role, author_name, visibility, body,
+          message_type, target_party, created_at
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
+        [
+          note.id,
+          note.case_id,
+          note.author_user_id,
+          note.author_role || null,
+          note.author_name || null,
+          note.visibility,
+          note.body,
+          note.message_type || 'MESSAGE',
+          note.target_party || null,
+          note.created_at,
+        ]
+      );
+    } catch {
+      allowMemoryAdapter();
+      // fallback
+    }
+
+    const notes = this.supportCaseNotes.get(note.case_id) || [];
+    notes.push(note);
+    this.supportCaseNotes.set(note.case_id, notes);
+    return note;
+  }
+
+  public async getSupportCaseNotes(
+    caseId: string,
+    isInternalViewer: boolean,
+    participantScope?: 'CUSTOMER' | 'MERCHANT' | 'RIDER' | null,
+  ): Promise<SupportCaseNote[]> {
+    try {
+      let query = `SELECT * FROM support_case_notes WHERE case_id = $1`;
+      const params: any[] = [caseId];
+      if (!isInternalViewer) {
+        const allowed = ['ALL_PARTICIPANTS'];
+        if (participantScope === 'CUSTOMER') allowed.push('CUSTOMER_VISIBLE','CUSTOMER_ONLY');
+        if (participantScope === 'MERCHANT') allowed.push('MERCHANT_ONLY');
+        if (participantScope === 'RIDER') allowed.push('RIDER_ONLY');
+        query += ` AND visibility = ANY($2::varchar[])`;
+        params.push(allowed);
+      }
+      query += ` ORDER BY created_at ASC`;
+      const res = await pool.query(query, params);
+      if (res.rows && res.rows.length > 0) {
+        return res.rows.map((r: any) => ({
+          id: r.id,
+          case_id: r.case_id,
+          author_user_id: r.author_user_id,
+          author_role: r.author_role,
+          author_name: r.author_name,
+          visibility: r.visibility,
+          body: r.body,
+          message_type: r.message_type || 'MESSAGE',
+          target_party: r.target_party || null,
+          created_at: new Date(r.created_at).toISOString(),
+        }));
+      }
+    } catch {
+      allowMemoryAdapter();
+      // fallback
+    }
+
+    const notes = config.storage.mode === "memory" ? this.supportCaseNotes.get(caseId) || [] : [];
+    if (isInternalViewer) return notes;
+    return notes.filter((n) => {
+      if (n.visibility === 'ALL_PARTICIPANTS') return true;
+      if (participantScope === 'CUSTOMER') {
+        return ['CUSTOMER_VISIBLE','CUSTOMER_ONLY'].includes(n.visibility);
+      }
+      if (participantScope === 'MERCHANT') return n.visibility === 'MERCHANT_ONLY';
+      if (participantScope === 'RIDER') return n.visibility === 'RIDER_ONLY';
+      return false;
+    });
+  }
+
+  private mapSupportCase(row: any): SupportCase {
+    return {
+      id: row.id,
+      case_number: row.case_number,
+      customer_id: row.customer_id,
+      merchant_id: row.merchant_id,
+      rider_id: row.rider_id,
+      order_id: row.order_id,
+      delivery_id: row.delivery_id,
+      payment_id: row.payment_id,
+      category: row.category,
+      priority: row.priority,
+      status: row.status,
+      subject: row.subject,
+      description: row.description,
+      resolution_code: row.resolution_code,
+      resolution_notes: row.resolution_notes,
+      assigned_agent_id: row.assigned_agent_id,
+      assigned_agent_name: row.assigned_agent_name,
+      refund_id: row.refund_id,
+      created_at: new Date(row.created_at).toISOString(),
+      updated_at: new Date(row.updated_at).toISOString(),
+      resolved_at: row.resolved_at ? new Date(row.resolved_at).toISOString() : null,
+      resolution_proposed_at: row.resolution_proposed_at ? new Date(row.resolution_proposed_at).toISOString() : null,
+      disputed_at: row.disputed_at ? new Date(row.disputed_at).toISOString() : null,
+      closed_at: row.closed_at ? new Date(row.closed_at).toISOString() : null,
+    };
+  }
+
+
+  public async addSupportCaseAttachment(input: {
+    id: string;
+    case_id: string;
+    note_id?: string | null;
+    media_object_id: string;
+    uploaded_by: string;
+    created_at: string;
+  }): Promise<any> {
+    if (config.storage.mode !== 'postgres') return input;
+    const res = await pool.query(
+      `INSERT INTO support_case_attachments
+        (id,case_id,note_id,media_object_id,uploaded_by,created_at)
+       VALUES($1,$2,$3,$4,$5,$6)
+       ON CONFLICT(case_id,media_object_id) DO UPDATE SET note_id=EXCLUDED.note_id
+       RETURNING *`,
+      [input.id,input.case_id,input.note_id || null,input.media_object_id,input.uploaded_by,input.created_at],
+    );
+    return res.rows[0];
+  }
+
+  public async getSupportCaseAttachments(caseId: string): Promise<any[]> {
+    if (config.storage.mode !== 'postgres') return [];
+    const res = await pool.query(
+      `SELECT a.*, m.content_type, m.byte_size, m.status AS media_status
+       FROM support_case_attachments a
+       JOIN media_objects m ON m.id=a.media_object_id
+       WHERE a.case_id=$1
+       ORDER BY a.created_at ASC`,
+      [caseId],
+    );
+    return res.rows;
+  }
+
+  public async resetSupportConfirmations(
+    caseId: string,
+    participants: Array<{party_type:'CUSTOMER'|'MERCHANT'|'RIDER'; party_id:string}>,
+  ): Promise<any[]> {
+    if (config.storage.mode !== 'postgres') {
+      allowMemoryAdapter();
+      const now = new Date().toISOString();
+      const confirmations = participants.map((participant) => ({
+        id: durableEntityId(),
+        case_id: caseId,
+        party_type: participant.party_type,
+        party_id: participant.party_id,
+        decision: 'PENDING',
+        comment: null,
+        decided_by: null,
+        decided_at: null,
+        created_at: now,
+        updated_at: now,
+      }));
+      this.supportCaseConfirmations.set(caseId, confirmations);
+      return confirmations.map((item) => ({ ...item }));
+    }
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+      await client.query('DELETE FROM support_case_confirmations WHERE case_id=$1',[caseId]);
+      for (const participant of participants) {
+        await client.query(
+          `INSERT INTO support_case_confirmations
+            (id,case_id,party_type,party_id,decision,created_at,updated_at)
+           VALUES($1,$2,$3,$4,'PENDING',NOW(),NOW())`,
+          [durableEntityId(),caseId,participant.party_type,participant.party_id],
+        );
+      }
+      await client.query('COMMIT');
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      client.release();
+    }
+    return this.getSupportConfirmations(caseId);
+  }
+
+  public async getSupportConfirmations(caseId: string): Promise<any[]> {
+    if (config.storage.mode !== 'postgres') {
+      allowMemoryAdapter();
+      return (this.supportCaseConfirmations.get(caseId) || []).map((item) => ({ ...item }));
+    }
+    const res = await pool.query(
+      'SELECT * FROM support_case_confirmations WHERE case_id=$1 ORDER BY party_type',
+      [caseId],
+    );
+    return res.rows.map((row:any)=>({
+      ...row,
+      decided_at: row.decided_at ? new Date(row.decided_at).toISOString() : null,
+      created_at: new Date(row.created_at).toISOString(),
+      updated_at: new Date(row.updated_at).toISOString(),
+    }));
+  }
+
+  public async setSupportConfirmation(input: {
+    caseId:string;
+    partyType:'CUSTOMER'|'MERCHANT'|'RIDER';
+    partyId:string;
+    decision:'ACCEPTED'|'DISPUTED';
+    comment?:string;
+    decidedBy:string;
+  }): Promise<any> {
+    if (config.storage.mode !== 'postgres') {
+      allowMemoryAdapter();
+      const confirmations = this.supportCaseConfirmations.get(input.caseId) || [];
+      const index = confirmations.findIndex(
+        (item) => item.party_type === input.partyType && item.party_id === input.partyId,
+      );
+      if (index < 0) return null;
+      const now = new Date().toISOString();
+      const updated = {
+        ...confirmations[index],
+        decision: input.decision,
+        comment: input.comment || null,
+        decided_by: input.decidedBy,
+        decided_at: now,
+        updated_at: now,
+      };
+      confirmations[index] = updated;
+      this.supportCaseConfirmations.set(input.caseId, confirmations);
+      return { ...updated };
+    }
+    const res = await pool.query(
+      `UPDATE support_case_confirmations
+       SET decision=$1,comment=$2,decided_by=$3,decided_at=NOW(),updated_at=NOW()
+       WHERE case_id=$4 AND party_type=$5 AND party_id=$6
+       RETURNING *`,
+      [input.decision,input.comment || null,input.decidedBy,input.caseId,input.partyType,input.partyId],
+    );
+    return res.rows[0] || null;
+  }
+
+  // ============================================================================
+  // 3. Notifications & Idempotency
+  // ============================================================================
+
+  public async getNotificationByIdempotencyKey(idempotencyKey: string): Promise<NotificationRecord | null> {
+    try {
+      const res = await pool.query(`SELECT * FROM notifications WHERE idempotency_key = $1`, [idempotencyKey]);
+      if (res.rows && res.rows.length > 0) {
+        return this.mapNotification(res.rows[0]);
+      }
+    } catch {
+      allowMemoryAdapter();
+      // fallback
+    }
+
+    for (const n of config.storage.mode === "memory" ? this.notifications.values() : []) {
+      if (n.idempotency_key === idempotencyKey) return n;
+    }
+    return null;
+  }
+
+  public async createNotification(record: NotificationRecord): Promise<NotificationRecord> {
+    // Idempotency check first
+    const existing = await this.getNotificationByIdempotencyKey(record.idempotency_key);
+    if (existing) {
+      return existing;
+    }
+
+    try {
+      await pool.query(
+        `INSERT INTO notifications (
+          id, recipient_type, recipient_id, channel, template_code, status, subject, payload,
+          provider, provider_reference, scheduled_at, sent_at, delivered_at, failed_at,
+          failure_code, failure_reason, retry_count, max_retries, idempotency_key, read_at, created_at
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21)`,
+        [
+          record.id,
+          record.recipient_type,
+          record.recipient_id,
+          record.channel,
+          record.template_code,
+          record.status,
+          record.subject || null,
+          JSON.stringify(record.payload || {}),
+          record.provider,
+          record.provider_reference || null,
+          record.scheduled_at || null,
+          record.sent_at || null,
+          record.delivered_at || null,
+          record.failed_at || null,
+          record.failure_code || null,
+          record.failure_reason || null,
+          record.retry_count,
+          record.max_retries,
+          record.idempotency_key,
+          record.read_at || null,
+          record.created_at,
+        ]
+      );
+    } catch {
+      allowMemoryAdapter();
+      // fallback
+    }
+
+    this.notifications.set(record.id, record);
+    return record;
+  }
+
+  public async getNotificationById(id: string): Promise<NotificationRecord | null> {
+    try {
+      const res = await pool.query(`SELECT * FROM notifications WHERE id = $1`, [id]);
+      if (res.rows && res.rows.length > 0) {
+        return this.mapNotification(res.rows[0]);
+      }
+    } catch {
+      allowMemoryAdapter();
+      // fallback
+    }
+    return config.storage.mode === "memory" ? (this.notifications.get(id) || null) : null;
+  }
+
+  public async updateNotification(id: string, updates: Partial<NotificationRecord>): Promise<NotificationRecord | null> {
+    const existing = await this.getNotificationById(id);
+    if (!existing) return null;
+
+    const updated: NotificationRecord = {
+      ...existing,
+      ...updates,
+    };
+
+    try {
+      await pool.query(
+        `UPDATE notifications SET
+          status = $1, provider = $2, provider_reference = $3, scheduled_at = $4,
+          sent_at = $5, delivered_at = $6, failed_at = $7, failure_code = $8,
+          failure_reason = $9, retry_count = $10, read_at = $11
+        WHERE id = $12`,
+        [
+          updated.status,
+          updated.provider,
+          updated.provider_reference || null,
+          updated.scheduled_at || null,
+          updated.sent_at || null,
+          updated.delivered_at || null,
+          updated.failed_at || null,
+          updated.failure_code || null,
+          updated.failure_reason || null,
+          updated.retry_count,
+          updated.read_at || null,
+          id,
+        ]
+      );
+    } catch {
+      allowMemoryAdapter();
+      // fallback
+    }
+
+    this.notifications.set(id, updated);
+    return updated;
+  }
+
+  public async claimPendingNotifications(limit = 25): Promise<NotificationRecord[]> {
+    if (config.storage.mode === "postgres") {
+      const res = await getDbPool().query(
+        `WITH candidates AS (
+           SELECT id
+           FROM notifications
+           WHERE (
+               status IN ('PENDING','FAILED')
+               OR (status = 'QUEUED' AND scheduled_at <= NOW())
+             )
+             AND retry_count < max_retries
+             AND (scheduled_at IS NULL OR scheduled_at <= NOW())
+           ORDER BY created_at ASC
+           LIMIT $1
+           FOR UPDATE SKIP LOCKED
+         )
+         UPDATE notifications n
+         SET status = 'QUEUED',
+             scheduled_at = NOW() + INTERVAL '30 seconds',
+             failure_code = NULL,
+             failure_reason = NULL
+         FROM candidates c
+         WHERE n.id = c.id
+         RETURNING n.*`,
+        [Math.max(1, Math.min(limit, 100))],
+      );
+      return res.rows.map((row: any) => this.mapNotification(row));
+    }
+
+    allowMemoryAdapter();
+    const now = Date.now();
+    return Array.from(this.notifications.values())
+      .filter((record) =>
+        (
+          ['PENDING', 'FAILED'].includes(record.status) ||
+          (record.status === 'QUEUED' &&
+            Boolean(record.scheduled_at) &&
+            new Date(record.scheduled_at as string).getTime() <= now)
+        ) &&
+        record.retry_count < record.max_retries &&
+        (!record.scheduled_at || new Date(record.scheduled_at).getTime() <= now),
+      )
+      .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
+      .slice(0, limit)
+      .map((record) => {
+        const queued = {
+          ...record,
+          status: 'QUEUED' as NotificationStatus,
+          scheduled_at: new Date(Date.now() + 30_000).toISOString(),
+        };
+        this.notifications.set(record.id, queued);
+        return queued;
+      });
+  }
+
+  public async findNotifications(filter: {
+    recipient_type?: string;
+    recipient_id?: string;
+    channel?: string;
+    status?: NotificationStatus;
+    limit?: number;
+    offset?: number;
+  }): Promise<{ notifications: NotificationRecord[]; total: number }> {
+    try {
+      let query = `SELECT * FROM notifications WHERE 1=1`;
+      const params: any[] = [];
+      let idx = 1;
+
+      if (filter.recipient_type) {
+        query += ` AND recipient_type = $${idx++}`;
+        params.push(filter.recipient_type);
+      }
+      if (filter.recipient_id) {
+        query += ` AND recipient_id = $${idx++}`;
+        params.push(filter.recipient_id);
+      }
+      if (filter.channel) {
+        query += ` AND channel = $${idx++}`;
+        params.push(filter.channel);
+      }
+      if (filter.status) {
+        query += ` AND status = $${idx++}`;
+        params.push(filter.status);
+      }
+
+      query += ` ORDER BY created_at DESC`;
+      const limit = filter.limit || 50;
+      const offset = filter.offset || 0;
+      query += ` LIMIT ${limit} OFFSET ${offset}`;
+
+      const res = await pool.query(query, params);
+      return {
+        notifications: res.rows.map((r: any) => this.mapNotification(r)),
+        total: res.rows.length,
+      };
+    } catch {
+      allowMemoryAdapter();
+      // fallback
+    }
+
+    let items = Array.from(this.notifications.values());
+    if (filter.recipient_type) items = items.filter((n) => n.recipient_type === filter.recipient_type);
+    if (filter.recipient_id) items = items.filter((n) => n.recipient_id === filter.recipient_id);
+    if (filter.channel) items = items.filter((n) => n.channel === filter.channel);
+    if (filter.status) items = items.filter((n) => n.status === filter.status);
+
+    items.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+    const total = items.length;
+    const limit = filter.limit || 50;
+    const offset = filter.offset || 0;
+    return {
+      notifications: items.slice(offset, offset + limit),
+      total,
+    };
+  }
+
+  private mapNotification(row: any): NotificationRecord {
+    return {
+      id: row.id,
+      recipient_type: row.recipient_type,
+      recipient_id: row.recipient_id,
+      channel: row.channel,
+      template_code: row.template_code,
+      status: row.status,
+      subject: row.subject,
+      payload: typeof row.payload === 'string' ? JSON.parse(row.payload) : row.payload || {},
+      provider: row.provider,
+      provider_reference: row.provider_reference,
+      scheduled_at: row.scheduled_at ? new Date(row.scheduled_at).toISOString() : null,
+      sent_at: row.sent_at ? new Date(row.sent_at).toISOString() : null,
+      delivered_at: row.delivered_at ? new Date(row.delivered_at).toISOString() : null,
+      failed_at: row.failed_at ? new Date(row.failed_at).toISOString() : null,
+      failure_code: row.failure_code,
+      failure_reason: row.failure_reason,
+      retry_count: row.retry_count,
+      max_retries: row.max_retries,
+      idempotency_key: row.idempotency_key,
+      read_at: row.read_at ? new Date(row.read_at).toISOString() : null,
+      created_at: new Date(row.created_at).toISOString(),
+    };
+  }
+
+  // ============================================================================
+  // 4. Dead-Letter Queue (DLQ)
+  // ============================================================================
+
+  public async createDeadLetterJob(job: DeadLetterJob): Promise<DeadLetterJob> {
+    try {
+      await pool.query(
+        `INSERT INTO dead_letter_jobs (
+          id, job_type, job_id, payload, attempt_count, max_attempts, last_error, status, failed_at
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+        [
+          job.id,
+          job.job_type,
+          job.job_id,
+          JSON.stringify(job.payload || {}),
+          job.attempt_count,
+          job.max_attempts,
+          job.last_error,
+          job.status,
+          job.failed_at,
+        ]
+      );
+    } catch {
+      allowMemoryAdapter();
+      // fallback
+    }
+
+    this.deadLetterJobs.set(job.id, job);
+    return job;
+  }
+
+  public async getDeadLetterJobById(id: string): Promise<DeadLetterJob | null> {
+    try {
+      const res = await pool.query(`SELECT * FROM dead_letter_jobs WHERE id = $1`, [id]);
+      if (res.rows && res.rows.length > 0) {
+        return this.mapDeadLetterJob(res.rows[0]);
+      }
+    } catch {
+      allowMemoryAdapter();
+      // fallback
+    }
+    return config.storage.mode === "memory" ? (this.deadLetterJobs.get(id) || null) : null;
+  }
+
+  public async updateDeadLetterJob(id: string, updates: Partial<DeadLetterJob>): Promise<DeadLetterJob | null> {
+    const existing = await this.getDeadLetterJobById(id);
+    if (!existing) return null;
+
+    const updated: DeadLetterJob = {
+      ...existing,
+      ...updates,
+    };
+
+    try {
+      await pool.query(
+        `UPDATE dead_letter_jobs SET status = $1, resolved_at = $2, resolved_by = $3 WHERE id = $4`,
+        [updated.status, updated.resolved_at || null, updated.resolved_by || null, id]
+      );
+    } catch {
+      allowMemoryAdapter();
+      // fallback
+    }
+
+    this.deadLetterJobs.set(id, updated);
+    return updated;
+  }
+
+  public async findDeadLetterJobs(filter: {
+    status?: 'DEAD_LETTER' | 'RETRIED' | 'RESOLVED';
+    job_type?: string;
+    limit?: number;
+    offset?: number;
+  }): Promise<{ jobs: DeadLetterJob[]; total: number }> {
+    try {
+      let query = `SELECT * FROM dead_letter_jobs WHERE 1=1`;
+      const params: any[] = [];
+      let idx = 1;
+
+      if (filter.status) {
+        query += ` AND status = $${idx++}`;
+        params.push(filter.status);
+      }
+      if (filter.job_type) {
+        query += ` AND job_type = $${idx++}`;
+        params.push(filter.job_type);
+      }
+
+      query += ` ORDER BY failed_at DESC`;
+      const limit = filter.limit || 50;
+      const offset = filter.offset || 0;
+      query += ` LIMIT ${limit} OFFSET ${offset}`;
+
+      const res = await pool.query(query, params);
+      return {
+        jobs: res.rows.map((r: any) => this.mapDeadLetterJob(r)),
+        total: res.rows.length,
+      };
+    } catch {
+      allowMemoryAdapter();
+      // fallback
+    }
+
+    let items = Array.from(this.deadLetterJobs.values());
+    if (filter.status) items = items.filter((j) => j.status === filter.status);
+    if (filter.job_type) items = items.filter((j) => j.job_type === filter.job_type);
+
+    items.sort((a, b) => new Date(b.failed_at).getTime() - new Date(a.failed_at).getTime());
+    const total = items.length;
+    const limit = filter.limit || 50;
+    const offset = filter.offset || 0;
+    return {
+      jobs: items.slice(offset, offset + limit),
+      total,
+    };
+  }
+
+  private mapDeadLetterJob(row: any): DeadLetterJob {
+    return {
+      id: row.id,
+      job_type: row.job_type,
+      job_id: row.job_id,
+      payload: typeof row.payload === 'string' ? JSON.parse(row.payload) : row.payload || {},
+      attempt_count: row.attempt_count,
+      max_attempts: row.max_attempts,
+      last_error: row.last_error,
+      status: row.status,
+      failed_at: new Date(row.failed_at).toISOString(),
+      resolved_at: row.resolved_at ? new Date(row.resolved_at).toISOString() : null,
+      resolved_by: row.resolved_by,
+    };
+  }
+
+  // ============================================================================
+  // 5. Fraud & Risk Signals
+  // ============================================================================
+
+  public async createRiskSignal(signal: RiskSignal): Promise<RiskSignal> {
+    try {
+      await pool.query(
+        `INSERT INTO risk_signals (
+          id, signal_type, severity, customer_id, merchant_id, rider_id, order_id, payment_id,
+          promotion_id, score_weight, metadata, status, detected_at
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)`,
+        [
+          signal.id,
+          signal.signal_type,
+          signal.severity,
+          signal.customer_id || null,
+          signal.merchant_id || null,
+          signal.rider_id || null,
+          signal.order_id || null,
+          signal.payment_id || null,
+          signal.promotion_id || null,
+          signal.score_weight,
+          JSON.stringify(signal.metadata || {}),
+          signal.status,
+          signal.detected_at,
+        ]
+      );
+    } catch {
+      allowMemoryAdapter();
+      // fallback
+    }
+
+    this.riskSignals.set(signal.id, signal);
+    return signal;
+  }
+
+  public async getRiskSignalById(id: string): Promise<RiskSignal | null> {
+    try {
+      const res = await pool.query(`SELECT * FROM risk_signals WHERE id = $1`, [id]);
+      if (res.rows && res.rows.length > 0) {
+        return this.mapRiskSignal(res.rows[0]);
+      }
+    } catch {
+      allowMemoryAdapter();
+      // fallback
+    }
+    return config.storage.mode === "memory" ? (this.riskSignals.get(id) || null) : null;
+  }
+
+  public async updateRiskSignal(id: string, updates: Partial<RiskSignal>): Promise<RiskSignal | null> {
+    const existing = await this.getRiskSignalById(id);
+    if (!existing) return null;
+
+    const updated: RiskSignal = {
+      ...existing,
+      ...updates,
+    };
+
+    try {
+      await pool.query(
+        `UPDATE risk_signals SET status = $1, reviewed_at = $2, reviewed_by = $3, review_notes = $4 WHERE id = $5`,
+        [updated.status, updated.reviewed_at || null, updated.reviewed_by || null, updated.review_notes || null, id]
+      );
+    } catch {
+      allowMemoryAdapter();
+      // fallback
+    }
+
+    this.riskSignals.set(id, updated);
+    return updated;
+  }
+
+  public async findRiskSignals(filter: {
+    customer_id?: string;
+    merchant_id?: string;
+    rider_id?: string;
+    order_id?: string;
+    status?: RiskSignalStatus;
+    severity?: IncidentSeverity;
+    limit?: number;
+    offset?: number;
+  }): Promise<{ signals: RiskSignal[]; total: number }> {
+    try {
+      let query = `SELECT * FROM risk_signals WHERE 1=1`;
+      const params: any[] = [];
+      let idx = 1;
+
+      if (filter.customer_id) {
+        query += ` AND customer_id = $${idx++}`;
+        params.push(filter.customer_id);
+      }
+      if (filter.merchant_id) {
+        query += ` AND merchant_id = $${idx++}`;
+        params.push(filter.merchant_id);
+      }
+      if (filter.rider_id) {
+        query += ` AND rider_id = $${idx++}`;
+        params.push(filter.rider_id);
+      }
+      if (filter.order_id) {
+        query += ` AND order_id = $${idx++}`;
+        params.push(filter.order_id);
+      }
+      if (filter.status) {
+        query += ` AND status = $${idx++}`;
+        params.push(filter.status);
+      }
+      if (filter.severity) {
+        query += ` AND severity = $${idx++}`;
+        params.push(filter.severity);
+      }
+
+      query += ` ORDER BY detected_at DESC`;
+      const limit = filter.limit || 50;
+      const offset = filter.offset || 0;
+      query += ` LIMIT ${limit} OFFSET ${offset}`;
+
+      const res = await pool.query(query, params);
+      return {
+        signals: res.rows.map((r: any) => this.mapRiskSignal(r)),
+        total: res.rows.length,
+      };
+    } catch {
+      allowMemoryAdapter();
+      // fallback
+    }
+
+    let items = Array.from(this.riskSignals.values());
+    if (filter.customer_id) items = items.filter((s) => s.customer_id === filter.customer_id);
+    if (filter.merchant_id) items = items.filter((s) => s.merchant_id === filter.merchant_id);
+    if (filter.rider_id) items = items.filter((s) => s.rider_id === filter.rider_id);
+    if (filter.order_id) items = items.filter((s) => s.order_id === filter.order_id);
+    if (filter.status) items = items.filter((s) => s.status === filter.status);
+    if (filter.severity) items = items.filter((s) => s.severity === filter.severity);
+
+    items.sort((a, b) => new Date(b.detected_at).getTime() - new Date(a.detected_at).getTime());
+    const total = items.length;
+    const limit = filter.limit || 50;
+    const offset = filter.offset || 0;
+    return {
+      signals: items.slice(offset, offset + limit),
+      total,
+    };
+  }
+
+  private mapRiskSignal(row: any): RiskSignal {
+    return {
+      id: row.id,
+      signal_type: row.signal_type,
+      severity: row.severity,
+      customer_id: row.customer_id,
+      merchant_id: row.merchant_id,
+      rider_id: row.rider_id,
+      order_id: row.order_id,
+      payment_id: row.payment_id,
+      promotion_id: row.promotion_id,
+      score_weight: row.score_weight,
+      metadata: typeof row.metadata === 'string' ? JSON.parse(row.metadata) : row.metadata || {},
+      status: row.status,
+      detected_at: new Date(row.detected_at).toISOString(),
+      reviewed_at: row.reviewed_at ? new Date(row.reviewed_at).toISOString() : null,
+      reviewed_by: row.reviewed_by,
+      review_notes: row.review_notes,
+    };
+  }
+
+  // ============================================================================
+  // 6. Operational Kill Switches
+  // ============================================================================
+
+  public async getKillSwitches(): Promise<Record<string, { enabled: boolean; description?: string; updatedBy?: string; updatedAt: string }>> {
+    try {
+      const res = await pool.query(`SELECT * FROM operational_kill_switches`);
+      if (res.rows && res.rows.length > 0) {
+        const result: Record<string, any> = {};
+        for (const row of res.rows) {
+          result[row.key_name] = {
+            enabled: row.enabled,
+            description: row.description,
+            updatedBy: row.updated_by,
+            updatedAt: new Date(row.updated_at).toISOString(),
+          };
+        }
+        return result;
+      }
+    } catch {
+      allowMemoryAdapter();
+      // fallback
+    }
+
+    const result: Record<string, any> = {};
+    for (const [key, val] of config.storage.mode === "memory" ? this.killSwitches.entries() : []) {
+      result[key] = { ...val };
+    }
+    return result;
+  }
+
+  public async isKillSwitchActive(keyName: string): Promise<boolean> {
+    const switches = await this.getKillSwitches();
+    return switches[keyName]?.enabled === true;
+  }
+
+  public async setKillSwitch(keyName: string, enabled: boolean, updatedBy?: string, description?: string): Promise<void> {
+    const now = new Date().toISOString();
+    try {
+      await pool.query(
+        `INSERT INTO operational_kill_switches (key_name, enabled, description, updated_by, updated_at)
+         VALUES ($1, $2, $3, $4, $5)
+         ON CONFLICT (key_name) DO UPDATE SET enabled = $2, updated_by = $4, updated_at = $5`,
+        [keyName, enabled, description || null, updatedBy || null, now]
+      );
+    } catch {
+      allowMemoryAdapter();
+      // fallback
+    }
+
+    this.killSwitches.set(keyName, {
+      enabled,
+      description: description || this.killSwitches.get(keyName)?.description,
+      updatedBy,
+      updatedAt: now,
+    });
+  }
+}
+
+export const operationsRepository = new OperationsRepository();
+ + idx++ + ' OFFSET 
+      const res = await pool.query(query, [...params, limit, offset]);
+      return {
+        cases: res.rows.map((r: any) => this.mapSupportCase(r)),
+        total: Number(count.rows[0]?.total ?? 0),
+      };
+    } catch {
+      allowMemoryAdapter();
+      // fallback
+    }
+
+    let items = Array.from(this.supportCases.values());
+    if (filter.customer_id) items = items.filter((c) => c.customer_id === filter.customer_id);
+    if (filter.merchant_id) items = items.filter((c) => c.merchant_id === filter.merchant_id);
+    if (filter.rider_id) items = items.filter((c) => c.rider_id === filter.rider_id);
+    if (filter.order_id) items = items.filter((c) => c.order_id === filter.order_id);
+    if (filter.status) items = items.filter((c) => c.status === filter.status);
+    if (filter.priority) items = items.filter((c) => c.priority === filter.priority);
+
+    items.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+    const total = items.length;
+    const limit = filter.limit || 50;
+    const offset = filter.offset || 0;
+    return {
+      cases: items.slice(offset, offset + limit),
+      total,
+    };
+  }
+
+  public async updateSupportCase(id: string, updates: Partial<SupportCase>): Promise<SupportCase | null> {
+    const existing = await this.getSupportCaseById(id);
+    if (!existing) return null;
+
+    const now = new Date().toISOString();
+    const updated: SupportCase = {
+      ...existing,
+      ...updates,
+      updated_at: now,
+    };
+
+    try {
+      await pool.query(
+        `UPDATE support_cases SET
+          status = $1, priority = $2, resolution_code = $3, resolution_notes = $4,
+          assigned_agent_id = $5, assigned_agent_name = $6, refund_id = $7,
+          resolved_at = $8, resolution_proposed_at = $9, disputed_at = $10,
+          closed_at = $11, updated_at = $12
+        WHERE id = $13`,
+        [
+          updated.status,
+          updated.priority,
+          updated.resolution_code || null,
+          updated.resolution_notes || null,
+          updated.assigned_agent_id || null,
+          updated.assigned_agent_name || null,
+          updated.refund_id || null,
+          updated.resolved_at || null,
+          (updated as any).resolution_proposed_at || null,
+          (updated as any).disputed_at || null,
+          (updated as any).closed_at || null,
+          updated.updated_at,
+          id,
+        ]
+      );
+    } catch {
+      allowMemoryAdapter();
+      // fallback
+    }
+
+    this.supportCases.set(id, updated);
+    return updated;
+  }
+
+  public async addSupportCaseNote(note: SupportCaseNote): Promise<SupportCaseNote> {
+    try {
+      await pool.query(
+        `INSERT INTO support_case_notes (
+          id, case_id, author_user_id, author_role, author_name, visibility, body,
+          message_type, target_party, created_at
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
+        [
+          note.id,
+          note.case_id,
+          note.author_user_id,
+          note.author_role || null,
+          note.author_name || null,
+          note.visibility,
+          note.body,
+          note.message_type || 'MESSAGE',
+          note.target_party || null,
+          note.created_at,
+        ]
+      );
+    } catch {
+      allowMemoryAdapter();
+      // fallback
+    }
+
+    const notes = this.supportCaseNotes.get(note.case_id) || [];
+    notes.push(note);
+    this.supportCaseNotes.set(note.case_id, notes);
+    return note;
+  }
+
+  public async getSupportCaseNotes(
+    caseId: string,
+    isInternalViewer: boolean,
+    participantScope?: 'CUSTOMER' | 'MERCHANT' | 'RIDER' | null,
+  ): Promise<SupportCaseNote[]> {
+    try {
+      let query = `SELECT * FROM support_case_notes WHERE case_id = $1`;
+      const params: any[] = [caseId];
+      if (!isInternalViewer) {
+        const allowed = ['ALL_PARTICIPANTS'];
+        if (participantScope === 'CUSTOMER') allowed.push('CUSTOMER_VISIBLE','CUSTOMER_ONLY');
+        if (participantScope === 'MERCHANT') allowed.push('MERCHANT_ONLY');
+        if (participantScope === 'RIDER') allowed.push('RIDER_ONLY');
+        query += ` AND visibility = ANY($2::varchar[])`;
+        params.push(allowed);
+      }
+      query += ` ORDER BY created_at ASC`;
+      const res = await pool.query(query, params);
+      if (res.rows && res.rows.length > 0) {
+        return res.rows.map((r: any) => ({
+          id: r.id,
+          case_id: r.case_id,
+          author_user_id: r.author_user_id,
+          author_role: r.author_role,
+          author_name: r.author_name,
+          visibility: r.visibility,
+          body: r.body,
+          message_type: r.message_type || 'MESSAGE',
+          target_party: r.target_party || null,
+          created_at: new Date(r.created_at).toISOString(),
+        }));
+      }
+    } catch {
+      allowMemoryAdapter();
+      // fallback
+    }
+
+    const notes = config.storage.mode === "memory" ? this.supportCaseNotes.get(caseId) || [] : [];
+    if (isInternalViewer) return notes;
+    return notes.filter((n) => {
+      if (n.visibility === 'ALL_PARTICIPANTS') return true;
+      if (participantScope === 'CUSTOMER') {
+        return ['CUSTOMER_VISIBLE','CUSTOMER_ONLY'].includes(n.visibility);
+      }
+      if (participantScope === 'MERCHANT') return n.visibility === 'MERCHANT_ONLY';
+      if (participantScope === 'RIDER') return n.visibility === 'RIDER_ONLY';
+      return false;
+    });
+  }
+
+  private mapSupportCase(row: any): SupportCase {
+    return {
+      id: row.id,
+      case_number: row.case_number,
+      customer_id: row.customer_id,
+      merchant_id: row.merchant_id,
+      rider_id: row.rider_id,
+      order_id: row.order_id,
+      delivery_id: row.delivery_id,
+      payment_id: row.payment_id,
+      category: row.category,
+      priority: row.priority,
+      status: row.status,
+      subject: row.subject,
+      description: row.description,
+      resolution_code: row.resolution_code,
+      resolution_notes: row.resolution_notes,
+      assigned_agent_id: row.assigned_agent_id,
+      assigned_agent_name: row.assigned_agent_name,
+      refund_id: row.refund_id,
+      created_at: new Date(row.created_at).toISOString(),
+      updated_at: new Date(row.updated_at).toISOString(),
+      resolved_at: row.resolved_at ? new Date(row.resolved_at).toISOString() : null,
+      resolution_proposed_at: row.resolution_proposed_at ? new Date(row.resolution_proposed_at).toISOString() : null,
+      disputed_at: row.disputed_at ? new Date(row.disputed_at).toISOString() : null,
+      closed_at: row.closed_at ? new Date(row.closed_at).toISOString() : null,
+    };
+  }
+
+
+  public async addSupportCaseAttachment(input: {
+    id: string;
+    case_id: string;
+    note_id?: string | null;
+    media_object_id: string;
+    uploaded_by: string;
+    created_at: string;
+  }): Promise<any> {
+    if (config.storage.mode !== 'postgres') return input;
+    const res = await pool.query(
+      `INSERT INTO support_case_attachments
+        (id,case_id,note_id,media_object_id,uploaded_by,created_at)
+       VALUES($1,$2,$3,$4,$5,$6)
+       ON CONFLICT(case_id,media_object_id) DO UPDATE SET note_id=EXCLUDED.note_id
+       RETURNING *`,
+      [input.id,input.case_id,input.note_id || null,input.media_object_id,input.uploaded_by,input.created_at],
+    );
+    return res.rows[0];
+  }
+
+  public async getSupportCaseAttachments(caseId: string): Promise<any[]> {
+    if (config.storage.mode !== 'postgres') return [];
+    const res = await pool.query(
+      `SELECT a.*, m.content_type, m.byte_size, m.status AS media_status
+       FROM support_case_attachments a
+       JOIN media_objects m ON m.id=a.media_object_id
+       WHERE a.case_id=$1
+       ORDER BY a.created_at ASC`,
+      [caseId],
+    );
+    return res.rows;
+  }
+
+  public async resetSupportConfirmations(
+    caseId: string,
+    participants: Array<{party_type:'CUSTOMER'|'MERCHANT'|'RIDER'; party_id:string}>,
+  ): Promise<any[]> {
+    if (config.storage.mode !== 'postgres') {
+      allowMemoryAdapter();
+      const now = new Date().toISOString();
+      const confirmations = participants.map((participant) => ({
+        id: durableEntityId(),
+        case_id: caseId,
+        party_type: participant.party_type,
+        party_id: participant.party_id,
+        decision: 'PENDING',
+        comment: null,
+        decided_by: null,
+        decided_at: null,
+        created_at: now,
+        updated_at: now,
+      }));
+      this.supportCaseConfirmations.set(caseId, confirmations);
+      return confirmations.map((item) => ({ ...item }));
+    }
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+      await client.query('DELETE FROM support_case_confirmations WHERE case_id=$1',[caseId]);
+      for (const participant of participants) {
+        await client.query(
+          `INSERT INTO support_case_confirmations
+            (id,case_id,party_type,party_id,decision,created_at,updated_at)
+           VALUES($1,$2,$3,$4,'PENDING',NOW(),NOW())`,
+          [durableEntityId(),caseId,participant.party_type,participant.party_id],
+        );
+      }
+      await client.query('COMMIT');
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      client.release();
+    }
+    return this.getSupportConfirmations(caseId);
+  }
+
+  public async getSupportConfirmations(caseId: string): Promise<any[]> {
+    if (config.storage.mode !== 'postgres') {
+      allowMemoryAdapter();
+      return (this.supportCaseConfirmations.get(caseId) || []).map((item) => ({ ...item }));
+    }
+    const res = await pool.query(
+      'SELECT * FROM support_case_confirmations WHERE case_id=$1 ORDER BY party_type',
+      [caseId],
+    );
+    return res.rows.map((row:any)=>({
+      ...row,
+      decided_at: row.decided_at ? new Date(row.decided_at).toISOString() : null,
+      created_at: new Date(row.created_at).toISOString(),
+      updated_at: new Date(row.updated_at).toISOString(),
+    }));
+  }
+
+  public async setSupportConfirmation(input: {
+    caseId:string;
+    partyType:'CUSTOMER'|'MERCHANT'|'RIDER';
+    partyId:string;
+    decision:'ACCEPTED'|'DISPUTED';
+    comment?:string;
+    decidedBy:string;
+  }): Promise<any> {
+    if (config.storage.mode !== 'postgres') {
+      allowMemoryAdapter();
+      const confirmations = this.supportCaseConfirmations.get(input.caseId) || [];
+      const index = confirmations.findIndex(
+        (item) => item.party_type === input.partyType && item.party_id === input.partyId,
+      );
+      if (index < 0) return null;
+      const now = new Date().toISOString();
+      const updated = {
+        ...confirmations[index],
+        decision: input.decision,
+        comment: input.comment || null,
+        decided_by: input.decidedBy,
+        decided_at: now,
+        updated_at: now,
+      };
+      confirmations[index] = updated;
+      this.supportCaseConfirmations.set(input.caseId, confirmations);
+      return { ...updated };
+    }
+    const res = await pool.query(
+      `UPDATE support_case_confirmations
+       SET decision=$1,comment=$2,decided_by=$3,decided_at=NOW(),updated_at=NOW()
+       WHERE case_id=$4 AND party_type=$5 AND party_id=$6
+       RETURNING *`,
+      [input.decision,input.comment || null,input.decidedBy,input.caseId,input.partyType,input.partyId],
+    );
+    return res.rows[0] || null;
+  }
+
+  // ============================================================================
+  // 3. Notifications & Idempotency
+  // ============================================================================
+
+  public async getNotificationByIdempotencyKey(idempotencyKey: string): Promise<NotificationRecord | null> {
+    try {
+      const res = await pool.query(`SELECT * FROM notifications WHERE idempotency_key = $1`, [idempotencyKey]);
+      if (res.rows && res.rows.length > 0) {
+        return this.mapNotification(res.rows[0]);
+      }
+    } catch {
+      allowMemoryAdapter();
+      // fallback
+    }
+
+    for (const n of config.storage.mode === "memory" ? this.notifications.values() : []) {
+      if (n.idempotency_key === idempotencyKey) return n;
+    }
+    return null;
+  }
+
+  public async createNotification(record: NotificationRecord): Promise<NotificationRecord> {
+    // Idempotency check first
+    const existing = await this.getNotificationByIdempotencyKey(record.idempotency_key);
+    if (existing) {
+      return existing;
+    }
+
+    try {
+      await pool.query(
+        `INSERT INTO notifications (
+          id, recipient_type, recipient_id, channel, template_code, status, subject, payload,
+          provider, provider_reference, scheduled_at, sent_at, delivered_at, failed_at,
+          failure_code, failure_reason, retry_count, max_retries, idempotency_key, read_at, created_at
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21)`,
+        [
+          record.id,
+          record.recipient_type,
+          record.recipient_id,
+          record.channel,
+          record.template_code,
+          record.status,
+          record.subject || null,
+          JSON.stringify(record.payload || {}),
+          record.provider,
+          record.provider_reference || null,
+          record.scheduled_at || null,
+          record.sent_at || null,
+          record.delivered_at || null,
+          record.failed_at || null,
+          record.failure_code || null,
+          record.failure_reason || null,
+          record.retry_count,
+          record.max_retries,
+          record.idempotency_key,
+          record.read_at || null,
+          record.created_at,
+        ]
+      );
+    } catch {
+      allowMemoryAdapter();
+      // fallback
+    }
+
+    this.notifications.set(record.id, record);
+    return record;
+  }
+
+  public async getNotificationById(id: string): Promise<NotificationRecord | null> {
+    try {
+      const res = await pool.query(`SELECT * FROM notifications WHERE id = $1`, [id]);
+      if (res.rows && res.rows.length > 0) {
+        return this.mapNotification(res.rows[0]);
+      }
+    } catch {
+      allowMemoryAdapter();
+      // fallback
+    }
+    return config.storage.mode === "memory" ? (this.notifications.get(id) || null) : null;
+  }
+
+  public async updateNotification(id: string, updates: Partial<NotificationRecord>): Promise<NotificationRecord | null> {
+    const existing = await this.getNotificationById(id);
+    if (!existing) return null;
+
+    const updated: NotificationRecord = {
+      ...existing,
+      ...updates,
+    };
+
+    try {
+      await pool.query(
+        `UPDATE notifications SET
+          status = $1, provider = $2, provider_reference = $3, scheduled_at = $4,
+          sent_at = $5, delivered_at = $6, failed_at = $7, failure_code = $8,
+          failure_reason = $9, retry_count = $10, read_at = $11
+        WHERE id = $12`,
+        [
+          updated.status,
+          updated.provider,
+          updated.provider_reference || null,
+          updated.scheduled_at || null,
+          updated.sent_at || null,
+          updated.delivered_at || null,
+          updated.failed_at || null,
+          updated.failure_code || null,
+          updated.failure_reason || null,
+          updated.retry_count,
+          updated.read_at || null,
+          id,
+        ]
+      );
+    } catch {
+      allowMemoryAdapter();
+      // fallback
+    }
+
+    this.notifications.set(id, updated);
+    return updated;
+  }
+
+  public async claimPendingNotifications(limit = 25): Promise<NotificationRecord[]> {
+    if (config.storage.mode === "postgres") {
+      const res = await getDbPool().query(
+        `WITH candidates AS (
+           SELECT id
+           FROM notifications
+           WHERE (
+               status IN ('PENDING','FAILED')
+               OR (status = 'QUEUED' AND scheduled_at <= NOW())
+             )
+             AND retry_count < max_retries
+             AND (scheduled_at IS NULL OR scheduled_at <= NOW())
+           ORDER BY created_at ASC
+           LIMIT $1
+           FOR UPDATE SKIP LOCKED
+         )
+         UPDATE notifications n
+         SET status = 'QUEUED',
+             scheduled_at = NOW() + INTERVAL '30 seconds',
+             failure_code = NULL,
+             failure_reason = NULL
+         FROM candidates c
+         WHERE n.id = c.id
+         RETURNING n.*`,
+        [Math.max(1, Math.min(limit, 100))],
+      );
+      return res.rows.map((row: any) => this.mapNotification(row));
+    }
+
+    allowMemoryAdapter();
+    const now = Date.now();
+    return Array.from(this.notifications.values())
+      .filter((record) =>
+        (
+          ['PENDING', 'FAILED'].includes(record.status) ||
+          (record.status === 'QUEUED' &&
+            Boolean(record.scheduled_at) &&
+            new Date(record.scheduled_at as string).getTime() <= now)
+        ) &&
+        record.retry_count < record.max_retries &&
+        (!record.scheduled_at || new Date(record.scheduled_at).getTime() <= now),
+      )
+      .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
+      .slice(0, limit)
+      .map((record) => {
+        const queued = {
+          ...record,
+          status: 'QUEUED' as NotificationStatus,
+          scheduled_at: new Date(Date.now() + 30_000).toISOString(),
+        };
+        this.notifications.set(record.id, queued);
+        return queued;
+      });
+  }
+
+  public async findNotifications(filter: {
+    recipient_type?: string;
+    recipient_id?: string;
+    channel?: string;
+    status?: NotificationStatus;
+    limit?: number;
+    offset?: number;
+  }): Promise<{ notifications: NotificationRecord[]; total: number }> {
+    try {
+      let query = `SELECT * FROM notifications WHERE 1=1`;
+      const params: any[] = [];
+      let idx = 1;
+
+      if (filter.recipient_type) {
+        query += ` AND recipient_type = $${idx++}`;
+        params.push(filter.recipient_type);
+      }
+      if (filter.recipient_id) {
+        query += ` AND recipient_id = $${idx++}`;
+        params.push(filter.recipient_id);
+      }
+      if (filter.channel) {
+        query += ` AND channel = $${idx++}`;
+        params.push(filter.channel);
+      }
+      if (filter.status) {
+        query += ` AND status = $${idx++}`;
+        params.push(filter.status);
+      }
+
+      query += ` ORDER BY created_at DESC`;
+      const limit = filter.limit || 50;
+      const offset = filter.offset || 0;
+      query += ` LIMIT ${limit} OFFSET ${offset}`;
+
+      const res = await pool.query(query, params);
+      return {
+        notifications: res.rows.map((r: any) => this.mapNotification(r)),
+        total: res.rows.length,
+      };
+    } catch {
+      allowMemoryAdapter();
+      // fallback
+    }
+
+    let items = Array.from(this.notifications.values());
+    if (filter.recipient_type) items = items.filter((n) => n.recipient_type === filter.recipient_type);
+    if (filter.recipient_id) items = items.filter((n) => n.recipient_id === filter.recipient_id);
+    if (filter.channel) items = items.filter((n) => n.channel === filter.channel);
+    if (filter.status) items = items.filter((n) => n.status === filter.status);
+
+    items.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+    const total = items.length;
+    const limit = filter.limit || 50;
+    const offset = filter.offset || 0;
+    return {
+      notifications: items.slice(offset, offset + limit),
+      total,
+    };
+  }
+
+  private mapNotification(row: any): NotificationRecord {
+    return {
+      id: row.id,
+      recipient_type: row.recipient_type,
+      recipient_id: row.recipient_id,
+      channel: row.channel,
+      template_code: row.template_code,
+      status: row.status,
+      subject: row.subject,
+      payload: typeof row.payload === 'string' ? JSON.parse(row.payload) : row.payload || {},
+      provider: row.provider,
+      provider_reference: row.provider_reference,
+      scheduled_at: row.scheduled_at ? new Date(row.scheduled_at).toISOString() : null,
+      sent_at: row.sent_at ? new Date(row.sent_at).toISOString() : null,
+      delivered_at: row.delivered_at ? new Date(row.delivered_at).toISOString() : null,
+      failed_at: row.failed_at ? new Date(row.failed_at).toISOString() : null,
+      failure_code: row.failure_code,
+      failure_reason: row.failure_reason,
+      retry_count: row.retry_count,
+      max_retries: row.max_retries,
+      idempotency_key: row.idempotency_key,
+      read_at: row.read_at ? new Date(row.read_at).toISOString() : null,
+      created_at: new Date(row.created_at).toISOString(),
+    };
+  }
+
+  // ============================================================================
+  // 4. Dead-Letter Queue (DLQ)
+  // ============================================================================
+
+  public async createDeadLetterJob(job: DeadLetterJob): Promise<DeadLetterJob> {
+    try {
+      await pool.query(
+        `INSERT INTO dead_letter_jobs (
+          id, job_type, job_id, payload, attempt_count, max_attempts, last_error, status, failed_at
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+        [
+          job.id,
+          job.job_type,
+          job.job_id,
+          JSON.stringify(job.payload || {}),
+          job.attempt_count,
+          job.max_attempts,
+          job.last_error,
+          job.status,
+          job.failed_at,
+        ]
+      );
+    } catch {
+      allowMemoryAdapter();
+      // fallback
+    }
+
+    this.deadLetterJobs.set(job.id, job);
+    return job;
+  }
+
+  public async getDeadLetterJobById(id: string): Promise<DeadLetterJob | null> {
+    try {
+      const res = await pool.query(`SELECT * FROM dead_letter_jobs WHERE id = $1`, [id]);
+      if (res.rows && res.rows.length > 0) {
+        return this.mapDeadLetterJob(res.rows[0]);
+      }
+    } catch {
+      allowMemoryAdapter();
+      // fallback
+    }
+    return config.storage.mode === "memory" ? (this.deadLetterJobs.get(id) || null) : null;
+  }
+
+  public async updateDeadLetterJob(id: string, updates: Partial<DeadLetterJob>): Promise<DeadLetterJob | null> {
+    const existing = await this.getDeadLetterJobById(id);
+    if (!existing) return null;
+
+    const updated: DeadLetterJob = {
+      ...existing,
+      ...updates,
+    };
+
+    try {
+      await pool.query(
+        `UPDATE dead_letter_jobs SET status = $1, resolved_at = $2, resolved_by = $3 WHERE id = $4`,
+        [updated.status, updated.resolved_at || null, updated.resolved_by || null, id]
+      );
+    } catch {
+      allowMemoryAdapter();
+      // fallback
+    }
+
+    this.deadLetterJobs.set(id, updated);
+    return updated;
+  }
+
+  public async findDeadLetterJobs(filter: {
+    status?: 'DEAD_LETTER' | 'RETRIED' | 'RESOLVED';
+    job_type?: string;
+    limit?: number;
+    offset?: number;
+  }): Promise<{ jobs: DeadLetterJob[]; total: number }> {
+    try {
+      let query = `SELECT * FROM dead_letter_jobs WHERE 1=1`;
+      const params: any[] = [];
+      let idx = 1;
+
+      if (filter.status) {
+        query += ` AND status = $${idx++}`;
+        params.push(filter.status);
+      }
+      if (filter.job_type) {
+        query += ` AND job_type = $${idx++}`;
+        params.push(filter.job_type);
+      }
+
+      query += ` ORDER BY failed_at DESC`;
+      const limit = filter.limit || 50;
+      const offset = filter.offset || 0;
+      query += ` LIMIT ${limit} OFFSET ${offset}`;
+
+      const res = await pool.query(query, params);
+      return {
+        jobs: res.rows.map((r: any) => this.mapDeadLetterJob(r)),
+        total: res.rows.length,
+      };
+    } catch {
+      allowMemoryAdapter();
+      // fallback
+    }
+
+    let items = Array.from(this.deadLetterJobs.values());
+    if (filter.status) items = items.filter((j) => j.status === filter.status);
+    if (filter.job_type) items = items.filter((j) => j.job_type === filter.job_type);
+
+    items.sort((a, b) => new Date(b.failed_at).getTime() - new Date(a.failed_at).getTime());
+    const total = items.length;
+    const limit = filter.limit || 50;
+    const offset = filter.offset || 0;
+    return {
+      jobs: items.slice(offset, offset + limit),
+      total,
+    };
+  }
+
+  private mapDeadLetterJob(row: any): DeadLetterJob {
+    return {
+      id: row.id,
+      job_type: row.job_type,
+      job_id: row.job_id,
+      payload: typeof row.payload === 'string' ? JSON.parse(row.payload) : row.payload || {},
+      attempt_count: row.attempt_count,
+      max_attempts: row.max_attempts,
+      last_error: row.last_error,
+      status: row.status,
+      failed_at: new Date(row.failed_at).toISOString(),
+      resolved_at: row.resolved_at ? new Date(row.resolved_at).toISOString() : null,
+      resolved_by: row.resolved_by,
+    };
+  }
+
+  // ============================================================================
+  // 5. Fraud & Risk Signals
+  // ============================================================================
+
+  public async createRiskSignal(signal: RiskSignal): Promise<RiskSignal> {
+    try {
+      await pool.query(
+        `INSERT INTO risk_signals (
+          id, signal_type, severity, customer_id, merchant_id, rider_id, order_id, payment_id,
+          promotion_id, score_weight, metadata, status, detected_at
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)`,
+        [
+          signal.id,
+          signal.signal_type,
+          signal.severity,
+          signal.customer_id || null,
+          signal.merchant_id || null,
+          signal.rider_id || null,
+          signal.order_id || null,
+          signal.payment_id || null,
+          signal.promotion_id || null,
+          signal.score_weight,
+          JSON.stringify(signal.metadata || {}),
+          signal.status,
+          signal.detected_at,
+        ]
+      );
+    } catch {
+      allowMemoryAdapter();
+      // fallback
+    }
+
+    this.riskSignals.set(signal.id, signal);
+    return signal;
+  }
+
+  public async getRiskSignalById(id: string): Promise<RiskSignal | null> {
+    try {
+      const res = await pool.query(`SELECT * FROM risk_signals WHERE id = $1`, [id]);
+      if (res.rows && res.rows.length > 0) {
+        return this.mapRiskSignal(res.rows[0]);
+      }
+    } catch {
+      allowMemoryAdapter();
+      // fallback
+    }
+    return config.storage.mode === "memory" ? (this.riskSignals.get(id) || null) : null;
+  }
+
+  public async updateRiskSignal(id: string, updates: Partial<RiskSignal>): Promise<RiskSignal | null> {
+    const existing = await this.getRiskSignalById(id);
+    if (!existing) return null;
+
+    const updated: RiskSignal = {
+      ...existing,
+      ...updates,
+    };
+
+    try {
+      await pool.query(
+        `UPDATE risk_signals SET status = $1, reviewed_at = $2, reviewed_by = $3, review_notes = $4 WHERE id = $5`,
+        [updated.status, updated.reviewed_at || null, updated.reviewed_by || null, updated.review_notes || null, id]
+      );
+    } catch {
+      allowMemoryAdapter();
+      // fallback
+    }
+
+    this.riskSignals.set(id, updated);
+    return updated;
+  }
+
+  public async findRiskSignals(filter: {
+    customer_id?: string;
+    merchant_id?: string;
+    rider_id?: string;
+    order_id?: string;
+    status?: RiskSignalStatus;
+    severity?: IncidentSeverity;
+    limit?: number;
+    offset?: number;
+  }): Promise<{ signals: RiskSignal[]; total: number }> {
+    try {
+      let query = `SELECT * FROM risk_signals WHERE 1=1`;
+      const params: any[] = [];
+      let idx = 1;
+
+      if (filter.customer_id) {
+        query += ` AND customer_id = $${idx++}`;
+        params.push(filter.customer_id);
+      }
+      if (filter.merchant_id) {
+        query += ` AND merchant_id = $${idx++}`;
+        params.push(filter.merchant_id);
+      }
+      if (filter.rider_id) {
+        query += ` AND rider_id = $${idx++}`;
+        params.push(filter.rider_id);
+      }
+      if (filter.order_id) {
+        query += ` AND order_id = $${idx++}`;
+        params.push(filter.order_id);
+      }
+      if (filter.status) {
+        query += ` AND status = $${idx++}`;
+        params.push(filter.status);
+      }
+      if (filter.severity) {
+        query += ` AND severity = $${idx++}`;
+        params.push(filter.severity);
+      }
+
+      query += ` ORDER BY detected_at DESC`;
+      const limit = filter.limit || 50;
+      const offset = filter.offset || 0;
+      query += ` LIMIT ${limit} OFFSET ${offset}`;
+
+      const res = await pool.query(query, params);
+      return {
+        signals: res.rows.map((r: any) => this.mapRiskSignal(r)),
+        total: res.rows.length,
+      };
+    } catch {
+      allowMemoryAdapter();
+      // fallback
+    }
+
+    let items = Array.from(this.riskSignals.values());
+    if (filter.customer_id) items = items.filter((s) => s.customer_id === filter.customer_id);
+    if (filter.merchant_id) items = items.filter((s) => s.merchant_id === filter.merchant_id);
+    if (filter.rider_id) items = items.filter((s) => s.rider_id === filter.rider_id);
+    if (filter.order_id) items = items.filter((s) => s.order_id === filter.order_id);
+    if (filter.status) items = items.filter((s) => s.status === filter.status);
+    if (filter.severity) items = items.filter((s) => s.severity === filter.severity);
+
+    items.sort((a, b) => new Date(b.detected_at).getTime() - new Date(a.detected_at).getTime());
+    const total = items.length;
+    const limit = filter.limit || 50;
+    const offset = filter.offset || 0;
+    return {
+      signals: items.slice(offset, offset + limit),
+      total,
+    };
+  }
+
+  private mapRiskSignal(row: any): RiskSignal {
+    return {
+      id: row.id,
+      signal_type: row.signal_type,
+      severity: row.severity,
+      customer_id: row.customer_id,
+      merchant_id: row.merchant_id,
+      rider_id: row.rider_id,
+      order_id: row.order_id,
+      payment_id: row.payment_id,
+      promotion_id: row.promotion_id,
+      score_weight: row.score_weight,
+      metadata: typeof row.metadata === 'string' ? JSON.parse(row.metadata) : row.metadata || {},
+      status: row.status,
+      detected_at: new Date(row.detected_at).toISOString(),
+      reviewed_at: row.reviewed_at ? new Date(row.reviewed_at).toISOString() : null,
+      reviewed_by: row.reviewed_by,
+      review_notes: row.review_notes,
+    };
+  }
+
+  // ============================================================================
+  // 6. Operational Kill Switches
+  // ============================================================================
+
+  public async getKillSwitches(): Promise<Record<string, { enabled: boolean; description?: string; updatedBy?: string; updatedAt: string }>> {
+    try {
+      const res = await pool.query(`SELECT * FROM operational_kill_switches`);
+      if (res.rows && res.rows.length > 0) {
+        const result: Record<string, any> = {};
+        for (const row of res.rows) {
+          result[row.key_name] = {
+            enabled: row.enabled,
+            description: row.description,
+            updatedBy: row.updated_by,
+            updatedAt: new Date(row.updated_at).toISOString(),
+          };
+        }
+        return result;
+      }
+    } catch {
+      allowMemoryAdapter();
+      // fallback
+    }
+
+    const result: Record<string, any> = {};
+    for (const [key, val] of config.storage.mode === "memory" ? this.killSwitches.entries() : []) {
+      result[key] = { ...val };
+    }
+    return result;
+  }
+
+  public async isKillSwitchActive(keyName: string): Promise<boolean> {
+    const switches = await this.getKillSwitches();
+    return switches[keyName]?.enabled === true;
+  }
+
+  public async setKillSwitch(keyName: string, enabled: boolean, updatedBy?: string, description?: string): Promise<void> {
+    const now = new Date().toISOString();
+    try {
+      await pool.query(
+        `INSERT INTO operational_kill_switches (key_name, enabled, description, updated_by, updated_at)
+         VALUES ($1, $2, $3, $4, $5)
+         ON CONFLICT (key_name) DO UPDATE SET enabled = $2, updated_by = $4, updated_at = $5`,
+        [keyName, enabled, description || null, updatedBy || null, now]
+      );
+    } catch {
+      allowMemoryAdapter();
+      // fallback
+    }
+
+    this.killSwitches.set(keyName, {
+      enabled,
+      description: description || this.killSwitches.get(keyName)?.description,
+      updatedBy,
+      updatedAt: now,
+    });
+  }
+}
+
+export const operationsRepository = new OperationsRepository();
+ + idx++;
       const res = await pool.query(query, [...params, limit, offset]);
       return {
         cases: res.rows.map((r: any) => this.mapSupportCase(r)),
