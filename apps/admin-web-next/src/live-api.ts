@@ -161,7 +161,7 @@ export async function performLiveAction(a:LiveAction,data:DemoState,identity:Jso
  case "PHASE2_INCIDENT_CREATE":await apiMutation("/admin/operations/incidents","POST",{type:a.kind,severity:a.severity,summary:a.title,details:a.description,order_id:/^[a-f0-9-]{36}$/i.test(str(a.orderId))?a.orderId:undefined});return "Incident created.";
  case "PHASE2_INCIDENT_STATUS":{const state=status(a.status);const route:Record<string,string>={ACKNOWLEDGED:"acknowledge",INVESTIGATING:"investigate",RESOLVED:"resolve",CLOSED:"dismiss",OPEN:"reopen"};if(!route[state])unsupported(type);await apiMutation("/operations/incidents/"+id()+"/"+route[state],"POST",{note:reason||"Status reviewed by administration"});return "Incident change saved.";}
  case "PHASE2_INCIDENT_NOTE":await apiMutation("/operations/incidents/"+id()+"/timeline","POST",{note:str(a.note),action:"NOTE"});return "Incident timeline updated.";
- case "PHASE2_SUPPORT_REPLY":{if(a.actor!=="ADMIN"&&!a.internal)unsupported("Participant impersonation is prohibited");if(a.internal){await apiMutation("/operations/support/cases/"+id()+"/notes","POST",{body:str(a.message)});return "Internal support note saved.";}unsupported("Admin participant-visible messages require an authorized staff message route");}
+ case "PHASE2_SUPPORT_REPLY":{if(a.actor!=="ADMIN")unsupported("Participant impersonation is prohibited");await apiMutation("/operations/support/cases/"+id()+"/notes","POST",{visibility:a.internal?"INTERNAL":"ALL_PARTICIPANTS",body:str(a.message)});return a.internal?"Internal support note saved.":"Admin reply delivered to the authorized support conversation.";}
  case "PHASE2_SUPPORT_STATUS":{const state=status(a.status);if(state==="RESOLVED"){await apiMutation("/operations/support/cases/"+id()+"/resolve","POST",{resolution:reason||"Resolved by staff"});return "Support resolution requested; participants must confirm.";}await apiMutation("/operations/support/cases/"+id()+"/status","POST",{status:state,reason});return "Case status updated.";}
  case "PHASE2_MERCHANT_STATUS":{const s=status(a.status),route=s==="ACTIVE"?"reactivate":s==="SUSPENDED"?"suspend":s==="PENDING"?"reject":"";if(!route)unsupported(type);await apiMutation("/admin/merchants/"+id()+"/"+route,"POST",{reason:reason||"Merchant status reviewed"});return "Merchant status updated.";}
  case "PHASE2_CUSTOMER_NOTE":await apiMutation("/admin/customers/"+id()+"/notes","POST",{note:a.note});return "Customer note saved.";
@@ -187,7 +187,10 @@ export async function performLiveAction(a:LiveAction,data:DemoState,identity:Jso
  case "PHASE3_RECONCILE_ISSUE":throw new LiveApiError("Provider evidence is required. A review note cannot mark a payment reconciled.",409,"PROVIDER_EVIDENCE_REQUIRED");
  case "PHASE3_PAYOUT_REVIEW":{if(a.status==="REJECTED"){const batch=data.phase3.payouts.find(p=>p.id===a.id);await apiMutation("/finance/ops/"+(batch?.kind==="RIDER"?"payouts":"settlements")+"/"+id()+"/reject","POST",{reason});return "Draft payout rejected.";}throw new LiveApiError("Payout approval must use a server-provided calculation with maker/checker separation.",409,"PAYOUT_APPROVAL_REQUIRES_DETAIL");}
  case "PHASE3_PAYOUT_MARK_PAID":throw new LiveApiError("Only a verified provider callback can mark a payout PAID.",409,"PROVIDER_CONFIRMATION_REQUIRED");
- case "PHASE4_REPORT_SAVE":await apiMutation("/admin/reports","POST",{name:a.name,metric:a.metric,cadence:a.cadence,filters:{county_code:a.county==="all"?null:a.county}});return "Saved report created.";
+ case "PHASE4_REPORT_SAVE":{const selected=data.phase3.coverage.find(c=>c.county===a.county);
+     if(a.county!=="all"&&!selected?.code)throw new LiveApiError("Selected county has no backend county code.",400,"COUNTY_CODE_REQUIRED");
+     await apiMutation("/admin/reports","POST",{name:a.name,metric:a.metric,cadence:a.cadence,filters:{county_code:selected?.code||null}});return "Saved report created.";}
+
  case "PHASE4_REPORT_DELETE":await apiMutation("/admin/reports/"+id(),"DELETE");return "Saved report removed.";
  case "PHASE4_NOTIFICATION_READ":{const [t,eventId]=str(a.id).split(":");if(!a.read)unsupported(type);await apiMutation("/admin/notifications/"+t+"/"+requireId(eventId)+"/read","POST");return "Alert marked read.";}
  case "PHASE4_NOTIFICATION_READ_ALL":await apiMutation("/admin/notifications/read-all","POST",{});return "Alerts marked read.";
@@ -196,7 +199,7 @@ export async function performLiveAction(a:LiveAction,data:DemoState,identity:Jso
  case "PHASE4_CAMPAIGN_CANCEL":await apiMutation("/admin/communications/campaigns/"+id()+"/cancel","POST",{reason});return "Campaign cancelled.";
  case "PHASE4_TEMPLATE_SAVE":{const body={name:a.name,title:a.title,body:a.body,channel:a.channel};if(a.id)await apiMutation("/admin/communications/templates/"+id(),"PATCH",{...body,reason:"Template edited by admin"});else await apiMutation("/admin/communications/templates","POST",body);return "Template saved.";}
  case "PHASE4_ADMIN_INVITE":{const roles:Record<string,string>={OPERATIONS:"ops",SUPPORT:"support",FINANCE:"finance",ADMIN:"admin"};
-    await apiMutation("/admin/security/invitations","POST",{name:a.name,email:a.email,staff_role:roles[str(a.role)]||"support",reason});
+    const staffRole=roles[str(a.role)];if(!staffRole)throw new LiveApiError("Invitations require an actual backend staff role: Admin, Operations, Support or Finance.",400,"INVALID_STAFF_ROLE");await apiMutation("/admin/security/invitations","POST",{name:a.name,email:a.email,staff_role:staffRole,reason});
     return "Staff invitation recorded. Delivery acceptance depends on verified email provider; invitee remains PENDING until activation.";
    }
    case "PHASE4_ADMIN_ROLE":{const roles:Record<string,string>={SUPER_ADMIN:"super_admin",OPERATIONS:"ops",SUPPORT:"support",FINANCE:"finance",ADMIN:"admin"};const role=roles[str(a.role)];if(!role)unsupported(type);await apiMutation("/admin/users/"+id()+"/roles","POST",{roles:[role],reason});return "Role assignment reviewed.";}
@@ -206,7 +209,7 @@ export async function performLiveAction(a:LiveAction,data:DemoState,identity:Jso
     await apiMutation("/admin/security/users/"+id()+"/mfa-reset-requests","POST",{reason});return "MFA recovery submitted for independent Super Admin approval; no credentials have been reset yet.";
    }
  case "PHASE4_HEALTH_STATUS":throw new LiveApiError("Measured service health cannot be changed by an administrator; report an incident instead.",409,"LIVE_HEALTH_READ_ONLY");
- case "PHASE4_SETTING":{const key=str(a.key),value=bool(a.value);if(reason.length<5)throw new LiveApiError("A configuration reason is required.",400,"REASON_REQUIRED");
+ case "PHASE4_SETTING":{const key=str(a.key),value=bool(a.value);if(reason.length<10)throw new LiveApiError("A configuration reason of at least 10 characters is required.",400,"REASON_REQUIRED");
      const labels:Record<string,{name:string;inverse:boolean;kill:boolean}>={maintenance:{name:"maintenance_banner",inverse:false,kill:false},supportIntake:{name:"support_intake_paused",inverse:true,kill:false},notificationDelivery:{name:"notification_campaign_paused",inverse:true,kill:false},riderDispatch:{name:"auto_dispatch_paused",inverse:true,kill:true},autoAssign:{name:"auto_dispatch_paused",inverse:true,kill:true}};
      const target=labels[key];if(!target)throw new LiveApiError("Unsupported setting. Only explicitly service-enforced flags may be changed.",409,"CONFIG_KEY_UNSUPPORTED");
      await apiMutation("/admin/configuration/"+(target.kill?"kill-switches/":"settings/")+target.name,"PATCH",{enabled:target.inverse?!value:value,value:target.inverse?!value:value,reason});return "Supported operational control updated and recorded by DeeToo.";
