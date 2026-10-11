@@ -154,7 +154,7 @@ adminNextOperationsRouter.post('/security/sessions/:id/revoke',requireRole(UserR
 adminNextOperationsRouter.get('/operations/incidents/:id/evidence',requireRole(UserRole.ADMIN,UserRole.OPS),run(async(req,res)=>{
  asPostgres();const id=uuid.parse(req.params.id);
  const result=await getDbPool().query(
-  "SELECT e.id,e.incident_id,e.media_object_id,e.added_by,e.created_at,m.content_type,m.byte_size,m.status AS media_status FROM admin_incident_evidence e JOIN media_objects m ON m.id=e.media_object_id WHERE e.incident_id=$1 ORDER BY e.created_at DESC LIMIT 100",
+  "SELECT x.id,x.incident_id,x.media_object_id,x.added_by,x.created_at,x.reason,m.content_type,m.byte_size,m.status AS media_status FROM (SELECT id,incident_id,media_object_id,added_by,created_at,reason FROM admin_incident_evidence WHERE incident_id=$1 UNION ALL SELECT id,incident_id,media_object_id,added_by,created_at,description AS reason FROM rider_incident_evidence WHERE incident_id=$1) x JOIN media_objects m ON m.id=x.media_object_id ORDER BY x.created_at DESC LIMIT 100",
   [id]);
  res.json({data:result.rows,note:'Use authorized GET /media/:id/read-url to retrieve a short-lived private signed link'});
 }));

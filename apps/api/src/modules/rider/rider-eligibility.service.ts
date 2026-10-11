@@ -18,6 +18,7 @@ import { riderRepository } from './rider.repository';
 import { authRepository } from '../auth/auth.repository';
 import { riderLocationStore } from '../../db/redis';
 import { orderEventBroker } from '../realtime/event-broker';
+import { riderVerificationService } from './rider-verification.service';
 import { logger } from '@deetoo/utils';
 
 export class RiderEligibilityService {
@@ -140,6 +141,9 @@ export class RiderEligibilityService {
       }
     }
 
+    const verification = await riderVerificationService.checklist(riderId,profile.vehicleType);
+    if (!verification.ready) reasons.push('VERIFICATION_INCOMPLETE');
+
     // 8. Location Freshness & Accuracy Check
     let locationFresh = false;
     let lastLocationAgeSeconds: number | undefined;
@@ -177,6 +181,7 @@ export class RiderEligibilityService {
       operationalActive &&
       workStatusAvailable &&
       vehicleValid &&
+      verification.ready &&
       zoneValid &&
       locationFresh;
 

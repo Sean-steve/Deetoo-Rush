@@ -103,6 +103,9 @@ test('local paid order completes merchant, dispatch, pickup, tracking, delivery 
  const rider=await authService.registerCustomer({name:'Workflow Rider',email:randomUUID()+'@example.test',password:'Foundation-test-ONLY-893!'});
  await authRepository.setUserRoles(rider.user.id,[UserRole.RIDER]);
  const profile=await riderRepository.createProfile({userId:rider.user.id,firstName:'Workflow',lastName:'Rider',phone:'+254700000000',onboardingStatus:'APPROVED' as any});
+ // Legacy-approved integration fixture. All NEW applications need approved documents,
+ // reviewed equipment and phone verification before operational eligibility.
+ await getDbPool().query('UPDATE rider_profiles SET verification_required=FALSE WHERE id=$1',[profile.id]);
  await riderRepository.upsertVehicle(profile.id,{type:'MOTORBIKE',status:'ACTIVE'} as any);
  await riderRepository.assignZones(profile.id,[f.zone]);
  await riderService.goOnline(rider.user.id,{latitude:-1.28,longitude:36.82,accuracy_meters:5});

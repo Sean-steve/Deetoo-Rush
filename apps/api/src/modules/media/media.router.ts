@@ -49,6 +49,15 @@ async function assertPurposeScope(
     return;
   }
 
+  if (normalized === 'RIDER_INCIDENT') {
+    if (!referenceId) throw new AppError(400, 'MEDIA_REFERENCE_REQUIRED', 'Rider incident ID required');
+    const rider = await riderRepository.findProfileByUserId(req.user!.id);
+    const incident = await operationsRepository.getIncidentById(referenceId);
+    if (!rider || !incident || incident.rider_id !== rider.id) {
+      throw new AppError(403, 'MEDIA_INCIDENT_FORBIDDEN', 'Only the reporting rider may attach incident evidence');
+    }
+    return;
+  }
   if (normalized === 'ADMIN_INCIDENT') {
     const viewer=roles(req);
     if (!viewer.has('super_admin') && !viewer.has('admin') && !viewer.has('ops'))

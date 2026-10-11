@@ -356,7 +356,7 @@ test("--- SPRINT 14: COMPLETE 4-APP CROSS-JOURNEY (CUSTOMER, MERCHANT, RIDER, AD
     "ACCEPTED",
     "We confirm the invoice was supplied.",
   );
-  assert.equal(resolvedCase.status, "RESOLVED");
+  assert.equal(resolvedCase.status, "PARTY_CONFIRMATION");
   assert.equal(resolvedCase.closed_at, null);
   const reviewedCase = await supportService.finalizeConfirmedCase(
     supportCase.id,

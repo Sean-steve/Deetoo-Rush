@@ -251,6 +251,7 @@ export class OperationsRepository {
     order_id?: string;
     delivery_id?: string;
     payment_id?: string;
+    rider_id?: string;
     limit?: number;
     offset?: number;
   }): Promise<{ incidents: OperationalIncident[]; total: number }> {
@@ -280,8 +281,12 @@ export class OperationsRepository {
         params.push(filter.delivery_id);
       }
       if (filter.payment_id) {
-        query += ` AND payment_id = $${idx++}`;
+        query += ` AND payment_id = ${idx++}`;
         params.push(filter.payment_id);
+      }
+      if (filter.rider_id) {
+        query += ` AND rider_id = ${idx++}`;
+        params.push(filter.rider_id);
       }
 
       query += ` ORDER BY created_at DESC`;
@@ -307,6 +312,7 @@ export class OperationsRepository {
     if (filter.order_id) items = items.filter((i) => i.order_id === filter.order_id);
     if (filter.delivery_id) items = items.filter((i) => i.delivery_id === filter.delivery_id);
     if (filter.payment_id) items = items.filter((i) => i.payment_id === filter.payment_id);
+    if (filter.rider_id) items = items.filter((i) => i.rider_id === filter.rider_id);
 
     items.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
     const total = items.length;

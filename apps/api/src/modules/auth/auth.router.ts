@@ -8,6 +8,7 @@ import { Router, Request, Response, NextFunction } from 'express';
 import { ApiResponse } from '@deetoo/types';
 import {
   CustomerRegisterSchema,
+  RiderRegisterSchema,
   LoginSchema,
   ForgotPasswordSchema,
   ResetPasswordSchema,
@@ -70,6 +71,18 @@ authRouter.post(
     }
   }
 );
+
+/** Rider self-service signup creates an unapproved DRAFT application. */
+authRouter.post('/register/rider',registerRateLimiter,async(req:Request,res:Response,next:NextFunction)=>{
+  try{
+    const input=RiderRegisterSchema.parse(req.body);
+    const result=await authService.registerRider({
+      ...input,requestId:(req as any).requestId,ipAddress:req.ip,
+      deviceInfo:req.headers['user-agent'],
+    });
+    res.status(201).json({data:applyAuthTransport(req,res,result),requestId:(req as any).requestId});
+  }catch(error){next(error);}
+});
 
 /**
  * 2. POST /api/v1/auth/login

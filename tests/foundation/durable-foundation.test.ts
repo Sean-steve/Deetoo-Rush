@@ -574,6 +574,9 @@ test('durable approved Rider requires assigned coverage, then goes online and of
   await authRepository.createUser({id:uid,email:`${uid}@example.test`,phone_e164:null,password_hash:'unused',status:UserStatus.ACTIVE});
   await authRepository.setUserRoles(uid,[UserRole.RIDER]);
   const profile = await riderRepository.createProfile({userId:uid,firstName:'Runtime',lastName:'Rider',phone:'+254700123456',onboardingStatus:'APPROVED' as any});
+  // This test models a previously approved Rider; post-migration new applicants
+  // must pass verified phone, document and equipment reviews.
+  await getDbPool().query('UPDATE rider_profiles SET verification_required=FALSE WHERE id=$1',[profile.id]);
   await riderRepository.upsertVehicle(profile.id,{type:'MOTORBIKE',status:'ACTIVE'} as any);
   const gps = {latitude:-1.2864,longitude:36.8172,accuracy_meters:10};
   await assert.rejects(riderService.goOnline(uid,gps),{code:'RIDER_ZONE_REQUIRED'});

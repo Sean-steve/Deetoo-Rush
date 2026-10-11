@@ -70,7 +70,10 @@ export class OperationalIncidentService {
     const customer_id = params.customer_id || params.customerId || null;
     const reason_code = params.reason_code || params.reasonCode || 'GENERIC';
 
-    const existing = await operationsRepository.findActiveIncidentByEntity(params.type, {
+    // Distinct Rider-submitted reports are separate incidents, not recurrent
+    // automatic scanner detections for the same rider and type.
+    const existing = params.metadata?.source === 'RIDER_SELF_REPORT' ? null
+      : await operationsRepository.findActiveIncidentByEntity(params.type, {
       order_id,
       delivery_id,
       payment_id,

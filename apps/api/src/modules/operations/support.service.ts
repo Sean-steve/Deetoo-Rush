@@ -26,6 +26,8 @@ import { orderRepository } from "../order/order.repository";
 import { orderEventBroker } from "../realtime/event-broker";
 import { mediaService } from "../media/media.service";
 import { merchantRepository } from "../merchant/merchant.repository";
+import { riderRepository } from "../rider/rider.repository";
+import { deliveryRepository } from "../order/delivery.repository";
 
 export interface SupportViewer {
   id: string;
@@ -54,17 +56,50 @@ export class SupportService {
     description: string;
     creator: { id: string; name: string; role: string };
   }): Promise<SupportCase> {
-    // If order_id provided, validate existence and link customer/merchant if missing
+    // A participant may link a case only to their own verified order/delivery/payment.
+    // Staff-created cases use the existing explicit party-validation path.
+    const role = params.creator.role.toLowerCase();
+    const isRider = role === "rider";
+    const isCustomer = role === "customer";
+    const isMerchant = ["merchant", "merchant_owner", "merchant_manager", "merchant_staff"].includes(role);
+    if (isRider) {
+      const profile = await riderRepository.findProfileByUserId(params.creator.id);
+      if (!profile || (params.rider_id && params.rider_id !== profile.id)) {
+        throw new AppError(403, "SUPPORT_RIDER_SCOPE_FORBIDDEN", "Rider identity is not verified");
+      }
+      params.rider_id = profile.id;
+    }
+    if (params.delivery_id) {
+      const delivery = await deliveryRepository.findById(params.delivery_id);
+      if (!delivery) throw new AppError(404, "SUPPORT_DELIVERY_NOT_FOUND", "Linked delivery not found");
+      if (params.order_id && params.order_id !== delivery.order_id) throw new AppError(403, "SUPPORT_LINK_MISMATCH", "Linked order and delivery differ");
+      if (isRider && delivery.assigned_rider_id !== params.rider_id) throw new AppError(403, "SUPPORT_LINK_FORBIDDEN", "Delivery is not assigned to this rider");
+      params.order_id = delivery.order_id;
+    }
+    if (params.payment_id) {
+      const payment = await paymentRepository.findPaymentById(params.payment_id);
+      if (!payment) throw new AppError(404, "SUPPORT_PAYMENT_NOT_FOUND", "Linked payment not found");
+      if (params.order_id && payment.order_id !== params.order_id) throw new AppError(403, "SUPPORT_LINK_MISMATCH", "Linked payment and order differ");
+      params.order_id = payment.order_id;
+    }
     if (params.order_id) {
       const order = await orderRepository.findById(params.order_id);
-      if (order) {
-        if (!params.customer_id) params.customer_id = order.customer_id;
-        if (!params.merchant_id) {
-          params.merchant_id = (order as any).merchant_id || null;
-          if (!params.merchant_id && (order as any).branch_id) {
-            const branch = await merchantRepository.findBranchById((order as any).branch_id);
-            params.merchant_id = branch?.merchant_id || null;
-          }
+      if (!order) throw new AppError(404, "SUPPORT_ORDER_NOT_FOUND", "Linked order not found");
+      if (isRider) {
+        const delivery = await deliveryRepository.findByOrderId(order.id);
+        if (!delivery || delivery.assigned_rider_id !== params.rider_id) throw new AppError(403, "SUPPORT_ORDER_SCOPE_FORBIDDEN", "Order does not belong to this rider");
+      }
+      if (isCustomer && order.customer_id !== params.creator.id) throw new AppError(403, "SUPPORT_ORDER_SCOPE_FORBIDDEN", "Order does not belong to this customer");
+      if (isMerchant) {
+        const branch = (order as any).branch_id ? await merchantRepository.findBranchById((order as any).branch_id) : null;
+        if (!branch || (branch as any).merchant_id !== params.merchant_id) throw new AppError(403, "SUPPORT_ORDER_SCOPE_FORBIDDEN", "Order does not belong to this merchant");
+      }
+      if (!params.customer_id) params.customer_id = order.customer_id;
+      if (!params.merchant_id) {
+        params.merchant_id = (order as any).merchant_id || null;
+        if (!params.merchant_id && (order as any).branch_id) {
+          const branch = await merchantRepository.findBranchById((order as any).branch_id);
+          params.merchant_id = branch?.merchant_id || null;
         }
       }
     }
@@ -384,7 +419,8 @@ export class SupportService {
     await operationsRepository.resetSupportConfirmations(caseId, participants);
 
     const updated = await operationsRepository.updateSupportCase(caseId, {
-      status: participants.length ? "PARTY_CONFIRMATION" : "RESOLVED",
+      // Even cases without linked participants require Admin finalization.
+      status: "PARTY_CONFIRMATION",
       resolution_code: resolutionCode as any,
       resolution_notes: resolutionNotes,
       resolution_proposed_at: now,
@@ -467,18 +503,11 @@ export class SupportService {
       }))!;
     }
 
-    const confirmations = await operationsRepository.getSupportConfirmations(caseId);
-    const allAccepted = confirmations.length > 0 && confirmations.every((item:any)=>item.decision === "ACCEPTED");
-    if (allAccepted) {
-      // Participant consent is necessary; only a privileged administrator closes the case.
-      return (await operationsRepository.updateSupportCase(caseId, {
-        status: "RESOLVED",
-        resolved_at: now,
-        closed_at: null,
-      }))!;
-    }
+    // Participants record satisfaction only. Even unanimous acceptance cannot
+    // mark a case RESOLVED: final resolution is a separate Admin action.
     return (await operationsRepository.updateSupportCase(caseId, {
       status: "PARTY_CONFIRMATION",
+      resolved_at: null,
     }))!;
   }
 
@@ -507,7 +536,7 @@ export class SupportService {
     }
     const supportCase = await operationsRepository.getSupportCaseById(caseId);
     if (!supportCase) throw new AppError(404, "CASE_NOT_FOUND", "Support case not found");
-    if (supportCase.status !== "RESOLVED") {
+    if (supportCase.status !== "PARTY_CONFIRMATION" && supportCase.status !== "RESOLVED") {
       throw new AppError(409, "CASE_NOT_READY_TO_CLOSE", "All parties must accept before administrator closure");
     }
     const required = this.requiredParticipants(supportCase);
@@ -520,6 +549,7 @@ export class SupportService {
     const now = new Date().toISOString();
     const updated = await operationsRepository.updateSupportCase(caseId, {
       status: "CLOSED",
+      resolved_at: now,
       closed_at: now,
     });
     if (!updated) throw new AppError(404, "CASE_NOT_FOUND", "Support case not found");
