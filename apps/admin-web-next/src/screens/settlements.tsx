@@ -1,3 +1,4 @@
+import {SettlementsLive} from "./settlements-live";
 import React,{useMemo,useState} from "react";
 import {ArrowRight, Banknote, CheckCircle2, ChevronRight, Clock3, CreditCard, Download, FileCheck2, Landmark, ListChecks, Plus, ShieldCheck, Truck, Users, Wallet, XCircle} from "lucide-react";
 import {displayTime,formatMoney} from "../data";
@@ -7,7 +8,7 @@ import {useDemo,canAct} from "../store";
 import {Bars,Card,Chip,DetailLine,Empty,IconStat,Modal,Ring,SearchBox,SelectBox,Tabs} from "../ui";
 const statuses:PayoutStatus[]=["DRAFT","APPROVED","PAID","REJECTED"];
 export function SettlementsScreen({navigate,toast}:{navigate:(screen:string)=>void;toast:(message:string)=>void}){
- const {data,act,role}=useDemo(),state=data.phase3,canCreate=canAct(role,"settlement"),canApprove=canAct(role,"payout");
+ const {data,act,role,mode}=useDemo(),state=data.phase3,canCreate=canAct(role,"settlement"),canApprove=canAct(role,"payout");
  const [tab,setTab]=useState("all"),[kind,setKind]=useState<PayoutKind>("MERCHANT"),[search,setSearch]=useState(""),[selectedId,setSelectedId]=useState<string|null>(null),[detail,setDetail]=useState("breakdown");
  const [modal,setModal]=useState<"create"|"approve"|"reject"|"paid"|null>(null),[reason,setReason]=useState(""),[reference,setReference]=useState(""),[period,setPeriod]=useState("October 2026 · Demo"),[includeAll,setIncludeAll]=useState(true);
  const eligible=eligiblePayoutItems(state,data.orders,data.riders,kind),preview=includeAll?eligible:eligible.slice(0,15);
@@ -24,6 +25,7 @@ export function SettlementsScreen({navigate,toast}:{navigate:(screen:string)=>vo
   setModal(null);setReason("");setReference("");
  };
  const exportBatches=()=>{const rows=[["Batch","Kind","Status","Amount","Items"],...filters.map(b=>[b.id,b.kind,b.status,String(payoutTotal(b)),String(b.items.length)])];const csv=rows.map(r=>r.map(v=>'"'+v.replaceAll('"','""')+'"').join(",")).join("\n");const url=URL.createObjectURL(new Blob([csv],{type:"text/csv"}));const a=document.createElement("a");a.href=url;a.download="deetoo-demo-settlements.csv";a.click();URL.revokeObjectURL(url);toast("Simulated settlement batches exported.");};
+ if(mode==="live")return <SettlementsLive navigate={navigate}/>;
  return <div className="dn-screen" data-testid="screen-settlements">
   <div className="dn-title-row"><div><h1>Settlements & Payouts</h1><p>Review partner earnings, create payout batches and control simulated disbursements.</p></div><div className="dn-title-buttons"><button className="dn-btn outline" onClick={exportBatches}><Download size={14}/> Export</button><button className="dn-btn primary" disabled={!canCreate} onClick={start}><Plus size={15}/> Create Payout Batch</button></div></div>
   <div className="dn-metrics five">
