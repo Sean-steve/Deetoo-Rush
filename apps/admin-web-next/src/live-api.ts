@@ -65,7 +65,7 @@ function canonicalCustomer(x:unknown):CustomerRecord{
  return {id:str(c.user_id||c.id||u.id),name:name(u,name(c,"Customer")),phone:str(c.phone_e164||u.phone_e164),email:str(c.email||u.email),county:county(c),status:s==="ACTIVE"?"ACTIVE":s==="SUSPENDED"?"SUSPENDED":s==="DISABLED"?"DELETED":"RESTRICTED",verified:bool(c.email_verified||c.is_verified||u.is_verified),joinedAt:when(c.created_at),addresses:arr(c.addresses).map(a=>({id:str(a.id),label:str(a.label,"Address"),area:str(a.address_text||a.address_line1),county:county(a),isDefault:bool(a.is_default)})),notes:[],audit:[]};
 }
 function coverage(x:unknown):CountyCoverage{
- const c=obj(x);return {county:str(c.name),enabled:bool(c.enabled),fee:minor(c.delivery_fee_minor),eta:num(c.eta_minutes),updatedAt:when(c.enabled_at)};
+ const c=obj(x);return {county:str(c.name),code:str(c.code),enabled:bool(c.enabled),fee:minor(c.delivery_fee_minor),eta:num(c.eta_minutes),updatedAt:when(c.enabled_at)};
 }
 function payout(x:unknown,kind:"MERCHANT"|"RIDER"):PayoutBatch {
  const p=obj(x);const s=status(p.status);
