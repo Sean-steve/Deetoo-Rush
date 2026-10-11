@@ -97,3 +97,54 @@ pnpm build:rider-android
 Review the six Android screen states on a narrow physical device/emulator before
 requesting Phase 3. Phase 3 starts with Screen 13 (Delivery Completion Summary)
 and Screen 14 (Active Deliveries & Multiple Orders) and continues to Screen 18.
+
+
+## Phase 3 — Earnings, Deliveries & Financial Management (screens 13–18)
+
+Phase 3 keeps the approved frontend-first workflow. The existing live Rider app,
+DeeToo API, dispatch, M-PESA, earnings ledger and support/incident integrations
+are unchanged. Only the explicit Android development mock preview is extended.
+
+| Screen | Review interactions | Data caveat |
+| --- | --- | --- |
+| 13 Delivery Completion Summary | Complete Screen 12 with customer PIN or demo photo, see delivery confirmation, merchant/customer route, fee breakdown, illustrative feedback, next order and history actions. Also accessible via **Active orders → Screen 13** preview. | Not an actual payment posting; Screen 13 uses sample KSh 470 irrespective of backend ledger. |
+| 14 Active Deliveries & Multiple Orders | **Deliveries → Active orders**; two simultaneous example assignments, one pickup and two sequential drop-offs, step completion, expandable details, suggested optimization (no actual reordering), messaging/support placeholders. | Sample dispatch plan; cannot mutate actual delivery assignments. |
+| 15 Delivery History | **Deliveries → History**; status tabs (completed/cancelled/failed), Today/7 days/30 days filters, search, delivery details, settlement review status and completion-preview link. | Static fixture records; unsuccessful delivery fees not automatically payable. |
+| 16 Earnings Dashboard | **Earnings**; period-selectable daily/weekly/monthly charts, category breakdown, delivery KPIs, achievements, quick navigation. | Sample KSh figures only, not authoritative accounting. |
+| 17 Rider Wallet & Cash Management | **Earnings → Open Rider Wallet**; withdrawable, pending payouts, customer cash, outstanding cash, period earnings, transactions, wallet trend, cash discrepancy review. | Each balance represents a different accounting category; cash review does not settle obligations. |
+| 18 Payouts & Transactions | **Earnings → Payouts & Transactions**; recipient phone/amount validation, explicit confirmation, simulated M-PESA request, processing/failed/completed status, transaction filters, dummy receipts and exact-once failure releases. | No actual Safaricom transfer, phone verification, provider receipt, accounting mutation or money movement. |
+
+### Visual and workflow acceptance
+
+- All screens reuse the approved DeeToo green/dark-green/navy tokens,
+  mobile-safe cards, readable text, and five-tab standard nav:
+  **Home · Deliveries · Earnings · Inbox · Profile**.
+- A successful Phase 2 mock handover opens **Screen 13** when Deliveries is
+  displaying the Delivery flow. The screen's **Get Next Order** control
+  resets the demo order, while History opens Screen 15.
+- The multi-order sequencing uses a separate demo dispatch route, preventing
+  unrealistic edits to actual order assignment or fulfillment.
+- The mock payout reducer reserves requested amounts, logs unique sample
+  references and blocks invalid/duplicate completion attempts; a simulated
+  failure returns the reserved amount exactly once.
+- Reporting a cash discrepancy creates a local pending review record; the
+  rider cannot directly mark it reconciled.
+- Loading/empty/error states exist for history search, payout validation,
+  processing, failure, insufficient funds and cash review.
+- Inbox and Profile remain clearly marked Phase 4 placeholders.
+- The prototype does not persist sensitive data or contact payment providers.
+
+### Local checks
+
+```bash
+EXPO_PUBLIC_RIDER_UI_MODE=mock pnpm --filter @deetoo/rider-android start
+pnpm exec tsx --test tests/unit/rider_phase3_preview.test.ts
+pnpm typecheck:rider-android
+pnpm build:rider-android
+```
+
+**Device acceptance still required:** compare all six screens and error/empty
+variants side by side with the approved mockups at narrow Android widths;
+inspect scroll behavior, keyboard overlap, touch targets and large text settings.
+Only after all 24 frontend screens pass acceptance will DeeToo backend
+capability mapping begin.
