@@ -281,11 +281,11 @@ export class OperationsRepository {
         params.push(filter.delivery_id);
       }
       if (filter.payment_id) {
-        query += ` AND payment_id = ${idx++}`;
+        query += ` AND payment_id = $${idx++}`;
         params.push(filter.payment_id);
       }
       if (filter.rider_id) {
-        query += ` AND rider_id = ${idx++}`;
+        query += ` AND rider_id = $${idx++}`;
         params.push(filter.rider_id);
       }
 
@@ -295,7 +295,7 @@ export class OperationsRepository {
       const total = Number(count.rows[0]?.total || 0);
       const limit = Math.max(1, Math.min(100, filter.limit || 50));
       const offset = Math.max(0, filter.offset || 0);
-      query += ` ORDER BY created_at DESC LIMIT ${idx++} OFFSET ${idx++}`;
+      query += ` ORDER BY created_at DESC LIMIT $${idx++} OFFSET $${idx++}`;
       const res = await pool.query(query, [...params,limit,offset]);
       return {
         incidents: res.rows.map((r: any) => this.mapIncident(r)),
