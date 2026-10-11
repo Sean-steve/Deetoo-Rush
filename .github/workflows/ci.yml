@@ -146,6 +146,8 @@ jobs:
         with:
           languages: javascript-typescript
       - uses: github/codeql-action/analyze@v3
+      - name: Enforce high-severity CodeQL SARIF gate
+        run: node scripts/codeql-sarif-high-gate.mjs
 
   browser-acceptance:
     name: Independent web browser acceptance
