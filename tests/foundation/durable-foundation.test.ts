@@ -1091,6 +1091,14 @@ test('Rider Phase 5 durable HTTP: KYC gate, per-user preferences, incident ACL, 
     const listing=await req(outsiderToken,'/rider/incidents');
     assert.equal(listing.status,200);
     assert.ok(!listing.json.data.incidents.some((x:any)=>x.id===incidentId),'Incident must not leak in other Rider list');
+    const firstPage=await req(riderToken,'/rider/incidents?limit=1&offset=0');
+    assert.equal(firstPage.status,200,JSON.stringify(firstPage.json));
+    assert.equal(firstPage.json.data.incidents.length,1);
+    assert.ok(firstPage.json.data.total>=1,'List count must reflect all matching Rider incidents');
+    const emptyPage=await req(riderToken,'/rider/incidents?limit=1&offset=500');
+    assert.equal(emptyPage.status,200,JSON.stringify(emptyPage.json));
+    assert.equal(emptyPage.json.data.incidents.length,0);
+    assert.equal(emptyPage.json.data.total,firstPage.json.data.total,'Pagination total must not equal page size');
     const withdrawal=await req(riderToken,'/rider/payout-requests','POST',{
       amount_minor:10000,idempotency_key:'phase5-'+randomUUID(),
     });
