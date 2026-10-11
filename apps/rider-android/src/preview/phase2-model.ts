@@ -84,10 +84,10 @@ export function validateDeliveryIssue(type: DeliveryIssueType | '', description:
 }
 export function canConfirmPickup(state: DeliveryState): boolean {
   return state.status === 'at_merchant' && state.itemCountConfirmed && state.pickupCodeVerified
-    && state.issue?.type !== 'Missing or damaged items';
+    && state.issue === null;
 }
 export function canCompleteDelivery(state: DeliveryState, method: ProofMethod, otp: string): boolean {
-  return state.status === 'at_customer'
+  return state.status === 'at_customer' && state.issue === null
     && (method === 'otp' ? otp.trim() === DEMO_HANDOVER_OTP : state.photoStaged);
 }
 
@@ -144,14 +144,17 @@ export function deliveryReducer(state: DeliveryState, action: DeliveryAction): D
     case 'STAGE_DELIVERY_PHOTO':
       return state.status === 'at_customer' ? { ...state, photoStaged: action.staged, info: '' } : state;
     case 'COMPLETE_DELIVERY':
+      if (state.issue) {
+        return { ...state, info: 'An unresolved incident is attached. Dispatch/support review is required before completing.' };
+      }
       if (!canCompleteDelivery(state, action.method, action.otp)) {
         return { ...state, info: action.method === 'otp' ? 'Enter the valid six-digit demo customer PIN.' : 'Stage the approved demonstration proof photo first.' };
       }
-      if (state.issue && ['Customer unavailable', 'Incorrect address', 'Missing or damaged items'].includes(state.issue.type)) {
-        return { ...state, info: 'An unresolved incident is attached. Mock dispatch/support review is required before completing.' };
-      }
       return { ...state, status: 'delivered', info: 'Delivery completed in this frontend preview only.' };
     case 'REPORT_ISSUE': {
+      if (state.issue) {
+        return { ...state, info: 'A report already awaits review. Riders cannot replace or clear unresolved incidents.' };
+      }
       const error = validateDeliveryIssue(action.issue, action.description);
       if (error || ['delivered', 'idle', 'expired', 'declined', 'offered'].includes(state.status)) {
         return { ...state, info: error || 'An active delivery is needed to report an issue.' };
