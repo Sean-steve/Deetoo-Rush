@@ -108,9 +108,9 @@ export function HeroRider({ title, sub }: { title: string; sub: string }) {
   </View>;
 }
 export function OnboardingTracker({ step }: { step: number }) {
-  const stages = ['Personal', 'Documents', 'Vehicle', 'Review'];
+  const stages = ['Personal', 'Contact', 'Documents', 'Vehicle', 'Review'];
   return <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 8 }}>
-    {stages.map((x, i) => <View key={x} style={{ alignItems: 'center', width: '24%', gap: 7 }}>
+    {stages.map((x, i) => <View key={x} style={{ alignItems: 'center', width: '19%', gap: 7 }}>
       <View style={{ width: 32, height: 32, borderRadius: 18, alignItems: 'center', justifyContent: 'center', backgroundColor: i <= step ? C.darkGreen : '#E6EEE9' }}>
         <Text style={{ fontWeight: '800', color: i <= step ? '#fff' : C.muted }}>{i < step ? '✓' : i + 1}</Text>
       </View><Text style={{ textAlign: 'center', color: i === step ? C.darkGreen : C.muted, fontWeight: i === step ? '800' : '500', fontSize: 11 }}>{x}</Text>
