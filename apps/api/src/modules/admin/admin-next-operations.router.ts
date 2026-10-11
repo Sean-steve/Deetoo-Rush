@@ -8,6 +8,7 @@ import {withTransaction} from '../../db/transaction';
 import {AppError} from '../../middleware/error-handler';
 import {requireAuth,requireRole,AuthenticatedRequest} from '../auth/auth.middleware';
 import {operationalIncidentService} from '../operations/incident.service';
+import {supportService} from '../operations/support.service';
 import {governanceService} from './governance.service';
 import {authRepository} from '../auth/auth.repository';
 
@@ -28,6 +29,39 @@ adminNextOperationsRouter.post('/operations/incidents',requireRole(UserRole.ADMI
  const incident=await operationalIncidentService.raiseIncident({...body,actor_id:req.user!.id,actor_name:req.user!.email||'Admin Operator',metadata:{source:'ADMIN_MANUAL',actor_id:req.user!.id}});
  await withTransaction(async client=>audit(client,req,'INCIDENT_REPORTED','INCIDENT',incident.id,body.summary,{},body));
  res.status(201).json({data:incident});
+}));
+
+// Admin-created cases must have an existing, verified participant. UI display names
+// are never accepted as identity and a linked order cannot belong to a different party.
+adminNextOperationsRouter.post('/support/cases',requireRole(UserRole.ADMIN,UserRole.OPS,UserRole.SUPPORT),run(async(req,res)=>{
+ asPostgres();
+ const input=z.object({
+  customer_id:uuid.optional(),merchant_id:uuid.optional(),rider_id:uuid.optional(),order_id:uuid.optional(),
+  category:z.enum(['ORDER_ISSUE','PAYMENT_ISSUE','REFUND','MISSING_ITEM','WRONG_ITEM','DELIVERY_DELAY','CUSTOMER_UNREACHABLE','RIDER_ISSUE','MERCHANT_ISSUE','ACCOUNT_ISSUE','OTHER']).default('OTHER'),
+  priority:z.enum(['LOW','MEDIUM','HIGH','URGENT']).default('MEDIUM'),
+  subject:z.string().trim().min(4).max(180),
+  description:z.string().trim().min(8).max(4000)
+ }).refine(v=>[v.customer_id,v.merchant_id,v.rider_id].filter(Boolean).length===1,{message:'Exactly one registered participant is required'}).parse(req.body);
+ const table=input.customer_id?'customer_profiles':input.merchant_id?'merchants':'rider_profiles';
+ const col=input.customer_id?'user_id':'id';
+ const participant=input.customer_id||input.merchant_id||input.rider_id!;
+ const verified=await getDbPool().query('SELECT '+col+' FROM '+table+' WHERE '+col+'=$1',[participant]);
+ if(!verified.rows[0])throw new AppError(404,'SUPPORT_PARTICIPANT_NOT_FOUND','The selected participant is not registered in DeeToo');
+ if(input.order_id){
+  const linked=await getDbPool().query(
+   'SELECT o.id,o.customer_id,b.merchant_id,d.rider_id FROM orders o JOIN merchant_branches b ON b.id=o.branch_id LEFT JOIN LATERAL (SELECT rider_id FROM deliveries WHERE order_id=o.id ORDER BY created_at DESC LIMIT 1) d ON true WHERE o.id=$1',
+   [input.order_id]
+  );
+  if(!linked.rows[0])throw new AppError(404,'ORDER_NOT_FOUND','Linked order not found');
+  const row=linked.rows[0];
+  if((input.customer_id&&row.customer_id!==input.customer_id)||
+     (input.merchant_id&&row.merchant_id!==input.merchant_id)||
+     (input.rider_id&&row.rider_id!==input.rider_id))
+   throw new AppError(409,'SUPPORT_ORDER_PARTY_MISMATCH','This order does not belong to the verified participant');
+ }
+ const actor={id:req.user!.id,name:req.user!.email||'Admin Support',role:'support'};
+ const created=await supportService.createCase({...input,creator:actor});
+ res.status(201).json({data:created});
 }));
 
 adminNextOperationsRouter.get('/orders/:id/notes',requireRole(UserRole.ADMIN,UserRole.OPS,UserRole.SUPPORT),run(async(req,res)=>{
