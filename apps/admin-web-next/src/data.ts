@@ -1,3 +1,5 @@
+import {seedPhaseThree, reducePhaseThree, refundedTotal} from "./phase3Data";
+import type {PhaseThreeState, PhaseThreeAction} from "./phase3Data";
 import {seedPhaseTwo, reducePhaseTwo} from "./phase2Data";
 import type {PhaseTwoState, PhaseTwoAction} from "./phase2Data";
 export type OrderStatus = "PREPARING" | "RIDER_ASSIGNED" | "PICKED_UP" | "IN_TRANSIT" | "DELIVERED" | "DELAYED" | "CANCELLED";
@@ -19,7 +21,7 @@ export type Rider = {
 };
 export type Incident = { id: string; title: string; status: string; type: string; time: string };
 export type Ticket = { id: string; title: string; status: string; from: string; time: string };
-export type DemoState = { version: number; orders: Order[]; riders: Rider[]; incidents: Incident[]; tickets: Ticket[]; activity: HistoryEntry[]; phase2: PhaseTwoState };
+export type DemoState = { version: number; orders: Order[]; riders: Rider[]; incidents: Incident[]; tickets: Ticket[]; activity: HistoryEntry[]; phase2: PhaseTwoState; phase3: PhaseThreeState };
 export const areas: Area[] = [
   { name: "Westlands", county: "Nairobi", lat: -1.2636, lng: 36.8031 },
   { name: "Kilimani", county: "Nairobi", lat: -1.2891, lng: 36.7866 },
@@ -85,7 +87,7 @@ export function seedDemo(): DemoState {
       notes: i === 0 ? ["Please make sure the food is well done. Thank you!"] : [], history,
     };
   });
-  return { version: 2, orders, riders, phase2:seedPhaseTwo(),
+  return { version: 3, orders, riders, phase2:seedPhaseTwo(), phase3:seedPhaseThree(),
     incidents: [
       {id:"INC-7842",type:"Delivery",title:"Rider accident reported",status:"Investigating",time:"09:42"},
       {id:"INC-7841",type:"Payment",title:"Failed M-PESA payments",status:"Acknowledged",time:"08:15"},
@@ -102,7 +104,7 @@ export function seedDemo(): DemoState {
     activity: [event("Demo started",0,"Shared operational workspace initialized")],
   };
 }
-export type DemoAction = PhaseTwoAction
+export type DemoAction = PhaseTwoAction | PhaseThreeAction
   | { type:"ASSIGN_RIDER"; orderId:string; riderId:string }
   | { type:"UNASSIGN_RIDER"; orderId:string }
   | { type:"UPDATE_ORDER"; orderId:string; status:OrderStatus; reason?:string }
@@ -116,6 +118,19 @@ function logActivity(state: DemoState, action: string, text: string): HistoryEnt
   return [event(action, 0, text, "Demo Admin"),...state.activity].slice(0,60);
 }
 export function reducer(state:DemoState, action:DemoAction):DemoState {
+  if(action.type.startsWith("PHASE3_")){
+    const updated=reducePhaseThree(state.phase3,action as PhaseThreeAction,state.orders);
+    if(action.type==="PHASE3_REFUND_REVIEW" && action.status==="APPROVED"){
+      const request=state.phase3.refunds.find(r=>r.id===action.id);
+      if(request?.status==="PENDING" && updated!==state.phase3){
+        const order=state.orders.find(o=>o.id===request.orderId);
+        if(order && refundedTotal(updated,order.id)>=order.subtotal+order.deliveryFee+order.serviceFee){
+          return {...state,phase3:updated,orders:state.orders.map(o=>o.id===order.id?{...o,paymentStatus:"Refunded"}:o)};
+        }
+      }
+    }
+    return {...state,phase3:updated};
+  }
   if (action.type.startsWith("PHASE2_")) {
     const next=reducePhaseTwo(state.phase2, action as PhaseTwoAction);
     if(action.type==="PHASE2_MERCHANT_EDIT"){
