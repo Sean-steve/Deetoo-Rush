@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useReducer, useState } from 'react';
 import { ActivityIndicator, Pressable, Text, View } from 'react-native';
 import {
   emptyDocuments, emptyRegistration, emptyVehicle, kes, mockActivity,
@@ -7,6 +7,8 @@ import {
   type RiderRegistration, type RiderScreen, type RiderTab, type RiderVehicle,
   type RiderVehicleType,
 } from './phase1-model';
+import { Phase2DeliveryScreens } from './Phase2DeliveryScreens';
+import { activeDeliveryStatus, deliveryReducer, initialDeliveryState } from './phase2-model';
 import {
   Button, C, Field, HeroRider, MapPreview,
   Metric, Notice, OnboardingTracker, Panel, PrototypeShell, S, Tag,
@@ -50,6 +52,7 @@ export function Phase1RiderPreview() {
   const [feedback, setFeedback] = useState('');
   const [showMap, setShowMap] = useState(true);
   const [demoOfflineReason, setDemoOfflineReason] = useState<'none' | 'outside_zone' | 'review_pending'>('none');
+  const [deliveryState, dispatchDelivery] = useReducer(deliveryReducer, initialDeliveryState);
 
   const updateReg = (key: keyof RiderRegistration, value: string) => setRegistration(prev => ({ ...prev, [key]: value }));
   const updateVehicle = (patch: Partial<RiderVehicle>) => setVehicle(prev => ({ ...prev, ...patch }));
@@ -112,10 +115,19 @@ export function Phase1RiderPreview() {
   }
   function logout() {
     setAuthenticated(false); setOnline(false); setTab('Home');
+    dispatchDelivery({ type: 'RESET' });
     setIdentifier(''); setPassword(''); setOtp(''); setAuthMode('login'); goto('login');
   }
   function requestOnlineToggle() {
-    if (online) { setOnline(false); setFeedback('You are offline. No new mock orders will be offered.'); return; }
+    if (online) {
+      if (activeDeliveryStatus(deliveryState.status)) {
+        setError('Finish or escalate your active delivery before going offline.');
+        return;
+      }
+      setOnline(false);
+      setFeedback('You are offline. No new mock orders will be offered.');
+      return;
+    }
     if (!appApproved) { setError('Your demo rider application must be approved before going online.'); return; }
     if (demoOfflineReason === 'outside_zone') { setError('Unavailable: you are outside the selected demo service zone.'); return; }
     if (demoOfflineReason === 'review_pending') { setError('Unavailable: your account is under review.'); return; }
@@ -364,7 +376,9 @@ export function Phase1RiderPreview() {
         </View>
       </Panel>
       <Panel title="Available orders" action={<Tag label={online ? 'Waiting' : 'Offline'} tone={online ? 'orange' : 'neutral'} />}>
-        <Notice title={online ? "You're ready!" : 'Go online to receive requests'} body={online ? 'New mock delivery requests appear in the Phase 2 delivery workflow.' : 'Order assignment is disabled while offline.'} />
+        <Notice title={online ? "You're ready!" : 'Go online to receive requests'} body={online ? 'Visit Deliveries to simulate new incoming orders in Phase 2.' : 'Order assignment is disabled while offline.'} />
+        <View style={{ height: 10 }} />
+        <Button label="Open delivery operations →" onPress={() => setTab('Deliveries')} />
       </Panel>
       <Panel title="Recent deliveries">
         {sampleOrders.map((order, i) => <View key={order.id} style={{ flexDirection: 'row', paddingVertical: 11, gap: 10, borderBottomWidth: i < sampleOrders.length - 1 ? 1 : 0, borderColor: C.border, alignItems: 'center' }}>
@@ -388,11 +402,18 @@ export function Phase1RiderPreview() {
   if (screen === 'dashboard') {
     return <PrototypeShell currentScreen={screen} activeTab={tab} onTab={setTab} right={<Pressable accessibilityRole="button" accessibilityLabel="Sign out" onPress={logout} style={{ minHeight: 44, minWidth: 58, justifyContent: 'center', alignItems: 'flex-end' }}><Text style={{ color: '#fff', fontSize: 13, fontWeight: '800' }}>Log out</Text></Pressable>}>
       {tab === 'Home' ? renderDashboard() :
+        tab === 'Deliveries' ?
+          <Phase2DeliveryScreens
+            state={deliveryState}
+            dispatch={dispatchDelivery}
+            online={online}
+            approved={appApproved}
+            onHome={() => setTab('Home')}
+          /> :
         <View style={{ gap: 16 }}>
           <Text style={S.h1}>{tab}</Text>
           <Notice title={tab + ' • upcoming implementation'} body={
-            tab === 'Deliveries' ? 'Screens 7–15 arrive in Phases 2 and 3.' :
-            tab === 'Earnings' ? 'Earnings, wallet and payouts arrive in Phase 3.' :
+            tab === 'Earnings' ? 'Screens 13–18, including earnings, wallet and payouts, arrive in Phase 3.' :
             tab === 'Inbox' ? 'Notifications and support arrive in Phase 4.' :
             'Rider profile, documents, preferences and security arrive in Phase 4.'
           } tone="blue" />
