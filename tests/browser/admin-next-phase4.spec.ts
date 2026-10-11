@@ -33,7 +33,7 @@ test("analytics filters, CSV export and saved report persist across navigation",
  await expect(page.locator(".dn-p4-saved")).toContainText("Nairobi Test Revenue");
  await page.reload();
  await page.getByRole("tab",{name:/Saved Reports/}).click();
- await page.getByRole("button",{name:"Open",exact:true}).last().click();
+ await page.getByRole("row").filter({hasText:"Nairobi Test Revenue"}).getByRole("button",{name:"Open"}).click();
  await expect(page.getByLabel("Analytics metric")).toHaveValue("REVENUE");
  await expect(page.getByLabel("Analytics date range")).toHaveValue("7D");
  await page.getByRole("button",{name:"Export CSV"}).click();
