@@ -194,10 +194,16 @@ export async function performLiveAction(a:LiveAction,data:DemoState,identity:Jso
  case "PHASE4_CAMPAIGN_SEND":{await apiMutation("/admin/communications/campaigns/"+id()+"/send","POST",{idempotency_key:crypto.randomUUID()});return "Consented campaign queued. Delivery is pending provider confirmation.";}
  case "PHASE4_CAMPAIGN_CANCEL":await apiMutation("/admin/communications/campaigns/"+id()+"/cancel","POST",{reason});return "Campaign cancelled.";
  case "PHASE4_TEMPLATE_SAVE":{const body={name:a.name,title:a.title,body:a.body,channel:a.channel};if(a.id)await apiMutation("/admin/communications/templates/"+id(),"PATCH",{...body,reason:"Template edited by admin"});else await apiMutation("/admin/communications/templates","POST",body);return "Template saved.";}
- case "PHASE4_ADMIN_ROLE":{const roles:Record<string,string>={SUPER_ADMIN:"super_admin",OPERATIONS:"ops",SUPPORT:"support",FINANCE:"finance"};const role=roles[str(a.role)];if(!role)unsupported(type);await apiMutation("/admin/users/"+id()+"/roles","POST",{roles:[role],reason});return "Role assignment reviewed.";}
+ case "PHASE4_ADMIN_INVITE":{const roles:Record<string,string>={OPERATIONS:"ops",SUPPORT:"support",FINANCE:"finance",SUPER_ADMIN:"admin",VIEWER:"support"};
+    await apiMutation("/admin/security/invitations","POST",{name:a.name,email:a.email,staff_role:roles[str(a.role)]||"support",reason});
+    return "Staff invitation recorded. Delivery acceptance depends on verified email provider; invitee remains PENDING until activation.";
+   }
+   case "PHASE4_ADMIN_ROLE":{const roles:Record<string,string>={SUPER_ADMIN:"super_admin",OPERATIONS:"ops",SUPPORT:"support",FINANCE:"finance"};const role=roles[str(a.role)];if(!role)unsupported(type);await apiMutation("/admin/users/"+id()+"/roles","POST",{roles:[role],reason});return "Role assignment reviewed.";}
  case "PHASE4_ADMIN_STATUS":await apiMutation("/admin/users/"+id()+"/"+(a.status==="ACTIVE"?"reactivate":"suspend"),"POST",{reason});return "Admin account status changed.";
  case "PHASE4_SESSION_REVOKE":await apiMutation("/admin/security/sessions/"+id()+"/revoke","POST",{reason});return "Session revoked.";
- case "PHASE4_ADMIN_MFA":throw new LiveApiError("Administrators cannot toggle another user's MFA flag. Use the verified two-person MFA recovery flow.",409,"MFA_RECOVERY_REQUIRED");
+ case "PHASE4_ADMIN_MFA":{if(a.enabled===true)throw new LiveApiError("MFA can only be enrolled by the account owner through /auth/mfa/enroll.",409,"MFA_OWNER_ENROLLMENT_REQUIRED");
+    await apiMutation("/admin/security/users/"+id()+"/mfa-reset-requests","POST",{reason});return "MFA recovery submitted for independent Super Admin approval; no credentials have been reset yet.";
+   }
  case "PHASE4_HEALTH_STATUS":throw new LiveApiError("Measured service health cannot be changed by an administrator; report an incident instead.",409,"LIVE_HEALTH_READ_ONLY");
  case "PHASE4_SETTING":throw new LiveApiError("Only supported named kill switches can be changed, with audit reason. This demo-style setting key is not mapped to a live switch.",409,"CONFIG_KEY_UNSUPPORTED");
  default:unsupported(type);
