@@ -61,6 +61,29 @@ tags:
 security:
 - bearerAuth: []
 paths:
+  /rider/earnings/trends:
+    get:
+      summary: Rider-scoped earning trends using posted earning records (minor units)
+      tags: [Rider]
+      security: [{ bearerAuth: [] }]
+      responses: { '200': { description: Date-bucketed Rider ledger earnings } }
+  /rider/performance/feedback:
+    get:
+      summary: Rider-scoped anonymized customer rating feedback
+      tags: [Rider]
+      security: [{ bearerAuth: [] }]
+      responses: { '200': { description: Rider delivery feedback } }
+  /rider/preferences:
+    get:
+      summary: Rider optional preferences and mandatory critical-alert policy
+      tags: [Rider]
+      security: [{ bearerAuth: [] }]
+      responses: { '200': { description: Rider preferences } }
+    put:
+      summary: Store Rider optional preferences without disabling critical alerts
+      tags: [Rider]
+      security: [{ bearerAuth: [] }]
+      responses: { '200': { description: Updated Rider preferences } }
   /admin/riders/{riderId}/verification:
     get:
       operationId: get_admin_riders_riderId_verification

@@ -64,6 +64,7 @@ const ROUTERS: RouterConfig[] = [
   { file: 'apps/api/src/modules/public/public.router.ts', varName: 'publicRouter', prefix: '/public' },
   { file: 'apps/api/src/modules/realtime/realtime.router.ts', varName: 'realtimeRouter', prefix: '/realtime' },
   { file: 'apps/api/src/modules/rider/rider.router.ts', varName: 'riderRouter', prefix: '/rider' },
+  { file: 'apps/api/src/modules/rider/rider-insights.router.ts', varName: 'riderInsightsRouter', prefix: '/rider' },
   { file: 'apps/api/src/modules/rider/rider-extended.router.ts', varName: 'riderExtendedRouter', prefix: '/rider' },
   { file: 'apps/api/src/modules/rider/rider-verification.router.ts', varName: 'riderVerificationRouter', prefix: '/rider' },
   { file: 'apps/api/src/modules/rider/rider-verification.router.ts', varName: 'riderVerificationAdminRouter', prefix: '/admin/riders' },
