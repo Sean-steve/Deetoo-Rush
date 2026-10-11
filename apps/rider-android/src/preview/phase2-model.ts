@@ -83,7 +83,8 @@ export function validateDeliveryIssue(type: DeliveryIssueType | '', description:
   return null;
 }
 export function canConfirmPickup(state: DeliveryState): boolean {
-  return state.status === 'at_merchant' && state.itemCountConfirmed && state.pickupCodeVerified;
+  return state.status === 'at_merchant' && state.itemCountConfirmed && state.pickupCodeVerified
+    && state.issue?.type !== 'Missing or damaged items';
 }
 export function canCompleteDelivery(state: DeliveryState, method: ProofMethod, otp: string): boolean {
   return state.status === 'at_customer'
