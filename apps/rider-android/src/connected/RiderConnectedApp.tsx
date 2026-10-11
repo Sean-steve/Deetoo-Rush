@@ -71,6 +71,7 @@ export function RiderConnectedApp() {
   const [cameraJob,setCameraJob]=useState<CameraJob>(null);
   const [cameraPermission,requestCameraPermission]=useCameraPermissions();
   const camera=useRef<any>(null);
+  const payoutIntent=useRef<{amount:number;key:string}|null>(null);
   const [pushReady,setPushReady]=useState(false);
   const [completedDelivery,setCompletedDelivery]=useState<string|null>(null);
   const [otpMode,setOtpMode]=useState<'forgot'|'reset'|'phone'>('forgot');
@@ -444,8 +445,13 @@ export function RiderConnectedApp() {
         <Button label="Submit payout request for Finance review" disabled={busy} onPress={()=>void run(async()=>{
           const minor=parseWithdrawalKes(form.withdrawal||'');
           if(minor==null)throw new Error('Enter a valid payout amount of KSh 100 or more.');
-          const key='rider-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,12);
-          await api.requestWithdrawal(minor,key);
+          // Keep the same key on a retry after a network failure. A retry must
+          // not create a fresh withdrawal intent for the same submission.
+          if (!payoutIntent.current || payoutIntent.current.amount!==minor) {
+            payoutIntent.current={amount:minor,key:'rider-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,12)};
+          }
+          await api.requestWithdrawal(minor,payoutIntent.current.key);
+          payoutIntent.current=null;
           const r=await api.payoutRequests();setWithdrawals(r.requests);
         },'Withdrawal request queued for Finance review. No funds have been sent.')}/>
       </Panel>
