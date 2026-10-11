@@ -15,7 +15,7 @@ export function MerchantsScreen({navigate,county,globalSearch,toast}:{navigate:(
  const filtered=all.filter(m=>(tab==="all"||tab==="branches"||tab==="performance"||tab==="approvals"&&m.status==="PENDING"||tab==="onboarding"&&m.status==="ONBOARDING"||tab==="active"&&m.status==="ACTIVE"||tab==="suspended"&&m.status==="SUSPENDED")&&(status==="all"||m.status===status)&&(category==="all"||m.category===category)&&(localCounty==="all"||m.branches.some(b=>b.county===localCounty))&&(county==="all"||m.branches.some(b=>b.county===county))&&(m.name+" "+m.id+" "+m.owner+" "+m.email).toLowerCase().includes(search.toLowerCase()));
  const shown=filtered.slice((page-1)*9,page*9),pages=Math.ceil(filtered.length/9)||1;
  const selected=shown.find(m=>m.id===selectedId)||shown[0];
- const merchantOrders=selected?data.orders.filter(o=>o.merchant===selected.name):[];
+ const merchantOrders=selected?data.orders.filter(o=>mode==="live"?o.merchantId===selected.id:o.merchant===selected.name):[];
  const branches=all.reduce((a,m)=>a+m.branches.length,0),active=all.filter(m=>m.status==="ACTIVE").length,pending=all.filter(m=>m.status==="PENDING").length,suspended=all.filter(m=>m.status==="SUSPENDED").length;
  const openCreate=()=>{setLegalName("");setForm({name:"",category:"Restaurant",owner:"",email:"",phone:""});setModal("create");};
  const openEdit=()=>{if(!selected)return;setLegalName(selected.name);setForm({name:selected.name,category:selected.category,owner:selected.owner,email:selected.email,phone:selected.phone});setModal("edit");};
