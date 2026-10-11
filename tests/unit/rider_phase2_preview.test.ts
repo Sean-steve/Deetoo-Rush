@@ -74,7 +74,10 @@ test('Unresolved customer incident prevents completion even with valid PIN', () 
   let state = customerArrival();
   state = deliveryReducer(state, { type: 'REPORT_ISSUE', issue: 'Customer unavailable', description: 'Customer is not answering the intercom' });
   assert.equal(state.issue?.acknowledged, false);
+  assert.equal(canCompleteDelivery(state, 'otp', DEMO_HANDOVER_OTP), false);
   assert.equal(deliveryReducer(state, { type: 'COMPLETE_DELIVERY', method: 'otp', otp: DEMO_HANDOVER_OTP }).status, 'at_customer');
+  const replacement = deliveryReducer(state, { type: 'REPORT_ISSUE', issue: 'Other', description: 'This should not replace the unresolved customer report' });
+  assert.equal(replacement.issue?.type, 'Customer unavailable');
 });
 
 test('Missing item incidents prevent pickup and issue reports do not resolve orders', () => {
