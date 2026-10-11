@@ -8,6 +8,7 @@ import { ApiResponse } from '@deetoo/types';
 import { DEMO_SERVICE_ZONE, SYSTEM_ROLES, LEDGER_SYSTEM_ACCOUNTS } from '../../../../scripts/db-seed';
 import { AppError } from '../middleware/error-handler';
 import { authRouter } from './auth/auth.router';
+import { createAuthRateLimiter } from './auth/rate-limit.middleware';
 import { adminRouter } from './admin/admin.router';
 import { merchantExperienceAdminRouter } from './admin/merchant-experience-admin.router';
 import {adminNextOperationsRouter} from './admin/admin-next-operations.router';
@@ -43,6 +44,11 @@ import { trustRouter } from './trust/trust.router';
 import { mapsProvider } from './maps/maps.provider';
 
 export const v1Router = Router();
+
+// Rate-limit privileged reads as well as writes, with the existing Redis-backed
+// multi-instance limiter. Dedicated auth and mutation limits remain enforced.
+const privilegedApiRateLimiter = createAuthRateLimiter({keyPrefix:'api:privileged:read',windowMs:60000,max:600});
+v1Router.use(['/admin','/finance/ops','/auth/broadcast-consent'],privilegedApiRateLimiter);
 
 // Domain Sub-routers
 v1Router.use('/auth', authRouter);
