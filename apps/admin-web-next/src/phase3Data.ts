@@ -5,7 +5,7 @@ export const KENYA_COUNTIES=[
 "Baringo","Bomet","Bungoma","Busia","Elgeyo-Marakwet","Embu","Garissa","Homa Bay","Isiolo","Kajiado","Kakamega","Kericho","Kiambu","Kilifi","Kirinyaga","Kisii","Kisumu","Kitui","Kwale","Laikipia","Lamu","Machakos","Makueni","Mandera","Marsabit","Meru","Migori","Mombasa","Murang'a","Nairobi","Nakuru","Nandi","Narok","Nyamira","Nyandarua","Nyeri","Samburu","Siaya","Taita-Taveta","Tana River","Tharaka-Nithi","Trans Nzoia","Turkana","Uasin Gishu","Vihiga","Wajir","West Pokot"
 ] as const;
 export type CountyName=typeof KENYA_COUNTIES[number];
-export type CountyCoverage={county:string;enabled:boolean;fee:number;eta:number;updatedAt:string;};
+export type CountyCoverage={county:string;code?:string;enabled:boolean;fee:number;eta:number;updatedAt:string;};
 export type ServiceZone={id:string;county:string;name:string;enabled:boolean;fee:number;eta:number;notes:string};
 export type RefundStatus="PENDING"|"APPROVED"|"REJECTED";
 export type RefundRequest={id:string;orderId:string;amount:number;reason:string;status:RefundStatus;createdAt:string;reviewedAt?:string;reviewNote?:string};
