@@ -2,6 +2,15 @@ import React, { useReducer, useState } from 'react';
 import { ActiveDeliveriesScreen, DeliveryCompletionScreen, DeliveryHistoryScreen } from './Phase3Deliveries';
 import { EarningsDashboard, PayoutsScreen, RiderWalletScreen } from './Phase3Finance';
 import { initialWallet, walletReducer, type FinanceView, type MockStopState } from './phase3-model';
+import { NotificationsScreen, SupportCenterScreen, SupportConversationScreen } from './Phase4Communication';
+import { RiderSafetyScreen } from './Phase4Safety';
+import { RiderPerformanceScreen } from './Phase4Performance';
+import { RiderProfileScreen } from './Phase4Profile';
+import {
+  defaultNotificationPreferences, initialNotifications, initialProfile, initialSafety, initialSupport,
+  profileReducer, safetyReducer, supportReducer,
+  type NotificationPreferences, type RiderNotice,
+} from './phase4-model';
 import { ActivityIndicator, Pressable, Text, View } from 'react-native';
 import {
   emptyDocuments, emptyRegistration, emptyVehicle, kes, mockActivity,
@@ -61,6 +70,13 @@ export function Phase1RiderPreview() {
   const [mockStop, setMockStop] = useState<MockStopState>(0);
   const [walletState, dispatchWallet] = useReducer(walletReducer, initialWallet);
   const [phase3Notice, setPhase3Notice] = useState('');
+  const [inboxView, setInboxView] = useState<'notifications' | 'support' | 'conversation'>('notifications');
+  const [profileView, setProfileView] = useState<'profile' | 'performance' | 'safety'>('profile');
+  const [notices, setNotices] = useState<RiderNotice[]>(initialNotifications);
+  const [notificationPrefs, setNotificationPrefs] = useState<NotificationPreferences>(defaultNotificationPreferences);
+  const [supportState, dispatchSupport] = useReducer(supportReducer, initialSupport);
+  const [safetyState, dispatchSafety] = useReducer(safetyReducer, initialSafety);
+  const [profileState, dispatchProfile] = useReducer(profileReducer, initialProfile);
 
   const updateReg = (key: keyof RiderRegistration, value: string) => setRegistration(prev => ({ ...prev, [key]: value }));
   const updateVehicle = (patch: Partial<RiderVehicle>) => setVehicle(prev => ({ ...prev, ...patch }));
@@ -129,6 +145,10 @@ export function Phase1RiderPreview() {
     setFinanceView('earnings');
     setMockStop(0);
     setPhase3Notice('');
+    setInboxView('notifications'); setProfileView('profile');
+    setNotices(initialNotifications.map(n => ({ ...n })));
+    setNotificationPrefs({ ...defaultNotificationPreferences });
+    dispatchSupport({ type: 'RESET' }); dispatchSafety({ type: 'RESET' }); dispatchProfile({ type: 'RESET' });
     setIdentifier(''); setPassword(''); setOtp(''); setAuthMode('login'); goto('login');
   }
   function requestOnlineToggle() {
@@ -342,7 +362,26 @@ export function Phase1RiderPreview() {
     </PrototypeShell>;
   }
 
-  function renderDashboard() {
+  function openSupport() { setInboxView('support'); setTab('Inbox'); }
+  function openConversation(id: string) { dispatchSupport({ type: 'SELECT', id }); setInboxView('conversation'); setTab('Inbox'); }
+  function openSafety() { setProfileView('safety'); setTab('Profile'); }
+  function openProfile() { setProfileView('profile'); setTab('Profile'); }
+  function setPref(key: keyof NotificationPreferences, value: boolean) {
+    // Essential delivery, identity-security and safety alerts cannot be suppressed.
+    if (key === 'delivery' || key === 'account') return;
+    setNotificationPrefs(prev => ({ ...prev, [key]: value }));
+  }
+  function openNotificationTarget(target: NonNullable<RiderNotice['target']>) {
+    if (target === 'support') { openSupport(); return; }
+    if (target === 'safety') { openSafety(); return; }
+    if (target === 'profile') { openProfile(); return; }
+    if (target === 'payouts') { setFinanceView('payouts'); setTab('Earnings'); return; }
+    if (target === 'deliveries') { setDeliveryView('operations'); setTab('Deliveries'); }
+  }
+  function markNoticeRead(id: string) { setNotices(prev => prev.map(n => n.id === id ? { ...n, read: true } : n)); }
+  function markAllNoticesRead() { setNotices(prev => prev.map(n => ({ ...n, read: true }))); }
+
+    function renderDashboard() {
     return <>
       <View style={S.split}>
         <View style={{ flex: 1 }}><Text style={S.h1}>Good morning, {displayName} 👋</Text><Text style={S.sub}>Your rider command centre</Text></View>
@@ -394,7 +433,14 @@ export function Phase1RiderPreview() {
         <View style={{ height: 10 }} />
         <Button label="Open delivery operations →" onPress={() => { setDeliveryView('operations'); setTab('Deliveries'); }} />
       </Panel>
-      <Panel title="Recent deliveries">
+      <Panel title="Rider account & safety">
+        <View style={{ gap: 9 }}>
+          <Button outline label="View performance & ratings" onPress={() => { setProfileView('performance'); setTab('Profile'); }} />
+          <Button outline label="Safety & incident reporting" onPress={openSafety} />
+          <Button outline label="Open Rider Support" onPress={openSupport} />
+        </View>
+      </Panel>
+            <Panel title="Recent deliveries">
         {sampleOrders.map((order, i) => <View key={order.id} style={{ flexDirection: 'row', paddingVertical: 11, gap: 10, borderBottomWidth: i < sampleOrders.length - 1 ? 1 : 0, borderColor: C.border, alignItems: 'center' }}>
           <View style={{ width: 41, height: 41, borderRadius: 12, backgroundColor: C.mint, justifyContent: 'center', alignItems: 'center' }}><Text style={{ fontSize: 22 }}>✓</Text></View>
           <View style={{ flex: 1 }}><Text style={{ color: C.ink, fontWeight: '800' }}>{order.merchant}</Text><Text style={S.meta}>{order.id} · {order.route} · {order.time}</Text></View>
@@ -417,7 +463,9 @@ export function Phase1RiderPreview() {
     return <PrototypeShell currentScreen={screen} activeTab={tab} onTab={setTab}
       viewKey={tab === 'Deliveries'
         ? 'delivery:' + deliveryView + ':' + (deliveryView === 'operations' ? deliveryState.screen + ':' + deliveryState.status : '')
-        : tab === 'Earnings' ? 'earnings:' + financeView : screen + ':' + tab} right={<Pressable accessibilityRole="button" accessibilityLabel="Sign out" onPress={logout} style={{ minHeight: 44, minWidth: 58, justifyContent: 'center', alignItems: 'flex-end' }}><Text style={{ color: '#fff', fontSize: 13, fontWeight: '800' }}>Log out</Text></Pressable>}>
+        : tab === 'Earnings' ? 'earnings:' + financeView :
+        tab === 'Inbox' ? 'inbox:' + inboxView :
+        tab === 'Profile' ? 'profile:' + profileView : screen + ':' + tab} right={<Pressable accessibilityRole="button" accessibilityLabel="Sign out" onPress={logout} style={{ minHeight: 44, minWidth: 58, justifyContent: 'center', alignItems: 'flex-end' }}><Text style={{ color: '#fff', fontSize: 13, fontWeight: '800' }}>Log out</Text></Pressable>}>
       {tab === 'Home' ? renderDashboard() :
         tab === 'Deliveries' ?
           <View style={{ gap: 15 }}>
@@ -464,15 +512,34 @@ export function Phase1RiderPreview() {
               onEarnings={() => setFinanceView('earnings')} onPayout={() => setFinanceView('payouts')} /> :
             <PayoutsScreen wallet={walletState} dispatch={dispatchWallet}
               onWallet={() => setFinanceView('wallet')} onEarnings={() => setFinanceView('earnings')} /> :
-        <View style={{ gap: 16 }}>
-          <Text style={S.h1}>{tab}</Text>
-          <Notice title={tab + ' • upcoming implementation'} body={
-            tab === 'Inbox' ? 'Notifications and support conversations arrive in Phase 4.' :
-            'Rider profile, documents, preferences, safety and security arrive in Phase 4.'
-          } tone="blue" />
-          <Panel title="Navigation preview"><Text style={S.sub}>The five-tab navigation is working. This destination is deliberately not a fake production screen.</Text></Panel>
-          <Button label="Back to dashboard" onPress={() => setTab('Home')} />
-        </View>}
+        tab === 'Inbox' ?
+          <View style={{ gap: 15 }}>
+            <View style={{ flexDirection: 'row', gap: 9 }}>
+              <View style={{ flex: 1 }}><Button outline={inboxView !== 'notifications'} label={'Alerts (' + notices.filter(n => !n.read).length + ')'} onPress={() => setInboxView('notifications')} /></View>
+              <View style={{ flex: 1 }}><Button outline={inboxView === 'notifications'} label="Support Cases" onPress={openSupport} /></View>
+            </View>
+            {inboxView === 'notifications' ?
+              <NotificationsScreen notices={notices} onRead={markNoticeRead} onAllRead={markAllNoticesRead}
+                prefs={notificationPrefs} setPref={setPref} openTarget={openNotificationTarget} /> :
+              inboxView === 'support' ?
+                <SupportCenterScreen state={supportState} dispatch={dispatchSupport}
+                  openCase={openConversation} openSafety={openSafety} /> :
+                <SupportConversationScreen state={supportState} dispatch={dispatchSupport}
+                  onBack={openSupport} openOrder={() => { setDeliveryView('history'); setTab('Deliveries'); }} />}
+          </View> :
+        tab === 'Profile' ?
+          profileView === 'safety' ?
+            <View style={{ gap: 12 }}><Button outline label="← Profile" onPress={openProfile} />
+              <RiderSafetyScreen state={safetyState} dispatch={dispatchSafety} openSupport={openSupport} /></View> :
+          profileView === 'performance' ?
+            <RiderPerformanceScreen goHome={() => setProfileView('profile')} /> :
+          <RiderProfileScreen profile={profileState} dispatch={dispatchProfile}
+            prefs={notificationPrefs} setPref={setPref}
+            cashOutstanding={walletState.cashOutstanding}
+            hasActiveDelivery={activeDeliveryStatus(deliveryState.status)}
+            openSafety={openSafety} openPerformance={() => setProfileView('performance')}
+            openSupport={openSupport} openNotifications={() => { setInboxView('notifications'); setTab('Inbox'); }} /> :
+          <Notice title="Screen unavailable" body="Select one of the five main navigation destinations." tone="blue" />}
     </PrototypeShell>;
   }
   return <ActivityIndicator color={C.green} />;
