@@ -124,8 +124,9 @@ export function Phase1RiderPreview() {
         setError('Finish or escalate your active delivery before going offline.');
         return;
       }
+      if (deliveryState.status === 'offered') dispatchDelivery({ type: 'DECLINE' });
       setOnline(false);
-      setFeedback('You are offline. No new mock orders will be offered.');
+      setFeedback('You are offline. Pending demo offers have been declined.');
       return;
     }
     if (!appApproved) { setError('Your demo rider application must be approved before going online.'); return; }
