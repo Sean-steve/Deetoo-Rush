@@ -940,12 +940,14 @@ operationsRouter.post(
   async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
       const viewer = buildViewer(req);
-      await operationsRepository.setKillSwitch(
-        req.body.keyName,
-        Boolean(req.body.enabled),
-        viewer.name,
-        req.body.description,
-      );
+      const allowed = ['auto_dispatch_paused','zone_paused_all','payment_mpesa_paused','live_tracking_paused'];
+      if (!allowed.includes(req.body.keyName) || typeof req.body.enabled !== 'boolean') {
+        throw new AppError(400,'KILL_SWITCH_INVALID','Use a supported kill switch and an explicit boolean value');
+      }
+      if (typeof req.body.description !== 'string' || req.body.description.trim().length < 5) {
+        throw new AppError(400,'REASON_REQUIRED','A reason is required for operational switch changes');
+      }
+      await operationsRepository.setKillSwitch(req.body.keyName,req.body.enabled,viewer.name,req.body.description);
       const switches = await operationsRepository.getKillSwitches();
       res.json({ success: true, data: switches });
     } catch (err) {
