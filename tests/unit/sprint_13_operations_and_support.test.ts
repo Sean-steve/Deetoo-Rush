@@ -327,7 +327,7 @@ describe('Sprint 13: Operations, Support, Failure Recovery & Fraud Controls', ()
       assert.equal(proposed.resolved_at, null);
       await assert.rejects(
         () => supportService.finalizeConfirmedCase(supportCase.id, {id:'admin_early',name:'Admin',roles:['admin'],isStaff:true}),
-        /must accept before administrator closure/i,
+        /all required parties must accept|must accept before administrator closure/i,
       );
 
       // Operational status endpoint cannot bypass the confirmation workflow.
@@ -359,7 +359,7 @@ describe('Sprint 13: Operations, Support, Failure Recovery & Fraud Controls', ()
       assert.ok(closed.resolved_at);
       await assert.rejects(
         () => supportService.finalizeConfirmedCase(supportCase.id, admin),
-        /must accept before administrator closure/i,
+        /all required parties must accept|must accept before administrator closure/i,
       );
     });
   });
