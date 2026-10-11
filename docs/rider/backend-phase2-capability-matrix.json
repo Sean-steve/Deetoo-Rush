@@ -9,8 +9,8 @@
     "Missing": "No Rider-scoped API or operating model for the core approved feature."
   },
   "counts": {
-    "Existing": 7,
-    "Partial": 14,
+    "Existing": 5,
+    "Partial": 16,
     "Missing": 3
   },
   "frontendIntegration": "All 24 currently mock-only",
@@ -280,29 +280,29 @@
     {
       "id": 21,
       "title": "Rider Support Center",
-      "coverage": "Existing",
+      "coverage": "Partial",
       "backendRoutes": [
         "POST/GET /support/cases",
         "GET /support/cases/:id",
         "POST /trust/disputes"
       ],
-      "remainingWork": "Participant-scoped case creation/list/detail, linked orders and dispute paths exist. Map categories, verified order relations, paging/search and rider case creation UI; FAQ may stay static.",
-      "priority": "P1",
-      "evidence": "apps/api/src/modules/operations/operations.router.ts#L1063-L1128"
+      "remainingWork": "Participant-scoped case CRUD exists, BUT POST /support/cases passes client order_id into SupportService without rider/order ownership validation. Must reject foreign order/delivery/payment links before creating a cross-party case; verify all linked participants and add negative-role tests.",
+      "priority": "P0",
+      "evidence": "apps/api/src/modules/operations/support.service.ts#L44-L85"
     },
     {
       "id": 22,
       "title": "Support Conversation",
-      "coverage": "Existing",
+      "coverage": "Partial",
       "backendRoutes": [
         "GET /support/cases/:id",
         "POST /support/cases/:id/messages",
         "POST /support/cases/:id/resolution-response",
         "support attachments"
       ],
-      "remainingWork": "Full participant-scoped note history, attachments and ACCEPTED/DISPUTED response supported. Rider may not resolve or close; admin-only resolution and participant confirmation remain authoritative.",
-      "priority": "P1",
-      "evidence": "apps/api/src/modules/operations/operations.router.ts#L1120-L1162"
+      "remainingWork": "Messages, media and participant confirmation exist, BUT respondToResolution transitions to RESOLVED when all participants ACCEPT, without Admin action. Preserve rider satisfaction inputs but require a separate authorized Admin final resolution and maintain immutable history.",
+      "priority": "P0",
+      "evidence": "apps/api/src/modules/operations/support.service.ts#L414-L482"
     },
     {
       "id": 23,
