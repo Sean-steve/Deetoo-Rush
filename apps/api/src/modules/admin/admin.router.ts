@@ -1,7 +1,19 @@
 import { scopedResponseMiddleware } from '../../middleware/scoped-response';
 import { withTransaction } from '../../db/transaction';
+import {getDbPool} from '../../db/client';
 import { config } from '@deetoo/config';
 const identityCommand = <T>(work: () => Promise<T>) => config.storage.mode === 'postgres' ? withTransaction(work) : work();
+/** Serializes privileged roster mutations; the last ACTIVE Super Admin is never removed. */
+async function guardSuperAdminContinuity(userId:string,removeRole:boolean):Promise<void>{
+ if(config.storage.mode!=='postgres'||!removeRole)return;
+ const pool=getDbPool();
+ await pool.query("SELECT pg_advisory_xact_lock(hashtext('deetoo:active-super-admin-roster'))");
+ const target=await pool.query("SELECT u.status FROM users u JOIN user_roles ur ON ur.user_id=u.id JOIN roles r ON r.id=ur.role_id WHERE u.id=$1 AND r.code='super_admin'",[userId]);
+ if(!target.rows[0]||target.rows[0].status!=='ACTIVE')return;
+ const count=await pool.query("SELECT count(DISTINCT u.id)::int AS n FROM users u JOIN user_roles ur ON ur.user_id=u.id JOIN roles r ON r.id=ur.role_id WHERE r.code='super_admin' AND u.status='ACTIVE'");
+ if(count.rows[0].n<=1)throw new AppError(409,'LAST_SUPER_ADMIN','At least one active Super Admin must remain');
+}
+
 /**
  * DEETOO - Administration & Operations Router
  * Implements user management, account suspension/reactivation, role assignment, and audit inspection
@@ -153,6 +165,7 @@ adminRouter.post(
       if (config.storage.mode === 'postgres' && (typeof req.body.reason !== 'string' || !req.body.reason.trim())) throw new AppError(400,'REASON_REQUIRED','An explicit administrative reason is required');
       const reason = req.body.reason || 'Administrative intervention';
       await identityCommand(async () => {
+      await guardSuperAdminContinuity(targetUserId,true);
       await authRepository.updateUserStatus(targetUserId, UserStatus.SUSPENDED);
 
       // Revoke all active sessions immediately
@@ -250,6 +263,7 @@ adminRouter.post(
 
       if (config.storage.mode === 'postgres' && (typeof req.body.reason !== 'string' || !req.body.reason.trim())) throw new AppError(400,'REASON_REQUIRED','An explicit administrative reason is required');
       await identityCommand(async () => {
+      await guardSuperAdminContinuity(targetUserId,!roles.includes(UserRole.SUPER_ADMIN));
       await governanceService.setRoles(
         targetUserId,
         roles,
