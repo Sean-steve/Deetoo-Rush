@@ -1,0 +1,338 @@
+{
+  "audit": "DeeToo Rider 24-screen frontend vs backend capability",
+  "as_of": "2026-10-11",
+  "frontend_base_branch": "feat/rider-android-consolidated-24",
+  "frontend_audited_commit": "6bef5075b460c1a2f601f56332d5edcd15885a1c",
+  "classification": {
+    "Existing": "Core server workflow exposed to Rider; no approved screen is yet integrated.",
+    "Partial": "Some reusable API/model exists; approved screen has contract/service gaps.",
+    "Missing": "No Rider-scoped API or operating model for the core approved feature."
+  },
+  "counts": {
+    "Existing": 5,
+    "Partial": 16,
+    "Missing": 3
+  },
+  "frontendIntegration": "All 24 currently mock-only",
+  "screens": [
+    {
+      "id": 1,
+      "title": "Login & Authentication",
+      "coverage": "Existing",
+      "backendRoutes": [
+        "POST /auth/login",
+        "POST /auth/refresh",
+        "POST /auth/password/{forgot,reset}",
+        "POST /auth/verify/{otp-request,otp-confirm}",
+        "GET /auth/{me,sessions}",
+        "POST /auth/mfa/{enroll,verify}"
+      ],
+      "remainingWork": "Connect native secure session and recovery; phone verification OTP is not automatically a Rider login-challenge workflow; certify MFA flows.",
+      "priority": "P1",
+      "evidence": "apps/api/src/modules/auth/auth.router.ts#L74-L107"
+    },
+    {
+      "id": 2,
+      "title": "Rider Registration",
+      "coverage": "Partial",
+      "backendRoutes": [
+        "POST /admin/governance/provision (Super Admin)",
+        "PATCH /rider/profile",
+        "POST /rider/onboarding/submit"
+      ],
+      "remainingWork": "No public Rider self-registration/activation journey. Emergency contact, address, birth date and National ID are not persisted by Rider profile schema. Define eligible registration + consent/identity verification.",
+      "priority": "P0",
+      "evidence": "apps/api/src/modules/admin/governance.service.ts#L75-L145"
+    },
+    {
+      "id": 3,
+      "title": "Document Verification",
+      "coverage": "Partial",
+      "backendRoutes": [
+        "POST /media/uploads",
+        "POST /media/uploads/:id/complete (RIDER_DOCUMENT purpose)",
+        "POST /rider/onboarding/submit"
+      ],
+      "remainingWork": "Private storage exists but no rider document catalogue, per-document review/expiry/rejection/resubmission endpoints or mandatory verification binding to onboarding approval.",
+      "priority": "P0",
+      "evidence": "apps/api/src/modules/media/media.router.ts#L52-L71"
+    },
+    {
+      "id": 4,
+      "title": "Vehicle & Equipment Registration",
+      "coverage": "Partial",
+      "backendRoutes": [
+        "GET/POST /rider/vehicles",
+        "PATCH /rider/profile"
+      ],
+      "remainingWork": "Vehicle type/plate exist; make/model, year, insurance/logbook/helmet/bag equipment and compliance records are missing. Rider can set vehicle ACTIVE without document reapproval.",
+      "priority": "P0",
+      "evidence": "packages/validation/src/index.ts#L584-L596"
+    },
+    {
+      "id": 5,
+      "title": "Onboarding Status",
+      "coverage": "Partial",
+      "backendRoutes": [
+        "GET /rider/status",
+        "POST /rider/onboarding/submit",
+        "POST /admin/riders/:id/{approve,reject,suspend,reactivate}"
+      ],
+      "remainingWork": "Overall review decisions exist; per-document rejection reasons/checklist, resubmission lifecycle, verified eligibility and event notification need completion. Current submit checks name/phone and vehicle presence only.",
+      "priority": "P0",
+      "evidence": "apps/api/src/modules/rider/rider.service.ts#L204-L246"
+    },
+    {
+      "id": 6,
+      "title": "Rider Dashboard",
+      "coverage": "Partial",
+      "backendRoutes": [
+        "GET /rider/{status,availability,earnings,wallet,performance,deliveries/active}",
+        "POST /rider/availability/{online,offline}",
+        "POST /rider/location"
+      ],
+      "remainingWork": "Backend supplies account restrictions, earnings and zone IDs; compose dashboard adapter, real geospatial map/zone visualization, loading/error/live state and aggregation.",
+      "priority": "P1",
+      "evidence": "apps/api/src/modules/rider/rider.router.ts#L239-L374"
+    },
+    {
+      "id": 7,
+      "title": "Incoming Delivery Request",
+      "coverage": "Existing",
+      "backendRoutes": [
+        "GET /rider/offers/active",
+        "POST /rider/offers/:offerId/{accept,reject}",
+        "/realtime/stream",
+        "/devices/register"
+      ],
+      "remainingWork": "Use server-calculated offer expiry/pay/ETA and dispatch ownership, not 25-second client fixture. Special handling and offer UI fields must be mapped.",
+      "priority": "P1",
+      "evidence": "apps/api/src/modules/rider/rider.router.ts#L480-L631"
+    },
+    {
+      "id": 8,
+      "title": "Active Delivery Details",
+      "coverage": "Existing",
+      "backendRoutes": [
+        "GET /rider/deliveries/{active,:id}",
+        "POST /rider/deliveries/:id/status"
+      ],
+      "remainingWork": "Assigned-Rider detail exposes pickup/drop-off, items, status and timestamps. Bind timeline, contact-safe affordances and error states; do not expose private details after delivery.",
+      "priority": "P1",
+      "evidence": "apps/api/src/modules/order/dispatch.service.ts#L1278-L1344"
+    },
+    {
+      "id": 9,
+      "title": "Navigate to Merchant",
+      "coverage": "Partial",
+      "backendRoutes": [
+        "GET /rider/deliveries/:id (pickupMapsUrl)",
+        "POST /rider/location",
+        "POST /rider/deliveries/:id/arrive-pickup"
+      ],
+      "remainingWork": "External Google Maps link and location plumbing exist; embedded live route, turn-by-turn, traffic-adjusted ETA and merchant contact action need adapters/provider contract.",
+      "priority": "P1",
+      "evidence": "apps/api/src/modules/order/dispatch.service.ts#L1326-L1329"
+    },
+    {
+      "id": 10,
+      "title": "Merchant Pickup Confirmation",
+      "coverage": "Partial",
+      "backendRoutes": [
+        "POST /rider/deliveries/:id/arrive-pickup",
+        "POST /rider/deliveries/:id/confirm-pickup"
+      ],
+      "remainingWork": "Order READY and pickup verification code enforced server-side; no persisted rider item-by-item checklist or missing-item triage contract for UI.",
+      "priority": "P1",
+      "evidence": "apps/api/src/modules/order/dispatch.service.ts#L847-L884"
+    },
+    {
+      "id": 11,
+      "title": "Navigate to Customer",
+      "coverage": "Partial",
+      "backendRoutes": [
+        "GET /rider/deliveries/:id (dropoffMapsUrl, instructions)",
+        "POST /rider/deliveries/:id/{start-trip,arrive-dropoff}"
+      ],
+      "remainingWork": "Recipient/location/instructions and milestones exist. Need live navigation/ETA and privacy-safe contact channel integration; not merely illustrative map.",
+      "priority": "P1",
+      "evidence": "apps/api/src/modules/order/dispatch.service.ts#L1319-L1342"
+    },
+    {
+      "id": 12,
+      "title": "Customer Handover & Delivery Confirmation",
+      "coverage": "Existing",
+      "backendRoutes": [
+        "POST /rider/deliveries/:id/{complete,fail}",
+        "POST /media/uploads",
+        "POST /media/uploads/:id/complete"
+      ],
+      "remainingWork": "Real OTP lockout and assigned-rider verified PHOTO proof supported. UI must use uploaded media UUID, authorized proof policy and fail/incident resolution; never trust staged photo/fixture PIN.",
+      "priority": "P0",
+      "evidence": "apps/api/src/modules/order/dispatch.service.ts#L930-L1043"
+    },
+    {
+      "id": 13,
+      "title": "Delivery Completion Summary",
+      "coverage": "Partial",
+      "backendRoutes": [
+        "POST /rider/deliveries/:id/complete",
+        "GET /rider/earnings",
+        "GET /finance/rider/earnings"
+      ],
+      "remainingWork": "Delivery status and ledger earning creation exist, but Rider completion-detail API is blocked after DELIVERED; add a privacy-limited immutable receipt with actual fee components and posted state.",
+      "priority": "P1",
+      "evidence": "apps/api/src/modules/order/dispatch.service.ts#L1287-L1295"
+    },
+    {
+      "id": 14,
+      "title": "Active Deliveries & Multiple Orders",
+      "coverage": "Missing",
+      "backendRoutes": [
+        "GET /rider/deliveries/active (single delivery)",
+        "deliveryRepository.findActiveByRiderId",
+        "dispatchService candidate exclusion"
+      ],
+      "remainingWork": "Stacked jobs and server-owned multi-stop sequence not supported: dispatcher excludes riders with active delivery, repository returns one. Do not enable second order or rider route reorder until dispatch/custody architecture supports it.",
+      "priority": "P1",
+      "evidence": "apps/api/src/modules/order/dispatch.service.ts#L151-L154"
+    },
+    {
+      "id": 15,
+      "title": "Delivery History",
+      "coverage": "Missing",
+      "backendRoutes": [
+        "deliveryRepository.listDeliveries({assigned_rider_id})",
+        "GET /rider/deliveries/:id (active-only)"
+      ],
+      "remainingWork": "Internal filtered delivery queries exist but no owned Rider history/list/detail route for terminal statuses; add pagination, scoped completed/cancelled/failed history and privacy-reduced completed receipts.",
+      "priority": "P1",
+      "evidence": "apps/api/src/modules/order/delivery.repository.ts#L472-L487"
+    },
+    {
+      "id": 16,
+      "title": "Earnings Dashboard",
+      "coverage": "Partial",
+      "backendRoutes": [
+        "GET /rider/earnings",
+        "GET /finance/rider/earnings",
+        "GET /rider/performance",
+        "riderEarningsService"
+      ],
+      "remainingWork": "Financial source and fee component records exist; no bounded day/week/month earnings-series API or incentive/adjustment chart aggregation. Define KES minor-unit mapping and date semantics.",
+      "priority": "P2",
+      "evidence": "apps/api/src/modules/finance/rider-earnings.service.ts#L139-L208"
+    },
+    {
+      "id": 17,
+      "title": "Rider Wallet & Cash Management",
+      "coverage": "Existing",
+      "backendRoutes": [
+        "GET /rider/wallet",
+        "POST /rider/wallet/cash/settlements",
+        "GET /rider/earnings"
+      ],
+      "remainingWork": "Wallet already separates payable/available, pending earnings, collected cash, cash owed, settlement and reconciliation. A distinct discrepancy support workflow can reuse support/trust services; no rider-led ledger reconciliation.",
+      "priority": "P1",
+      "evidence": "apps/api/src/modules/finance/rider-wallet.service.ts#L98-L174"
+    },
+    {
+      "id": 18,
+      "title": "Payouts & Transactions",
+      "coverage": "Partial",
+      "backendRoutes": [
+        "GET /rider/payouts",
+        "GET /finance/rider/earnings",
+        "POST /finance/payouts/* (ADMIN/FINANCE only)",
+        "/finance/disbursements/destinations (ADMIN/FINANCE)"
+      ],
+      "remainingWork": "Real payout batching/provider callbacks exist. Rider lacks authenticated self-service withdrawal request and M-PESA destination change/confirmation. Preserve maker/checker and provider-only payment proof; do not expose admin pay endpoints.",
+      "priority": "P0",
+      "evidence": "apps/api/src/modules/finance/finance.router.ts#L349-L415"
+    },
+    {
+      "id": 19,
+      "title": "Performance & Ratings",
+      "coverage": "Partial",
+      "backendRoutes": [
+        "GET /rider/performance?days=",
+        "GET /trust/riders/:riderId/performance",
+        "POST /trust/ratings (customer-only)"
+      ],
+      "remainingWork": "Rates and completion/acceptance metrics exist; needs rider-scoped feedback/comment list, trend time buckets and achievements definitions. Ratings remain customer-sourced.",
+      "priority": "P2",
+      "evidence": "apps/api/src/modules/trust/rider-performance.service.ts#L109-L200"
+    },
+    {
+      "id": 20,
+      "title": "Notifications Center",
+      "coverage": "Partial",
+      "backendRoutes": [
+        "GET /support/notifications",
+        "POST /support/notifications/:id/read",
+        "POST /devices/register",
+        "native FCM"
+      ],
+      "remainingWork": "Persistent recipient-scoped inbox and single-message read supported. Missing server-side preferences, critical-alert enforcement, mark-all-read and categorization contract for approved UI.",
+      "priority": "P2",
+      "evidence": "apps/api/src/modules/operations/operations.router.ts#L970-L1062"
+    },
+    {
+      "id": 21,
+      "title": "Rider Support Center",
+      "coverage": "Partial",
+      "backendRoutes": [
+        "POST/GET /support/cases",
+        "GET /support/cases/:id",
+        "POST /trust/disputes"
+      ],
+      "remainingWork": "Participant-scoped case CRUD exists, BUT POST /support/cases passes client order_id into SupportService without rider/order ownership validation. Must reject foreign order/delivery/payment links before creating a cross-party case; verify all linked participants and add negative-role tests.",
+      "priority": "P0",
+      "evidence": "apps/api/src/modules/operations/support.service.ts#L44-L85"
+    },
+    {
+      "id": 22,
+      "title": "Support Conversation",
+      "coverage": "Partial",
+      "backendRoutes": [
+        "GET /support/cases/:id",
+        "POST /support/cases/:id/messages",
+        "POST /support/cases/:id/resolution-response",
+        "support attachments"
+      ],
+      "remainingWork": "Messages, media and participant confirmation exist, BUT respondToResolution transitions to RESOLVED when all participants ACCEPT, without Admin action. Preserve rider satisfaction inputs but require a separate authorized Admin final resolution and maintain immutable history.",
+      "priority": "P0",
+      "evidence": "apps/api/src/modules/operations/support.service.ts#L414-L482"
+    },
+    {
+      "id": 23,
+      "title": "Safety & Incident Reporting",
+      "coverage": "Missing",
+      "backendRoutes": [
+        "POST /admin/operations/incidents (ADMIN/OPS)",
+        "GET /operations/incidents* (staff only)",
+        "POST /rider/deliveries/:id/fail",
+        "DELIVERY_INCIDENT media"
+      ],
+      "remainingWork": "Operations incident engine/status timeline exists but no scoped Rider create/list/detail/attach-incident endpoint. Add safety intake with optional order, severity triage, evidence ACL, rider visibility, emergency guidance. Admin remains sole resolver.",
+      "priority": "P0",
+      "evidence": "apps/api/src/modules/admin/admin-next-operations.router.ts#L29-L35"
+    },
+    {
+      "id": 24,
+      "title": "Rider Profile & Settings",
+      "coverage": "Partial",
+      "backendRoutes": [
+        "GET/PATCH /rider/profile",
+        "GET /auth/sessions",
+        "POST /auth/sessions/:id/revoke",
+        "POST /auth/mfa/enroll",
+        "Admin governance",
+        "payout destinations admin-only"
+      ],
+      "remainingWork": "Only first/last name/phone/vehicle type/plate self-edit. Missing emergency/address, verified field change requests, Rider M-PESA destination request, server notification preferences and rider deactivation/deletion request. Reverification guard needed.",
+      "priority": "P0",
+      "evidence": "apps/api/src/modules/rider/rider.service.ts#L153-L200"
+    }
+  ]
+}
