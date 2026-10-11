@@ -177,6 +177,9 @@ jobs:
       - name: Verify approved Admin Phase 1–4 frontend-only workflows and capture reference screens
         run: pnpm test:admin-next-visual
 
+      - name: Verify 16 Admin screens with authenticated DeeToo API contracts and no demo fallback
+        run: pnpm exec playwright test -c playwright.admin-next-live.config.ts
+
       - name: Verify design-first customer preview and capture reference viewport
         run: pnpm test:customer-next-visual
 
