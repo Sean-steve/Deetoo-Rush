@@ -183,7 +183,6 @@ export function SupportConversationScreen({ state, dispatch, onBack, openOrder }
   const [followup, setFollowup] = useState('');
   const [showFollowup, setShowFollowup] = useState(false);
   const [demoAttachment, setDemoAttachment] = useState(false);
-  const [showAdminPreview, setShowAdminPreview] = useState(false);
   if (!c) return <Notice title="No conversation selected" body="Return to your support cases to open a thread." tone="blue" />;
   return <View style={{ gap: 15 }}>
     <Button outline label="‹ Back to Support Center" onPress={onBack} />
@@ -229,11 +228,6 @@ export function SupportConversationScreen({ state, dispatch, onBack, openOrder }
       </> : null}
     </Panel>
     {state.info ? <Notice title="Conversation status" body={state.info} tone="blue" /> : null}
-    <Panel title="Visual acceptance: administrator-only state">
-      <Text style={S.sub}>This is a simulation of what an administrator could do in the backend. Riders never receive a real Resolve or Close Case permission.</Text>
-      <View style={{ height: 10 }} />
-      <Button outline label={showAdminPreview ? 'Hide admin preview' : 'Show admin-only state controls'} onPress={() => setShowAdminPreview(v => !v)} />
-      {showAdminPreview ? <View style={{ marginTop: 9 }}><Button outline label="SIMULATE admin resolution (not a rider action)" onPress={() => dispatch({ type: 'PREVIEW_ADMIN_RESOLVE' })} /></View> : null}
-    </Panel>
+    <Notice title="Admin-only case resolution" body="Riders can leave feedback and request follow-up. No Resolve or Close Case control is exposed here; the Resolved case fixture lets us inspect its appearance." tone="blue" />
   </View>;
 }
