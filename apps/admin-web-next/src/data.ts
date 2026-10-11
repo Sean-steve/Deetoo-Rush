@@ -23,7 +23,10 @@ export type Rider = {
 };
 export type Incident = { id: string; title: string; status: string; type: string; time: string };
 export type Ticket = { id: string; title: string; status: string; from: string; time: string };
-export type DemoState = { version: number; orders: Order[]; riders: Rider[]; incidents: Incident[]; tickets: Ticket[]; activity: HistoryEntry[]; phase2: PhaseTwoState; phase3: PhaseThreeState; phase4: PhaseFourState };
+export type LivePayment={id:string;orderId:string;reference:string;method:string;status:string;reconciliation:string;amount:number;captured:number;refunded:number;date:string;provider:string};
+export type LiveLedgerEntry={id:string;date:string;type:string;reference:string;description:string;debit:number;credit:number;status:string;orderId:string|null};
+export type LiveRecords={payments:LivePayment[];ledger:LiveLedgerEntry[];overview:{balances:Record<string,number>;paymentCount:number;reconciliation:Record<string,number>};analytics:{orders:{bucket:string;orders:number;completed:number;cancelled:number}[];payments:{bucket:string;captured:number;refunded:number}[]}};
+export type DemoState = { version: number; orders: Order[]; riders: Rider[]; incidents: Incident[]; tickets: Ticket[]; activity: HistoryEntry[]; phase2: PhaseTwoState; phase3: PhaseThreeState; phase4: PhaseFourState; live?:LiveRecords };
 export const areas: Area[] = [
   { name: "Westlands", county: "Nairobi", lat: -1.2636, lng: 36.8031 },
   { name: "Kilimani", county: "Nairobi", lat: -1.2891, lng: 36.7866 },
