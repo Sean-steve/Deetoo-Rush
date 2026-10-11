@@ -78,9 +78,11 @@ export function createAuthRateLimiter(options: {
   useIdentifier?: boolean;
 }) {
   return async (req: Request, res: Response, next: NextFunction) => {
-    // Test fixtures bypass throttling unless the test explicitly opts into it.
+    // Explicit memory fixtures are local demo/test identities, not real accounts.
+    // Bypass throttling for browser acceptance flows unless a regression test opts in.
+    // The fixture adapter is rejected in staging/production by central configuration.
     if (config.storage.mode === 'memory' && config.storage.fixtures &&
-      process.env.NODE_ENV === 'test' && !req.headers['x-test-rate-limit']) {
+      !req.headers['x-test-rate-limit']) {
       return next();
     }
 
