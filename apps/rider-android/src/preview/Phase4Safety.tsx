@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Pressable, Text, TextInput, View } from 'react-native';
 import { Button, C, MapPreview, Metric, Notice, Panel, S, Tag } from './ui';
 import {
-  type Incident, type IncidentStatus, type IncidentType, type SafetyAction, type SafetyState,
+  type IncidentType, type SafetyAction, type SafetyState,
   validateIncident,
 } from './phase4-model';
 
@@ -28,7 +28,6 @@ export function RiderSafetyScreen({ state, dispatch, openSupport }: {
   const [linkedOrder, setLinkedOrder] = useState('');
   const [error, setError] = useState('');
   const [selectedId, setSelectedId] = useState<string | null>('INC-78432');
-  const [previewAdminControls, setPreviewAdminControls] = useState(false);
   const [tipsExpanded, setTipsExpanded] = useState(false);
   const selected = state.incidents.find(i => i.id === selectedId);
   function resetForm() { setStep(1); setError(''); setEvidence([]); setDetails(''); setLinkedOrder(''); }
@@ -156,12 +155,6 @@ export function RiderSafetyScreen({ state, dispatch, openSupport }: {
       <View style={{ height: 10 }} /><Button outline label={tipsExpanded ? 'Hide safety guidance' : 'View more safety guidance'} onPress={() => setTipsExpanded(v => !v)} />
       {tipsExpanded ? <Text style={[S.sub, { marginTop: 10 }]}>• Do not confront threatening individuals.{"\n"}• Move to a public, safe location.{"\n"}• Contact emergency services directly when in danger.{"\n"}• Do not continue operating a damaged or unsafe vehicle.</Text> : null}
     </Panel>
-    <Panel title="Visual acceptance: admin incident status">
-      <Text style={S.meta}>Admin-only actions are represented here purely to review the state design—not as a rider permission.</Text>
-      <View style={{ height: 10 }} /><Button outline label={previewAdminControls ? 'Hide admin simulation' : 'Show admin simulation'} onPress={() => setPreviewAdminControls(v => !v)} />
-      {previewAdminControls && selected ? <View style={{ gap: 9, marginTop: 10 }}>
-        {(['Acknowledged', 'Investigating', 'Resolved'] as IncidentStatus[]).map(status => <Button key={status} outline label={'SIMULATE admin: ' + status} onPress={() => dispatch({ type: 'PREVIEW_ADMIN_UPDATE', id: selected.id, status })} />)}
-      </View> : null}
-    </Panel>
+    <Notice title="Admin-controlled incident outcomes" body="Acknowledged, investigating and resolved are view-only states for riders. Administrative controls are deliberately absent from the rider interface." tone="blue" />
   </View>;
 }
