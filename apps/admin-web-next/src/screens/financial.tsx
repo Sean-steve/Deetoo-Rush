@@ -26,7 +26,6 @@ export function FinancialScreen({navigate,toast}:{navigate:(screen:string)=>void
   setModal(false);setReason("");toast("Commercial rules saved for future demo settlements; existing batches remain unchanged.");
  };
  const gotoOrder=(id:string)=>{sessionStorage.setItem("deetoo.demo.focusOrder",id);navigate("orders");};
- const gotoOrder=(id:string)=>{sessionStorage.setItem("deetoo.demo.focusOrder",id);navigate("orders");};
  const exportLedger=()=>{const values=[["Entry","Type","Reference","Debit KES","Credit KES","Status"],...filtered.map(e=>[e.id,e.type,e.reference,String(e.debit),String(e.credit),e.status])];const csv=values.map(r=>r.map(x=>'"'+x.replaceAll('"','""')+'"').join(",")).join("\n");const url=URL.createObjectURL(new Blob([csv],{type:"text/csv"}));const a=document.createElement("a");a.href=url;a.download="deetoo-demo-financial-ledger.csv";a.click();URL.revokeObjectURL(url);toast("Financial demo ledger exported as CSV.");};
  const diffByPeriod=monthly.map(v=>Math.max(0,v*0.63));
  const net=collected-out;
