@@ -100,7 +100,7 @@ test("rider allocations, policy snapshot and simulated role restrictions",async(
  await page.getByRole("tab",{name:"Rider Payouts"}).click();
  await page.getByRole("button",{name:"Create Payout Batch"}).click();
  const modal=page.getByRole("dialog",{name:"Create payout batch"});
- await expect(modal.getByText("Eligible orders")).toBeVisible();
+ await expect(modal.getByText("Eligible orders",{exact:true})).toBeVisible();
  await modal.getByRole("button",{name:"Create draft batch"}).click();
  await expect(page.locator(".dn-settlement-selected")).toContainText("RIDER");
  await page.goto("/#/financial");
