@@ -9,7 +9,8 @@ import {AppError} from '../../middleware/error-handler';
 /** Self-service consent ONLY. No administrator can subscribe another user to broadcasts.
  * Applies to all broadcast classifications. Transactional receipts/order notifications are separate. */
 export const adminNextConsentRouter=Router();
-adminNextConsentRouter.use(requireAuth);
+// A scoped guard must not intercept public /auth/invitations/activate in the parent mount.
+adminNextConsentRouter.use('/broadcast-consent',requireAuth);
 const run=(handler:(req:AuthenticatedRequest,res:Response)=>Promise<void>)=>(req:AuthenticatedRequest,res:Response,next:NextFunction)=>{void handler(req,res).catch(next);};
 const requirePg=()=>{if(config.storage.mode!=='postgres')throw new AppError(409,'POSTGRES_REQUIRED','Consent preferences require durable storage');};
 const body=z.object({channel:z.enum(['IN_APP','EMAIL','SMS','PUSH']),consented:z.boolean()});
