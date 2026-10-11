@@ -10,7 +10,8 @@ export type RiderIncident = { id: string; type: string; status: string; summary:
 export type WithdrawalRequest = { id: string; amount_minor: number; currency: string; status: string; created_at: string; payout_id?: string | null; rejection_reason?: string | null };
 export const enc = (id: string) => encodeURIComponent(id);
 export const toKes = (minor: number | string | null | undefined): string => {
-  const n = Number(minor ?? 0);
+  if (minor === null || minor === undefined || minor === '') return 'KSh —';
+  const n = Number(minor);
   return Number.isFinite(n) ? 'KSh ' + (n / 100).toLocaleString('en-KE', {minimumFractionDigits: 2, maximumFractionDigits: 2}) : 'KSh —';
 };
 export function parseWithdrawalKes(value: string): number | null {
