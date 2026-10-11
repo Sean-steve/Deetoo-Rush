@@ -70,7 +70,7 @@ test("Phase 5: a failed API never unlocks demo data, and retry restores the auth
  await expect(page.locator(".dn-demo-banner")).toHaveCount(0);
  await expect(page.locator(".dn-order-line")).toHaveCount(0);
  healthy=true;
- await page.getByRole("button",{name:/Retry connection/i}).click();
+ await page.getByRole("button",{name:"Retry API connection"}).click();
  await expect(page.getByText("Live DeeToo backend")).toBeVisible();
  await expect(page.locator('[data-testid="screen-orders"]')).toBeVisible();
  await expect(page.locator(".dn-demo-banner")).toHaveCount(0);
