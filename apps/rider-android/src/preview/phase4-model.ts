@@ -79,7 +79,7 @@ export function validateSupportCase(subject: string, description: string, orderI
   return null;
 }
 export function supportReducer(state: SupportState, action: SupportAction): SupportState {
-  if (action.type === 'RESET') return { ...initialSupport, cases: structuredClone(initialCases) };
+  if (action.type === 'RESET') return { ...initialSupport, cases: initialCases.map(c => ({ ...c, messages: c.messages.map(m => ({ ...m, attachments: [...m.attachments] })) })) };
   if (action.type === 'SELECT') return state.cases.some(c => c.id === action.id) ? { ...state, selectedId: action.id, info: '' } : state;
   if (action.type === 'CLEAR_INFO') return { ...state, info: '' };
   if (action.type === 'CREATE') {
