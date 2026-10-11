@@ -30,7 +30,7 @@ test('Admin Next Phase 2: anonymous access is denied for every new endpoint, inc
  const host='http://127.0.0.1:'+(server.address() as {port:number}).port+'/api/v1';
  const id='00000000-0000-4000-8000-000000000001';
  try{
-  const definitions:[
+  const definitions=[
    ...routes(adminNextOperationsRouter).map(r=>({...r,prefix:'/admin'})),
    ...routes(adminNextIntelligenceRouter).map(r=>({...r,prefix:'/admin'})),
    ...routes(adminNextControlRouter).map(r=>({...r,prefix:'/admin'})),
