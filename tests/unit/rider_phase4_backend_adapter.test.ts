@@ -7,6 +7,7 @@ import {
 
 test('KES minor units are never treated as major currency', () => {
   assert.equal(toKes(10000), 'KSh 100.00');
+  assert.equal(toKes(null), 'KSh —');
   assert.equal(toKes(125075), 'KSh 1,250.75');
   assert.equal(parseWithdrawalKes('100'), 10000);
   assert.equal(parseWithdrawalKes('100.05'), 10005);
