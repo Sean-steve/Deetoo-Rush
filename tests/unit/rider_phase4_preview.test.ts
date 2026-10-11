@@ -99,9 +99,10 @@ test('Rider incident reports do not acknowledge, investigate or resolve themselv
     evidence: [],
   });
   assert.equal(created.incidents[0].status, 'Submitted');
-  const simulatedAdmin = safetyReducer(created, { type: 'PREVIEW_ADMIN_UPDATE', id: created.incidents[0].id, status: 'Investigating' });
-  assert.equal(simulatedAdmin.incidents[0].status, 'Investigating');
-  assert.equal(simulatedAdmin.info.includes('Simulated admin'), true);
+  assert.equal(initialSafety.incidents.some(incident => incident.status === 'Investigating'), true);
+  assert.equal(initialSafety.incidents.some(incident => incident.status === 'Resolved'), true);
+  assert.equal(safetyReducer(created, { type: 'RESET' }).incidents.length, initialSafety.incidents.length);
+  // The Rider model deliberately has no UPDATE_STATUS / RESOLVE action.
 });
 
 test('Verified-profile corrections and payout phone changes enter reverification', () => {

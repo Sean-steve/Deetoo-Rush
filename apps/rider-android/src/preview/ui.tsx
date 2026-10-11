@@ -4,6 +4,7 @@ import {
   TextInputProps, View,
 } from 'react-native';
 import type { RiderTab, RiderScreen } from './phase1-model';
+import { riderTabs } from './screen-catalog';
 
 // Exactly aligned to packages/ui/src/tokens.ts in the shared DeeToo design system.
 export const C = {
@@ -147,11 +148,8 @@ export function MapPreview() {
   </View>;
 }
 export function BottomNav({ active, onChange }: { active: RiderTab; onChange: (next: RiderTab) => void }) {
-  const tabs: { label: RiderTab; icon: string }[] = [
-    { label: 'Home', icon: '⌂' }, { label: 'Deliveries', icon: '◈' },
-    { label: 'Earnings', icon: '▥' }, { label: 'Inbox', icon: '▤' },
-    { label: 'Profile', icon: '♙' },
-  ];
+  const icons: Record<RiderTab, string> = { Home: '⌂', Deliveries: '◈', Earnings: '▥', Inbox: '▤', Profile: '♙' };
+  const tabs = riderTabs.map(label => ({ label, icon: icons[label] }));
   return <View accessibilityRole="tablist" style={{ backgroundColor: '#fff', flexDirection: 'row', borderTopWidth: 1, borderTopColor: C.border, paddingTop: 6, paddingBottom: 6, paddingHorizontal: 8 }}>
     {tabs.map(({ label, icon }) => <Pressable key={label} accessibilityRole="tab" accessibilityLabel={label} accessibilityState={{ selected: active === label }}
       onPress={() => onChange(label)} style={{ flex: 1, minHeight: 54, justifyContent: 'center', alignItems: 'center', gap: 2, borderRadius: 12, backgroundColor: active === label ? C.mint : '#fff' }}>

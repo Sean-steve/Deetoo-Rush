@@ -1,7 +1,11 @@
-# Rider Android visual preview — Phase 1 acceptance checklist
+# Rider Android — approved 24-screen frontend
 
-This is a **development-only**, frontend-only implementation of approved screens 1–6.
-It does **not** replace the production rider backend-connected UI.
+This is the **single consolidated development-only frontend** of all 24 approved
+Rider designs (Phases 1–4). Entry: `RiderFrontendApp.tsx`, mount: `apps/rider-android/App.tsx`.
+The connected `RiderNativeApp` is retained as a backend-preserving fallback
+until the capability audit and backend integration are complete.
+
+## Phase 1 acceptance checklist
 
 ## Launch
 
@@ -26,7 +30,7 @@ and cannot be used as an authentication bypass in a release build.
 ## Navigation contract
 
 Bottom navigation: **Home · Deliveries · Earnings · Inbox · Profile**.
-Screens 7–24 will replace the marked placeholders in later phases. Screen 5 is a
+Screens 7–24 are now implemented in Phases 2–4. Screen 5 is a
 form-flow screen, reached through registration or dashboard (not a sixth tab).
 
 ## Limits and security notes

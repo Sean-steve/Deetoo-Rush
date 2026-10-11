@@ -68,7 +68,6 @@ export type SupportAction =
   | { type: 'ATTACH'; filename: string }
   | { type: 'SATISFACTION'; satisfied: boolean }
   | { type: 'FOLLOW_UP'; note: string }
-  | { type: 'PREVIEW_ADMIN_RESOLVE' } // clearly labelled fixture-only admin simulation, never rider authority
   | { type: 'CLEAR_INFO' }
   | { type: 'RESET' };
 const safeOrderIds = ['#DR-78425', '#DR-78424', '#DR-78423', '#DR-78420'];
@@ -119,14 +118,6 @@ export function supportReducer(state: SupportState, action: SupportAction): Supp
       messages: [...c.messages, { id: c.id + '-followup-' + (c.messages.length + 1), sender: 'Rider', body: 'Follow-up requested: ' + action.note.trim(), time: 'Preview • now', attachments: [] }],
     } : c), info: 'Rider follow-up request submitted to the local preview.' };
   }
-  if (action.type === 'PREVIEW_ADMIN_RESOLVE') return {
-    ...state, cases: state.cases.map(c => c.id === selected.id ? {
-      ...c, status: 'Resolved', updatedAt: 'Preview • admin simulation', messages: [...c.messages, {
-        id: c.id + '-admin-' + c.messages.length, sender: 'System', body: 'SIMULATED administrator marked this case resolved for visual acceptance.',
-        time: 'Preview • now', attachments: [],
-      }],
-    } : c), info: 'Admin-only resolution state simulated. Riders have no real resolution permission.',
-  };
   return state;
 }
 export type IncidentType = 'Accident' | 'Vehicle breakdown' | 'Unsafe location' | 'Harassment' | 'Other';
@@ -144,7 +135,6 @@ export const initialSafety: SafetyState = {
 };
 export type SafetyAction =
   | { type: 'REPORT'; issueType: IncidentType; details: string; location: string; evidence: string[]; orderId?: string }
-  | { type: 'PREVIEW_ADMIN_UPDATE'; id: string; status: IncidentStatus }
   | { type: 'RESET' };
 export function validateIncident(issueType: IncidentType | '', description: string, location: string): string | null {
   if (!issueType) return 'Choose an incident category.';
@@ -164,10 +154,6 @@ export function safetyReducer(state: SafetyState, action: SafetyAction): SafetyS
       status: 'Submitted', time: 'Preview • now',
     };
     return { ...state, incidents: [incident, ...state.incidents], sequence: state.sequence + 1, info: 'Incident saved in preview only. No emergency or administrator was notified.' };
-  }
-  if (action.type === 'PREVIEW_ADMIN_UPDATE') {
-    if (!state.incidents.some(i => i.id === action.id)) return state;
-    return { ...state, incidents: state.incidents.map(i => i.id === action.id ? { ...i, status: action.status } : i), info: 'Simulated admin incident update; no rider resolution authority.' };
   }
   return state;
 }

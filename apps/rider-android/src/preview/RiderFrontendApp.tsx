@@ -27,9 +27,9 @@ import {
 } from './ui';
 
 /**
- * Visual acceptance prototype for approved Rider screens 1–6.
- * Deliberately disconnected from the live Rider API, GPS, M-PESA and identity systems.
- * Access only through EXPO_PUBLIC_RIDER_UI_MODE=mock.
+ * Single approved Rider frontend for all 24 screens (Phases 1–4).
+ * Frontend-only visual/mock workflow implementation. No authoritative API calls.
+ * Guarded at the application entrypoint by EXPO_PUBLIC_RIDER_UI_MODE=mock and __DEV__.
  */
 type AuthMode = 'login' | 'otp' | 'recover' | 'reset';
 const steps = [
@@ -44,7 +44,7 @@ const sampleOrders = [
   { id: '#DR-78423', merchant: 'Pizza Inn', route: 'Lavington → Kilimani', amount: 380, time: '11:42 AM' },
 ];
 
-export function Phase1RiderPreview() {
+export function RiderFrontendApp() {
   const [screen, setScreen] = useState<RiderScreen>('login');
   const [tab, setTab] = useState<RiderTab>('Home');
   const [authenticated, setAuthenticated] = useState(false);

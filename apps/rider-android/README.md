@@ -1,5 +1,11 @@
 # Deetoo Rider Android
 
+> **Consolidated 24-screen Rider frontend:** See
+> [RIDER_FRONTEND_CONSOLIDATED.md](./RIDER_FRONTEND_CONSOLIDATED.md) for
+> the development mock launch, complete screen catalog, production fallback,
+> tests and backend integration boundary.
+
+
 The Rider client is a native Expo/React Native Android application. It uses the
 central Deetoo API, Android secure credential storage, live GPS, camera proof,
 background location and Firebase Cloud Messaging.
