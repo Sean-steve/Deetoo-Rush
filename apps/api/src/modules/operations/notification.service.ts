@@ -1,6 +1,7 @@
 import { transactionalService, withTransaction } from '../../db/transaction';
 import { requireSimulationMode } from '../../db/storage-policy';
 import { config } from '@deetoo/config';
+import { getDbPool } from '../../db/client';
 import { externalNotificationProvider } from './external-notification.provider';
 /**
  * DEETOO - Multi-Channel Notification Service
