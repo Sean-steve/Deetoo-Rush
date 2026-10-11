@@ -8059,6 +8059,62 @@ paths:
         '400': {description: 'Invalid request'}
         '403': {description: 'Permission denied'}
         '409': {description: 'Conflict or blocked action'}
+  # Admin Next reviewed county pricing and incident private evidence.
+  /admin/geography/counties/{code}/commercial:
+    get:
+      summary: 'GET /admin/geography/counties/{code}/commercial: audited Admin Next domain operation'
+      tags: [Admin]
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: code
+          in: path
+          required: true
+          schema: {type: string}
+      responses:
+        '200': {description: 'Authorized resource result'}
+        '403': {description: 'Forbidden'}
+        '409': {description: 'Guarded state conflict'}
+    patch:
+      summary: 'PATCH /admin/geography/counties/{code}/commercial: audited Admin Next domain operation'
+      tags: [Admin]
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: code
+          in: path
+          required: true
+          schema: {type: string}
+      responses:
+        '200': {description: 'Authorized resource result'}
+        '403': {description: 'Forbidden'}
+        '409': {description: 'Guarded state conflict'}
+  /admin/operations/incidents/{id}/evidence:
+    get:
+      summary: 'GET /admin/operations/incidents/{id}/evidence: audited Admin Next domain operation'
+      tags: [Admin]
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: {type: string}
+      responses:
+        '200': {description: 'Authorized resource result'}
+        '403': {description: 'Forbidden'}
+        '409': {description: 'Guarded state conflict'}
+    post:
+      summary: 'POST /admin/operations/incidents/{id}/evidence: audited Admin Next domain operation'
+      tags: [Admin]
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: {type: string}
+      responses:
+        '200': {description: 'Authorized resource result'}
+        '403': {description: 'Forbidden'}
+        '409': {description: 'Guarded state conflict'}
+
 components:
   securitySchemes:
     bearerAuth:
