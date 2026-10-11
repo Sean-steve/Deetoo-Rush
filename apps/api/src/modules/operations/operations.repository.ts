@@ -585,15 +585,14 @@ export class OperationsRepository {
         params.push(filter.priority);
       }
 
-      query += ` ORDER BY created_at DESC`;
-      const limit = filter.limit || 50;
-      const offset = filter.offset || 0;
-      query += ` LIMIT ${limit} OFFSET ${offset}`;
-
-      const res = await pool.query(query, params);
+      const count = await pool.query(query.replace('SELECT *', 'SELECT COUNT(*)::int AS total'), params);
+      const limit = filter.limit ?? 50;
+      const offset = filter.offset ?? 0;
+      query += ` ORDER BY created_at DESC, id DESC LIMIT ${idx++} OFFSET ${idx++}`;
+      const res = await pool.query(query, [...params, limit, offset]);
       return {
         cases: res.rows.map((r: any) => this.mapSupportCase(r)),
-        total: res.rows.length,
+        total: Number(count.rows[0]?.total ?? 0),
       };
     } catch {
       allowMemoryAdapter();
