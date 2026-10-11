@@ -24,7 +24,7 @@ export function RidersScreen({county,navigate,globalSearch,toast}:{county:string
  const canManage=canAct(role,"rider");
  const doAction=()=>{
   if(!canManage)return;
-  if(modal==="add"){if(newName.trim().length<3||newPhone.trim().length<8)return;act({type:"ADD_RIDER",name:newName.trim(),phone:newPhone.trim(),area:newArea,email:newEmail.trim(),vehicle_type:newVehicle});toast("New rider added to onboarding review.");setTab("applications");setSearch("");setSelectedId(null);}
+  if(modal==="add"){if(mode==="live"&&role!=="SUPER_ADMIN")return;if(newName.trim().length<3||newPhone.trim().length<8)return;act({type:"ADD_RIDER",name:newName.trim(),phone:newPhone.trim(),area:newArea,email:newEmail.trim(),vehicle_type:newVehicle});toast("New rider added to onboarding review.");setTab("applications");setSearch("");setSelectedId(null);}
   else if(selected){
    if(reason.trim().length<3)return;
    if(modal==="approve"||modal==="reject")act({type:"REVIEW_RIDER",riderId:selected.id,approved:modal==="approve",reason});
@@ -36,7 +36,7 @@ export function RidersScreen({county,navigate,globalSearch,toast}:{county:string
  };
  const exportRiders=()=>{const csv=["ID,Name,Phone,Status,Verification,Vehicle,Area",...shown.map(r=>[r.id,r.name,r.phone,r.status,r.onboarding,r.vehicle,r.area.name].map(v=>'"'+v.replaceAll('"','""')+'"').join(","))].join("\n");const url=URL.createObjectURL(new Blob([csv],{type:"text/csv"}));const a=document.createElement("a");a.href=url;a.download=mode==="live"?"deetoo-visible-riders.csv":"deetoo-demo-riders.csv";a.click();URL.revokeObjectURL(url);toast("Rider demo records exported.");};
  return <div className="dn-screen" data-testid="screen-riders">
-  <div className="dn-title-row"><div><h1>Riders & Fleet</h1><p>Manage rider onboarding, availability, performance and fleet operations.</p></div><div className="dn-title-buttons"><button className="dn-btn outline" onClick={exportRiders}><Download size={15}/> Export</button><button className="dn-btn primary" disabled={!canManage} onClick={()=>setModal("add")}><Plus size={16}/> Add Rider</button></div></div>
+  <div className="dn-title-row"><div><h1>Riders & Fleet</h1><p>Manage rider onboarding, availability, performance and fleet operations.</p></div><div className="dn-title-buttons"><button className="dn-btn outline" onClick={exportRiders}><Download size={15}/> Export</button><button className="dn-btn primary" disabled={!canManage||mode==="live"&&role!=="SUPER_ADMIN"} onClick={()=>setModal("add")}><Plus size={16}/> Add Rider</button></div></div>
   <div className="dn-metrics six">
    <IconStat label="Total Riders" value={all.length} icon={<Users/>} change={mode==="live"?"Loaded API records":"Demo directory"}/>
    <IconStat label="Online Now" value={available.length} icon={<CheckCircle2/>} change="Ready for dispatch"/>
@@ -59,7 +59,7 @@ export function RidersScreen({county,navigate,globalSearch,toast}:{county:string
       <div className="dn-map-rider-legend"><span>🟢 Available ({available.length})</span><span>🔵 On Delivery ({delivery.length})</span><span>⚪ Offline ({offline.length})</span><span>🔴 Suspended ({suspended.length})</span></div>
     </Card>
     <div className="dn-rider-small-panels">
-     <Card title="Rider Performance" desc="Delivery activity represented in the demo"><Bars color="#0dbd71" values={[12,22,15,26,18,30,25,22,34,30,27,22,31,34]} labels={["1","","","","7","","","","14","","","","21","28"]}/></Card>
+     <Card title="Rider Performance" desc="{mode==="live"?"Loaded records; no historic ride buckets are synthesized":"Illustrative demo delivery activity"}"><Bars color="#0dbd71" values={[12,22,15,26,18,30,25,22,34,30,27,22,31,34]} labels={["1","","","","7","","","","14","","","","21","28"]}/></Card>
      <Card title="Fleet & Vehicles"><Ring number={all.length} label="Vehicles" parts={[{name:"Motorbike",value:all.filter(r=>r.vehicle==="Motorbike").length,color:"#00a960"},{name:"Bicycle",value:all.filter(r=>r.vehicle==="Bicycle").length,color:"#f79620"}]}/></Card>
     </div>
    </div>
@@ -69,7 +69,7 @@ export function RidersScreen({county,navigate,globalSearch,toast}:{county:string
       {details==="overview"&&<div className="dn-rider-profile-content"><div className="dn-card-subhead"><b>Rider Information</b></div>
        <DetailLine label="Rider ID">#{selected.id}</DetailLine><DetailLine label="Phone">{selected.phone}</DetailLine><DetailLine label="Email">{selected.email}</DetailLine><DetailLine label="Vehicle">{selected.vehicle}</DetailLine><DetailLine label="Plate">{selected.plate}</DetailLine><DetailLine label="Home County">{selected.area.county}</DetailLine><DetailLine label="Availability"><Chip value={selected.status}/></DetailLine><DetailLine label="Joined">{displayTime(selected.joinedAt)} (demo)</DetailLine><DetailLine label="Verification"><Chip value={selected.onboarding}/></DetailLine><DetailLine label="Deliveries">{selected.deliveries}</DetailLine>
       </div>}
-      {details==="performance"&&<div className="dn-panel-information"><DetailLine label="Total deliveries">{selected.deliveries}</DetailLine><DetailLine label="Rating">★ {selected.rating.toFixed(1)}</DetailLine><DetailLine label="Active assignments">{riderOrders.filter(o=>o.status!=="DELIVERED"&&o.status!=="CANCELLED").length}</DetailLine><p>Performance charts are simulated and are not connected to live analytics.</p><Bars values={[4,7,3,9,8,6,10,11,6]} labels={["Mon","","Wed","","Fri","","Sun","",""]}/></div>}
+      {details==="performance"&&<div className="dn-panel-information"><DetailLine label="Total deliveries">{selected.deliveries}</DetailLine><DetailLine label="Rating">★ {selected.rating.toFixed(1)}</DetailLine><DetailLine label="Active assignments">{riderOrders.filter(o=>o.status!=="DELIVERED"&&o.status!=="CANCELLED").length}</DetailLine><p>{mode==="live"?"No historical rider performance series has been loaded from the backend.":"Performance charts are simulated."}</p>{mode==="live"?<Empty label="Historical rider performance requires an authorized analytics API."/>:<Bars values={[4,7,3,9,8,6,10,11,6]} labels={["Mon","","Wed","","Fri","","Sun","",""]}/>}</div>}
       {details==="documents"&&<div className="dn-panel-information"><DetailLine label="Verification status"><Chip value={selected.onboarding}/></DetailLine><DetailLine label="Approved">{selected.approved?"Yes":"No"}</DetailLine><p>Identity and vehicle documents will be integrated in the backend stage. No real personal documents are stored in the frontend preview.</p></div>}
       {details==="history"&&<div className="dn-panel-information"><h3>Assignments in this demo</h3>{riderOrders.map(o=><div className="dn-history-row" key={o.id}><strong>#{o.id}</strong><span>{o.merchant}</span><Chip value={o.status}/></div>)}{riderOrders.length===0&&<Empty label="No assignments in the current demo"/>}</div>}
       <div className="dn-profile-buttons">
