@@ -15,21 +15,21 @@ export type PhaseTwoAction=
  | {type:"PHASE2_INCIDENT_STATUS";id:string;status:IncidentStatus;note:string}
  | {type:"PHASE2_INCIDENT_ASSIGN";id:string;assignedTo:string}
  | {type:"PHASE2_INCIDENT_NOTE";id:string;note:string}
- | {type:"PHASE2_SUPPORT_CREATE";name:string;participantType:SupportCase["participantType"];subject:string;orderId:string|null;priority:Severity}
+ | {type:"PHASE2_SUPPORT_CREATE";name:string;participantType:SupportCase["participantType"];subject:string;orderId:string|null;priority:Severity;participantId?:string;description?:string}
  | {type:"PHASE2_SUPPORT_REPLY";id:string;message:string;internal:boolean;by:string;actor:SupportMessage["actor"]}
  | {type:"PHASE2_SUPPORT_STATUS";id:string;status:SupportStatus;resolution:string}
  | {type:"PHASE2_SUPPORT_ASSIGN";id:string;assignee:string}
  | {type:"PHASE2_SUPPORT_SATISFACTION";id:string;outcome:"SATISFIED"|"NOT_SATISFIED"}
- | {type:"PHASE2_MERCHANT_CREATE";name:string;category:string;owner:string;email:string;phone:string}
+ | {type:"PHASE2_MERCHANT_CREATE";name:string;category:string;owner:string;email:string;phone:string;legalName?:string}
  | {type:"PHASE2_MERCHANT_STATUS";id:string;status:MerchantRecord["status"];note:string}
- | {type:"PHASE2_MERCHANT_EDIT";id:string;name:string;owner:string;email:string;phone:string;category:string}
- | {type:"PHASE2_MERCHANT_BRANCH";id:string;name:string;county:string;area:string;address:string}
+ | {type:"PHASE2_MERCHANT_EDIT";id:string;name:string;owner:string;email:string;phone:string;category:string;reason?:string}
+ | {type:"PHASE2_MERCHANT_BRANCH";id:string;name:string;county:string;area:string;address:string;latitude?:string;longitude?:string}
  | {type:"PHASE2_MERCHANT_BRANCH_STATUS";id:string;branchId:string;status:Branch["status"]}
  | {type:"PHASE2_CUSTOMER_CREATE";name:string;email:string;phone:string;county:string}
  | {type:"PHASE2_CUSTOMER_EDIT";id:string;name:string;email:string;phone:string;county:string;reason:string}
  | {type:"PHASE2_CUSTOMER_STATUS";id:string;status:CustomerRecord["status"];reason:string}
  | {type:"PHASE2_CUSTOMER_NOTE";id:string;note:string}
- | {type:"PHASE2_CUSTOMER_ADDRESS";id:string;label:string;area:string;county:string};
+ | {type:"PHASE2_CUSTOMER_ADDRESS";id:string;label:string;area:string;county:string;latitude?:string;longitude?:string;recipientName?:string;phone?:string;reason?:string;isDefault?:boolean;instructions?:string};
 const baseTime=Date.parse("2026-10-09T10:24:00+03:00");
 const date=(delta:number)=>new Date(baseTime+delta*60_000).toISOString();
 const shortName=["John K.","Grace N.","Collins M.","Mary A.","James K.","Alex T.","Daniel O.","Fatima A."];
