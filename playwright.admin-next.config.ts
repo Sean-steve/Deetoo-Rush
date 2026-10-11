@@ -1,7 +1,7 @@
 import {defineConfig,devices} from "@playwright/test";
 export default defineConfig({
   testDir:"./tests/browser",
-  testMatch:/admin-next-phase[123]\.spec\.ts/,
+  testMatch:/admin-next-phase[1234]\.spec\.ts/,
   workers:1,
   retries:0,
   timeout:60000,
