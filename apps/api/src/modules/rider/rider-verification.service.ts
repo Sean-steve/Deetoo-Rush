@@ -29,6 +29,8 @@ export const riderVerificationService = {
       return !latest || latest.status!=='APPROVED' || (latest.expires_on && new Date(latest.expires_on)<=new Date());
     });
     const eq=equipment.rows[0];
+    const identity=await pool.query('SELECT u.phone_verified_at FROM rider_profiles r JOIN users u ON u.id=r.user_id WHERE r.id=$1',[riderId]);
+    if(required && !identity.rows[0]?.phone_verified_at)missing.push('PHONE_VERIFICATION' as RiderDocumentType);
     if(!eq||eq.status!=='APPROVED'||!eq.delivery_bag||!eq.reflective_vest||(vehicleType!=='BICYCLE'&&!eq.helmet))missing.push('EQUIPMENT' as RiderDocumentType);
     return {required,documents:docs.rows,equipment:eq||null,missing:required?missing:[],ready:!required||missing.length===0};
   },

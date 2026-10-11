@@ -332,6 +332,9 @@ export class RiderService {
       }
     );
 
+    // Verification remains authoritative beyond the onboarding screen.
+    await riderVerificationService.assertChecklistReady(profile.id, profile.vehicleType);
+
     // 2. Validate Vehicle
     const vehicle = await riderRepository.findVehicleByRiderId(profile.id);
     if (!vehicle || vehicle.status !== VehicleStatus.ACTIVE) {
