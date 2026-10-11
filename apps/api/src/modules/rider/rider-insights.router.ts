@@ -12,7 +12,7 @@ import { AppError } from '../../middleware/error-handler';
 export const riderInsightsRouter=Router();
 riderInsightsRouter.use(requireAuth,requireRole('rider'));
 riderInsightsRouter.use((_req,res,next)=>{const original=res.json.bind(res);res.json=data=>original(riderResponse(data));next();});
-const period=z.object({days:z.coerce.number().int().min(1).max(366).default(30)}).parse;
+const periodSchema=z.object({days:z.coerce.number().int().min(1).max(366).default(30)});
 async function own(req:AuthenticatedRequest) {
   const rider=await riderRepository.findProfileByUserId(req.user!.id);
   if(!rider)throw new AppError(404,'RIDER_NOT_FOUND','Rider profile not found');
@@ -25,7 +25,7 @@ const pref=z.object({
 }).strict();
 riderInsightsRouter.get('/earnings/trends',async(req:AuthenticatedRequest,res,next)=>{
   try{
-    const rider=await own(req),{days}=period(req.query);
+    const rider=await own(req),{days}=periodSchema.parse(req.query);
     const all=await ledgerRepository.findRiderEarningsByRiderId(rider.id);
     const since=new Date(Date.now()-(days-1)*86400000).toISOString().slice(0,10);
     const byDay=new Map<string,{date:string,total_minor:number,bonus_minor:number,adjustments_minor:number,deliveries:number}>();
@@ -45,7 +45,7 @@ riderInsightsRouter.get('/earnings/trends',async(req:AuthenticatedRequest,res,ne
 });
 riderInsightsRouter.get('/performance/feedback',async(req:AuthenticatedRequest,res,next)=>{
   try{
-    const rider=await own(req),{days}=period(req.query);
+    const rider=await own(req),{days}=periodSchema.parse(req.query);
     if(config.storage.mode!=='postgres')return res.json({data:{feedback:[],days}});
     const found=await getDbPool().query(
       "SELECT rating,comment,created_at FROM delivery_ratings WHERE rider_id=$1 AND created_at >= now()-($2::int * interval '1 day') ORDER BY created_at DESC LIMIT 100",
