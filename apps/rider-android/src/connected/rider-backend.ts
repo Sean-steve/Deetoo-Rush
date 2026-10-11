@@ -50,6 +50,8 @@ export function createRiderBackend(client: DeetooApiClient) {
     vehicles: () => get<any>('/rider/vehicles'),
     submitVehicle: (data: {type: 'MOTORBIKE'|'BICYCLE'|'CAR'; registration_number: string; status: 'INACTIVE'}) => post<any>('/rider/vehicles', data),
     submitOnboarding: () => post<any>('/rider/onboarding/submit'),
+    requestPhoneVerification: (phone_e164: string) => post<any>('/auth/verify/otp-request', {phone_e164,purpose:'VERIFICATION'}),
+    confirmPhoneVerification: (phone_e164: string, code: string) => post<any>('/auth/verify/otp-confirm', {phone_e164,code}),
     verification: () => get<any>('/rider/verification/checklist'),
     submitDocument: (mediaId: string, documentType: string, expiresOn?: string) => post<any>('/rider/verification/documents', { media_id: mediaId, document_type: documentType, ...(expiresOn ? {expires_on: expiresOn} : {}) }),
     submitEquipment: (data: { delivery_bag: boolean; reflective_vest: boolean; helmet: boolean }) => post<any>('/rider/verification/equipment', data),
