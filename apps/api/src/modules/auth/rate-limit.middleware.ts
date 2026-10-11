@@ -1,6 +1,7 @@
 import { config } from '@deetoo/config';
 import { readyRedis } from '../../db/redis';
 import { createHash, randomUUID } from 'node:crypto';
+import { logger } from '@deetoo/utils';
 /**
  * DEETOO - Authentication Rate Limiter
  * Implements sliding-window rate limiting per IP and identifier (Section 57)
@@ -26,6 +27,50 @@ setInterval(() => {
   }
 }, 300000).unref();
 
+/**
+ * In development, local process memory preserves basic authentication protection
+ * if the shared Redis service is down. Never use this for staging/production:
+ * independent API instances would otherwise have independent counters.
+ */
+let redisDegradedNoticeLogged = false;
+
+function limitInProcess(
+  keys: string[],
+  options: { windowMs: number; max: number },
+  res: Response,
+  next: NextFunction,
+) {
+  const now = Date.now();
+  const buckets = keys.map((key) => {
+    let bucket = memoryBuckets.get(key);
+    if (!bucket) {
+      bucket = { timestamps: [] };
+      memoryBuckets.set(key, bucket);
+    }
+    bucket.timestamps = bucket.timestamps.filter((ts) => now - ts < options.windowMs);
+    return bucket;
+  });
+
+  // Check all buckets before incrementing any. Separate IP and IP+identifier
+  // buckets ensure rotating identifiers cannot evade the per-IP limit.
+  const retryMs = Math.max(
+    0,
+    ...buckets
+      .filter((bucket) => bucket.timestamps.length >= options.max)
+      .map((bucket) => bucket.timestamps[0] + options.windowMs - now),
+  );
+  if (retryMs > 0) {
+    const retryAfterSec = Math.max(1, Math.ceil(retryMs / 1000));
+    res.setHeader('Retry-After', retryAfterSec);
+    return next(new AppError(429, 'RATE_LIMIT_EXCEEDED',
+      `Too many attempts. Please wait ${retryAfterSec} seconds before trying again.`,
+      { retry_after_seconds: retryAfterSec }));
+  }
+
+  for (const bucket of buckets) bucket.timestamps.push(now);
+  return next();
+}
+
 export function createAuthRateLimiter(options: {
   windowMs: number;
   max: number;
@@ -33,32 +78,29 @@ export function createAuthRateLimiter(options: {
   useIdentifier?: boolean;
 }) {
   return async (req: Request, res: Response, next: NextFunction) => {
-    // In test environment, allow high throughput
-    if (config.storage.mode === "memory" && config.storage.fixtures && process.env.NODE_ENV === "test" && !req.headers["x-test-rate-limit"]) {
+    // Test fixtures bypass throttling unless the test explicitly opts into it.
+    if (config.storage.mode === 'memory' && config.storage.fixtures &&
+      process.env.NODE_ENV === 'test' && !req.headers['x-test-rate-limit']) {
       return next();
     }
 
-    const ip =
-      req.ip ||
-      req.headers["x-forwarded-for"] ||
-      req.socket.remoteAddress ||
-      "unknown-ip";
-    let key = `${options.keyPrefix}:${ip}`;
-
+    // Trust Express's configured proxy chain, never a raw user-supplied
+    // X-Forwarded-For header. Always limit by IP, even with distinct identifiers.
+    const ip = req.ip || req.socket?.remoteAddress || 'unknown-ip';
+    const rawKeys = [`${options.keyPrefix}:ip:${ip}`];
     if (options.useIdentifier && req.body) {
-      const identifier =
-        req.body.identifier || req.body.email || req.body.phone_e164;
+      const identifier = req.body.identifier || req.body.email || req.body.phone_e164;
       if (identifier) {
-        key = `${options.keyPrefix}:${ip}:${String(identifier).trim().toLowerCase()}`;
+        rawKeys.push(`${options.keyPrefix}:identity:${ip}:${String(identifier).trim().toLowerCase()}`);
       }
     }
+    // Hashed keys avoid storing plaintext email/phone identifiers in Redis or RAM.
+    const keys = rawKeys.map((raw) => 'rate:' + createHash('sha256').update(raw).digest('hex'));
 
     if (config.storage.mode === 'postgres') {
       try {
         const redis = await readyRedis();
-        const keys = new Set([`${options.keyPrefix}:${ip}`, key]);
-        for (const raw of keys) {
-          const redisKey = 'rate:' + createHash('sha256').update(raw).digest('hex');
+        for (const redisKey of keys) {
           const retryMs = Number(await redis.eval(`
             local t=redis.call('TIME'); local now=t[1]*1000+math.floor(t[2]/1000)
             redis.call('ZREMRANGEBYSCORE',KEYS[1],'-inf',now-tonumber(ARGV[1]))
@@ -67,44 +109,36 @@ export function createAuthRateLimiter(options: {
               return math.max(1,tonumber(first[2])+tonumber(ARGV[1])-now)
             end
             redis.call('ZADD',KEYS[1],now,ARGV[3]); redis.call('PEXPIRE',KEYS[1],ARGV[1]); return 0
-          `,1,redisKey,options.windowMs,options.max,randomUUID()));
-          if (retryMs) {
-            res.setHeader('Retry-After',Math.ceil(retryMs/1000));
-            return next(new AppError(429,'RATE_LIMIT_EXCEEDED','Too many attempts'));
+          `, 1, redisKey, options.windowMs, options.max, randomUUID()));
+          if (retryMs > 0) {
+            res.setHeader('Retry-After', Math.max(1, Math.ceil(retryMs / 1000)));
+            return next(new AppError(429, 'RATE_LIMIT_EXCEEDED', 'Too many attempts'));
           }
         }
+        if (redisDegradedNoticeLogged) {
+          logger.info('Redis authentication rate limiting recovered', { service: 'auth' });
+          redisDegradedNoticeLogged = false;
+        }
         return next();
-      } catch { return next(new AppError(503,'RATE_LIMIT_UNAVAILABLE','Authentication rate limiter is unavailable')); }
+      } catch {
+        // Fail closed in staging/production. Local development may keep signing
+        // in, but remains rate limited in this single API process.
+        if (!config.isDevelopment) {
+          return next(new AppError(503, 'RATE_LIMIT_UNAVAILABLE',
+            'Authentication rate limiter is unavailable'));
+        }
+        if (!redisDegradedNoticeLogged) {
+          logger.warn('Redis authentication rate limiter unavailable; using development-only in-memory limits', {
+            service: 'auth',
+            errorCode: 'RATE_LIMIT_LOCAL_FALLBACK',
+          });
+          redisDegradedNoticeLogged = true;
+        }
+        return limitInProcess(keys, options, res, next);
+      }
     }
 
-    const now = Date.now();
-    let bucket = memoryBuckets.get(key);
-    if (!bucket) {
-      bucket = { timestamps: [] };
-      memoryBuckets.set(key, bucket);
-    }
-
-    // Keep only requests inside the sliding window
-    bucket.timestamps = bucket.timestamps.filter(
-      (ts) => now - ts < options.windowMs,
-    );
-
-    if (bucket.timestamps.length >= options.max) {
-      const oldest = bucket.timestamps[0];
-      const retryAfterSec = Math.ceil((oldest + options.windowMs - now) / 1000);
-      res.setHeader("Retry-After", retryAfterSec);
-      return next(
-        new AppError(
-          429,
-          "RATE_LIMIT_EXCEEDED",
-          `Too many attempts. Please wait ${retryAfterSec} seconds before trying again.`,
-          { retry_after_seconds: retryAfterSec },
-        ),
-      );
-    }
-
-    bucket.timestamps.push(now);
-    next();
+    return limitInProcess(keys, options, res, next);
   };
 }
 
