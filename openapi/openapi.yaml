@@ -7386,6 +7386,453 @@ paths:
         '200':
           description: Advisory review state updated
 
+  # Phase 2 Admin Next capability contracts. Sender and deployment readiness audited separately.
+  /admin/operations/incidents:
+    post:
+      summary: 'Admin Next POST /admin/operations/incidents — guarded backend contract'
+      tags: [Admin]
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200': {description: 'Authorized success'}
+        '400': {description: 'Invalid input'}
+        '403': {description: 'Permission denied'}
+        '409': {description: 'Guarded state transition or provider unavailable'}
+  /admin/orders/{id}/notes:
+    get:
+      summary: 'Admin Next GET /admin/orders/{id}/notes — guarded backend contract'
+      tags: [Admin]
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: {type: string}
+      responses:
+        '200': {description: 'Authorized success'}
+        '400': {description: 'Invalid input'}
+        '403': {description: 'Permission denied'}
+        '409': {description: 'Guarded state transition or provider unavailable'}
+    post:
+      summary: 'Admin Next POST /admin/orders/{id}/notes — guarded backend contract'
+      tags: [Admin]
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: {type: string}
+      responses:
+        '200': {description: 'Authorized success'}
+        '400': {description: 'Invalid input'}
+        '403': {description: 'Permission denied'}
+        '409': {description: 'Guarded state transition or provider unavailable'}
+  /admin/customers/{id}/notes:
+    get:
+      summary: 'Admin Next GET /admin/customers/{id}/notes — guarded backend contract'
+      tags: [Admin]
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: {type: string}
+      responses:
+        '200': {description: 'Authorized success'}
+        '400': {description: 'Invalid input'}
+        '403': {description: 'Permission denied'}
+        '409': {description: 'Guarded state transition or provider unavailable'}
+    post:
+      summary: 'Admin Next POST /admin/customers/{id}/notes — guarded backend contract'
+      tags: [Admin]
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: {type: string}
+      responses:
+        '200': {description: 'Authorized success'}
+        '400': {description: 'Invalid input'}
+        '403': {description: 'Permission denied'}
+        '409': {description: 'Guarded state transition or provider unavailable'}
+  /admin/customers/{id}/addresses:
+    post:
+      summary: 'Admin Next POST /admin/customers/{id}/addresses — guarded backend contract'
+      tags: [Admin]
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: {type: string}
+      responses:
+        '200': {description: 'Authorized success'}
+        '400': {description: 'Invalid input'}
+        '403': {description: 'Permission denied'}
+        '409': {description: 'Guarded state transition or provider unavailable'}
+  /admin/customers/{id}/addresses/{addressId}:
+    patch:
+      summary: 'Admin Next PATCH /admin/customers/{id}/addresses/{addressId} — guarded backend contract'
+      tags: [Admin]
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: {type: string}
+        - name: addressId
+          in: path
+          required: true
+          schema: {type: string}
+      responses:
+        '200': {description: 'Authorized success'}
+        '400': {description: 'Invalid input'}
+        '403': {description: 'Permission denied'}
+        '409': {description: 'Guarded state transition or provider unavailable'}
+    delete:
+      summary: 'Admin Next DELETE /admin/customers/{id}/addresses/{addressId} — guarded backend contract'
+      tags: [Admin]
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: {type: string}
+        - name: addressId
+          in: path
+          required: true
+          schema: {type: string}
+      responses:
+        '200': {description: 'Authorized success'}
+        '400': {description: 'Invalid input'}
+        '403': {description: 'Permission denied'}
+        '409': {description: 'Guarded state transition or provider unavailable'}
+  /admin/customers/import/validate:
+    post:
+      summary: 'Admin Next POST /admin/customers/import/validate — guarded backend contract'
+      tags: [Admin]
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200': {description: 'Authorized success'}
+        '400': {description: 'Invalid input'}
+        '403': {description: 'Permission denied'}
+        '409': {description: 'Guarded state transition or provider unavailable'}
+  /admin/customers/import:
+    post:
+      summary: 'Admin Next POST /admin/customers/import — guarded backend contract'
+      tags: [Admin]
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200': {description: 'Authorized success'}
+        '400': {description: 'Invalid input'}
+        '403': {description: 'Permission denied'}
+        '409': {description: 'Guarded state transition or provider unavailable'}
+  /admin/security/users/{id}/sessions:
+    get:
+      summary: 'Admin Next GET /admin/security/users/{id}/sessions — guarded backend contract'
+      tags: [Admin]
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: {type: string}
+      responses:
+        '200': {description: 'Authorized success'}
+        '400': {description: 'Invalid input'}
+        '403': {description: 'Permission denied'}
+        '409': {description: 'Guarded state transition or provider unavailable'}
+  /admin/security/sessions/{id}/revoke:
+    post:
+      summary: 'Admin Next POST /admin/security/sessions/{id}/revoke — guarded backend contract'
+      tags: [Admin]
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: {type: string}
+      responses:
+        '200': {description: 'Authorized success'}
+        '400': {description: 'Invalid input'}
+        '403': {description: 'Permission denied'}
+        '409': {description: 'Guarded state transition or provider unavailable'}
+  /admin/governance/changes:
+    get:
+      summary: 'Admin Next GET /admin/governance/changes — guarded backend contract'
+      tags: [Admin]
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200': {description: 'Authorized success'}
+        '400': {description: 'Invalid input'}
+        '403': {description: 'Permission denied'}
+        '409': {description: 'Guarded state transition or provider unavailable'}
+  /admin/reports:
+    get:
+      summary: 'Admin Next GET /admin/reports — guarded backend contract'
+      tags: [Admin]
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200': {description: 'Authorized success'}
+        '400': {description: 'Invalid input'}
+        '403': {description: 'Permission denied'}
+        '409': {description: 'Guarded state transition or provider unavailable'}
+    post:
+      summary: 'Admin Next POST /admin/reports — guarded backend contract'
+      tags: [Admin]
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200': {description: 'Authorized success'}
+        '400': {description: 'Invalid input'}
+        '403': {description: 'Permission denied'}
+        '409': {description: 'Guarded state transition or provider unavailable'}
+  /admin/reports/{id}:
+    patch:
+      summary: 'Admin Next PATCH /admin/reports/{id} — guarded backend contract'
+      tags: [Admin]
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: {type: string}
+      responses:
+        '200': {description: 'Authorized success'}
+        '400': {description: 'Invalid input'}
+        '403': {description: 'Permission denied'}
+        '409': {description: 'Guarded state transition or provider unavailable'}
+    delete:
+      summary: 'Admin Next DELETE /admin/reports/{id} — guarded backend contract'
+      tags: [Admin]
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: {type: string}
+      responses:
+        '200': {description: 'Authorized success'}
+        '400': {description: 'Invalid input'}
+        '403': {description: 'Permission denied'}
+        '409': {description: 'Guarded state transition or provider unavailable'}
+  /admin/analytics/series:
+    get:
+      summary: 'Admin Next GET /admin/analytics/series — guarded backend contract'
+      tags: [Admin]
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200': {description: 'Authorized success'}
+        '400': {description: 'Invalid input'}
+        '403': {description: 'Permission denied'}
+        '409': {description: 'Guarded state transition or provider unavailable'}
+  /admin/analytics/top-merchants:
+    get:
+      summary: 'Admin Next GET /admin/analytics/top-merchants — guarded backend contract'
+      tags: [Admin]
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200': {description: 'Authorized success'}
+        '400': {description: 'Invalid input'}
+        '403': {description: 'Permission denied'}
+        '409': {description: 'Guarded state transition or provider unavailable'}
+  /admin/notifications/read-all:
+    post:
+      summary: 'Admin Next POST /admin/notifications/read-all — guarded backend contract'
+      tags: [Admin]
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200': {description: 'Authorized success'}
+        '400': {description: 'Invalid input'}
+        '403': {description: 'Permission denied'}
+        '409': {description: 'Guarded state transition or provider unavailable'}
+  /admin/notifications/{type}/{id}/read:
+    post:
+      summary: 'Admin Next POST /admin/notifications/{type}/{id}/read — guarded backend contract'
+      tags: [Admin]
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: type
+          in: path
+          required: true
+          schema: {type: string}
+        - name: id
+          in: path
+          required: true
+          schema: {type: string}
+      responses:
+        '200': {description: 'Authorized success'}
+        '400': {description: 'Invalid input'}
+        '403': {description: 'Permission denied'}
+        '409': {description: 'Guarded state transition or provider unavailable'}
+  /admin/communications/templates:
+    get:
+      summary: 'Admin Next GET /admin/communications/templates — guarded backend contract'
+      tags: [Admin]
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200': {description: 'Authorized success'}
+        '400': {description: 'Invalid input'}
+        '403': {description: 'Permission denied'}
+        '409': {description: 'Guarded state transition or provider unavailable'}
+    post:
+      summary: 'Admin Next POST /admin/communications/templates — guarded backend contract'
+      tags: [Admin]
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200': {description: 'Authorized success'}
+        '400': {description: 'Invalid input'}
+        '403': {description: 'Permission denied'}
+        '409': {description: 'Guarded state transition or provider unavailable'}
+  /admin/communications/templates/{id}:
+    patch:
+      summary: 'Admin Next PATCH /admin/communications/templates/{id} — guarded backend contract'
+      tags: [Admin]
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: {type: string}
+      responses:
+        '200': {description: 'Authorized success'}
+        '400': {description: 'Invalid input'}
+        '403': {description: 'Permission denied'}
+        '409': {description: 'Guarded state transition or provider unavailable'}
+  /admin/communications/campaigns:
+    get:
+      summary: 'Admin Next GET /admin/communications/campaigns — guarded backend contract'
+      tags: [Admin]
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200': {description: 'Authorized success'}
+        '400': {description: 'Invalid input'}
+        '403': {description: 'Permission denied'}
+        '409': {description: 'Guarded state transition or provider unavailable'}
+    post:
+      summary: 'Admin Next POST /admin/communications/campaigns — guarded backend contract'
+      tags: [Admin]
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200': {description: 'Authorized success'}
+        '400': {description: 'Invalid input'}
+        '403': {description: 'Permission denied'}
+        '409': {description: 'Guarded state transition or provider unavailable'}
+  /admin/communications/campaigns/{id}/approve:
+    post:
+      summary: 'Admin Next POST /admin/communications/campaigns/{id}/approve — guarded backend contract'
+      tags: [Admin]
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: {type: string}
+      responses:
+        '200': {description: 'Authorized success'}
+        '400': {description: 'Invalid input'}
+        '403': {description: 'Permission denied'}
+        '409': {description: 'Guarded state transition or provider unavailable'}
+  /admin/communications/campaigns/{id}/cancel:
+    post:
+      summary: 'Admin Next POST /admin/communications/campaigns/{id}/cancel — guarded backend contract'
+      tags: [Admin]
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: {type: string}
+      responses:
+        '200': {description: 'Authorized success'}
+        '400': {description: 'Invalid input'}
+        '403': {description: 'Permission denied'}
+        '409': {description: 'Guarded state transition or provider unavailable'}
+  /admin/communications/campaigns/{id}/send:
+    post:
+      summary: 'Admin Next POST /admin/communications/campaigns/{id}/send — guarded backend contract'
+      tags: [Admin]
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: {type: string}
+      responses:
+        '200': {description: 'Authorized success'}
+        '400': {description: 'Invalid input'}
+        '403': {description: 'Permission denied'}
+        '409': {description: 'Guarded state transition or provider unavailable'}
+  /admin/communications/audience-preview:
+    get:
+      summary: 'Admin Next GET /admin/communications/audience-preview — guarded backend contract'
+      tags: [Admin]
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200': {description: 'Authorized success'}
+        '400': {description: 'Invalid input'}
+        '403': {description: 'Permission denied'}
+        '409': {description: 'Guarded state transition or provider unavailable'}
+  /finance/ops/refunds/{id}/reject:
+    post:
+      summary: 'Admin Next POST /finance/ops/refunds/{id}/reject — guarded backend contract'
+      tags: [Finance]
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: {type: string}
+      responses:
+        '200': {description: 'Authorized success'}
+        '400': {description: 'Invalid input'}
+        '403': {description: 'Permission denied'}
+        '409': {description: 'Guarded state transition or provider unavailable'}
+  /finance/ops/settlements/{id}/reject:
+    post:
+      summary: 'Admin Next POST /finance/ops/settlements/{id}/reject — guarded backend contract'
+      tags: [Finance]
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: {type: string}
+      responses:
+        '200': {description: 'Authorized success'}
+        '400': {description: 'Invalid input'}
+        '403': {description: 'Permission denied'}
+        '409': {description: 'Guarded state transition or provider unavailable'}
+  /finance/ops/payouts/{id}/reject:
+    post:
+      summary: 'Admin Next POST /finance/ops/payouts/{id}/reject — guarded backend contract'
+      tags: [Finance]
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: {type: string}
+      responses:
+        '200': {description: 'Authorized success'}
+        '400': {description: 'Invalid input'}
+        '403': {description: 'Permission denied'}
+        '409': {description: 'Guarded state transition or provider unavailable'}
+  /finance/ops/reconciliation/exceptions/{id}/resolve:
+    post:
+      summary: 'Admin Next POST /finance/ops/reconciliation/exceptions/{id}/resolve — guarded backend contract'
+      tags: [Finance]
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: {type: string}
+      responses:
+        '200': {description: 'Authorized success'}
+        '400': {description: 'Invalid input'}
+        '403': {description: 'Permission denied'}
+        '409': {description: 'Guarded state transition or provider unavailable'}
+
 components:
   securitySchemes:
     bearerAuth:
