@@ -152,7 +152,7 @@ export type LiveAction={type:string;[k:string]:unknown};
 function requireId(x:unknown){const id=str(x);if(!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id))throw new LiveApiError("Select a verified live record before taking this action.",400,"INVALID_LIVE_ID");return encodeURIComponent(id);}
 function unsupported(type:string):never{throw new LiveApiError("This approved control requires an additional authoritative workflow. No change was saved: "+type,409,"ACTION_NOT_CONNECTED");}
 export async function performLiveAction(a:LiveAction,data:DemoState,identity:Json):Promise<string>{
- const type=a.type,reason=str(a.reason||a.note||a.description).trim();
+ const type=a.type,reason=str(a.reason||a.resolution||a.note||a.description).trim();
  const id=()=>requireId(a.id||a.orderId);const who=str(identity.id);
  const verifiedCoords=(lat:unknown,lng:unknown)=>{const latitude=Number(lat),longitude=Number(lng);
  if(lat===null||lat===undefined||String(lat).trim()===""||lng===null||lng===undefined||String(lng).trim()===""||!Number.isFinite(latitude)||!Number.isFinite(longitude)||latitude < -4.8||latitude>5.5||longitude<33||longitude>42)throw new LiveApiError("Provide verified Kenya latitude and longitude before creating a service location.",400,"VERIFIED_COORDINATES_REQUIRED");
@@ -204,15 +204,17 @@ export async function performLiveAction(a:LiveAction,data:DemoState,identity:Jso
  case "PHASE2_INCIDENT_NOTE":await apiMutation("/operations/incidents/"+id()+"/timeline","POST",{note:str(a.note),action:"NOTE"});return "Incident timeline updated.";
  case "PHASE2_SUPPORT_REPLY":{if(a.actor!=="ADMIN")unsupported("Participant impersonation is prohibited");await apiMutation("/operations/support/cases/"+id()+"/notes","POST",{visibility:a.internal?"INTERNAL":"ALL_PARTICIPANTS",body:str(a.message)});return a.internal?"Internal support note saved.":"Admin reply delivered to the authorized support conversation.";}
  case "PHASE2_SUPPORT_STATUS":{const state=status(a.status);if(state==="RESOLVED"){await apiMutation("/operations/support/cases/"+id()+"/resolve","POST",{resolution:reason||"Resolved by staff"});return "Support resolution requested; participants must confirm.";}await apiMutation("/operations/support/cases/"+id()+"/status","POST",{status:state,reason});return "Case status updated.";}
- case "PHASE2_MERCHANT_STATUS":{const s=status(a.status),route=s==="ACTIVE"?"reactivate":s==="SUSPENDED"?"suspend":s==="PENDING"?"reject":"";if(!route)unsupported(type);await apiMutation("/admin/merchants/"+id()+"/"+route,"POST",{reason:reason||"Merchant status reviewed"});return "Merchant status updated.";}
+ case "PHASE2_MERCHANT_STATUS":{const state=status(a.status),current=data.phase2.merchants.find(m=>m.id===a.id);const route=state==="ACTIVE"?current&&["PENDING","ONBOARDING"].includes(current.status)?"approve":"reactivate":state==="SUSPENDED"?"suspend":state==="PENDING"?"reject":"";
+ if(!route)unsupported(type);await apiMutation("/admin/merchants/"+id()+"/"+route,"POST",route==="approve"?{note:reason||"Merchant onboarding reviewed"}:{reason:reason||"Merchant status reviewed"});return "Merchant "+(route==="approve"?"onboarding approval":"status change")+" evaluated by DeeToo.";}
  case "PHASE2_CUSTOMER_NOTE":await apiMutation("/admin/customers/"+id()+"/notes","POST",{note:a.note});return "Customer note saved.";
  case "PHASE2_CUSTOMER_EDIT":await apiMutation("/admin/governance/users/"+id(),"PATCH",{name:a.name,email:a.email,phone_e164:a.phone,reason:a.reason});return "Account correction submitted.";
- case "PHASE2_CUSTOMER_STATUS":{const route=status(a.status)==="ACTIVE"?"reactivate":"deactivate";await apiMutation("/admin/governance/users/"+id()+"/"+route,"POST",{reason});return "Account governance action submitted.";}
+ case "PHASE2_CUSTOMER_STATUS":{if(status(a.status)==="DELETED")throw new LiveApiError("Permanent customer deletion requires a privacy/retention request and cannot be performed by a generic status toggle.",409,"LEGAL_DELETION_WORKFLOW_REQUIRED");
+ const route=status(a.status)==="ACTIVE"?"reactivate":"deactivate";await apiMutation("/admin/governance/users/"+id()+"/"+route,"POST",{reason});return "Account governance action submitted.";}
  case "PHASE3_COVERAGE":{const target=data.phase3.coverage.find(c=>c.county===a.county);if(!target?.code)unsupported(type);
     if(reason.length<5)throw new LiveApiError("Explain the coverage change before submitting.",400,"REASON_REQUIRED");
     const checked=obj(payload(await apiGet("/admin/geography/counties/"+encodeURIComponent(target.code)+"/impact")));
     if(a.enabled===true&&num(checked.active_polygon_zones)<1)throw new LiveApiError("County has no active PostGIS serviceability polygons. Activate a verified service zone first.",409,"COUNTY_NOT_SERVICEABLE");
-    await apiMutation("/admin/geography/counties/"+encodeURIComponent(target.code),"PATCH",{enabled:!!a.enabled});
+    await apiMutation("/admin/geography/counties/"+encodeURIComponent(target.code),"PATCH",{enabled:!!a.enabled,reason});
     return (a.enabled?"County enabled":"County paused")+"; existing orders and deliveries are not cancelled automatically. Impact snapshot: "+num(checked.active_orders)+" active orders and "+num(checked.active_deliveries)+" deliveries.";}
  case "PHASE3_COVERAGE_CONFIG":{const target=data.phase3.coverage.find(c=>c.county===a.county);if(!target?.code)unsupported(type);
     const commercial=obj(payload(await apiGet("/admin/geography/counties/"+encodeURIComponent(target.code)+"/commercial")));
