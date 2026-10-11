@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ActivityIndicator, Pressable, StatusBar, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Pressable, Text, View } from 'react-native';
 import {
   emptyDocuments, emptyRegistration, emptyVehicle, kes, mockActivity,
   requiresDrivingLicence, validateDocuments, validateRegistration, validateVehicle,
@@ -8,7 +8,7 @@ import {
   type RiderVehicleType,
 } from './phase1-model';
 import {
-  BottomNav, Brand, Button, C, Field, Header, HeroRider, MapPreview,
+  Button, C, Field, HeroRider, MapPreview,
   Metric, Notice, OnboardingTracker, Panel, PrototypeShell, S, Tag,
 } from './ui';
 
@@ -96,7 +96,8 @@ export function Phase1RiderPreview() {
     goto('documents');
   }
   function nextVehicle() {
-    const error = validateDocuments(documents, vehicle.type);
+    // A bicycle applicant can skip a licence; validate the final vehicle choice at submission.
+    const error = validateDocuments(documents, 'Bicycle');
     if (error) { setError(error); return; }
     goto('vehicle');
   }
@@ -122,11 +123,7 @@ export function Phase1RiderPreview() {
   }
 
   const authScreen = (
-    <View style={{ flex: 1, backgroundColor: C.canvas }}>
-      <StatusBar barStyle="light-content" backgroundColor={C.navy} />
-      <View style={{ padding: 19, backgroundColor: C.navy }}><Brand light /></View>
-      <View style={{ flex: 1 }}>
-        <PrototypeShell currentScreen="login">
+    <PrototypeShell currentScreen="login">
           <HeroRider title="Welcome back, Rider" sub="Deliver more. Earn more. Join DeeToo Rush on the road." />
           <Panel>
             {authMode === 'login' ? <>
@@ -143,7 +140,7 @@ export function Phase1RiderPreview() {
                   <Text style={{ color: C.darkGreen, fontWeight: '700' }}>{showPassword ? 'Hide' : 'Show'}</Text>
                 </Pressable>
               </View>
-              {formError}
+              {feedback.startsWith('Password changed') ? <Notice title="Preview password updated" body={feedback} /> : formError}
               <View style={{ marginTop: feedback ? 12 : 0 }}><Button label={busy ? 'Signing in…' : 'Log In →'} onPress={beginLogin} disabled={busy} /></View>
               <View style={{ alignItems: 'center', paddingTop: 15 }}>
                 <Pressable accessibilityRole="button" onPress={() => { setAuthMode('recover'); setFeedback(''); }} style={{ minHeight: 44, justifyContent: 'center' }}>
@@ -180,9 +177,7 @@ export function Phase1RiderPreview() {
             </>}
           </Panel>
           <Text style={[S.meta, { textAlign: 'center' }]}>VISUAL PREVIEW • No account or backend changes are made.</Text>
-        </PrototypeShell>
-      </View>
-    </View>
+    </PrototypeShell>
   );
 
   if (screen === 'login') return authScreen;
