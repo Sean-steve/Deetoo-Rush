@@ -58,7 +58,7 @@ function canonicalSupport(x:unknown):SupportCase {
 }
 function canonicalMerchant(x:unknown):MerchantRecord {
  const m=obj(x),s=status(m.status),approve=status(m.approval_status),branches=arr(m.branches).map(b=>({id:str(b.id),name:name(b),county:county(b),area:str(b.area||b.city),status:status(b.status)==="ACTIVE"?"ACTIVE" as const:"PAUSED" as const,address:str(b.address_line1||b.address),orders:num(b.total_orders)}));
- return {id:str(m.id),name:name(m,"Merchant"),category:str(m.category||m.primary_category,"Merchant"),status:(s==="SUSPENDED"?"SUSPENDED":s==="ACTIVE"?"ACTIVE":approve==="PENDING"?"PENDING":"ONBOARDING"),verification:approve==="APPROVED"?"VERIFIED":approve==="PENDING"||approve==="IN_REVIEW"?"IN_REVIEW":"MISSING",owner:str(m.owner_name||m.contact_name),email:str(m.email||m.contact_email),phone:str(m.phone_e164||m.contact_phone),joinedAt:when(m.created_at),registration:str(m.registration_number),description:str(m.description),branches,reviewNotes:[],rating:num(m.rating)};
+ return {id:str(m.id),name:name(m,"Merchant"),category:str(m.category||m.primary_category,"Merchant"),status:(s==="SUSPENDED"?"SUSPENDED":s==="ACTIVE"?"ACTIVE":approve==="PENDING"?"PENDING":"ONBOARDING"),verification:approve==="APPROVED"?"VERIFIED":approve==="PENDING"||approve==="IN_REVIEW"?"IN_REVIEW":"MISSING",owner:str(m.owner_name||m.contact_name),email:str(m.email||m.contact_email),phone:str(m.phone_e164||m.contact_phone),joinedAt:when(m.created_at),registration:str(m.registration_number),description:str(m.description),branches,branchCount:num(m.branch_count),reviewNotes:[],rating:num(m.rating)};
 }
 function canonicalCustomer(x:unknown):CustomerRecord{
  const c=obj(x),p=obj(c.profile||c.customer_profile),u=obj(c.user);const s=status(u.status||c.status);
