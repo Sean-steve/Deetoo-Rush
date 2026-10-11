@@ -31,6 +31,7 @@ const ROUTERS: RouterConfig[] = [
   { file: 'apps/api/src/modules/admin/admin.router.ts', varName: 'adminRouter', prefix: '/admin' },
   { file: 'apps/api/src/modules/admin/admin-next-operations.router.ts', varName: 'adminNextOperationsRouter', prefix: '/admin' },
   { file: 'apps/api/src/modules/admin/admin-next-intelligence.router.ts', varName: 'adminNextIntelligenceRouter', prefix: '/admin' },
+  { file: 'apps/api/src/modules/admin/admin-next-control.router.ts', varName: 'adminNextControlRouter', prefix: '/admin' },
   { file: 'apps/api/src/modules/finance/admin-finance-review.router.ts', varName: 'adminFinanceReviewRouter', prefix: '/finance/ops' },
   { file: 'apps/api/src/modules/auth/auth.router.ts', varName: 'authRouter', prefix: '/auth' },
   { file: 'apps/api/src/modules/cart/cart.router.ts', varName: 'cartRouter', prefix: '/cart' },
