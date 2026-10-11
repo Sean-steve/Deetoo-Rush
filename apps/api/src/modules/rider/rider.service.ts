@@ -25,6 +25,7 @@ import { riderLocationStore } from '../../db/redis';
 import { getDbPool } from '../../db/client';
 import { RiderStateMachine } from './rider-state-machine';
 import { riderEligibilityService } from './rider-eligibility.service';
+import { riderVerificationService } from './rider-verification.service';
 import { authRepository } from '../auth/auth.repository';
 import { merchantRepository } from '../merchant/merchant.repository';
 import { orderEventBroker } from '../realtime/event-broker';
@@ -169,6 +170,11 @@ export class RiderService {
     }
 
     // Mass-assignment defense: map only explicitly permitted fields
+    if (![RiderOnboardingStatus.DRAFT, RiderOnboardingStatus.REJECTED].includes(profile.onboardingStatus)) {
+      const changes = Object.keys(updates).filter(k => (updates as any)[k] !== undefined);
+      if (changes.length) throw new AppError(409, 'RIDER_PROFILE_REVERIFICATION_REQUIRED',
+        'Verified or pending-review Rider details require an authorized change request');
+    }
     const safeUpdates: Partial<RiderProfile> = {};
     if (updates.first_name !== undefined) safeUpdates.firstName = updates.first_name.trim();
     if (updates.last_name !== undefined) safeUpdates.lastName = updates.last_name.trim();
@@ -231,6 +237,7 @@ export class RiderService {
       );
     }
 
+    await riderVerificationService.assertChecklistReady(profile.id, profile.vehicleType);
     const updated = await riderRepository.updateProfile(profile.id, {
       onboardingStatus: RiderOnboardingStatus.PENDING_REVIEW,
     });
@@ -258,6 +265,10 @@ export class RiderService {
       throw new AppError(404, 'RIDER_PROFILE_NOT_FOUND', 'Rider profile not found');
     }
 
+    if (![RiderOnboardingStatus.DRAFT, RiderOnboardingStatus.REJECTED].includes(profile.onboardingStatus)) {
+      throw new AppError(409, 'RIDER_VEHICLE_REVERIFICATION_REQUIRED',
+        'Approved or pending-review vehicle changes require administrator review');
+    }
     const vehicle = await riderRepository.upsertVehicle(profile.id, {
       type: data.type,
       registrationNumber: data.registration_number,
@@ -861,6 +872,7 @@ export class RiderService {
       throw new AppError(409, 'RIDER_ALREADY_APPROVED', 'Rider is already approved');
     }
 
+    await riderVerificationService.assertChecklistReady(riderId, profile.vehicleType);
     const now = new Date().toISOString();
     const updated = await riderRepository.updateProfile(riderId, {
       onboardingStatus: RiderOnboardingStatus.APPROVED,
