@@ -20,7 +20,7 @@ export type PhaseThreeState={coverage:CountyCoverage[];zones:ServiceZone[];refun
 export type PhaseThreeAction=
  | {type:"PHASE3_COVERAGE";county:string;enabled:boolean;reason:string}
  | {type:"PHASE3_COVERAGE_CONFIG";county:string;fee:number;eta:number;reason:string}
- | {type:"PHASE3_ZONE_CREATE";county:string;name:string;fee:number;eta:number;notes:string}
+ | {type:"PHASE3_ZONE_CREATE";county:string;name:string;fee:number;eta:number;notes:string;polygon?:string}
  | {type:"PHASE3_ZONE_STATUS";id:string;enabled:boolean;reason:string}
  | {type:"PHASE3_REFUND_REQUEST";orderId:string;amount:number;reason:string}
  | {type:"PHASE3_REFUND_REVIEW";id:string;status:"APPROVED"|"REJECTED";reason:string}
