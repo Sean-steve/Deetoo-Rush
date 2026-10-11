@@ -34,7 +34,7 @@ export async function verifyAdminSupportCase(raw:unknown){
   throw new AppError(404,'SUPPORT_PARTICIPANT_NOT_FOUND','The selected participant is not registered in DeeToo');
  if(input.order_id){
   const linked=await getDbPool().query(
-   'SELECT o.id,o.customer_id,b.merchant_id,d.rider_id FROM orders o JOIN merchant_branches b ON b.id=o.branch_id LEFT JOIN LATERAL (SELECT rider_id FROM deliveries WHERE order_id=o.id ORDER BY created_at DESC LIMIT 1) d ON true WHERE o.id=$1',
+   'SELECT o.id,o.customer_id,b.merchant_id,d.rider_id FROM orders o JOIN merchant_branches b ON b.id=o.branch_id LEFT JOIN LATERAL (SELECT assigned_rider_id AS rider_id FROM deliveries WHERE order_id=o.id ORDER BY created_at DESC LIMIT 1) d ON true WHERE o.id=$1',
    [input.order_id]
   );
   if(!linked.rows[0])throw new AppError(404,'ORDER_NOT_FOUND','Linked order not found');
