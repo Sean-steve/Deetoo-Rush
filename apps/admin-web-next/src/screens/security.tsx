@@ -3,7 +3,7 @@ import {AlertTriangle,Ban,CheckCircle2,Clock3,Download,Eye,FileLock2,KeyRound,La
 import type {AdminAccount,UserRole} from "../phase4Data";
 import {useDemo,canAct} from "../store";
 import {Card,Chip,DetailLine,Empty,IconStat,Initials,Modal,SearchBox,SelectBox,Tabs} from "../ui";
-const roles:UserRole[]=["SUPER_ADMIN","OPERATIONS","SUPPORT","FINANCE","VIEWER"];
+const roles:UserRole[]=["SUPER_ADMIN","ADMIN","OPERATIONS","SUPPORT","FINANCE","VIEWER"];
 const caps:{role:UserRole;label:string;description:string;abilities:string[]}[]=[
  {role:"SUPER_ADMIN",label:"Super Admin",description:"Full simulated administration",abilities:["People management","Security controls","Financial approvals","System configuration"]},
  {role:"OPERATIONS",label:"Operations",description:"Dispatch, incidents and logistics",abilities:["Orders & fleet","Incidents & geography","Read analytics"]},
