@@ -13,6 +13,8 @@ import { merchantExperienceAdminRouter } from './admin/merchant-experience-admin
 import {adminNextOperationsRouter} from './admin/admin-next-operations.router';
 import {adminNextIntelligenceRouter} from './admin/admin-next-intelligence.router';
 import {adminNextControlRouter} from './admin/admin-next-control.router';
+import {adminNextConsentRouter} from './admin/admin-next-consent.router';
+import {adminNextSecurityRouter,adminNextActivationRouter} from './admin/admin-next-security.router';
 import {adminFinanceReviewRouter} from './finance/admin-finance-review.router';
 import { merchantRouter } from './merchant/merchant.router';
 import { merchantExperienceRouter } from './merchant/merchant-experience.router';
@@ -44,12 +46,15 @@ export const v1Router = Router();
 
 // Domain Sub-routers
 v1Router.use('/auth', authRouter);
+v1Router.use('/auth', adminNextConsentRouter);
+v1Router.use('/auth', adminNextActivationRouter);
 v1Router.use('/admin/geography', geographyRouter);
 v1Router.use('/admin/merchant-experience', merchantExperienceAdminRouter);
 v1Router.use('/admin', adminRouter);
 v1Router.use('/admin', adminNextOperationsRouter);
 v1Router.use('/admin', adminNextIntelligenceRouter);
 v1Router.use('/admin', adminNextControlRouter);
+v1Router.use('/admin', adminNextSecurityRouter);
 v1Router.use('/admin/operations', operationsRouter);
 v1Router.use('/operations', operationsRouter);
 v1Router.use('/customer/support', customerSupportRouter);
