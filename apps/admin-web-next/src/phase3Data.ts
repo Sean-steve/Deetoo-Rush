@@ -73,7 +73,7 @@ export function financeEntries(state:PhaseThreeState,orders:Order[]){
  type Entry={id:string;date:string;type:string;reference:string;description:string;debit:number;credit:number;status:string;orderId:string|null};
  const entries:Entry[]=[];
  for(const o of orders){
-  if(o.paymentStatus==="Paid"){entries.push({id:"PMT-"+o.id,date:o.createdAt,type:"Collection",reference:"SIM-"+o.id,description:o.paymentMethod+" · "+o.customer,debit:0,credit:o.subtotal+o.deliveryFee+o.serviceFee,status:state.reconciledOrders.includes(o.id)?"Reconciled":"Unreconciled",orderId:o.id});}
+  if(o.paymentStatus==="Paid"||(o.paymentStatus==="Refunded"&&refundedTotal(state,o.id)>0)){entries.push({id:"PMT-"+o.id,date:o.createdAt,type:"Collection",reference:"SIM-"+o.id,description:o.paymentMethod+" · "+o.customer,debit:0,credit:o.subtotal+o.deliveryFee+o.serviceFee,status:state.reconciledOrders.includes(o.id)?"Reconciled":"Unreconciled",orderId:o.id});}
  }
  for(const r of state.refunds.filter(x=>x.status==="APPROVED"))entries.push({id:r.id,date:r.reviewedAt||r.createdAt,type:"Refund",reference:"SIM-"+r.id,description:"Customer adjustment · "+r.orderId,debit:r.amount,credit:0,status:"Approved (simulated)",orderId:r.orderId});
  for(const batch of state.payouts.filter(x=>x.status==="PAID"))entries.push({id:batch.id,date:batch.paidAt||batch.createdAt,type:batch.kind==="MERCHANT"?"Merchant payout":"Rider payout",reference:batch.reference||"SIM-"+batch.id,description:batch.items.length+" allocated orders",debit:payoutTotal(batch),credit:0,status:"Marked paid (simulated)",orderId:null});
@@ -130,6 +130,7 @@ export function reducePhaseThree(state:PhaseThreeState,action:PhaseThreeAction,o
  case "PHASE3_PAYOUT_REVIEW":{
   const batch=state.payouts.find(x=>x.id===action.id);
   if(!batch||batch.status!=="DRAFT"||action.reason.trim().length<5)return state;
+  if(action.status==="APPROVED"&&batch.items.some(item=>orders.find(o=>o.id===item.orderId)?.paymentStatus!=="Paid"||state.refunds.some(r=>r.orderId===item.orderId&&r.status!=="REJECTED")))return state;
   return {...state,payouts:state.payouts.map(b=>b.id===action.id?{...b,status:action.status,reason:action.reason.trim(),approvedAt:action.status==="APPROVED"?now():undefined}:b),logs:audit(state.logs,"Payout review",batch.id+" → "+action.status)};
  }
  case "PHASE3_PAYOUT_MARK_PAID":{
