@@ -416,13 +416,13 @@ export class CartRepository {
       const pool = getDbPool();
       if (zoneId) {
         const res = await pool.query(
-          `SELECT * FROM delivery_pricing_rules WHERE zone_id = $1 AND status = 'ACTIVE' ORDER BY created_at DESC LIMIT 1`,
+          `SELECT * FROM delivery_pricing_rules WHERE zone_id = $1 AND status = 'ACTIVE' AND effective_from <= now() AND (effective_until IS NULL OR effective_until > now()) ORDER BY created_at DESC LIMIT 1`,
           [zoneId]
         );
         if (res.rows.length > 0) return res.rows[0];
       }
       const defaultRes = await pool.query(
-        `SELECT * FROM delivery_pricing_rules WHERE status = 'ACTIVE' ORDER BY created_at DESC LIMIT 1`
+        `SELECT * FROM delivery_pricing_rules WHERE zone_id IS NULL AND status = 'ACTIVE' AND effective_from <= now() AND (effective_until IS NULL OR effective_until > now()) ORDER BY created_at DESC LIMIT 1`
       );
       if (defaultRes.rows.length > 0) return defaultRes.rows[0];
     } catch {
