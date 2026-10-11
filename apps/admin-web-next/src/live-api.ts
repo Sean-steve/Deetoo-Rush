@@ -141,7 +141,8 @@ export async function loadLive(signal?:AbortSignal):Promise<LiveSnapshot>{
    case "users":d.phase4.admins=rows.filter(x=>Array.isArray(x.roles)&&x.roles.some((r:unknown)=>["super_admin","admin","ops","support","finance"].includes(typeof r==="string"?r:str(obj(r).code)))).map(account);break;
    case "sessions":d.phase4.sessions=rows.map(s=>({id:str(s.id),userId:str(s.user_id||identity.id),device:str(s.device_info,"Unknown device"),location:"Session",startedAt:when(s.created_at),status:s.revoked_at?"REVOKED":"ACTIVE"}));break;
    case "health":{const deps=obj(o.dependencies);d.phase4.components=Object.entries(deps).map(([id,value])=>{const v=obj(value),ok=bool(v.healthy||v.ok||v.connected)||value===true;return {id,name:id.toUpperCase(),group:"Infrastructure",status:ok?"HEALTHY":"DEGRADED",latencyMs:num(v.latency_ms||v.duration_ms),uptime:0,detail:"Live health probe (no guaranteed SLO)"}});break;}
-   case "config":{const flags=obj(o.kill_switches);d.phase4.settings={...d.phase4.settings,riderDispatch:!bool(obj(flags.auto_dispatch_paused).enabled),autoAssign:!bool(obj(flags.auto_dispatch_paused).enabled)};break;}
+   case "config":{const flags=obj(o.kill_switches),values=new Map(arr(o.settings).map(v=>[str(v.key),v.value]));
+      d.phase4.settings={...d.phase4.settings,maintenance:bool(values.get("maintenance_banner")),supportIntake:!bool(values.get("support_intake_paused")),notificationDelivery:!bool(values.get("notification_campaign_paused")),riderDispatch:!bool(obj(flags.auto_dispatch_paused).enabled),autoAssign:!bool(obj(flags.auto_dispatch_paused).enabled)};break;}
    }
   }catch(e){rs[key]={status:e instanceof LiveApiError&&e.status===403?"restricted":"error",error:e instanceof Error?e.message:"Unavailable"};}
  }));
@@ -205,7 +206,11 @@ export async function performLiveAction(a:LiveAction,data:DemoState,identity:Jso
     await apiMutation("/admin/security/users/"+id()+"/mfa-reset-requests","POST",{reason});return "MFA recovery submitted for independent Super Admin approval; no credentials have been reset yet.";
    }
  case "PHASE4_HEALTH_STATUS":throw new LiveApiError("Measured service health cannot be changed by an administrator; report an incident instead.",409,"LIVE_HEALTH_READ_ONLY");
- case "PHASE4_SETTING":throw new LiveApiError("Only supported named kill switches can be changed, with audit reason. This demo-style setting key is not mapped to a live switch.",409,"CONFIG_KEY_UNSUPPORTED");
+ case "PHASE4_SETTING":{const key=str(a.key),value=bool(a.value);if(reason.length<5)throw new LiveApiError("A configuration reason is required.",400,"REASON_REQUIRED");
+     const labels:Record<string,{name:string;inverse:boolean;kill:boolean}>={maintenance:{name:"maintenance_banner",inverse:false,kill:false},supportIntake:{name:"support_intake_paused",inverse:true,kill:false},notificationDelivery:{name:"notification_campaign_paused",inverse:true,kill:false},riderDispatch:{name:"auto_dispatch_paused",inverse:true,kill:true},autoAssign:{name:"auto_dispatch_paused",inverse:true,kill:true}};
+     const target=labels[key];if(!target)throw new LiveApiError("Unsupported setting. Only explicitly service-enforced flags may be changed.",409,"CONFIG_KEY_UNSUPPORTED");
+     await apiMutation("/admin/configuration/"+(target.kill?"kill-switches/":"settings/")+target.name,"PATCH",{enabled:target.inverse?!value:value,value:target.inverse?!value:value,reason});return "Supported operational control updated and recorded by DeeToo.";
+   }
  default:unsupported(type);
  }
 }
