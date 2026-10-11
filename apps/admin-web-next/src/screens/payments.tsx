@@ -1,3 +1,4 @@
+import {PaymentsLive} from "./payments-live";
 import React,{useEffect,useState} from "react";
 import {AlertTriangle, ArrowDownLeft, ArrowLeftRight, ArrowRight, CheckCircle2, CircleDollarSign, Clock3, CreditCard, Download, FileCheck2, Filter, RefreshCw, Search, ShieldCheck, Wallet, XCircle} from "lucide-react";
 import {displayTime,formatMoney,orderTotal} from "../data";
@@ -6,7 +7,7 @@ import type {RefundStatus} from "../phase3Data";
 import {useDemo,canAct} from "../store";
 import {Card,Chip,DetailLine,Empty,IconStat,Initials,Modal,SearchBox,SelectBox,Tabs} from "../ui";
 export function PaymentsScreen({navigate,globalSearch,toast}:{navigate:(screen:string)=>void;globalSearch:string;toast:(message:string)=>void}){
- const {data,act,role}=useDemo(),model=data.phase3,orders=data.orders;
+ const {data,act,role,mode}=useDemo(),model=data.phase3,orders=data.orders;
  const canReconcile=canAct(role,"payment"),canRefund=canAct(role,"refund");
  const [tab,setTab]=useState("transactions"),[query,setQuery]=useState(""),[status,setStatus]=useState("all"),[method,setMethod]=useState("all"),[selectedId,setSelectedId]=useState<string|null>(null),[detailTab,setDetailTab]=useState("overview"),[page,setPage]=useState(1),[modal,setModal]=useState<"refund"|"review"|"reconcile"|"issue"|null>(null);
  const [refundAmount,setRefundAmount]=useState(""),[reason,setReason]=useState(""),[reviewStatus,setReviewStatus]=useState<"APPROVED"|"REJECTED">("APPROVED"),[refundId,setRefundId]=useState(""),[issueId,setIssueId]=useState("");
@@ -33,6 +34,7 @@ export function PaymentsScreen({navigate,globalSearch,toast}:{navigate:(screen:s
  };
  const gotoOrder=(id:string)=>{sessionStorage.setItem("deetoo.demo.focusOrder",id);navigate("orders");};
  const exportCsv=()=>{const lines=[["Order","Method","Paid KES","Status","Reference"],...filtered.map(o=>[o.id,o.paymentMethod,String(orderTotal(o)),paymentStatus(o.id),"SIM-"+o.id])];const csv=lines.map(row=>row.map(v=>'"'+v.replaceAll('"','""')+'"').join(",")).join("\n");const url=URL.createObjectURL(new Blob([csv],{type:"text/csv"}));const a=document.createElement("a");a.href=url;a.download="deetoo-demo-payments.csv";a.click();URL.revokeObjectURL(url);toast("Demo transactions exported.");};
+ if(mode==="live")return <PaymentsLive navigate={navigate}/>;
  return <div className="dn-screen" data-testid="screen-payments">
   <div className="dn-title-row"><div><h1>Payments & Refunds</h1><p>Trace payment events, review customer refunds and reconcile simulated provider transactions.</p></div><div className="dn-title-buttons"><button className="dn-btn outline" onClick={exportCsv}><Download size={15}/> Export Transactions</button><button className="dn-btn primary" onClick={()=>{setTab("refunds");setQuery("");setStatus("PENDING");}}><ArrowDownLeft size={15}/> Review Refunds</button></div></div>
   <div className="dn-metrics five"><IconStat label="Paid Order Collections" value={amount(gross)} icon={<Wallet/>} foot="Current demo paid records"/><IconStat label="Approved Refunds" value={amount(approvedRefunds)} tone="red" icon={<ArrowDownLeft/>}/><IconStat label="Pending Refunds" value={model.refunds.filter(r=>r.status==="PENDING").length} tone="amber" icon={<Clock3/>}/><IconStat label="Open Exceptions" value={model.issues.filter(i=>i.status==="OPEN").length} tone="red" icon={<AlertTriangle/>}/><IconStat label="Reconciled Collections" value={model.reconciledOrders.length} tone="blue" icon={<FileCheck2/>}/></div>
