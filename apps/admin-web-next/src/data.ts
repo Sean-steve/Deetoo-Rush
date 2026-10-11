@@ -70,7 +70,7 @@ export function seedDemo(): DemoState {
     const status: OrderStatus = i < 6 ? "DELAYED" : i < 10 ? "PREPARING" : i < 12 ? "RIDER_ASSIGNED" : i < 14 ? "IN_TRANSIT" : i < 18 ? "CANCELLED" : "DELIVERED";
     const pickup = areas[(i * 3) % areas.length];
     const destination = areas[(i * 3 + 2) % areas.length];
-    const assigned = ["RIDER_ASSIGNED", "PICKED_UP", "IN_TRANSIT", "DELAYED"].includes(status) ? riders[98 + i].id : null;
+    const assigned = status==="DELIVERED" ? riders[i % 98].id : ["RIDER_ASSIGNED", "PICKED_UP", "IN_TRANSIT", "DELAYED"].includes(status) ? riders[98 + i].id : null;
     const items = [{ name: dishes[i % dishes.length], qty: 1, price: 850 + i % 4 * 150 }, { name: dishes[(i + 1) % dishes.length], qty: 1, price: 350 + i % 3 * 100 }];
     const subtotal = items.reduce((sum,item)=>sum+item.qty*item.price,0);
     const history = [event("Order placed", -11 - i * 6, "Customer placed order"),event("Merchant accepted", -9 - i * 6, "Merchant confirmed the order"),event("Preparing", -6 - i * 6, "Kitchen started preparing")];
