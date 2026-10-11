@@ -13,7 +13,7 @@ export type PaymentIssue={id:string;reference:string;orderId:string|null;provide
 export type PayoutKind="MERCHANT"|"RIDER";
 export type PayoutItem={orderId:string;payeeId:string;payeeName:string;amount:number};
 export type PayoutStatus="DRAFT"|"APPROVED"|"PAID"|"REJECTED";
-export type PayoutBatch={id:string;kind:PayoutKind;status:PayoutStatus;period:string;createdAt:string;approvedAt?:string;paidAt?:string;reference?:string;reason?:string;items:PayoutItem[]};
+export type PayoutBatch={id:string;kind:PayoutKind;status:PayoutStatus;period:string;createdAt:string;approvedAt?:string;paidAt?:string;reference?:string;reason?:string;items:PayoutItem[];totalAmount?:number;payeeCount?:number;itemCount?:number};
 export type FinanceControl={commissionRate:number;riderDeliveryShare:number;reservePercent:number;currency:"KES";};
 export type FinanceLog={id:string;at:string;action:string;detail:string;actor:string};
 export type PhaseThreeState={coverage:CountyCoverage[];zones:ServiceZone[];refunds:RefundRequest[];issues:PaymentIssue[];reconciledOrders:string[];payouts:PayoutBatch[];control:FinanceControl;logs:FinanceLog[]};
@@ -52,7 +52,7 @@ export function seedPhaseThree():PhaseThreeState {
  ],reconciledOrders:[],payouts:[],control:{commissionRate:15,riderDeliveryShare:80,reservePercent:0,currency:"KES"},logs:[]};
 }
 export const amount=(n:number)=>"KES "+Math.round(n).toLocaleString("en-KE");
-export const payoutTotal=(batch:PayoutBatch)=>batch.items.reduce((sum,item)=>sum+item.amount,0);
+export const payoutTotal=(batch:PayoutBatch)=>batch.totalAmount??batch.items.reduce((sum,item)=>sum+item.amount,0);
 export function refundsForOrder(state:PhaseThreeState,orderId:string){return state.refunds.filter(r=>r.orderId===orderId);}
 export function refundedTotal(state:PhaseThreeState,orderId:string){return refundsForOrder(state,orderId).filter(r=>r.status==="APPROVED").reduce((a,r)=>a+r.amount,0);}
 export function reservedRefundTotal(state:PhaseThreeState,orderId:string){return refundsForOrder(state,orderId).filter(r=>r.status!=="REJECTED").reduce((a,r)=>a+r.amount,0);}
