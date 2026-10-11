@@ -1022,3 +1022,89 @@ test('Merchant role controls are restrictive, durable, and never grant forbidden
     AND role_code='merchant_manager' AND capability='MENU_WRITE'`,[merchantId]);
   await requireMerchantCapability(manager,merchantId,'MENU_WRITE');
 });
+
+
+test('Rider Phase 5 durable HTTP: KYC gate, per-user preferences, incident ACL, withdrawal holds',async()=>{
+  const { createApp }=await import('../../apps/api/src/app');
+  const { createServer }=await import('node:http');
+  const mkPhone=()=>'+2547'+String(Math.floor(Math.random()*100_000_000)).padStart(8,'0');
+  const register=()=>authService.registerRider({
+    name:'Phase5 Test Rider',email:'rider-phase5-'+randomUUID()+'@example.test',
+    phone_e164:mkPhone(),password:'Rider-Phase5-Valid-ONLY-891!',
+    address:'Westlands, Nairobi',emergency_contact_name:'Rider Test Contact',
+    emergency_contact_phone:'+254712345678',
+  });
+  const a=await register(), b=await register();
+  const riderToken=a.accessToken!, outsiderToken=b.accessToken!;
+  assert.ok(riderToken&&outsiderToken,'Rider signups must issue authenticated sessions');
+  const server=createServer(createApp());
+  await new Promise<void>(resolve=>server.listen(0,'127.0.0.1',resolve));
+  const base='http://127.0.0.1:'+(server.address() as {port:number}).port+'/api/v1';
+  const req=async(token:string,path:string,method='GET',body?:unknown)=>{
+    const response=await fetch(base+path,{
+      method,headers:{authorization:'Bearer '+token,'content-type':'application/json'},
+      ...(method==='GET'?{}:{body:JSON.stringify(body||{})}),
+    });
+    return {status:response.status,json:await response.json() as any};
+  };
+  try {
+    const state=await req(riderToken,'/rider/status');
+    assert.equal(state.status,200,JSON.stringify(state.json));
+    assert.equal(state.json.data.profile.onboardingStatus,'DRAFT','Self-signup must not auto-approve');
+    const v=await req(riderToken,'/rider/verification/checklist');
+    assert.equal(v.status,200,JSON.stringify(v.json));
+    assert.equal(v.json.data.ready,false,'Unreviewed Rider must never be dispatch eligible');
+    const online=await req(riderToken,'/rider/availability/online','POST',{latitude:-1.266,longitude:36.81,accuracy_meters:10});
+    assert.notEqual(online.status,200,'Unverified Rider must stay offline');
+    const equipment=await req(riderToken,'/rider/verification/equipment','POST',{
+      delivery_bag:true,reflective_vest:true,helmet:true,
+    });
+    assert.equal(equipment.status,202,JSON.stringify(equipment.json));
+    assert.equal(equipment.json.data.status,'PENDING_REVIEW','Rider equipment cannot self-approve');
+    const after=await req(riderToken,'/rider/verification/checklist');
+    assert.equal(after.json.data.ready,false,'Submitted equipment is not approved');
+    const preferences={
+      payouts:true,support:true,promotions:false,updates:true,
+      sounds:true,vibration:false,language:'Kiswahili',map_style:'Satellite',
+    };
+    const saved=await req(riderToken,'/rider/preferences','PUT',preferences);
+    assert.equal(saved.status,200,JSON.stringify(saved.json));
+    const reread=await req(riderToken,'/rider/preferences');
+    assert.equal(reread.json.data.language,'Kiswahili');
+    assert.equal(reread.json.data.map_style,'Satellite');
+    assert.equal(reread.json.data.critical.delivery,true);
+    const other=await req(outsiderToken,'/rider/preferences');
+    assert.equal(other.status,200);
+    assert.equal(other.json.data.language,'English','Preferences must not leak to another Rider');
+    const incident=await req(riderToken,'/rider/incidents','POST',{
+      type:'ACCIDENT',summary:'Minor incident during delivery',
+      details:'I was involved in an incident and have reached a safe location.',
+      location_text:'Westlands, Nairobi',
+    });
+    assert.equal(incident.status,201,JSON.stringify(incident.json));
+    const incidentId=incident.json.data.id;
+    const owned=await req(riderToken,'/rider/incidents/'+incidentId);
+    assert.equal(owned.status,200);
+    assert.equal(owned.json.data.id,incidentId);
+    const otherIncident=await req(outsiderToken,'/rider/incidents/'+incidentId);
+    assert.equal(otherIncident.status,404,'Other Rider cannot read private incidents');
+    const listing=await req(outsiderToken,'/rider/incidents');
+    assert.equal(listing.status,200);
+    assert.ok(!listing.json.data.incidents.some((x:any)=>x.id===incidentId),'Incident must not leak in other Rider list');
+    const withdrawal=await req(riderToken,'/rider/payout-requests','POST',{
+      amount_minor:10000,idempotency_key:'phase5-'+randomUUID(),
+    });
+    assert.equal(withdrawal.status,409,'Unfunded Rider request must be rejected');
+    const verifyIntent=await req(riderToken,'/rider/payout-requests');
+    assert.equal(verifyIntent.status,200);
+    assert.equal(verifyIntent.json.data.requests.length,0,'No payout intent should persist after insufficient funds');
+    const caps=await req(riderToken,'/rider/deliveries/capabilities');
+    assert.equal(caps.status,200);
+    assert.equal(caps.json.data.multi_order.enabled,false,'Uncertified stacking must stay disabled');
+    const history=await req(riderToken,'/rider/deliveries/history');
+    assert.equal(history.status,200);
+    assert.ok(Array.isArray(history.json.data.history));
+  } finally {
+    server.closeAllConnections();await new Promise<void>(resolve=>server.close(()=>resolve()));
+  }
+});
