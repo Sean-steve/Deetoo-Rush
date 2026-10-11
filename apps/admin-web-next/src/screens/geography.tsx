@@ -4,11 +4,11 @@ import {useDemo,canAct} from "../store";
 import {Card,Chip,DetailLine,Empty,IconStat,Modal,SearchBox,SelectBox,Tabs} from "../ui";
 import {KENYA_COUNTIES,amount} from "../phase3Data";
 export function GeographyScreen({navigate,county,toast}:{navigate:(screen:string)=>void;county:string;toast:(message:string)=>void}){
- const {data,act,role}=useDemo(),model=data.phase3,allowed=canAct(role,"geography");
+ const {data,act,role,mode}=useDemo(),model=data.phase3,allowed=canAct(role,"geography");
  const [selected,setSelected]=useState(county==="all"?"Nairobi":county),[query,setQuery]=useState(""),[filter,setFilter]=useState("all"),[tab,setTab]=useState("coverage");
  const [modal,setModal]=useState<"coverage"|"rules"|"zone"|"zone-status"|null>(null),[reason,setReason]=useState(""),[targetEnabled,setTargetEnabled]=useState(false),[targetZone,setTargetZone]=useState(""),[fee,setFee]=useState("200"),[eta,setEta]=useState("45"),[newName,setNewName]=useState(""),[notes,setNotes]=useState("");
- const selectedCounty=model.coverage.find(x=>x.county===selected)||model.coverage.find(x=>x.county==="Nairobi")!;
- const zones=model.zones.filter(z=>z.county===selected);
+ const selectedCounty=model.coverage.find(x=>x.county===selected)||model.coverage.find(x=>x.county==="Nairobi")||model.coverage[0]||{county:selected,code:undefined,enabled:false,fee:0,eta:0,updatedAt:"1970-01-01T00:00:00.000Z"};
+ const zones=model.zones.filter(z=>z.county===selectedCounty.county);
  const relatedOrders=data.orders.filter(o=>o.pickup.county===selected),onlineRiders=data.riders.filter(r=>r.area.county===selected&&["AVAILABLE","ON_DELIVERY"].includes(r.status)),merchants=data.phase2.merchants.filter(m=>m.branches.some(b=>b.county===selected&&b.status==="ACTIVE"));
  const active=model.coverage.filter(c=>c.enabled).length;
  const visible=model.coverage.filter(c=>(filter==="all"||filter==="enabled"&&c.enabled||filter==="paused"&&!c.enabled)&&c.county.toLowerCase().includes(query.toLowerCase()));
@@ -31,11 +31,11 @@ export function GeographyScreen({navigate,county,toast}:{navigate:(screen:string
  return <div className="dn-screen" data-testid="screen-geography">
   <div className="dn-title-row"><div><h1>Geography & Service Coverage</h1><p>Control where DeeToo operates across Kenya, with county, zone and delivery rules.</p></div><div className="dn-title-buttons"><button className="dn-btn outline" onClick={()=>setTab("activity")}><ClipboardList size={15}/> Change History</button><button className="dn-btn primary" disabled={!allowed} onClick={createZone}><Plus size={15}/> Add Service Zone</button></div></div>
   <div className="dn-metrics five">
-   <IconStat label="Kenya Counties" value={KENYA_COUNTIES.length} icon={<Map/>} foot="National register"/>
+   <IconStat label="Kenya Counties" value={mode==="live"?model.coverage.length:KENYA_COUNTIES.length} icon={<Map/>} foot="National register"/>
    <IconStat label="Service Enabled" value={active} icon={<CheckCircle2/>} foot="County-wide switches"/>
    <IconStat label="Coverage Paused" value={model.coverage.length-active} tone="amber" icon={<AlertTriangle/>}/>
    <IconStat label="Configured Zones" value={model.zones.length} tone="blue" icon={<MapPin/>}/>
-   <IconStat label="Orders in Selected County" value={relatedOrders.length} tone="blue" icon={<Truck/>} foot="Historical + active demo"/>
+   <IconStat label="Orders in Selected County" value={relatedOrders.length} tone="blue" icon={<Truck/>} foot={mode==="live"?"Loaded page of live orders":"Historical + active demo"}/>
   </div>
   <Tabs value={tab} onChange={setTab} ariaLabel="Geography workspace" tabs={[{key:"coverage",label:"County Coverage"},{key:"zones",label:"Service Zones ("+model.zones.length+")"},{key:"rules",label:"Delivery Rules"},{key:"activity",label:"Change History"}]}/>
   <div className="dn-geo-grid">
