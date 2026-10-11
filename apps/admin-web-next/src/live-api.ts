@@ -173,7 +173,7 @@ export async function performLiveAction(a:LiveAction,data:DemoState,identity:Jso
  case "PHASE2_SUPPORT_CREATE":{const kind=status(a.participantType),partyId=requireId(a.participantId),orderId=a.orderId?requireId(a.orderId):undefined;
  const key=kind==="CUSTOMER"?"customer_id":kind==="MERCHANT"?"merchant_id":kind==="RIDER"?"rider_id":null;
  if(!key)unsupported(type);
- await apiMutation("/operations/support/cases","POST",{[key]:partyId,order_id:orderId,category:"GENERAL_INQUIRY",priority:a.priority,subject:a.subject,description:a.description||a.subject});
+ await apiMutation("/admin/support/cases","POST",{[key]:partyId,order_id:orderId,category:"OTHER",priority:status(a.priority)==="CRITICAL"?"URGENT":a.priority,subject:a.subject,description:a.description||a.subject});
  return "Support case created with a verified participant. Resolution requires the actual party's confirmation.";}
  case "PHASE2_SUPPORT_ASSIGN":{const staff=requireId(a.assignee==="__ME__"?identity.id:a.assignee);await apiMutation("/operations/support/cases/"+id()+"/assign","POST",{agentId:staff,agentName:a.assignee==="__ME__"?str(identity.name||identity.email):str(a.assigneeName||"Support agent")});return "Support case assigned to authenticated staff.";} 
  case "PHASE2_SUPPORT_SATISFACTION":throw new LiveApiError("Only an authenticated case participant may accept or dispute resolution. The Admin cannot impersonate a customer, merchant or rider.",403,"PARTICIPANT_CONFIRMATION_REQUIRED");
