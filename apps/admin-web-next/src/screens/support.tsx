@@ -3,6 +3,7 @@ import {AlertTriangle, ArrowRight, CheckCircle2, ChevronDown, Clock3, Headphones
 import {displayTime,formatMoney,orderTotal} from "../data";
 import type {Severity,SupportCase,SupportStatus} from "../phase2Data";
 import {useDemo,canAct} from "../store";
+import {apiGet} from "../live-api";
 import {Card,Chip,DetailLine,Empty,IconStat,Initials,Modal,SearchBox,SelectBox,Tabs} from "../ui";
 const statusChoices:SupportStatus[]=["OPEN","IN_PROGRESS","WAITING_ON_USER","RESOLVED","CLOSED"];
 const assignees=["Unassigned","John A.","Mary W.","Grace N.","Collins M.","Support Lead"];
@@ -15,7 +16,32 @@ export function SupportScreen({navigate,globalSearch,toast}:{navigate:(x:string)
  useEffect(()=>{const id=sessionStorage.getItem("deetoo.demo.focusSupport");if(id){setSelectedId(id);setTab("all");setQuery(id);sessionStorage.removeItem("deetoo.demo.focusSupport");}},[]);
  const counts={open:cases.filter(x=>x.status==="OPEN").length,progress:cases.filter(x=>x.status==="IN_PROGRESS").length,waiting:cases.filter(x=>x.status==="WAITING_ON_USER").length,resolved:cases.filter(x=>x.status==="RESOLVED").length};
  const filtered=cases.filter(x=>(tab==="all"||x.status===tab)&&(type==="all"||x.participantType===type)&&(priority==="all"||x.priority===priority)&&(x.id+" "+x.subject+" "+x.participantName).toLowerCase().includes(query.toLowerCase()));
- const selected=cases.find(x=>x.id===selectedId)||filtered[0];
+ const selectedRecord=cases.find(x=>x.id===selectedId)||filtered[0];
+ const [thread,setThread]=useState<{caseId:string;messages:SupportCase["messages"];satisfaction:SupportCase["satisfaction"]}|null>(null);
+ const [threadError,setThreadError]=useState("");
+ useEffect(()=>{
+   if(mode!=="live"||!selectedRecord?.id)return;
+   let cancelled=false;setThreadError("");
+   void apiGet("/operations/support/cases/"+encodeURIComponent(selectedRecord.id)).then(output=>{
+      if(cancelled)return;
+      const data=(output as {data?:{notes?:Array<Record<string,unknown>>;confirmations?:Array<Record<string,unknown>>}}).data||{};
+      const notes=Array.isArray(data.notes)?data.notes:[];
+      const messages:SupportCase["messages"]=notes.map(m=>{
+         const actorValue=String(m.author_role||"SYSTEM").toUpperCase();
+         const actor=(["CUSTOMER","MERCHANT","RIDER"].includes(actorValue)?actorValue:actorValue==="SYSTEM"?"SYSTEM":"ADMIN") as SupportCase["messages"][number]["actor"];
+         return {id:String(m.id),by:String(m.author_name||m.actor_name||"DeeToo"),actor,
+           text:String(m.body||""),at:String(m.created_at||new Date(0).toISOString()),
+           internal:String(m.visibility)==="INTERNAL"};
+      });
+      const confirmations=Array.isArray(data.confirmations)?data.confirmations:[];
+      const rejected=confirmations.some(x=>["DISPUTED","REJECTED","NOT_SATISFIED"].includes(String(x.status||x.response)));
+      const accepted=confirmations.length>0&&confirmations.every(x=>["ACCEPTED","CONFIRMED","SATISFIED"].includes(String(x.status||x.response)));
+      setThread({caseId:selectedRecord.id,messages,satisfaction:rejected?"NOT_SATISFIED":accepted?"SATISFIED":confirmations.length?"PENDING":"NOT_REQUESTED"});
+   }).catch(e=>{if(!cancelled)setThreadError(e instanceof Error?e.message:"Conversation is unavailable");});
+   return ()=>{cancelled=true;};
+ },[mode,selectedRecord?.id,data.phase2.support]);
+ const selected=mode==="live"&&selectedRecord&&thread?.caseId===selectedRecord.id?
+   {...selectedRecord,messages:thread.messages,satisfaction:thread.satisfaction}:selectedRecord;
  const order=selected?.orderId?data.orders.find(x=>x.id===selected.orderId):undefined;
  const party=selected?.participantType==="Merchant"?data.phase2.merchants.find(x=>x.name===selected.participantName):selected?.participantType==="Customer"?data.phase2.customers.find(x=>x.name===selected.participantName):data.riders.find(x=>x.name===selected?.participantName);
  const send=()=>{if(!selected||!canReply||composer.trim().length<2)return;act({type:"PHASE2_SUPPORT_REPLY",id:selected.id,message:composer,internal,actor:"ADMIN",by:"Demo Support Agent"});setComposer("");toast(internal?"Private internal note saved.":"Response added to the conversation.");setTimeout(()=>bottomRef.current?.scrollIntoView({behavior:"smooth",block:"nearest"}),0);};
@@ -24,7 +50,7 @@ export function SupportScreen({navigate,globalSearch,toast}:{navigate:(x:string)
  const saveStatus=()=>{if(!selected||!canResolve)return;if(["RESOLVED","CLOSED"].includes(targetStatus)&&resolution.trim().length<5)return;act({type:"PHASE2_SUPPORT_STATUS",id:selected.id,status:targetStatus,resolution});setModal(null);setResolution("");toast("Case status updated by a demo administrator.");};
  const linkedOrder=()=>{if(order){sessionStorage.setItem("deetoo.demo.focusOrder",order.id);navigate("orders");}else toast("No order is linked to this conversation.");};
  const participant=()=>{if(!selected)return;navigate(selected.participantType==="Customer"?"customers":selected.participantType==="Merchant"?"merchants":"riders");};
- return <div className="dn-screen" data-testid="screen-support">
+ return <div className="dn-screen" data-testid="screen-support">{mode==="live"&&threadError&&<p role="alert" className="danger-text">Support conversation could not load: {threadError}</p>}
   <div className="dn-title-row"><div><h1>Support & Conversations</h1><p>Manage customer, merchant and rider support cases from start to resolution.</p></div><div className="dn-inline-kpis"><IconStat label="Open Cases" value={counts.open} tone="red" icon={<AlertTriangle/>}/><IconStat label="In Progress" value={counts.progress} tone="blue" icon={<Clock3/>}/><IconStat label="Waiting on User" value={counts.waiting} tone="amber" icon={<UserRound/>}/><IconStat label="Resolved" value={counts.resolved} icon={<CheckCircle2/>}/></div><button className="dn-btn primary" onClick={()=>setModal("create")} disabled={!canReply}><Plus size={15}/> New Case</button></div>
   <div className="dn-support-grid">
    <Card className="dn-support-inbox">
@@ -34,7 +60,7 @@ export function SupportScreen({navigate,globalSearch,toast}:{navigate:(x:string)
     <div className="dn-list-footer">Showing {filtered.length} of {cases.length} conversations</div>
    </Card>
    <Card className="dn-conversation-card">
-    {selected?<><div className="dn-conversation-heading"><div><div><h2>#{selected.id}</h2><Chip value={selected.priority}/><Chip value={selected.status}/></div><h3>{selected.subject}</h3><p>{selected.participantType} · {selected.participantName} · {selected.orderId?"Order #"+selected.orderId:"No linked order"}</p></div><button className="dn-btn outline" onClick={()=>{act({type:"PHASE2_SUPPORT_ASSIGN",id:selected.id,assignee:mode==="live"?"__ME__":"Demo Support Agent"});toast("Support case assigned to you.");}} disabled={!canReply}>Assign to me</button></div>
+    {selected?<><div className="dn-conversation-heading"><div><div><h2>#{selected.id}</h2><Chip value={selected.priority}/><Chip value={selected.status}/></div><h3>{selected.subject}</h3><p>{selected.participantType} · {selected.participantName} · {selected.orderId?"Order #"+selected.orderId:"No linked order"}</p></div><button className="dn-btn outline" onClick={()=>{act({type:"PHASE2_SUPPORT_ASSIGN",id:selected.id,assignee:mode==="live"?"__ME__":"Demo Support Agent"});if(mode==="demo")toast("Support case assigned to you.");}} disabled={!canReply}>Assign to me</button></div>
      <Tabs ariaLabel="Conversation details" value={panel} onChange={setPanel} tabs={[{key:"conversation",label:"Conversation"},{key:"order",label:"Order Details"},{key:"notes",label:"Internal Notes ("+selected.messages.filter(m=>m.internal).length+")"},{key:"related",label:"Related Cases"}]}/>
      {panel==="conversation"&&<><div className="dn-chat-history" aria-label="Case conversation">
       {selected.messages.filter(m=>!m.internal).map(m=><div key={m.id} className={"dn-chat-msg "+(m.actor==="ADMIN"?"own":m.actor==="SYSTEM"?"system":"party")}><Initials name={m.by}/><div><div className="dn-chat-meta"><b>{m.by} {m.actor==="ADMIN"?"(Support Agent)":""}</b><span>{displayTime(m.at)}</span></div><p>{m.text}</p></div></div>)}
