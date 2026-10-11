@@ -47,7 +47,7 @@ export function createRiderBackend(client: DeetooApiClient) {
     profile: () => get<any>('/rider/profile'),
     updateBasicProfile: (data: { first_name?: string; last_name?: string; phone_e164?: string }) => patch<any>('/rider/profile', data),
     vehicles: () => get<any>('/rider/vehicles'),
-    submitVehicle: (data: {type: 'MOTORCYCLE'|'BICYCLE'|'CAR'|'VAN'; registration_number: string; status: 'PENDING_REVIEW'}) => post<any>('/rider/vehicles', data),
+    submitVehicle: (data: {type: 'MOTORBIKE'|'BICYCLE'|'CAR'; registration_number: string; status: 'INACTIVE'}) => post<any>('/rider/vehicles', data),
     submitOnboarding: () => post<any>('/rider/onboarding/submit'),
     verification: () => get<any>('/rider/verification/checklist'),
     submitDocument: (mediaId: string, documentType: string, expiresOn?: string) => post<any>('/rider/verification/documents', { media_id: mediaId, document_type: documentType, ...(expiresOn ? {expires_on: expiresOn} : {}) }),
