@@ -85,7 +85,7 @@ export function RiderConnectedApp() {
   const run=async(action:()=>Promise<unknown>,success?:string,refreshAfter=true)=>{
     if(busy)return false;
     setBusy(true);setError('');setNotice('');
-    try {await action();if(refreshAfter&&user)await refresh();if(success)setNotice(success);return true;}
+    try {await action();if(refreshAfter&&user)await refresh().catch(e=>setError('Update accepted, but refresh failed: '+parseRiderServerError(e)));if(success)setNotice(success);return true;}
     catch(e){setError(parseRiderServerError(e));return false;}
     finally{setBusy(false);}
   };
@@ -228,7 +228,7 @@ export function RiderConnectedApp() {
       {field('name','Full name','As on your National ID')}
       {field('phone','Kenyan phone number','+2547…','phone-pad')}
       {field('email','Email (optional)','name@example.com','email-address')}
-      {field('password','New password','Use a strong password')}
+      <Field label="New password" value={form.password||''} onChangeText={v=>setField('password',v)} secureTextEntry placeholder="Use a strong password" />
       {field('address','Residential address','Street / estate, county')}
       {field('emergencyName','Emergency contact name')}
       {field('emergency','Emergency phone','+2547…','phone-pad')}
@@ -256,9 +256,9 @@ export function RiderConnectedApp() {
     case 4:body=<Page title="Vehicle & Equipment" subtitle="Screen 4 • Transport and mandatory safety equipment">
       <Panel title="Vehicle registration"><View style={{gap:10}}>
         <Text style={S.label}>Vehicle type</Text>
-        <View style={{flexDirection:'row',flexWrap:'wrap',gap:8}}>{['MOTORCYCLE','BICYCLE','CAR','VAN'].map(t=><Button key={t} outline={form.vehicleType!==t} label={t} onPress={()=>setField('vehicleType',t)}/>)}</View>
+        <View style={{flexDirection:'row',flexWrap:'wrap',gap:8}}>{['MOTORBIKE','BICYCLE','CAR'].map(t=><Button key={t} outline={form.vehicleType!==t} label={t} onPress={()=>setField('vehicleType',t)}/>)}</View>
         {field('vehiclePlate','Registration / plate','e.g. KDA 123A')}
-        <Button label="Submit vehicle for verification" onPress={()=>void run(()=>api.submitVehicle({type:(form.vehicleType||'MOTORCYCLE') as any,registration_number:form.vehiclePlate||'',status:'PENDING_REVIEW'}),'Vehicle submitted for review.')}/>
+        <Button label="Submit vehicle for verification" onPress={()=>void run(()=>api.submitVehicle({type:(form.vehicleType||'MOTORBIKE') as 'MOTORBIKE'|'BICYCLE'|'CAR',registration_number:form.vehiclePlate||'',status:'INACTIVE'}),'Vehicle submitted for review.')}/>
       </View></Panel>
       <Panel title="Equipment checklist"><View style={{gap:9}}>
         {['delivery_bag','reflective_vest','helmet'].map(t=><Pressable key={t} accessibilityRole="checkbox" accessibilityState={{checked:form[t]==='yes'}} onPress={()=>setField(t,form[t]==='yes'?'no':'yes')} style={[S.row,{minHeight:48,gap:9}]}><Text style={{fontSize:23}}>{form[t]==='yes'?'☑':'□'}</Text><Text style={S.text}>{t.replace(/_/g,' ')}</Text></Pressable>)}
