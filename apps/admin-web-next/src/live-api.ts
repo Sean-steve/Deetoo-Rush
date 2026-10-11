@@ -114,7 +114,7 @@ export async function loadLive(signal?:AbortSignal):Promise<LiveSnapshot>{
   try{
    const raw=await doFetch(url,{signal}),p=payload(raw),o=obj(p),rows=list(raw,
     key==="incidents"?"incidents":key==="support"?"cases":key==="settlements"?"settlements":key==="payouts"?"payouts":key);
-   rs[key]={status:"ready",total:num(obj(raw).meta&&obj(obj(raw).meta).total??obj(raw).pagination&&obj(obj(raw).pagination).total,rows.length)};
+   rs[key]={status:"ready",total:num(obj(obj(raw).meta).total??obj(obj(raw).pagination).total,rows.length)};
    switch(key){
    case "orders":d.orders=rows.map(canonicalOrder);break;
    case "riders":d.riders=rows.map(canonicalRider);break;
