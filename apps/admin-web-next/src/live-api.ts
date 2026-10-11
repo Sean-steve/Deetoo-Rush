@@ -166,8 +166,22 @@ export async function performLiveAction(a:LiveAction,data:DemoState,identity:Jso
  case "PHASE2_CUSTOMER_NOTE":await apiMutation("/admin/customers/"+id()+"/notes","POST",{note:a.note});return "Customer note saved.";
  case "PHASE2_CUSTOMER_EDIT":await apiMutation("/admin/governance/users/"+id(),"PATCH",{name:a.name,email:a.email,phone_e164:a.phone,reason:a.reason});return "Account correction submitted.";
  case "PHASE2_CUSTOMER_STATUS":{const route=status(a.status)==="ACTIVE"?"reactivate":"deactivate";await apiMutation("/admin/governance/users/"+id()+"/"+route,"POST",{reason});return "Account governance action submitted.";}
- case "PHASE3_COVERAGE":{const target=data.phase3.coverage.find(c=>c.county===a.county);if(!target)unsupported(type);throw new LiveApiError("County changes require a reviewed county-code/impact preflight. Use the coverage command after reviewing active deliveries.",409,"PREFLIGHT_REQUIRED");}
- case "PHASE3_REFUND_REQUEST":{throw new LiveApiError("Select the real payment identifier and refund reason code; an order ID alone cannot authorize a refund.",409,"PAYMENT_ID_REQUIRED");}
+ case "PHASE3_COVERAGE":{const target=data.phase3.coverage.find(c=>c.county===a.county);if(!target?.code)unsupported(type);
+    if(reason.length<5)throw new LiveApiError("Explain the coverage change before submitting.",400,"REASON_REQUIRED");
+    const checked=obj(payload(await apiGet("/admin/geography/counties/"+encodeURIComponent(target.code)+"/impact")));
+    if(a.enabled===true&&num(checked.active_polygon_zones)<1)throw new LiveApiError("County has no active PostGIS serviceability polygons. Activate a verified service zone first.",409,"COUNTY_NOT_SERVICEABLE");
+    await apiMutation("/admin/geography/counties/"+encodeURIComponent(target.code),"PATCH",{enabled:!!a.enabled});
+    return (a.enabled?"County enabled":"County paused")+"; existing orders and deliveries are not cancelled automatically. Impact snapshot: "+num(checked.active_orders)+" active orders and "+num(checked.active_deliveries)+" deliveries.";}
+ case "PHASE3_COVERAGE_CONFIG":{const target=data.phase3.coverage.find(c=>c.county===a.county);if(!target?.code)unsupported(type);
+    const commercial=obj(payload(await apiGet("/admin/geography/counties/"+encodeURIComponent(target.code)+"/commercial")));
+    const zones=arr(commercial.zones);if(!zones.length)throw new LiveApiError("No active polygon-backed pricing zones. Configure service zones first.",409,"PRICING_ZONE_REQUIRED");
+    const base=zones[0];const required=["included_distance_meters","per_km_fee_minor","minimum_fee_minor","maximum_fee_minor","max_delivery_distance_meters"];
+    if(required.some(k=>base[k]===undefined||base[k]===null)||zones.some(z=>required.some(k=>num(z[k])!==num(base[k]))))throw new LiveApiError("Zonal pricing rules differ or are incomplete. Review each canonical rule before a county-wide change.",409,"ZONE_RULES_MISMATCH");
+    const fee=Math.round(num(a.fee)*100),min=Math.min(fee,num(base.minimum_fee_minor)),max=Math.max(fee,num(base.maximum_fee_minor));
+    await apiMutation("/admin/geography/counties/"+encodeURIComponent(target.code)+"/commercial","PATCH",{base_fee_minor:fee,included_distance_meters:num(base.included_distance_meters),per_km_fee_minor:num(base.per_km_fee_minor),minimum_fee_minor:min,maximum_fee_minor:max,max_delivery_distance_meters:num(base.max_delivery_distance_meters),eta_buffer_min:num(a.eta),reason});
+    return "Future checkout quotes will use the updated zone pricing and ETA rules; existing signed quotes are unchanged.";
+   }
+   case "PHASE3_REFUND_REQUEST":{throw new LiveApiError("Select the real payment identifier and refund reason code; an order ID alone cannot authorize a refund.",409,"PAYMENT_ID_REQUIRED");}
  case "PHASE3_REFUND_REVIEW":{if(a.status==="REJECTED"){await apiMutation("/finance/ops/refunds/"+id()+"/reject","POST",{reason});return "Refund rejection saved.";}throw new LiveApiError("Refund approval requires verified payment/refund identifiers and separate authorized review.",409,"REFUND_REVIEW_REQUIRES_DETAIL");}
  case "PHASE3_RECONCILE_ISSUE":throw new LiveApiError("Provider evidence is required. A review note cannot mark a payment reconciled.",409,"PROVIDER_EVIDENCE_REQUIRED");
  case "PHASE3_PAYOUT_REVIEW":{if(a.status==="REJECTED"){const batch=data.phase3.payouts.find(p=>p.id===a.id);await apiMutation("/finance/ops/"+(batch?.kind==="RIDER"?"payouts":"settlements")+"/"+id()+"/reject","POST",{reason});return "Draft payout rejected.";}throw new LiveApiError("Payout approval must use a server-provided calculation with maker/checker separation.",409,"PAYOUT_APPROVAL_REQUIRES_DETAIL");}
