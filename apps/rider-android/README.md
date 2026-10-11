@@ -168,3 +168,38 @@ pnpm build:rider-android
 ```
 
 See `src/preview/README.md` for the full Phase 3 Android acceptance matrix.
+
+
+## Phase 4 — Final Rider mock frontend screens (19–24)
+
+The development-only preview now contains all **24 primary Rider screens**.
+Screens 19–24 are under:
+
+- **Profile → Performance & Ratings**: KPIs, selectable charts, example
+  achievements and customer feedback.
+- **Inbox → Alerts**: categorized/read/unread notifications, settings, and
+  deep links to related areas.
+- **Inbox → Support Cases**: case search, creation, known-order links and FAQ.
+- **Inbox → Support conversation**: complete thread, staged filenames,
+  rider satisfaction and follow-up. **Only admins may formally resolve cases.**
+- **Profile → Safety & Incidents**: emergency guidance, incident report
+  wizard, sample evidence, tracking and investigation status.
+- **Profile → Profile & Settings**: personal/vehicle/document settings,
+  mock M-PESA destination, privacy/preferences and guarded account requests.
+
+Approved nav: **Home · Deliveries · Earnings · Inbox · Profile**. Screens
+19–24 use mock state and cannot access the real DeeToo API. The production
+RiderNativeApp is still mounted in normal mode.
+
+To preview:
+
+```bash
+EXPO_PUBLIC_RIDER_UI_MODE=mock pnpm --filter @deetoo/rider-android start
+pnpm exec tsx --test tests/unit/rider_phase4_preview.test.ts
+pnpm typecheck:rider-android
+```
+
+See `src/preview/README.md` for the detailed interaction and
+Android visual acceptance checklist. Production support, safety, messaging,
+identity updates, real uploads, emergency calling, financial changes, account
+closure and notifications remain separate backend integration work.
