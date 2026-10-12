@@ -395,7 +395,7 @@ export function RiderConnectedApp() {
           <Row title="Live state" value={deliveryStatus||'—'}/>
           <RiderLiveMap route rider={geoPoint({latitude:status?.profile?.lastKnownLatitude,longitude:status?.profile?.lastKnownLongitude})}
             zones={entries(status?.assignedZones)} destination={geoPoint(pickup?detail?.pickup?.location:detail?.dropoff?.location)}
-            destinationLabel={pickup?'Merchant':'Customer'} height={290}/>
+            destinationLabel={pickup?'Merchant':'Customer'} loadRoute={()=>api.route(deliveryId,pickup?'pickup':'dropoff')} height={290}/>
           <Text style={S.meta}>Route and instructions stay inside DeeToo. Road guidance needs internet; the Rider must follow road signs and current conditions.</Text>
         </Panel>
         <Button label={pickup?'Arrived at Merchant':'Arrived at Customer'} disabled={!safeRiderDeliveryAction(deliveryStatus,pickup?'arrivePickup':'arriveDropoff')||busy} onPress={()=>performDelivery(pickup?'arrivePickup':'arriveDropoff')}/>
