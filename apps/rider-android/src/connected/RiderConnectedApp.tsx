@@ -27,7 +27,14 @@ const id = (v:unknown) => typeof v==='string' ? v : '';
 const num = (v:unknown) => Number(v)||0;
 const entries = (value:any): any[] => Array.isArray(value)?value:Array.isArray(value?.items)?value.items:[];
 function Row({title,value}: {title:string;value:React.ReactNode}) {
-  return <View style={[S.split,{minHeight:42,gap:12,borderBottomWidth:1,borderBottomColor:C.border,paddingVertical:8}]}><Text style={[S.sub,{flex:1}]}>{title}</Text><Text style={[S.text,{fontWeight:'800',flex:1,textAlign:'right'}]}>{value}</Text></View>;
+  // Values may be badges/Views, not only strings. Never nest a View inside
+  // React Native Text (it can crash or render incorrectly on Android).
+  return <View style={[S.split,{minHeight:42,gap:12,borderBottomWidth:1,borderBottomColor:C.border,paddingVertical:8}]}>
+    <Text style={[S.sub,{flex:1}]}>{title}</Text>
+    <View style={{flex:1,alignItems:'flex-end',justifyContent:'center'}}>
+      {typeof value==='string'||typeof value==='number'?<Text style={[S.text,{fontWeight:'800',textAlign:'right'}]}>{value}</Text>:value}
+    </View>
+  </View>;
 }
 function ActionLink({icon,title,hint,onPress}:{icon:string;title:string;hint:string;onPress:()=>void}){
   return <Pressable accessibilityRole="button" accessibilityLabel={title} onPress={onPress} style={({pressed})=>[
