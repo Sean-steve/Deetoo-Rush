@@ -1293,6 +1293,19 @@ export class DispatchService {
       throw new AppError(403,'DELIVERY_ACCESS_ENDED','Private delivery details are available only during fulfilment');
     }
     const order = await orderRepository.findById(delivery.order_id);
+    // Prefer a structured customer-provided locality. Address text is an
+    // authorized snapshot for this assigned delivery, never a guessed geocode.
+    const customerAddress = order?.delivery_address_snapshot as
+      | (Record<string, unknown> & { formatted_address?: string; label?: string })
+      | undefined;
+    const locality = [customerAddress?.area,customerAddress?.neighborhood,
+      customerAddress?.suburb,customerAddress?.locality,customerAddress?.ward]
+      .find(v=>typeof v==='string'&&v.trim().length>0);
+    const formatted = String(customerAddress?.formatted_address||delivery.dropoff_address_text||'');
+    const fragments = formatted.split(',').map(v=>v.trim()).filter(Boolean);
+    const areaName = typeof locality==='string'?locality.trim()
+      : fragments.length>=3?fragments[fragments.length-2]
+      : fragments.length===2?fragments[0]:'';
 
     const pickupLat = delivery.pickup_location.latitude ?? delivery.pickup_location.lat;
     const pickupLng = delivery.pickup_location.longitude ?? delivery.pickup_location.lng;
@@ -1320,6 +1333,7 @@ export class DispatchService {
       dropoff: {
         recipientName: delivery.customer_name || order?.delivery_address_snapshot?.recipient_name || 'Customer',
         address: delivery.dropoff_address_text,
+        areaName,
         location: delivery.dropoff_location,
         instructions: delivery.delivery_instructions,
       },
