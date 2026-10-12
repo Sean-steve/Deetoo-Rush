@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import type { MerchantLiveBridge } from "./MerchantLiveApp";
 import { merchantErrorMessage } from "./merchant-branch-errors";
+import { MerchantBranchImage } from "./MerchantBranchImage";
 import { CalendarClock, Check, ChefHat, Clock3, ImagePlus, LocateFixed, MapPin, Settings2, Store, Truck, Utensils, Plus, Save, Navigation } from "lucide-react";
 
 type BranchData = { name: string; display: string; description: string; street: string; city: string; phone: string; email: string; latitude: string; longitude: string; prep: string; minOrder: string; image: string };
@@ -10,7 +11,7 @@ const initialHours:Hours[] = ["Monday","Tuesday","Wednesday","Thursday","Friday"
 function readJson<T>(key:string,fallback:T):T{try{const value=localStorage.getItem(key);return value?JSON.parse(value) as T:fallback;}catch{return fallback;}}
 export function DemoBadge({children,kind="green"}:{children:React.ReactNode;kind?:string}){return <span className={"mp-pill mp-"+kind}>{children}</span>;}
 export function DemoCard({children,className=""}:{children:React.ReactNode;className?:string}){return <section className={"mp-white-card "+className}>{children}</section>;}
-export function BranchBanner({store,onAction,action="View on map"}:{store:string;onAction:()=>void;action?:string}){return <div className="mp-branch-banner"><div className="mp-restaurant-photo" aria-hidden="true">🏮</div><span><b>Juja Branch</b><small>Kalimoni, Juja</small></span><DemoBadge>{store}</DemoBadge><button className="mp-outline" onClick={onAction}><MapPin size={15}/>{action}</button></div>;}
+export function BranchBanner({store,onAction,action="View on map",name="Juja Branch",city="Kalimoni, Juja",coverUrl}:{store:string;onAction:()=>void;action?:string;name?:string;city?:string;coverUrl?:string|null}){return <div className="mp-branch-banner"><MerchantBranchImage src={coverUrl} name={name}/><span><b>{name}</b><small>{city}</small></span><DemoBadge>{store}</DemoBadge><button className="mp-outline" onClick={onAction}><MapPin size={15}/>{action}</button></div>;}
 export function DemoHeading({eyebrow,title,description,action}:{eyebrow:string;title:string;description:string;action?:React.ReactNode}){return <div className="mp-head"><div><span className="mp-eyebrow">{eyebrow}</span><h1>{title}</h1><p>{description}</p></div>{action}</div>;}
 export function PrototypeBranch({store,setStore,notify,live}:{store:"Open"|"Paused"|"Closed";setStore:(v:"Open"|"Paused"|"Closed")=>void;notify:(s:string)=>void;live?:MerchantLiveBridge}){
  const [branch,setBranch]=useState<BranchData>(()=>live?{...defaultBranch,name:"",display:"",description:"",street:"",city:"",phone:"",email:"",latitude:"",longitude:"",minOrder:"0",image:""}:readJson("mp-demo-branch",defaultBranch));
@@ -26,13 +27,11 @@ export function PrototypeBranch({store,setStore,notify,live}:{store:"Open"|"Paus
  Promise.all([live.api.request<any[]>(`/merchant/branches/${live.branchId}/opening-hours`),live.api.request<any>(`/merchant/experience/branches/${live.branchId}/policies`)]).then(([response,policy])=>{if(!active)return;const days=["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
  setHours(days.slice(1).concat(days[0]).map(day=>{const h=response.data.find((x:any)=>Number(x.day_of_week)===days.indexOf(day));return {day,active:h?!h.is_closed:false,open:String(h?.open_time||"08:00").slice(0,5),close:String(h?.close_time||"23:00").slice(0,5)}}));
  setDelivery(Boolean(policy.data.delivery_enabled));setPickup(Boolean(policy.data.pickup_enabled));setDineIn(Boolean(policy.data.dine_in_enabled));setTableService(Boolean(policy.data.table_qr_enabled));setMaxConcurrent(String(policy.data.max_concurrent_orders||30));setMinBasket(String(Number(b.min_order_minor||0)/100));setCoverMedia(policy.data.cover_media_id||null);
- if(policy.data.cover_media_id){
-  void live.api.request<{url:string}>(`/media/${policy.data.cover_media_id}/read-url`).then(r=>{
-    if(active)setBranch(prev=>({...prev,image:r.data.url}));
-  }).catch(()=>{/* Image remains visible as a placeholder if private media access is unavailable. */});
- }
+ // A shared branch cover URL is supplied by MerchantLiveApp, including when
+ // a different authorized manager uploaded the image.
  }).catch(e=>{if(active)setLoadError(merchantErrorMessage(e));});return()=>{active=false};},[live?.branchId,live?.branch?.updated_at]);
 
+ useEffect(()=>{if(live?.branchCoverUrl)setBranch(prev=>({...prev,image:live.branchCoverUrl!}));},[live?.branchCoverUrl,live?.branchId]);
  const update=(key:keyof BranchData,value:string)=>setBranch(prev=>({...prev,[key]:value}));
  const save=async()=>{if(!branch.name.trim()||!branch.display.trim()||!branch.street.trim()||!branch.city.trim()||!branch.latitude.trim()||!branch.longitude.trim()||!Number.isFinite(Number(branch.latitude))||Math.abs(Number(branch.latitude))>90||!Number.isFinite(Number(branch.longitude))||Math.abs(Number(branch.longitude))>180){notify("Check required branch names, address and location coordinates.");return;}
  if((branch.phone.trim()&&branch.phone.trim().length<8)||(branch.email.trim()&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(branch.email.trim()))||branch.description.length>1000||branch.display.length>255){notify("Check the phone number, email, display name and business description.");return;}
@@ -61,7 +60,7 @@ export function PrototypeBranch({store,setStore,notify,live}:{store:"Open"|"Paus
  }catch(e){const message="Image upload unavailable: "+merchantErrorMessage(e);setLoadError(message);notify(message);}finally{event.target.value="";}return;}
  const reader=new FileReader();reader.onload=()=>{update("image",String(reader.result));setDialog(null);notify("Branch image updated locally. Save branch settings to keep changes.");};reader.readAsDataURL(file);};
  return <div className="mp-p2">
-   <DemoHeading eyebrow="BRANCH SETTINGS" title="Branch settings" description="Manage your branch information, location, operating hours and preparation settings." action={<BranchBanner store={store} onAction={()=>setDialog("location")}/>} />
+   <DemoHeading eyebrow="BRANCH SETTINGS" title="Branch settings" description="Manage your branch information, location, operating hours and preparation settings." action={<BranchBanner store={store} onAction={()=>setDialog("location")} name={live?.branch?.display_name||live?.branch?.name||branch.display} city={live?.branch?.city||branch.city} coverUrl={live?.branchCoverUrl||(!live?branch.image:null)}/>} />
    <nav className="mp-p2-section-tabs" aria-label="Branch settings sections">{[["General",Store],["Location",MapPin],["Operating hours",Clock3],["Preparation",ChefHat],["Delivery & service",Truck],["Ordering rules",Settings2],["Advanced",Settings2]].map(([name,Icon]:any)=><button key={name} aria-current={tab===name?"page":undefined} className={tab===name?"active":""} onClick={()=>navigate(name)}><Icon size={19}/>{name}</button>)}</nav>
    <div className="mp-p2-branch-grid">
      <DemoCard className="mp-p2-branch-general" ><div id="mp-branch-general"/><h2><Store/>General information</h2><p>Basic details about this branch. This information is shown to customers.</p>

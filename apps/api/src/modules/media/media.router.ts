@@ -7,6 +7,7 @@ import { riderRepository } from '../rider/rider.repository';
 import { DeliveryStatus } from '@deetoo/types';
 import {operationsRepository} from '../operations/operations.repository';
 import { publicCatalogueImageRedirect } from './catalogue-image';
+import {publicBranchCoverRedirect} from './branch-cover';
 import { merchantRepository } from '../merchant/merchant.repository';
 import { branchScope, merchantScope } from '../auth/scope';
 import { requireMerchantCapability } from '../merchant/merchant-role-policy.service';
@@ -14,6 +15,13 @@ import { requireMerchantCapability } from '../merchant/merchant-role-policy.serv
 export const mediaRouter = Router();
 // Food photos are public only when the private verified object is linked to an
 // active published menu item. All other media routes still require auth.
+mediaRouter.get('/branches/:id/cover',async(req,res,next)=>{
+ try{
+  const url=await publicBranchCoverRedirect(req.params.id);
+  res.setHeader('Cache-Control','no-store');
+  res.redirect(302,url);
+ }catch(error){next(error);}
+});
 mediaRouter.get('/catalogue/:id', async(req,res,next)=>{
  try{
   const url=await publicCatalogueImageRedirect(req.params.id);

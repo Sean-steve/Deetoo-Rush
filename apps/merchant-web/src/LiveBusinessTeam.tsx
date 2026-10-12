@@ -1,12 +1,13 @@
 import React,{useEffect,useMemo,useState} from "react";
 import {Ellipsis,FilePlus2,Pencil,Plus,ShieldCheck,Store,Users} from "lucide-react";
 import type {MerchantLiveBridge} from "./MerchantLiveApp";
+import {MerchantBranchImage} from "./MerchantBranchImage";
 
 const names:Record<string,string>={merchant_owner:"Owner",merchant_manager:"Manager",merchant_staff:"Staff"};
 const statuses=(value:string)=>value==="ACTIVE"?"Active":value==="SUSPENDED"?"Inactive":"Pending";
 const capNames:Record<string,string>={ORDERS_WRITE:"Manage kitchen orders",MENU_WRITE:"Manage menu",INVENTORY_WRITE:"Update inventory",BRANCH_WRITE:"Configure branches",DOCUMENTS_WRITE:"Manage documents",FINANCE_READ:"View finances",TEAM_INVITE:"Invite staff"};
 function dateText(s:string){return s?new Date(s).toLocaleDateString("en-KE"):"—";}
-export function LiveBusinessTeam({live,notify}:{live:MerchantLiveBridge;notify:(s:string)=>void}){
+export function LiveBusinessTeam({live,notify,onNavigate}:{live:MerchantLiveBridge;notify:(s:string)=>void;onNavigate:(screen:string)=>void}){
  const profile=live.resource.profile||{},members=live.resource.team?.members||[],
    invitations=live.resource.team?.invitations||[],docs=live.resource.documents||[];
  const [dialog,setDialog]=useState<"profile"|"invite"|"member"|"document"|"roles"|"image"|null>(null),
@@ -60,7 +61,7 @@ export function LiveBusinessTeam({live,notify}:{live:MerchantLiveBridge;notify:(
   {live.errors.team&&<p className="mp-live-error" role="alert">Team data unavailable: {live.errors.team}</p>}
   <div className="mp-business-layout"><div className="mp-business-left">
    <section className="mp-white-card"><div className="mp-card-title"><div><h3>Business profile</h3><p>Business details displayed to customers.</p></div><button className="mp-outline" onClick={()=>setDialog("profile")}><Pencil size={15}/> Edit profile</button></div>
-    <div className="mp-business-profile"><div className="mp-restaurant-photo">🏮<button onClick={()=>setDialog("image")} aria-label="Edit business logo">📷</button></div><div>
+    <div className="mp-business-profile"><div className="mp-business-cover-wrap"><MerchantBranchImage src={live.branchCoverUrl} name={live.branch?.name}/><button className="mp-branch-cover-edit" onClick={()=>onNavigate("branch")} aria-label="Change branch cover photo">📷</button><small>Current branch cover</small></div><div>
     <p>Legal name<strong>{profile.legal_name||"Not supplied"}</strong></p><p>Display name<strong>{profile.display_name||"Not supplied"}</strong></p><p>Business description<strong>{profile.description||"Not supplied"}</strong></p></div></div>
     <div className="mp-profile-details"><p>♧ &nbsp; Business type<strong>Restaurant</strong></p><p>⌾ &nbsp; Street address<strong>{live.branch?.address_line1||"Not supplied"}</strong></p>
       <p>☎ &nbsp; Phone<strong>{profile.phone||"Not supplied"}</strong></p><p>⊕ &nbsp; Operating country<strong>{live.branch?.country_code||"KE"}</strong></p><p>✉ &nbsp; Email<strong>{profile.email||"Not supplied"}</strong></p></div>

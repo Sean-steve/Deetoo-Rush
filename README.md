@@ -157,6 +157,24 @@ The `Menu & availability` screen can initialize a menu for a newly created
 branch. Food item Add/Edit now supports verified photos; a short-lived signed
 storage read is made available only after a photo is linked to an active menu.
 
+**Saved branch photos across apps:** The `Branch settings > Branch image`
+upload is a branch cover, not an organization-wide merchant logo. After
+uploading, select **Save branch settings** to publish. Merchant Overview,
+sidebar, operations headers, Branch Settings, and the current-branch card in
+Business & Team use the same verified, branch-authorized cover. Customer
+discovery and restaurant detail return the stable
+`/api/v1/media/branches/:id/cover` URL for **approved active branches** with
+a verified published cover; that endpoint issues a short-lived signed redirect.
+Until a cover is verified and saved, the existing image fallback stays in
+place. The separate merchant company logo remains independent.
+
+**Availability audit fix:** Branch-specific item toggles previously wrote
+`branch_uuid:item_uuid` into a UUID-only audit log column, raising
+`invalid input syntax for type uuid` after the override write. The audit
+now uses the item's UUID resource ID and retains both UUIDs in metadata.
+No new migration is required for this correction; restart the API after
+pulling the fix.
+
 **Notifications:** Earlier portal builds compared a VARCHAR notification
 recipient to a UUID viewer. Pull the latest API change and restart
 `pnpm dev:api` after updating; no data migration or database reset is needed

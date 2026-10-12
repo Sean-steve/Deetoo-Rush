@@ -356,6 +356,23 @@ paths:
       responses:
         '200':
           description: Authenticated, scope-checked response; see route contracts and Zod validators
+  /merchant/experience/branches/{branchId}/cover-url:
+    get:
+      summary: Return the selected branch's verified shared cover as a short-lived authorized URL
+      description: Requires an active membership authorized for this branch. Does not reveal unlinked private images.
+      tags: [Merchant]
+      operationId: merchant_experience_branch_cover_url
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: path
+          name: branchId
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200': { description: Signed branch cover URL or null when no cover is published }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
   /merchant/experience/branches/{branchId}/policies:
     get:
       summary: Merchant Phase 2 GET /merchant/experience/branches/branchId/policies
@@ -788,6 +805,22 @@ paths:
         '200': { description: Device disabled }
         '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
+  /media/branches/{id}/cover:
+    get:
+      summary: Redirect to a temporary image URL for an approved restaurant branch's verified cover
+      description: Only published, verified, branch-bound images of active and approved restaurants are accessible. Unlinked private media remains private.
+      tags: [Merchant]
+      operationId: media_public_branch_cover
+      security: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '302': { description: Redirect to a short-lived signed read URL for the published branch cover }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '503': { description: Private media service is unavailable }
   /media/catalogue/{id}:
     get:
       summary: Redirect to a temporary read URL for a verified image attached to a published menu item

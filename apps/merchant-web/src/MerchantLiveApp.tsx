@@ -13,6 +13,7 @@ export type LiveResource = {
   categories: any[];
   items: any[];
   branchCatalogue: any | null;
+  branchCover: {url:string|null;cover_media_id:string|null} | null;
   inventory: any[];
   team: { members: any[]; invitations: any[] };
   profile: any | null;
@@ -21,7 +22,7 @@ export type LiveResource = {
   roleMatrix: any | null;
   documents: any[];
 };
-const empty:LiveResource={orders:[],history:[],metrics:null,menus:[],categories:[],items:[],branchCatalogue:null,inventory:[],
+const empty:LiveResource={orders:[],history:[],metrics:null,menus:[],categories:[],items:[],branchCatalogue:null,branchCover:null,inventory:[],
   team:{members:[],invitations:[]},profile:null,finance:null,transactions:[],roleMatrix:null,documents:[]};
 export type MerchantLiveBridge={
   api:DeetooApiClient;
@@ -30,6 +31,7 @@ export type MerchantLiveBridge={
   merchantId:string;
   branch:any;
   branches:any[];
+  branchCoverUrl:string|null;
   resource:LiveResource;
   loading:boolean;
   errors:Record<string,string>;
@@ -94,6 +96,9 @@ function MerchantLiveGate(){
     metrics:apiClient.request(url("/merchant/experience/orders/metrics")),
     menus:apiClient.request<any[]>("/merchant/menus"+(selectedMerchantId?"?merchant_id="+encode(selectedMerchantId):"")),
      branchCatalogue:apiClient.request(`/merchant/branches/${encode(branchId)}/catalogue`+(selectedMerchantId?"?merchant_id="+encode(selectedMerchantId):"")),
+    // The shared cover is a branch-scoped resource. A missing/unconfigured cover
+    // is a normal placeholder state rather than an unrelated dashboard error.
+    branchCover:apiClient.request<{url:string|null;cover_media_id:string|null}>(`/merchant/experience/branches/${encode(branchId)}/cover-url`).catch(()=>({data:{url:null,cover_media_id:null}})),
     inventory:apiClient.request<any[]>(`/merchant/experience/branches/${encode(branchId)}/inventory`),
     team:apiClient.request("/merchant/team"),
     profile:apiClient.request("/merchant/profile"),
@@ -139,7 +144,7 @@ function MerchantLiveGate(){
  const merchantId=String(branch?.merchant_id||user?.merchant_ids?.[0]||"");
  const currentResource=loadedBranchId===branchId?resources:empty;
  const live=useMemo<MerchantLiveBridge>(()=>({api:apiClient,user,branchId,merchantId,
-    branch,branches,resource:currentResource,loading:busy||loadedBranchId!==branchId,
+    branch,branches,branchCoverUrl:currentResource.branchCover?.url||null,resource:currentResource,loading:busy||loadedBranchId!==branchId,
     errors:{...(loadedBranchId===branchId?errors:{}),
       ...(branchError?.kind==="temporary"&&hasActiveBranch?{branches:branchError.message}:{})},
     refresh,logout,setBranchId,run}),
