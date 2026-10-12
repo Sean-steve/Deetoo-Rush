@@ -58,7 +58,6 @@ export function RiderConnectedApp() {
   const [identifier,setIdentifier]=useState('');
   const [password,setPassword]=useState('');
   const [showPassword,setShowPassword]=useState(false);
-  const [phone,setPhone]=useState('');
   const [form,setForm]=useState<Record<string,string>>({});
   const [status,setStatus]=useState<any>(null);
   const [offer,setOffer]=useState<any>(null);
@@ -87,9 +86,7 @@ export function RiderConnectedApp() {
   const camera=useRef<any>(null);
   const payoutIntent=useRef<{amount:number;key:string}|null>(null);
   const [pushReady,setPushReady]=useState(false);
-  const [reportSubmitted,setReportSubmitted]=useState(false);
   const [completedDelivery,setCompletedDelivery]=useState<string|null>(null);
-  const [otpMode,setOtpMode]=useState<'forgot'|'reset'|'phone'>('forgot');
   const [acceptTerms,setAcceptTerms]=useState(false);
   const [showSafetyHelp,setShowSafetyHelp]=useState(false);
 
@@ -161,7 +158,7 @@ export function RiderConnectedApp() {
     catch(e){setError(parseRiderServerError(e));}
     finally{setRefreshing(false);}
   };
-  useEffect(()=>{let mounted=true;void session.restore().then(u=>{if(mounted){setUser(u);if(u)setView(6);}}).catch(e=>{if(mounted)setError(parseRiderServerError(e));}).finally(()=>{if(mounted)setRestoring(false);});return()=>{mounted=false;};},[session]);
+  useEffect(()=>{let mounted=true;void session.restore().then(u=>{if(mounted){setUser(u);if(u){screenHistory.current=[];setView(6);}}}).catch(e=>{if(mounted)setError(parseRiderServerError(e));}).finally(()=>{if(mounted)setRestoring(false);});return()=>{mounted=false;};},[session]);
   useEffect(()=>{if(!user)return;void refresh().catch(e=>setError(parseRiderServerError(e)));const timer=setInterval(()=>void refresh().catch(e=>setError(parseRiderServerError(e))),8000);return()=>clearInterval(timer);},[refresh,user]);
   useEffect(()=>{if(user)void extra(view);},[view,user,extra]);
   useEffect(()=>{if(!user||!pushReady)return;return subscribeToOfferNotifications(()=>void refresh());},[user,pushReady,refresh]);
@@ -255,7 +252,7 @@ export function RiderConnectedApp() {
       <Field label="Password" value={password} onChangeText={setPassword} secureTextEntry={!showPassword} placeholder="Your password" />
       <Button outline label={showPassword?'Hide password':'Show password'} onPress={()=>setShowPassword(x=>!x)} />
       <Button label="Log In →" onPress={()=>void login()} disabled={busy} />
-      <Button outline label="Forgot password?" onPress={()=>{setOtpMode('forgot');go(1);setField('recoverStep','1');}}/>
+      <Button outline label="Forgot password?" onPress={()=>{go(1);setField('recoverStep','1');}}/>
       <Button outline label="Register as a Rider" onPress={()=>go(2)} />
     </View></Panel>
     {form.recoverStep? <Panel title="Secure password recovery"><View style={{gap:10}}>
@@ -274,7 +271,7 @@ export function RiderConnectedApp() {
         },'Password updated. Sign in.',false)} /></>}
     </View></Panel>:null}
   </Page>;
-  else if(!user && view===2)body=<Page title="Rider Registration" subtitle="Screen 2 • Create a pending, unapproved Rider application.">
+  else if(!user && view===2)body=<Page title="Rider Registration" subtitle="Create a pending, unapproved Rider application.">
     <HeroRider title="Start your Rider journey" sub="Identity checks and verification will follow registration."/>
     <Panel title="Personal & contact details"><View style={{gap:12}}>
       {field('name','Full name','As on your National ID')}
@@ -291,7 +288,7 @@ export function RiderConnectedApp() {
   </Page>;
   else if(!user)body=<Button label="Back to Login" onPress={()=>go(1)}/>;
   else switch(view){
-    case 3: body=<Page title="Document Verification" subtitle="Screen 3 • Secure uploads and administrator review">
+    case 3: body=<Page title="Document Verification" subtitle="Secure uploads and administrator review">
       <Panel><OnboardingTracker step={2} /></Panel>
       <Notice title={checklist?.ready?'Verification ready':'Verification required'} body={checklist?.missing?.join(', ')||'Documents are reviewed by an authorized administrator.'} tone={checklist?.ready?'green':'orange'} />
       <Panel title="Required documents">{['NATIONAL_ID_FRONT','NATIONAL_ID_BACK','SELFIE','DRIVING_LICENCE','VEHICLE_INSURANCE','VEHICLE_LOGBOOK'].map(t=>{
@@ -305,7 +302,7 @@ export function RiderConnectedApp() {
       <Button label="Refresh verification status" onPress={()=>void extra(3)} />
       <Button outline label="Next: Vehicle & Equipment" onPress={()=>go(4)}/>
     </Page>;break;
-    case 4:body=<Page title="Vehicle & Equipment" subtitle="Screen 4 • Transport and mandatory safety equipment">
+    case 4:body=<Page title="Vehicle & Equipment" subtitle="Transport and mandatory safety equipment">
       <Panel title="Vehicle registration"><View style={{gap:10}}>
         <Text style={S.label}>Vehicle type</Text>
         <View style={{flexDirection:'row',flexWrap:'wrap',gap:8}}>{['MOTORBIKE','BICYCLE','CAR'].map(t=><Button key={t} outline={form.vehicleType!==t} label={t} onPress={()=>setField('vehicleType',t)}/>)}</View>
@@ -318,7 +315,7 @@ export function RiderConnectedApp() {
       </View></Panel>
       <Button outline label="Review onboarding status →" onPress={()=>go(5)}/>
     </Page>;break;
-    case 5:body=<Page title="Onboarding Status" subtitle="Screen 5 • Authoritative account status and verification checklist">
+    case 5:body=<Page title="Onboarding Status" subtitle="Authoritative account status and verification checklist">
       <HeroRider title="Your Rider application" sub="Approval comes from DeeToo administration, not the device."/>
       <Panel title="Account and eligibility">
         <Row title="Onboarding" value={status?.profile?.onboardingStatus||'Not available'}/>
@@ -362,7 +359,7 @@ export function RiderConnectedApp() {
         <RiderLiveMap rider={geoPoint({latitude:status?.profile?.lastKnownLatitude,longitude:status?.profile?.lastKnownLongitude})} zones={entries(status?.assignedZones)}/>
       </Panel>
     </Page>;break;
-    case 7:body=<Page title="Incoming Delivery Request" subtitle="Screen 7 • Server-issued offer and expiry">
+    case 7:body=<Page title="Incoming Delivery Request" subtitle="Server-issued offer and expiry">
       {!offer?.offer?.id?<Notice title="No live offers" body="DeeToo dispatch has not issued an offer to this Rider. Remain online within an assigned zone." tone="blue"/>:
         <><Panel title="Delivery offer">
           <Text style={S.h2}>{offer.restaurantName||'Merchant pickup'}</Text>
@@ -376,7 +373,7 @@ export function RiderConnectedApp() {
         <View style={{flexDirection:'row',gap:9}}><View style={{flex:1}}><Button outline label="Decline" onPress={()=>void run(()=>api.declineOffer(id(offer.offer.id)),'Offer declined.')}/></View><View style={{flex:2}}><Button label="Accept" onPress={()=>void run(async()=>{await api.acceptOffer(id(offer.offer.id));go(8);},'DeeToo assigned the delivery.')}/></View></View></>}
       <Button outline label="Refresh offer" onPress={()=>void refresh()}/>
     </Page>;break;
-    case 8:body=<Page title="Active Delivery Details" subtitle="Screen 8 • Server-controlled delivery milestones">
+    case 8:body=<Page title="Active Delivery Details" subtitle="Server-controlled delivery milestones">
       {!a?<Notice title="No assigned delivery" body="An accepted offer will appear here. Assignment is authoritative; no order can be created from this screen." tone="blue"/>:
       <Panel title={'Order '+(a.order_number||a.id)}>
         <Row title="Delivery status" value={deliveryStatus}/>
@@ -405,7 +402,7 @@ export function RiderConnectedApp() {
         <Button outline label="View delivery details" onPress={()=>go(8)}/>
       </Page>;break;
     }
-    case 10:body=<Page title="Merchant Pickup Confirmation" subtitle="Screen 10 • Merchant-confirmed items and server pickup code">
+    case 10:body=<Page title="Merchant Pickup Confirmation" subtitle="Merchant-confirmed items and server pickup code">
       <Panel title="Pickup details">
         <Row title="Order" value={a?.order_number||'—'}/>
         <Row title="Status" value={deliveryStatus||'No active delivery'}/>
@@ -417,7 +414,7 @@ export function RiderConnectedApp() {
       <Button outline label="Missing items / merchant delay? Report issue" onPress={()=>go(23)}/>
       <Button outline label="Navigate to Customer" onPress={()=>go(11)}/>
     </Page>;break;
-    case 12:body=<Page title="Customer Handover" subtitle="Screen 12 • Verified delivery proof and failure escalation">
+    case 12:body=<Page title="Customer Handover" subtitle="Verified delivery proof and failure escalation">
       <Panel title="Handover">
         <Row title="Delivery" value={a?.order_number||'—'}/>
         <Row title="Status" value={deliveryStatus||'—'}/>
@@ -431,7 +428,7 @@ export function RiderConnectedApp() {
       </Panel>
       <Notice title="DeeToo controls final outcome" body="A reported failure does not clear Rider custody or directly resolve the order. Follow Operations instructions." tone="orange"/>
     </Page>;break;
-    case 13:body=<Page title="Delivery Completion Summary" subtitle="Screen 13 • Authoritative completed-order reference">
+    case 13:body=<Page title="Delivery Completion Summary" subtitle="Authoritative completed-order reference">
       <Notice title="Delivery update recorded" body={completedDelivery?'The backend accepted a verified handover.':'Select a completed delivery from your own history to view its verified receipt.'}/>
       <Panel title="Receipt details">
         <Row title="Delivery ID" value={shortReference(selectedHistory?.delivery_id||completedDelivery,null,'DLV')}/>
@@ -441,7 +438,7 @@ export function RiderConnectedApp() {
       </Panel>
       <Button label="View delivery history" onPress={()=>go(15)}/><Button outline label="Next available offers" onPress={()=>go(7)}/>
     </Page>;break;
-    case 14:body=<Page title="Active Deliveries & Multiple Orders" subtitle="Screen 14 • Capability-gated dispatch">
+    case 14:body=<Page title="Active Deliveries & Multiple Orders" subtitle="Capability-gated dispatch">
       <Panel title="Concurrent delivery capability">
         <Tag label={capabilities?.multi_order?.enabled?'Enabled':'Unavailable'} tone={capabilities?.multi_order?.enabled?'green':'orange'}/>
         <Text style={[S.sub,{marginTop:12}]}>{capabilities?.multi_order?.message||'Waiting for DeeToo dispatch capability status.'}</Text>
@@ -450,7 +447,7 @@ export function RiderConnectedApp() {
       <Notice title="Server-authoritative route order" body="Multiple-order acceptance, stop reordering and custody changes are not offered while dispatch stacking is uncertified." tone="blue"/>
       <Button label="View active delivery" onPress={()=>go(8)}/>
     </Page>;break;
-    case 15:body=<Page title="Delivery History" subtitle="Screen 15 • Your completed, cancelled and failed delivery records">
+    case 15:body=<Page title="Delivery History" subtitle="Your completed, cancelled and failed delivery records">
       <View style={{flexDirection:'row',flexWrap:'wrap',gap:8}}>{['','DELIVERED','FAILED','CANCELLED'].map(x=><Button key={x||'all'} outline={filter!==x} label={x||'All'} onPress={()=>{setFilter(x);void api.history(x||undefined).then(r=>setHistory(r.history)).catch(e=>setError(parseRiderServerError(e)));}}/>)}</View>
       {history.length===0?<Notice title="No history yet" body="Only deliveries assigned to your account will appear here." tone="blue"/>:history.map(x=><Panel key={x.delivery_id}>
         <Row title="Order" value={shortReference(x.order_id,x.order_number)}/>
@@ -461,7 +458,7 @@ export function RiderConnectedApp() {
       </Panel>)}
       <Button outline label="Refresh records" onPress={()=>void extra(15)}/>
     </Page>;break;
-    case 16:body=<Page title="Earnings Dashboard" subtitle="Screen 16 • Authoritative earnings, bonuses and time series">
+    case 16:body=<Page title="Earnings Dashboard" subtitle="Authoritative earnings, bonuses and time series">
       <View style={{flexDirection:'row',flexWrap:'wrap',gap:9}}>
         <Metric title="Earnings in period" value={toKes(trends?.total_minor)}/>
         <Metric title="Deliveries" value={String(trends?.deliveries??0)} tone="blue"/>
@@ -477,7 +474,7 @@ export function RiderConnectedApp() {
       <Panel title="Wallet & payouts"><Row title="Wallet available" value={toKes(wallet?.available_earnings_minor)}/><Row title="Cash owed" value={toKes(wallet?.cash_owed_minor)}/>
         <Button label="View wallet" onPress={()=>go(17)}/><View style={{height:8}}/><Button outline label="Payout requests" onPress={()=>go(18)}/></Panel>
     </Page>;break;
-    case 17:body=<Page title="Rider Wallet & Cash Management" subtitle="Screen 17 • Ledger-owned funds and cash obligations">
+    case 17:body=<Page title="Rider Wallet & Cash Management" subtitle="Ledger-owned funds and cash obligations">
       <View style={{flexDirection:'row',flexWrap:'wrap',gap:8}}>
         <Metric title="Available to withdraw" value={toKes(wallet?.available_earnings_minor)}/>
         <Metric title="Pending earnings" value={toKes(wallet?.pending_earnings_minor)} tone="blue"/>
@@ -493,7 +490,7 @@ export function RiderConnectedApp() {
       <Notice title="Cash is not payout balance" body="Rider cash collected, money owed to DeeToo and earnings eligible for payout remain distinct backend records." tone="blue"/>
       <Button label="Request M-PESA payout" onPress={()=>go(18)}/>
     </Page>;break;
-    case 18:body=<Page title="Payouts & Transactions" subtitle="Screen 18 • Finance-reviewed M-PESA requests">
+    case 18:body=<Page title="Payouts & Transactions" subtitle="Finance-reviewed M-PESA requests">
       <Panel title="Available funds"><Text style={[S.h1,{color:C.darkGreen}]}>{toKes(wallet?.available_earnings_minor)}</Text>
         {field('withdrawal','Requested amount (KSh)','e.g. 500','decimal-pad')}
         <Text style={S.meta}>Minimum KSh 100. Destination must be verified separately by Finance. Requests do not move money.</Text>
@@ -516,7 +513,7 @@ export function RiderConnectedApp() {
       <Notice title="Provider-owned payout status" body="Only Finance can approve a payout, and DeeToo verifies provider callbacks before marking money paid. The Rider cannot trigger these privileged actions." tone="blue"/>
       <Button outline label="Request M-PESA destination change" onPress={()=>{setField('changeCategory','PAYOUT_DESTINATION');go(24);}}/>
     </Page>;break;
-    case 19:body=<Page title="Performance & Ratings" subtitle="Screen 19 • Backend ratings, delivery KPIs and customer comments">
+    case 19:body=<Page title="Performance & Ratings" subtitle="Backend ratings, delivery KPIs and customer comments">
       <Panel title="Delivery performance">
         {['average_rating','completion_rate','acceptance_rate','on_time_rate','completed_deliveries'].map(key=><Row key={key} title={key.replace(/_/g,' ')} value={performance?.[key]??'—'}/>)}
       </Panel>
@@ -527,7 +524,7 @@ export function RiderConnectedApp() {
           <Text style={S.meta}>{String(x.created_at).slice(0,10)}</Text></View>)}
       </Panel>
     </Page>;break;
-    case 20:body=<Page title="Notifications Center" subtitle="Screen 20 • Recipient-scoped persistent DeeToo alerts">
+    case 20:body=<Page title="Notifications Center" subtitle="Recipient-scoped persistent DeeToo alerts">
       <Panel title="Your notifications">
         {notifications.length===0?<Notice title="Inbox is clear" body="No server notifications yet." tone="blue"/>:notifications.map((n:any)=><Pressable key={n.id} accessibilityRole="button" onPress={()=>void run(async()=>{await api.markRead(n.id);const x=await api.notifications();setNotifications(x.notifications);},undefined,false)} style={{paddingVertical:12,borderBottomWidth:1,borderColor:C.border}}>
           <Text style={[S.text,{fontWeight:'800'}]}>{n.read_at?'':'● '}{n.title||n.type||'Update'}</Text>
@@ -538,7 +535,7 @@ export function RiderConnectedApp() {
       <Button outline label="Support cases" onPress={()=>go(21)}/>
       <ActionLink icon="⚙" title="Notification settings" hint="Push, categories, sound and vibration" onPress={()=>go(25)}/>
     </Page>;break;
-    case 21:body=<Page title="Rider Support Center" subtitle="Screen 21 • Admin-governed cases and verified participants">
+    case 21:body=<Page title="Rider Support Center" subtitle="Admin-governed cases and verified participants">
       <Panel title="Open a support case"><View style={{gap:11}}>
         {field('supportSubject','Subject')}
         {field('supportCategory','Category','e.g. DELIVERY, PAYMENT, ACCOUNT_UPDATE')}
@@ -556,7 +553,7 @@ export function RiderConnectedApp() {
       </Panel>
       <Button outline label="Report safety incident" onPress={()=>go(23)}/>
     </Page>;break;
-    case 22:body=<Page title="Support Conversation" subtitle="Screen 22 • Authorized full case history and Rider satisfaction">
+    case 22:body=<Page title="Support Conversation" subtitle="Authorized full case history and Rider satisfaction">
       {!caseDetail?<Notice title="Loading case" body="Choose a case from Support Center or retry loading." tone="blue"/>:<>
         <Panel title={caseDetail.case?.subject||'Support case'}>
           <Row title="Case status" value={<Tag label={caseDetail.case?.status||'—'} tone="orange"/>}/>
@@ -578,7 +575,7 @@ export function RiderConnectedApp() {
       </>}
       <Button outline label="Back to Support Center" onPress={()=>go(21)}/>
     </Page>;break;
-    case 23:body=<Page title="Safety & Incident Reporting" subtitle="Screen 23 • Rider-created reports and Admin-owned investigation">
+    case 23:body=<Page title="Safety & Incident Reporting" subtitle="Rider-created reports and Admin-owned investigation">
       <Pressable accessibilityRole="button" onPress={()=>setShowSafetyHelp(!showSafetyHelp)} style={{padding:16,backgroundColor:C.paleRed,borderRadius:16,minHeight:65}}>
         <Text style={{color:C.red,fontWeight:'900',fontSize:18}}>☎ Emergency assistance information</Text>
         <Text style={S.meta}>Open safety instructions. No emergency call is initiated.</Text>
@@ -594,11 +591,9 @@ export function RiderConnectedApp() {
           if(!(form.incidentSummary||'').trim()||!(form.incidentDetails||'').trim())throw new Error('Provide a summary and incident details before submitting.');
           const created=await api.createIncident({type:form.incidentType||'OTHER',summary:form.incidentSummary||'',details:form.incidentDetails||'',location_text:form.incidentLocation||''});
           setForm(prev=>({...prev,incidentType:'',incidentSummary:'',incidentDetails:'',incidentLocation:'',incidentId:created.id}));
-          setReportSubmitted(true);
           const r=await api.incidents();setIncidents(r.incidents);
         },'Incident submitted. Investigation is controlled by authorized DeeToo staff.')}/>
       </View></Panel>
-      {reportSubmitted?<Notice title="Incident received" body="Your form was cleared after successful submission. Select the saved incident below to attach evidence or submit a different report." tone="green"/>:null}
       <Panel title="Your incident reports">
         {incidents.length===0?<Notice title="No reports" body="Your safety history will appear here." tone="blue"/>:incidents.map(i=><Pressable key={i.id} onPress={()=>setField('incidentId',i.id)} style={{paddingVertical:10,borderBottomWidth:1,borderColor:C.border}}>
           <Row title={i.type} value={i.status}/><Text style={S.sub}>{i.summary}</Text></Pressable>)}
@@ -635,7 +630,10 @@ export function RiderConnectedApp() {
       </Panel>
       {prefs?<Panel title="App preferences">
         {['payouts','support','promotions','updates','sounds','vibration'].map(k=><Pressable key={k} accessibilityRole="switch" accessibilityState={{checked:!!prefs[k]}} onPress={()=>setPrefs((p:any)=>({...p,[k]:!p[k]}))} style={[S.split,{minHeight:48,borderBottomWidth:1,borderColor:C.border}]}>
-          <Text style={S.text}>{k}</Text><Text style={{fontSize:22,color:C.darkGreen}}>{prefs[k]?'☑':'□'}</Text></Pressable>)}
+          <Text style={S.text}>{({payouts:'Payout alerts',support:'Support updates',promotions:'Offers & promotions',updates:'Platform announcements',sounds:'Notification sounds',vibration:'Vibration'} as Record<string,string>)[k]}</Text><Text style={{fontSize:22,color:C.darkGreen}}>{prefs[k]?'☑':'□'}</Text></Pressable>)}
+        <View style={{height:9}}/><Text style={S.label}>App language</Text>
+        <View style={[S.row,{gap:8}]}>{(['English','Kiswahili'] as const).map(language=><View key={language} style={{flex:1}}><Button outline={prefs.language!==language} label={language} onPress={()=>setPrefs((p:any)=>({...p,language}))}/></View>)}</View>
+        <Text style={[S.meta,{marginTop:8}]}>The map uses a real OpenStreetMap basemap. Satellite imagery is not available until a licensed provider is configured.</Text>
         <Text style={S.meta}>Essential delivery, security and safety alerts remain mandatory.</Text>
         <Button label="Save preferences" onPress={()=>void run(async()=>{
           const p=await api.updatePreferences({payouts:!!prefs.payouts,support:!!prefs.support,promotions:!!prefs.promotions,updates:!!prefs.updates,sounds:!!prefs.sounds,vibration:!!prefs.vibration,language:prefs.language==='Kiswahili'?'Kiswahili':'English',map_style:prefs.map_style==='Satellite'?'Satellite':'Standard'});
