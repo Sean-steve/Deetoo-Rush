@@ -281,7 +281,7 @@ test('Phase 3 Merchant workspace exposes persistent store control and urgency-fi
 test('Phase 3 Admin exposes control tower, query filters and narrative support workspace', async ({ browser }) => {
   const context = await browser.newContext({ viewport: { width: 1600, height: 1000 } });
   const page = await context.newPage();
-  await page.goto('http://127.0.0.1:5175');
+  await page.goto('http://127.0.0.1:5175/?admin-legacy=1');
 
   await page.getByPlaceholder('admin@deetoo.ke').fill('admin@deetoo.ke');
   await page.locator('input[type="password"]').fill('AdminPass123!');
