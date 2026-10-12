@@ -68,6 +68,26 @@ pnpm build
 
 ---
 
+## Admin entry point (approved 16-screen experience)
+
+The canonical Admin web deployment now runs the approved **Admin Next** UI with real DeeToo APIs:
+
+```bash
+pnpm dev:api            # terminal 1; PostgreSQL/Redis must be ready
+pnpm dev:admin          # terminal 2 → http://127.0.0.1:5175
+pnpm build:admin        # produces dist/admin-web with the approved Admin UI
+```
+
+The default Admin entry is **always live**, including when `VITE_ADMIN_NEXT_MODE=demo` is present. It requires a signed-in staff identity; it never replaces failed API reads with fixture data. All 16 approved Admin screens, permissions, finance safeguards, and cross-application backend integrations remain intact.
+
+- **Rollback:** open `http://127.0.0.1:5175/?admin-legacy=1` to explicitly load the old Admin interface for comparison; it is no longer the default and its CSS is lazy-loaded only for the rollback route.
+- **Standalone design QA:** `VITE_ADMIN_NEXT_MODE=demo pnpm dev:admin-next` starts the isolated, non-authoritative design preview at `http://127.0.0.1:5178`. Without that variable, `pnpm dev:admin-next` uses real DeeToo APIs. Do not deploy the demo build as the operational Admin interface.
+- **Acceptance:** `pnpm test:phase1-browser` checks the canonical entry and optional rollback; `pnpm test:admin-next-live` covers all 16 live workspaces, permissions, and API failure recovery.
+
+Source integration is not production release sign-off. Provider sandbox evidence, real device validation, environment-specific security checks, and staging acceptance remain prerequisites before production rollout.
+
+---
+
 ## Architecture Documentation
 - [ADR-001: Monorepo Structure](docs/architecture/ADR-001-monorepo-structure.md)
 - [ADR-002: Modular Monolith](docs/architecture/ADR-002-modular-monolith.md)
