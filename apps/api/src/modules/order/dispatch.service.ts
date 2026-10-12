@@ -1296,7 +1296,8 @@ export class DispatchService {
     // Prefer a structured customer-provided locality. Address text is an
     // authorized snapshot for this assigned delivery, never a guessed geocode.
     const customerAddress = order?.delivery_address_snapshot as
-      | (Record<string, unknown> & { formatted_address?: string; label?: string })
+      | { formatted_address?: string; label?: string; area?: string;
+          neighborhood?: string; suburb?: string; locality?: string; ward?: string }
       | undefined;
     const locality = [customerAddress?.area,customerAddress?.neighborhood,
       customerAddress?.suburb,customerAddress?.locality,customerAddress?.ward]
