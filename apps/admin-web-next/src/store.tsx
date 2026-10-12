@@ -21,8 +21,10 @@ type Store={
  login:(identifier:string,password:string)=>Promise<void>;logout:()=>Promise<void>;verifyMfa:(code:string)=>Promise<void>;
 };
 const Context=createContext<Store|null>(null);
-export function DemoProvider({children}:{children:React.ReactNode}){
- return ADMIN_NEXT_MODE==="demo"?<DemoStore>{children}</DemoStore>:<LiveStore>{children}</LiveStore>;
+export function DemoProvider({children,forceLive=false}:{children:React.ReactNode;forceLive?:boolean}){
+ // The default Admin deployment cannot display fixture data, even when
+ // the independent design-preview server is explicitly configured for demo mode.
+ return !forceLive&&ADMIN_NEXT_MODE==="demo"?<DemoStore>{children}</DemoStore>:<LiveStore>{children}</LiveStore>;
 }
 function DemoStore({children}:{children:React.ReactNode}){
  const [data,dispatch]=useReducer(reducer,undefined,load);

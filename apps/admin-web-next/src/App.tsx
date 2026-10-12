@@ -35,7 +35,7 @@ const groups: {name:string;items:Route[]}[]=[
  {name:"ADMINISTRATION",items:[{id:"security",label:"Identity & Security",icon:ShieldCheck,phase:4} ,{id:"system",label:"System Health & Config",icon:Settings,phase:4}]},
 ];
 function routeFromHash():Screen {const part=location.hash.replace(/^#\/?/,"").split("?")[0];return ["command","dispatch","orders","riders","incidents","support","merchants","customers","geography","payments","settlements","financial","analytics","notifications","security","system"].includes(part)?part as Screen:"command";}
-export function AdminNext(){return <DemoProvider><Workspace/></DemoProvider>;}
+export function AdminNext({forceLive=false}:{forceLive?:boolean}={}){return <DemoProvider forceLive={forceLive}><Workspace/></DemoProvider>;}
 function Workspace(){
  const {data,role,setRole,reset,mode,phase,identity,resources,notice,clearNotice,refresh,login,logout,verifyMfa}=useDemo();
  const [screen,setScreen]=useState<Screen>(routeFromHash);

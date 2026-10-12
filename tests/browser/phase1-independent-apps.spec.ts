@@ -166,28 +166,44 @@ test('Merchant account without membership shows an assignment path, never a fabr
   await context.close();
 });
 
-test('Admin Web authenticates independently and reaches admin-scoped APIs', async ({ browser }) => {
+test('Canonical Admin entry is the approved 16-screen backend-connected experience', async ({ browser }) => {
   const context = await browser.newContext();
   const page = await context.newPage();
-  await page.goto('http://127.0.0.1:5175');
+  await page.goto('http://127.0.0.1:5175/');
 
-  await expect(page.locator('.app-switcher')).toHaveCount(0);
-  await page.getByPlaceholder('admin@deetoo.ke').fill('admin@deetoo.ke');
-  await page.locator('input[type="password"]').fill('AdminPass123!');
-  await page.getByRole('button', { name: 'Sign In to Platform Admin' }).click();
+  await expect(page.getByRole('heading', {name:'Admin sign in'})).toBeVisible();
+  await expect(page.locator('.operations-layout')).toHaveCount(0);
+  await expect(page.locator('.dn-demo-banner')).toHaveCount(0);
+  await page.getByLabel('Staff email or phone').fill('admin@deetoo.ke');
+  await page.getByLabel('Password').fill('AdminPass123!');
+  await page.getByRole('button', {name:'Sign in securely'}).click();
 
-  await expect(page.getByRole('button', { name: 'Sign In to Platform Admin' })).toHaveCount(0);
+  await expect(page.locator('.dn-app')).toBeVisible({timeout:20_000});
+  await expect(page.getByText('Live DeeToo backend')).toBeVisible();
+  await expect(page.locator('.dn-nav-link')).toHaveCount(16);
+  await expect(page.locator('.dn-demo-banner')).toHaveCount(0);
   await expectSecureWebSession(context);
-
   const status = await page.evaluate(async () => (await fetch('/api/v1/admin/orders')).status);
   expect(status).toBe(200);
-
   const storageKeys = await page.evaluate(() => Object.keys(localStorage));
   expect(storageKeys.filter((key) => key.startsWith('deetoo_auth_'))).toEqual([]);
 
+  await page.locator('.dn-nav-link').filter({hasText:'Merchants'}).click();
+  await expect(page.locator('[data-testid="screen-merchants"]')).toBeVisible();
+  await page.reload();
+  await expect(page.locator('[data-testid="screen-merchants"]')).toBeVisible({timeout:20_000});
   await context.close();
 });
 
+test('Canonical Admin never enables preview fixtures through an environment-independent query flag', async ({browser}) => {
+  const context=await browser.newContext();
+  const page=await context.newPage();
+  await page.goto('http://127.0.0.1:5175/?admin-demo=1');
+  await expect(page.getByRole('heading',{name:'Admin sign in'})).toBeVisible();
+  await expect(page.locator('.dn-demo-banner')).toHaveCount(0);
+  await expect(page.locator('.operations-layout')).toHaveCount(0);
+  await context.close();
+});
 
 test('Phase 1 UI foundation exposes dense Admin layout and honors reduced motion', async ({ browser }) => {
   const context = await browser.newContext({
@@ -195,7 +211,7 @@ test('Phase 1 UI foundation exposes dense Admin layout and honors reduced motion
     reducedMotion: 'reduce',
   });
   const page = await context.newPage();
-  await page.goto('http://127.0.0.1:5175');
+  await page.goto('http://127.0.0.1:5175/?admin-legacy=1');
 
   await page.getByPlaceholder('admin@deetoo.ke').fill('admin@deetoo.ke');
   await page.locator('input[type="password"]').fill('AdminPass123!');
@@ -265,7 +281,7 @@ test('Phase 3 Merchant workspace exposes persistent store control and urgency-fi
 test('Phase 3 Admin exposes control tower, query filters and narrative support workspace', async ({ browser }) => {
   const context = await browser.newContext({ viewport: { width: 1600, height: 1000 } });
   const page = await context.newPage();
-  await page.goto('http://127.0.0.1:5175');
+  await page.goto('http://127.0.0.1:5175/?admin-legacy=1');
 
   await page.getByPlaceholder('admin@deetoo.ke').fill('admin@deetoo.ke');
   await page.locator('input[type="password"]').fill('AdminPass123!');
