@@ -243,3 +243,40 @@ checks or changes persisted rider availability.
 Note: do not interpret a previous Go Online failure as success; confirm
 `GET /api/v1/rider/availability` reports `ONLINE_AVAILABLE` and an active
 session before dispatching.
+
+
+## Connected Rider UI — October 2026
+
+The connected Rider experience keeps the original five bottom tabs and adds a
+separate **Settings** action in the header. Profile owns verified identity,
+account change requests and sign-out. Settings owns push-device registration,
+notification categories, language, sound and vibration. Swipe down in a
+signed-in screen to reload DeeToo API records. The Android hardware back button
+and top-left back button follow Rider screen history instead of closing the
+shift from a nested page.
+
+The Home service-zone map renders **actual assigned PostGIS zone GeoJSON** and
+the Rider's last recorded GPS position using OpenStreetMap raster tiles (an
+internet connection is required). It does not draw example locations. Tile
+usage must meet [OpenStreetMap's tile policy](https://operations.osmfoundation.org/policies/tiles/);
+use a contracted tile provider for significant production traffic.
+
+Delivery navigation screens stay **inside the app**. DeeToo calculates the
+route from a fresh Rider GPS record and the assigned delivery's verified stop
+via `GET /api/v1/rider/deliveries/:id/route?stop=pickup|dropoff`. This is
+authorization- and session-bound; no arbitrary customer coordinates are
+accepted from the phone and there are no public demo routing requests.
+
+For real turn/maneuver geometry, configure `GOOGLE_ROUTES_API_KEY` on the API
+server (Routes API access and billing are required). For a private local
+developer workflow only, a **locally running** OSRM route server can be used
+with `DEETOO_LOCAL_WORKFLOW=true` and
+`DEETOO_RIDER_LOCAL_ROUTING_URL=http://127.0.0.1:<port>`. DeeToo will reject
+a public IP/hostname as a local route provider. If no routing provider is
+configured, the actual geographic map and authorized delivery locations still
+appear; the app clearly reports that turn-by-turn route data is unavailable.
+
+Road instructions are estimates rather than a voice-guided driving system,
+and drivers should follow posted restrictions and current traffic rules.
+Android build updates require rebuilding or restarting Expo; an existing
+installed APK does not magically gain new native UI code from a server restart.
