@@ -23,6 +23,8 @@ function categorySql(alias:string){
    WHEN ${alias}.template_code ILIKE '%MERCHANT%' OR ${alias}.template_code ILIKE '%BRANCH%' THEN 'BUSINESS'
    ELSE 'SYSTEM' END`;
 }
+// notifications.recipient_id is VARCHAR, whereas viewer.user_id is UUID.
+// Explicit casts keep one bound user identifier safe in both comparisons.
 async function viewers(req:AuthenticatedRequest){
  const merchantId=await ownMerchant(req);
  return {merchantId,recipientIds:[merchantId,req.user!.id]};
@@ -31,10 +33,10 @@ merchantInboxRouter.get('/',run(async(req,res)=>{
  const db=durable(),q=inboxFilter.parse(req.query),v=await viewers(req);
  const r=await db.query(`WITH inbox AS (
    SELECT n.id,n.template_code,n.subject,n.payload,n.status,n.created_at,n.recipient_id,
-     COALESCE(viewer.read_at,CASE WHEN n.recipient_id=$2 THEN n.read_at ELSE NULL END) AS read_at,
+     COALESCE(viewer.read_at,CASE WHEN n.recipient_id=$2::text THEN n.read_at ELSE NULL END) AS read_at,
      viewer.archived_at,${categorySql('n')} AS category
    FROM notifications n LEFT JOIN merchant_notification_views viewer
-     ON viewer.notification_id=n.id AND viewer.user_id=$2
+     ON viewer.notification_id=n.id AND viewer.user_id=$2::uuid
    WHERE n.recipient_type='MERCHANT' AND n.channel='IN_APP'
      AND n.recipient_id=ANY($1::text[])
  )
