@@ -58,16 +58,27 @@ function MerchantLiveGate(){
     refresh();return result.data;
  },[apiClient,refresh]);
  const authorized=Boolean(user?.roles?.some((x:string)=>["merchant","merchant_owner","merchant_manager","merchant_staff","admin"].includes(x)));
+ const hasActiveBranch=Boolean(branchId&&branches.some((branch:any)=>branch.id===branchId));
  useEffect(()=>{
   if(!isAuthenticated||!authorized){setBranches([]);setBranchId("");setBranchError(null);setBranchBusy(false);return;}
-  let alive=true;setBranchBusy(true);setBranchError(null);
+  let alive=true;
+  // Background polling/focus refresh must not unmount the workspace or discard unsaved form input.
+  // The loading gate is reserved for first load or when there is no selected authorized branch.
+  setBranchBusy(!hasActiveBranch);setBranchError(null);
   apiClient.request<any[]>("/merchant/branches").then(({data})=>{
     if(!alive)return;
     // Never turn a malformed API response into "no branches" or a made-up success.
     if(!Array.isArray(data))throw new Error("The Merchant branch service returned an invalid response. Retry or contact support.");
     setBranches(data);
     setBranchId(previous=>data.some((b:any)=>b.id===previous)?previous:data[0]?.id||"");
-  }).catch(e=>{if(alive){setBranchError(normalizeMerchantBranchError(e));setBranches([]);setBranchId("");}})
+  }).catch(e=>{
+    if(!alive)return;
+    const failure=normalizeMerchantBranchError(e);
+    setBranchError(failure);
+    // A transient outage is reported inline; do not discard a working branch or the current screen.
+    // Explicit access/membership revocation must still close the workspace.
+    if(failure.kind!=="temporary"||!hasActiveBranch){setBranches([]);setBranchId("");}
+  })
     .finally(()=>{if(alive)setBranchBusy(false);});
   return()=>{alive=false;};
  },[apiClient,isAuthenticated,authorized,revision,branchRetry]);
@@ -125,8 +136,11 @@ function MerchantLiveGate(){
  const merchantId=String(branch?.merchant_id||user?.merchant_ids?.[0]||"");
  const currentResource=loadedBranchId===branchId?resources:empty;
  const live=useMemo<MerchantLiveBridge>(()=>({api:apiClient,user,branchId,merchantId,
-    branch,branches,resource:currentResource,loading:busy||loadedBranchId!==branchId,errors:loadedBranchId===branchId?errors:{},refresh,logout,setBranchId,run}),
-  [apiClient,user,branchId,merchantId,branch,branches,currentResource,busy,loadedBranchId,errors,refresh,logout,run]);
+    branch,branches,resource:currentResource,loading:busy||loadedBranchId!==branchId,
+    errors:{...(loadedBranchId===branchId?errors:{}),
+      ...(branchError?.kind==="temporary"&&hasActiveBranch?{branches:branchError.message}:{})},
+    refresh,logout,setBranchId,run}),
+  [apiClient,user,branchId,merchantId,branch,branches,currentResource,busy,loadedBranchId,errors,branchError,hasActiveBranch,refresh,logout,run]);
  if(isLoading)return <main className="mp-live-gate" role="status">Checking your Merchant session…</main>;
  if(!isAuthenticated)return <main className="mp-live-gate"><div className="mp-live-auth">
    <div className="mp-live-brand">▰ DeeToo <small>Merchant</small></div>
@@ -141,7 +155,7 @@ function MerchantLiveGate(){
  if(!authorized)return <main className="mp-live-gate"><h1>Merchant access required</h1>
    <p>Your account does not have an authorized Merchant role.</p><button onClick={()=>void logout()}>Sign out</button></main>;
  if(branchBusy)return <main className="mp-live-gate" role="status">Loading authorized branches…</main>;
- if(branchError)return <main className="mp-live-gate" role="alert"><h1>{branchError.title}</h1><p>{branchError.message}</p>
+ if(branchError&&(!branch||branchError.kind!=="temporary"))return <main className="mp-live-gate" role="alert"><h1>{branchError.title}</h1><p>{branchError.message}</p>
   {branchError.referenceId&&<p><small>Support reference: {branchError.referenceId}</small></p>}
   <button onClick={()=>setBranchRetry(v=>v+1)}>Retry branch connection</button>
   {branchError.kind==="membership"&&<button type="button" onClick={()=>void logout()}>Sign out</button>}

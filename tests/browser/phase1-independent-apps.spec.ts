@@ -63,6 +63,51 @@ test('Merchant Web authenticates independently and reaches merchant-scoped APIs'
   await context.close();
 });
 
+test('Merchant background refresh preserves the selected screen and in-progress input on temporary branch outage', async ({ browser }) => {
+  const context=await browser.newContext();
+  const page=await context.newPage();
+  let failBackground=false;
+  let branchRequests=0;
+  await page.route('**/api/v1/merchant/branches',async route=>{
+    branchRequests++;
+    if(!failBackground){await route.continue();return;}
+    // Keep the background request in flight long enough to catch a blocking loading gate.
+    await new Promise(resolve=>setTimeout(resolve,600));
+    await route.fulfill({status:503,contentType:'application/json',body:JSON.stringify({
+      error:{code:'BRANCH_UNAVAILABLE',message:'Branch catalogue is temporarily unavailable'}
+    })});
+  });
+  await page.goto('http://127.0.0.1:5174');
+  await page.locator('.mp-live-auth input[autocomplete="username"]').fill('merchant@deetoo.ke');
+  await page.locator('.mp-live-auth input[type="password"]').fill('MerchantPass123!');
+  await page.getByRole('button',{name:'Sign in',exact:true}).click();
+  await expect(page.locator('.mp-sidebar')).toBeVisible({timeout:20_000});
+
+  await page.locator('.mp-sidebar nav').getByRole('button',{name:'Menu & availability',exact:true}).click();
+  await expect(page.getByRole('heading',{name:'Menu & availability',exact:true}).first()).toBeVisible();
+  const search=page.locator('.mp-global-search input');
+  await search.fill('unsaved merchant search');
+  const before=branchRequests;
+  failBackground=true;
+  // Focus and the 30-second polling timer use the same resource/branch refresh callback.
+  await page.evaluate(()=>window.dispatchEvent(new Event('focus')));
+  await expect.poll(()=>branchRequests).toBeGreaterThan(before);
+  await expect(page.locator('.mp-live-gate')).toHaveCount(0);
+  await expect(page.locator('.mp-sidebar')).toBeVisible();
+  await expect(search).toHaveValue('unsaved merchant search');
+  await expect(page.getByRole('heading',{name:'Menu & availability',exact:true}).first()).toBeVisible();
+  await expect(page.locator('.mp-live-error')).toContainText('Branch catalogue is temporarily unavailable');
+  await expect(search).toHaveValue('unsaved merchant search');
+
+  failBackground=false;
+  const recovered=page.waitForResponse(r=>r.url().includes('/api/v1/merchant/branches')&&r.status()===200);
+  await page.evaluate(()=>window.dispatchEvent(new Event('focus')));
+  await recovered;
+  await expect(page.locator('.mp-sidebar')).toBeVisible();
+  await expect(search).toHaveValue('unsaved merchant search');
+  await context.close();
+});
+
 test('Merchant branch failures display DeeToo error messages and recover without reload', async ({ browser }) => {
   const context=await browser.newContext();
   const page=await context.newPage();
