@@ -4,7 +4,7 @@ import { merchantErrorMessage, normalizeMerchantBranchError } from "../../apps/m
 
 test("Merchant API errors show their message instead of [object Object]", () => {
   const error={error:{code:"BRANCH_UNAVAILABLE",message:"Branch catalogue is unavailable",request_id:"req_mer_100"}};
-  assert.equal(merchantErrorMessage(error),"Branch catalogue is unavailable");
+  assert.equal(merchantErrorMessage(error),"Branch catalogue is unavailable · Support reference: req_mer_100");
   const issue=normalizeMerchantBranchError(error);
   assert.equal(issue.message,"Branch catalogue is unavailable");
   assert.equal(issue.referenceId,"req_mer_100");
