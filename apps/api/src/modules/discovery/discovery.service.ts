@@ -26,6 +26,7 @@ import { getDbPool } from '../../db/client';
 import { logger, calculateDistanceMeters } from '@deetoo/utils';
 import { cartRepository } from '../cart/cart.repository';
 import { AppError } from '../../middleware/error-handler';
+import {branchCoverImageUrl,publishedBranchCoverIds} from '../media/branch-cover';
 
 export class DiscoveryService {
   private ephemeralCategories = new Map<string, RestaurantCategory>();
@@ -299,6 +300,8 @@ export class DiscoveryService {
     const allBranches = await merchantRepository.listAllBranches({
       status: BranchAdminStatus.ACTIVE,
     });
+    // One verified-media lookup for the complete discovery result set.
+    const branchCovers=await publishedBranchCoverIds(allBranches.map(branch=>branch.id));
 
     const activeCustomerZoneId = serviceability.zone_id;
     const candidates: PublicRestaurantBranch[] = [];
@@ -366,8 +369,9 @@ export class DiscoveryService {
         branch_name: branch.name,
         slug: branch.slug || merchant.slug,
         logo_url: merchant.logo_url || 'https://images.unsplash.com/photo-1550547660-d9450f859349?w=600',
-        cover_url:
-          merchant.logo_url || 'https://images.unsplash.com/photo-1550547660-d9450f859349?w=600',
+        cover_url: branchCovers.has(branch.id)
+          ? branchCoverImageUrl(branch.id)
+          : merchant.logo_url || 'https://images.unsplash.com/photo-1550547660-d9450f859349?w=600',
         categories: categoryNames.length > 0 ? categoryNames : ['Burgers', 'Fast Food'],
         category_ids: categoryIds,
         address_text: branch.address_text,
@@ -496,6 +500,7 @@ export class DiscoveryService {
       throw new AppError(404, 'RESTAURANT_NOT_FOUND', 'Restaurant is currently unavailable');
     }
 
+    const detailBranchHasCover=(await publishedBranchCoverIds([branchId])).has(branchId);
     const availability = await merchantService.evaluateBranchAvailability(branchId);
     const openingHours = await merchantRepository.getOpeningHours(branchId);
     const { names: categoryNames, ids: categoryIds } = await this.getBranchCategories(branchId);
@@ -543,8 +548,9 @@ export class DiscoveryService {
       branch_name: branch.name,
       slug: branch.slug || merchant.slug,
       logo_url: merchant.logo_url || 'https://images.unsplash.com/photo-1550547660-d9450f859349?w=600',
-      cover_url:
-        merchant.logo_url || 'https://images.unsplash.com/photo-1550547660-d9450f859349?w=600',
+      cover_url: detailBranchHasCover
+        ? branchCoverImageUrl(branchId)
+        : merchant.logo_url || 'https://images.unsplash.com/photo-1550547660-d9450f859349?w=600',
       categories: categoryNames.length > 0 ? categoryNames : ['Burgers', 'Fast Food'],
       category_ids: categoryIds,
       address_text: branch.address_text,
