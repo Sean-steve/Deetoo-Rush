@@ -680,7 +680,8 @@ export class CatalogueService {
         actor_role: UserRole.MERCHANT,
         action: AuditAction.CATALOGUE_BRANCH_OVERRIDE_UPDATED,
         resource_type: "MENU_ITEM_OVERRIDE",
-        resource_id: `${branchId}:${itemId}`,
+        // Audit resources use UUID columns. The composite identity belongs in metadata.
+        resource_id: itemId,
         metadata: {
           merchant_id: merchantId,
           branch_id: branchId,
@@ -1056,7 +1057,8 @@ export class CatalogueService {
       actor_role: UserRole.MERCHANT,
       action: AuditAction.CATALOGUE_BRANCH_OVERRIDE_UPDATED,
       resource_type: "MENU_ITEM_OVERRIDE",
-      resource_id: `${branchId}:${itemId}`,
+      // Audit resources use UUID columns. The composite identity belongs in metadata.
+        resource_id: itemId,
       metadata: {
         merchant_id: merchantId,
         branch_id: branchId,
