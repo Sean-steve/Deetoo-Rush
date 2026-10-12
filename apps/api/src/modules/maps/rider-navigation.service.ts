@@ -36,6 +36,7 @@ export async function riderRouteForDelivery(deliveryId:string,userId:string,stop
  const origin=point(latest);
  const destination=point(stop==='pickup'?detail.pickup.location:detail.dropoff.location);
  const key=process.env.GOOGLE_ROUTES_API_KEY;
+ const travelMode=rider.vehicleType==='BICYCLE'?'BICYCLE':rider.vehicleType==='MOTORBIKE'?'TWO_WHEELER':'DRIVE';
  const localRoute=(!config.isProduction&&config.localWorkflow)?process.env.DEETOO_RIDER_LOCAL_ROUTING_URL:undefined;
  if(!key&&!localRoute)
   throw new AppError(503,'RIDER_ROUTING_UNCONFIGURED','In-app route guidance requires GOOGLE_ROUTES_API_KEY or an explicitly configured local routing service');
@@ -64,7 +65,7 @@ export async function riderRouteForDelivery(deliveryId:string,userId:string,stop
      'X-Goog-FieldMask':'routes.duration,routes.distanceMeters,routes.polyline.encodedPolyline,routes.legs.steps.distanceMeters,routes.legs.steps.navigationInstruction.instructions'},
    body:JSON.stringify({
      origin:{location:{latLng:origin}},destination:{location:{latLng:destination}},
-     travelMode:'DRIVE',routingPreference:'TRAFFIC_AWARE',computeAlternativeRoutes:false,
+     travelMode,routingPreference:travelMode==='BICYCLE'?undefined:'TRAFFIC_AWARE',computeAlternativeRoutes:false,
    }),signal:AbortSignal.timeout(9000),
   });
   if(!response.ok)throw new Error('Google Routes HTTP '+response.status);
