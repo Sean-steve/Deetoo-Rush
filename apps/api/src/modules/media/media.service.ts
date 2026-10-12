@@ -203,6 +203,20 @@ class MediaService {
     return media;
   }
 
+  /**
+   * Called only after a public catalogue linkage check; never bypass that check
+   * from a generic /media endpoint.
+   */
+  async getPublicVerifiedCatalogueImageUrl(mediaId:string):Promise<string>{
+    const media=await mediaRepository.findById(mediaId);
+    if(!media || media.status!=="VERIFIED" || media.purpose!=="MERCHANT_IMAGE" ||
+       !media.content_type.startsWith("image/"))
+      throw new AppError(404,"MENU_IMAGE_NOT_FOUND","Food image not found");
+    if(config.storage.mode!=="postgres")throw new AppError(404,"MENU_IMAGE_NOT_FOUND","Food image not found");
+    return getSignedUrl(this.client(),
+      new GetObjectCommand({Bucket:media.bucket,Key:media.object_key}),{expiresIn:120});
+  }
+
   async getReadUrl(
     mediaId: string,
     requestingUserId: string,
