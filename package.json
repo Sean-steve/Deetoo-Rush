@@ -30,6 +30,7 @@
     "db:migrate": "tsx --import dotenv/config scripts/db-migrate.ts",
     "media:setup:local": "tsx --import dotenv/config scripts/media-setup-local.ts",
     "db:status": "tsx --import dotenv/config scripts/db-status.ts",
+    "rider:doctor": "tsx --import dotenv/config scripts/rider-availability-doctor.ts",
     "db:migrate:dev": "tsx --import dotenv/config scripts/db-migrate.ts --dev",
     "db:rollback": "tsx --import dotenv/config scripts/db-rollback.ts",
     "db:seed": "tsx --import dotenv/config scripts/db-seed.ts",

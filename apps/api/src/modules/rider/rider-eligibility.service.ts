@@ -1,4 +1,3 @@
-import { allowMemoryAdapter } from '../../db/storage-policy';
 import { transactionalService } from '../../db/transaction';
 /**
  * DEETOO - Centralized Rider Dispatch Eligibility & Stale Location Service
@@ -278,9 +277,13 @@ export class RiderEligibilityService {
               reason: 'LOCATION_STALE',
             },
           });
-        } catch {
-    allowMemoryAdapter();
-          // best-effort event publish
+        } catch (error) {
+          // Stale-rider state and dispatch removal are authoritative. A
+          // best-effort realtime publish cannot fabricate a storage outage.
+          logger.warn('Unable to publish Rider stale-location notification', {
+            service: 'rider',
+            metadata: { riderId: rider.id, error: error instanceof Error ? error.message : String(error) },
+          });
         }
 
         transitioned++;

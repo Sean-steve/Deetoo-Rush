@@ -1,4 +1,5 @@
 import { allowMemoryAdapter } from './storage-policy';
+import { AppError } from '../middleware/error-handler';
 /**
  * DEETOO - Redis Connection Manager & Ephemeral Fallback
  * Implements Section 12 & ADR-005 (Non-authoritative ephemeral store with safe degradation failure policy)
@@ -215,11 +216,22 @@ export function getRedisClient(): Redis | null {
 }
 
 export async function readyRedis(): Promise<Redis> {
+  // ioredis enters "end" after a failed connection when retryStrategy returns
+  // null. A later request must be able to connect after Redis is restarted,
+  // without needing to restart the API process.
+  if (redisClient?.status === 'end' || redisClient?.status === 'close') closeRedisClient();
   const client = getRedisClient();
-  if (!client) throw new Error('Redis unavailable');
+  if (!client) throw new Error('Redis client unavailable');
   if (client.status !== 'ready') {
     if (!connecting) connecting = client.connect().finally(() => { connecting = null; });
-    await connecting;
+    try {
+      await connecting;
+    } catch (error) {
+      // Discard a terminal client, so the next request can retry after
+      // operators have restored Redis. Never fall back to a local geo index.
+      closeRedisClient();
+      throw error;
+    }
   }
   return client;
 }
@@ -276,7 +288,17 @@ export class RiderLocationStore {
   private async getStore(): Promise<any> {
     if (config.storage.mode === 'memory') return fallbackCache;
     try { return await readyRedis(); }
-    catch { allowMemoryAdapter(); return fallbackCache; }
+    catch (error) {
+      logger.warn('Rider availability requires Redis; no local fallback is permitted', {
+        service: 'rider',
+        metadata: { dependency: 'redis', error: error instanceof Error ? error.message : String(error) },
+      });
+      // Redis is necessary to dispatch from an authoritative shared geo
+      // index. A generic DURABLE_STORAGE_REQUIRED error hides this outage.
+      throw new AppError(503, 'RIDER_REDIS_UNAVAILABLE',
+        'Live rider availability is temporarily unavailable. The API cannot connect to Redis. Check the Redis service and retry.',
+        { dependency: 'redis' });
+    }
   }
 
   async updateLocation(
