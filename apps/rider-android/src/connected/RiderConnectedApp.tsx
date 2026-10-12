@@ -146,10 +146,18 @@ export function RiderConnectedApp() {
     setView(1);
   },undefined,false);
   const availability=()=>run(async()=>{
-    if(status?.profile?.workStatus!=='OFFLINE'){await api.goOffline();await stopRiderLocationService();return;}
+    const workStatus=String(status?.profile?.workStatus||'OFFLINE');
+    if(workStatus==='ONLINE_AVAILABLE'||workStatus==='ONLINE_UNAVAILABLE'||workStatus==='ON_DELIVERY'){
+      await api.goOffline();
+      await stopRiderLocationService();
+      return;
+    }
+    // The Go Online API verifies and records this GPS fix itself. Sending
+    // /rider/location first duplicates Redis work, and can store coordinates
+    // even when the rider is ineligible to start an availability session.
     const loc=await getFreshLocation();
     const data={latitude:loc.coords.latitude,longitude:loc.coords.longitude,accuracy_meters:loc.coords.accuracy||0};
-    await api.location({...data,recorded_at:new Date(loc.timestamp).toISOString()});await api.goOnline(data);
+    await api.goOnline(data);
     await startRiderLocationService();
     await registerRiderPushDevice(session.client).then(()=>setPushReady(true)).catch(()=>setNotice('Online. Push permissions still need attention.'));
   },'Availability updated by DeeToo.');
