@@ -1,4 +1,4 @@
-import { StrictMode } from 'react';
+import { StrictMode, type ComponentType } from 'react';
 import { createRoot } from 'react-dom/client';
 import { AdminNext } from '../../admin-web-next/src/App';
 
@@ -6,7 +6,7 @@ import { AdminNext } from '../../admin-web-next/src/App';
 // workspace is always live here, even if a developer enabled the standalone
 // design preview with VITE_ADMIN_NEXT_MODE=demo.
 const root = createRoot(document.getElementById('root')!);
-const mount = (App: React.ComponentType) => root.render(<StrictMode><App /></StrictMode>);
+const mount = (App: ComponentType) => root.render(<StrictMode><App /></StrictMode>);
 
 if (new URLSearchParams(window.location.search).get('admin-legacy') === '1') {
   // Explicit, reversible rollback only. Keep legacy styles out of the
