@@ -284,9 +284,19 @@ installed APK does not magically gain new native UI code from a server restart.
 
 OpenStreetMap Foundation's volunteer-run `tile.openstreetmap.org` is **not**
 a production tile CDN. It blocked the earlier native direct-image requests.
-The Rider app **no longer makes requests to that host**. Set one of these
-variables in the **Rider Android build environment** before restarting Expo
-or rebuilding the APK:
+The Rider app **no longer makes requests to that host**. Copy
+`apps/rider-android/.env.example` to `apps/rider-android/.env`, configure
+your licensed key, and start the Expo application from the Rider package:
+
+```bash
+cd apps/rider-android
+cp .env.example .env
+# Edit the .env file to set your MapTiler key or licensed tile template.
+pnpm start
+```
+
+The **Rider build** (not just the API server) must receive the following
+configuration before the native app is restarted or the APK rebuilt:
 
 ```env
 # Preferred: your own MapTiler cloud public/restricted key
