@@ -9,7 +9,6 @@ import {
   S3Client,
   CreateBucketCommand,
   HeadBucketCommand,
-  PutBucketCorsCommand,
 } from "@aws-sdk/client-s3";
 
 const allowedLocalHosts = new Set(["127.0.0.1", "localhost", "[::1]"]);
@@ -48,30 +47,17 @@ export async function setupLocalMedia(env: NodeJS.ProcessEnv = process.env) {
   try {
     try {
       await s3.send(new HeadBucketCommand({ Bucket:cfg.bucket }));
-      process.stdout.write("Local private-media bucket already exists.\\n");
+      process.stdout.write("Local private-media bucket already exists.\n");
     } catch (error:any) {
       if (error?.$metadata?.httpStatusCode !== 404 &&
           error?.name !== "NotFound" &&
           error?.name !== "NoSuchBucket") throw error;
       await s3.send(new CreateBucketCommand({ Bucket:cfg.bucket }));
-      process.stdout.write("Created the local private-media bucket.\\n");
+      process.stdout.write("Created the local private-media bucket.\n");
     }
-    await s3.send(new PutBucketCorsCommand({
-      Bucket:cfg.bucket,
-      CORSConfiguration:{ CORSRules:[{
-        AllowedOrigins:[
-          "http://localhost:5173","http://127.0.0.1:5173",
-          "http://localhost:5174","http://127.0.0.1:5174",
-          "http://localhost:5175","http://127.0.0.1:5175",
-          "http://localhost:5178","http://127.0.0.1:5178",
-        ],
-        AllowedMethods:["GET","PUT","HEAD"],
-        AllowedHeaders:["*"],
-        ExposeHeaders:["ETag"],
-        MaxAgeSeconds:3600,
-      }]},
-    }));
-    process.stdout.write("Private media is ready. CORS allows only local DeeToo portals; anonymous bucket access remains disabled.\\n");
+    // The community MinIO container reads MINIO_API_CORS_ALLOW_ORIGIN from
+    // docker-compose.yml; per-bucket PutBucketCors requires a different edition.
+    process.stdout.write("Local private-media bucket is ready. Browser origins are restricted by Docker configuration; anonymous access stays disabled.\n");
   } finally {
     s3.destroy();
   }
@@ -79,5 +65,5 @@ export async function setupLocalMedia(env: NodeJS.ProcessEnv = process.env) {
 
 // Do not connect to S3 when imported from a unit test.
 if (process.argv[1] && /media-setup-local\\.(?:ts|js)$/.test(process.argv[1])) {
-  setupLocalMedia().catch(err=>{process.stderr.write("Local media setup failed: "+String(err?.message||err)+"\\n");process.exitCode=1;});
+  setupLocalMedia().catch(err=>{process.stderr.write("Local media setup failed: "+String(err?.message||err)+"\n");process.exitCode=1;});
 }
