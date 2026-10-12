@@ -6670,6 +6670,58 @@ paths:
       operationId: rider_get_rider_deliveries_id
       security:
       - bearerAuth: []
+  /rider/deliveries/{id}/route:
+    get:
+      tags:
+        - Rider
+      summary: Server-verified in-app Rider navigation for an assigned active delivery
+      description: Requires authenticated assigned Rider, fresh Redis GPS, and a configured routing provider. Destination is derived from delivery records, not client coordinates. Returns route geometry and manoeuvres only while fulfilment is active.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - in: query
+          name: stop
+          required: true
+          schema:
+            type: string
+            enum: [pickup, dropoff]
+      responses:
+        '200':
+          description: Route geometry, distance, duration and manoeuvre steps
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      provider: { type: string }
+                      meters: { type: number }
+                      seconds: { type: number }
+                      points:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            latitude: { type: number }
+                            longitude: { type: number }
+                      steps:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            instruction: { type: string }
+                            meters: { type: number }
+        '403': { description: Rider is not assigned or private delivery access has ended }
+        '409': { description: GPS position stale }
+        '503': { description: Routing provider unavailable or unconfigured }
   /rider/deliveries/{id}/arrive-pickup:
     post:
       summary: STUB - POST /rider/deliveries/:id/arrive-pickup (registered, not yet individually specified)
