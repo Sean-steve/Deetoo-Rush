@@ -87,12 +87,13 @@ function MerchantLiveGate(){
   if(!isAuthenticated||!authorized||!branchId)return;
   let alive=true;setBusy(true);
   const url=(part:string)=>part+"?branch_id="+encode(branchId);
+  const selectedMerchantId=String(branches.find((entry:any)=>entry.id===branchId)?.merchant_id||"");
   const requests:Record<string,Promise<any>>={
     orders:apiClient.request<any[]>(url("/merchant/orders")+"\u0026limit=100"),
     history:apiClient.request<any[]>(url("/merchant/experience/orders/history")+"\u0026limit=100\u0026sort=newest"),
     metrics:apiClient.request(url("/merchant/experience/orders/metrics")),
-    menus:apiClient.request<any[]>("/merchant/menus"),
-     branchCatalogue:apiClient.request(`/merchant/branches/${encode(branchId)}/catalogue`),
+    menus:apiClient.request<any[]>("/merchant/menus"+(selectedMerchantId?"?merchant_id="+encode(selectedMerchantId):"")),
+     branchCatalogue:apiClient.request(`/merchant/branches/${encode(branchId)}/catalogue`+(selectedMerchantId?"?merchant_id="+encode(selectedMerchantId):"")),
     inventory:apiClient.request<any[]>(`/merchant/experience/branches/${encode(branchId)}/inventory`),
     team:apiClient.request("/merchant/team"),
     profile:apiClient.request("/merchant/profile"),
