@@ -54,9 +54,11 @@ export function deliveryAreaName(area:unknown,address:unknown):string{
  const clean=(x:unknown)=>typeof x==='string'?x.trim().replace(/\s+/g,' '):'';
  const selected=clean(area);
  if(selected&&!/^(home|work|other|customer drop.?off|delivery address)$/i.test(selected))return selected;
- const parts=clean(address).split(',').map(x=>x.trim()).filter(Boolean);
+ const parts=clean(address).split(',').map(x=>x.trim()).filter(Boolean)
+   .filter((part,i,all)=>i!==all.length-1||!/^(kenya|ke)$/i.test(part));
  if(parts.length>=3)return parts[parts.length-2];
  if(parts.length===2)return parts[0];
+ if(parts.length===1&&!/\d|\b(road|street|avenue|plot|house|building)\b/i.test(parts[0]))return parts[0];
  // A single unstructured address cannot reliably establish a neighborhood.
  return '';
 }
