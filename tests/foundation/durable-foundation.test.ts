@@ -414,11 +414,21 @@ test('dependency loss fails closed and Redis reconnects without a health-check s
   try {
     config.redis.url='redis://127.0.0.1:1';
     assert.equal((await redis.checkRedisHealth()).status,'degraded');
-    await assert.rejects(riderLocationStore.getLiveLocation(randomUUID()), {statusCode:503});
+    await assert.rejects(riderLocationStore.getLiveLocation(randomUUID()), {
+      statusCode:503, code:'RIDER_REDIS_UNAVAILABLE',
+    });
+    // Repeat while Redis is offline: never accept a local-memory location.
+    await assert.rejects(riderLocationStore.saveLiveLocation(randomUUID(),{
+      riderId:randomUUID(),latitude:-1.2864,longitude:36.8172,accuracyMeters:10,
+      recordedAt:new Date().toISOString(),receivedAt:new Date().toISOString(),
+    }),{code:'RIDER_REDIS_UNAVAILABLE'});
     await closeDbPool(); config.database.url='postgres://postgres:invalid@127.0.0.1:1/foundation';
     await assert.rejects(authRepository.findUserById(randomUUID()));
-  } finally { redis.closeRedisClient();config.redis.url=redisUrl;await closeDbPool();config.database.url=dbUrl; }
-  assert.equal(await riderLocationStore.getLiveLocation(randomUUID()),null);
+  } finally { config.redis.url=redisUrl;await closeDbPool();config.database.url=dbUrl; }
+  // Crucial: restore connectivity WITHOUT closing the failed Redis client or
+  // restarting the API. The next Rider request must automatically reconnect.
+  try { assert.equal(await riderLocationStore.getLiveLocation(randomUUID()),null); }
+  finally {redis.closeRedisClient();}
 });
 
 
