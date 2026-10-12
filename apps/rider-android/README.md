@@ -256,7 +256,7 @@ and top-left back button follow Rider screen history instead of closing the
 shift from a nested page.
 
 The Home service-zone map renders **actual assigned PostGIS zone GeoJSON** and
-the Rider's last recorded GPS position using a configured, authorized raster tile provider and OpenStreetMap geographic data (an\ninternet connection is required). It does not draw example locations. Tile
+the Rider's last recorded GPS position using a configured, authorized raster tile provider and OpenStreetMap geographic data (an internet connection is required). It does not draw example locations. Tile
 usage must meet [OpenStreetMap's tile policy](https://operations.osmfoundation.org/policies/tiles/);
 use a contracted tile provider for significant production traffic.
 
