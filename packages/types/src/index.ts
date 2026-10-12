@@ -769,6 +769,8 @@ export interface MerchantBranch {
   id: string;
   merchant_id: string;
   name: string;
+  display_name?: string;
+  description?: string;
   slug?: string;
   email?: string;
   phone?: string;
