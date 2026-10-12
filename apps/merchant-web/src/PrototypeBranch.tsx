@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import type { MerchantLiveBridge } from "./MerchantLiveApp";
+import { merchantErrorMessage } from "./merchant-branch-errors";
 import { CalendarClock, Check, ChefHat, Clock3, ImagePlus, LocateFixed, MapPin, Settings2, Store, Truck, Utensils, Plus, Save, Navigation } from "lucide-react";
 
 type BranchData = { name: string; display: string; description: string; street: string; city: string; phone: string; email: string; latitude: string; longitude: string; prep: string; minOrder: string; image: string };
@@ -30,7 +31,7 @@ export function PrototypeBranch({store,setStore,notify,live}:{store:"Open"|"Paus
     if(active)setBranch(prev=>({...prev,image:r.data.url}));
   }).catch(()=>{/* Image remains visible as a placeholder if private media access is unavailable. */});
  }
- }).catch(e=>{if(active)setLoadError(e instanceof Error?e.message:String(e));});return()=>{active=false};},[live?.branchId,live?.branch?.updated_at]);
+ }).catch(e=>{if(active)setLoadError(merchantErrorMessage(e));});return()=>{active=false};},[live?.branchId,live?.branch?.updated_at]);
 
  const update=(key:keyof BranchData,value:string)=>setBranch(prev=>({...prev,[key]:value}));
  const save=async()=>{if(!branch.name.trim()||!branch.street.trim()||!branch.city.trim()||!Number.isFinite(Number(branch.latitude))||Math.abs(Number(branch.latitude))>90||!Number.isFinite(Number(branch.longitude))||Math.abs(Number(branch.longitude))>180){notify("Check required branch details and coordinates.");return;}
@@ -43,16 +44,18 @@ export function PrototypeBranch({store,setStore,notify,live}:{store:"Open"|"Paus
  await live.api.request(`/merchant/experience/branches/${live.branchId}/policies`,{method:"PUT",body:JSON.stringify({delivery_enabled:delivery,pickup_enabled:pickup,dine_in_enabled:dineIn||tableService,table_qr_enabled:tableService,max_concurrent_orders:Number(maxConcurrent),cover_media_id:coverMedia})});
  savedSections.push("Service and ordering policies");
  notify("Branch settings saved to DeeToo");live.refresh();
- }catch(e){const details=e instanceof Error?e.message:String(e);const message=savedSections.length?`Partially saved: ${savedSections.join(", ")}. Later sections failed (${details}). Review server values before retrying; saving is not an atomic transaction.`:`No branch changes were saved: ${details}`;setLoadError(message);notify(message);if(savedSections.length)live.refresh();}finally{setBusy(false);}return;}
+ }catch(e){const details=merchantErrorMessage(e);const message=savedSections.length?`Partially saved: ${savedSections.join(", ")}. Later sections failed (${details}). Review server values before retrying; saving is not an atomic transaction.`:`No branch changes were saved: ${details}`;setLoadError(message);notify(message);if(savedSections.length)live.refresh();}finally{setBusy(false);}return;}
  try { const persistable={...branch,image:branch.image.length<450000?branch.image:""}; localStorage.setItem("mp-demo-branch",JSON.stringify(persistable));localStorage.setItem("mp-demo-hours",JSON.stringify(hours));notify(persistable.image!==branch.image?"Branch settings saved; large image preview remains in this tab only.":"Branch settings saved in frontend prototype"); } catch {notify("Branch updated in this tab, but browser storage is full.");}};
  const navigate=(section:string)=>{setTab(section);if(section==="Ordering rules")setDialog("rules");else if(section==="Advanced")setDialog("advanced");else document.getElementById("mp-branch-"+section.toLowerCase().replace(/\s+/g,"-"))?.scrollIntoView({behavior:"smooth",block:"center"});};
  const updateHour=(day:string,patch:Partial<Hours>)=>setHours(prev=>prev.map(row=>row.day===day?{...row,...patch}:row));
  const onImage=async(event:React.ChangeEvent<HTMLInputElement>)=>{const file=event.target.files?.[0];if(!file)return;if(!file.type.startsWith("image/")||file.size>5*1024*1024){notify("Choose a JPG, PNG or WebP image under 5 MB");return;}if(live){try{const grant=(await live.api.request<any>("/media/uploads",{method:"POST",body:JSON.stringify({purpose:"MERCHANT_IMAGE",content_type:file.type,reference_type:"BRANCH",reference_id:live.branchId})})).data;
+ if(!grant?.upload_url||!grant?.media_id)throw new Error("The upload service did not provide a valid upload destination.");
+ if(!/^https?:\/\//.test(grant.upload_url))throw new Error("Private object storage must be configured before uploading branch photos. The current image has not changed.");
  const uploaded=await fetch(grant.upload_url,{method:"PUT",headers:grant.upload_headers||{"Content-Type":file.type},body:file});if(!uploaded.ok)throw new Error("Object storage rejected upload");
  const completed=(await live.api.request<any>(`/media/uploads/${grant.media_id}/complete`,{method:"POST"})).data;
- if(completed.status!=="VERIFIED")throw new Error("Image verification pending");
+ if(completed.status!=="VERIFIED")throw new Error("Image verification is incomplete. The current branch image has not changed.");
  setCoverMedia(grant.media_id);notify("Image uploaded; save branch settings to publish.");const reader=new FileReader();reader.onload=()=>update("image",String(reader.result));reader.readAsDataURL(file);
- }catch(e){notify("Image upload unavailable: "+(e instanceof Error?e.message:String(e)));}return;}
+ }catch(e){notify("Image upload unavailable: "+merchantErrorMessage(e));}return;}
  const reader=new FileReader();reader.onload=()=>{update("image",String(reader.result));setDialog(null);notify("Branch image updated locally. Save branch settings to keep changes.");};reader.readAsDataURL(file);};
  return <div className="mp-p2">
    <DemoHeading eyebrow="BRANCH SETTINGS" title="Branch settings" description="Manage your branch information, location, operating hours and preparation settings." action={<BranchBanner store={store} onAction={()=>setDialog("location")}/>} />
