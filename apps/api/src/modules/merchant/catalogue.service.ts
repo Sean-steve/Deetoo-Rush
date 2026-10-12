@@ -24,6 +24,7 @@ import { AppError } from "../../middleware/error-handler";
 import { authRepository } from "../auth/auth.repository";
 import { merchantRepository } from "./merchant.repository";
 import { catalogueRepository } from "./catalogue.repository";
+import { validateCatalogueImageForItem } from "../media/catalogue-image";
 
 export class CatalogueService {
   // ==========================================
@@ -466,6 +467,8 @@ export class CatalogueService {
       }
     }
 
+    await validateCatalogueImageForItem(data.image_url,actorUserId,merchantId);
+
     const now = new Date().toISOString();
     const existing = await catalogueRepository.listItemsByCategory(
       data.category_id,
@@ -563,6 +566,7 @@ export class CatalogueService {
       }
     }
 
+    await validateCatalogueImageForItem(data.image_url,actorUserId,merchantId,itemId);
     const updated = await catalogueRepository.updateItem(itemId, data);
 
     await authRepository.createAuditLog({

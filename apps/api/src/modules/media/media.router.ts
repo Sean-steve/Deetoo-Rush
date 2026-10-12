@@ -6,8 +6,21 @@ import { deliveryRepository } from '../order/delivery.repository';
 import { riderRepository } from '../rider/rider.repository';
 import { DeliveryStatus } from '@deetoo/types';
 import {operationsRepository} from '../operations/operations.repository';
+import { publicCatalogueImageRedirect } from './catalogue-image';
+import { merchantRepository } from '../merchant/merchant.repository';
+import { branchScope, merchantScope } from '../auth/scope';
+import { requireMerchantCapability } from '../merchant/merchant-role-policy.service';
 
 export const mediaRouter = Router();
+// Food photos are public only when the private verified object is linked to an
+// active published menu item. All other media routes still require auth.
+mediaRouter.get('/catalogue/:id', async(req,res,next)=>{
+ try{
+  const url=await publicCatalogueImageRedirect(req.params.id);
+  res.setHeader('Cache-Control','no-store');
+  res.redirect(302,url);
+ }catch(error){next(error);}
+});
 mediaRouter.use(requireAuth);
 
 function roles(req: AuthenticatedRequest): Set<string> {
@@ -75,6 +88,20 @@ async function assertPurposeScope(
     const r = roles(req);
     if (!r.has('merchant_owner') && !r.has('merchant_manager') && !r.has('admin') && !r.has('super_admin')) {
       throw new AppError(403, 'MEDIA_PURPOSE_FORBIDDEN', 'Merchant media upload requires merchant management access');
+    }
+    const refType=String(req.body?.reference_type||"").toUpperCase();
+    if(normalized==='MERCHANT_IMAGE' && (refType==='MENU_DRAFT'||refType==='MENU_ITEM')){
+      if(!referenceId)throw new AppError(400,'MEDIA_REFERENCE_REQUIRED','Food image requires a menu or item reference');
+      const db=(await import('../../db/client')).getDbPool();
+      const owned=refType==='MENU_DRAFT'
+        ? (await db.query('SELECT id FROM merchants WHERE id=$1',[referenceId])).rows[0]
+        : (await db.query('SELECT m.merchant_id AS id FROM menu_items i JOIN menus m ON m.id=i.menu_id WHERE i.id=$1',[referenceId])).rows[0];
+      if(!owned)throw new AppError(404,'MENU_IMAGE_REFERENCE_MISSING','Food image merchant or item not found');
+      await merchantScope(req.user!,owned.id,true,true,false);
+      await requireMerchantCapability(req.user!.id,owned.id,'MENU_WRITE');
+    }else if(normalized==='MERCHANT_IMAGE' && refType==='BRANCH'){
+      if(!referenceId)throw new AppError(400,'MEDIA_REFERENCE_REQUIRED','Branch image requires a branch reference');
+      await branchScope(req.user!,referenceId);
     }
   }
 }

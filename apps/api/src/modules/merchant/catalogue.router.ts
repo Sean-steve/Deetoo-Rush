@@ -1,4 +1,6 @@
 import { branchScope, merchantScope } from "../auth/scope";
+import { merchantRepository } from "./merchant.repository";
+import { AppError } from "../../middleware/error-handler";
 /**
  * DEETOO - Merchant Catalogue API Router
  * Endpoints for menus, categories, items, prices, modifier groups, options, and branch availability
@@ -50,10 +52,19 @@ catalogueRouter.use(async (req: AuthenticatedRequest, _res, next) => {
     for (const id of req.body?.branch_ids || [])
       await branchScope(req.user!, id);
     if (req.method !== "GET") {
-      const merchantId=await resolveMerchantId(req);
-      await merchantScope(req.user!, merchantId, true, true, false);
+      const isAvailability = req.method === "PATCH" && /^\/items\/[^/]+\/availability$/.test(req.path);
+      const branchId = typeof req.body?.branch_id === "string" ? req.body.branch_id : undefined;
+      // The active branch, not the first membership returned by the database,
+      // determines which merchant owns a branch-scoped availability request.
+      const branch = isAvailability && branchId ? await merchantRepository.findBranchById(branchId) : null;
+      if (isAvailability && branchId && !branch) throw new AppError(404,"BRANCH_NOT_FOUND","Branch not found");
+      const merchantId = branch?.merchant_id || await resolveMerchantId(req);
+      await merchantScope(req.user!, merchantId, !isAvailability, !isAvailability, false);
+      if (isAvailability && !branchId && req.user!.roles.some(r=>String(r)==="merchant_staff")) {
+        throw new AppError(400,"BRANCH_REQUIRED","Staff availability changes must be scoped to an assigned branch");
+      }
       if (!req.user!.roles.some(r=>["admin","ops"].includes(String(r))))
-        await requireMerchantCapability(req.user!.id,merchantId,"MENU_WRITE");
+        await requireMerchantCapability(req.user!.id,merchantId,isAvailability ? "MENU_AVAILABILITY_WRITE" : "MENU_WRITE");
     }
     next();
   } catch (err) {
@@ -510,8 +521,10 @@ catalogueRouter.patch(
   "/items/:id/availability",
   async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
-      const merchantId = await resolveMerchantId(req);
       const validated = UpdateItemAvailabilitySchema.parse(req.body);
+      const targetBranch = validated.branch_id
+        ? await merchantRepository.findBranchById(validated.branch_id) : null;
+      const merchantId = targetBranch?.merchant_id || await resolveMerchantId(req);
       const result = await catalogueService.setItemAvailability(
         req.params.id,
         merchantId,

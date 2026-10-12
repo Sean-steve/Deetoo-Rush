@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   postgres:
     image: postgis/postgis:16-3.4
@@ -38,7 +36,10 @@ services:
   # when starting just this service via: docker compose --profile media up -d minio
   minio:
     profiles: ["media"]
-    image: quay.io/minio/minio:RELEASE.2025-09-07T16-13-09Z
+    # MinIO withdrew anonymous pulls from Quay and Docker Hub in 2026.
+    # This is an opt-in third-party mirror of the last public release, NOT a
+    # trusted production dependency. Override with a verified private image.
+    image: ${DEETOO_LOCAL_MEDIA_IMAGE:-dappros/minio:RELEASE.2025-09-07T16-13-09Z}
     container_name: deetoo-minio
     restart: unless-stopped
     command: server /data --address ":9000" --console-address ":9001"

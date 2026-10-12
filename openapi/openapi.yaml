@@ -788,6 +788,25 @@ paths:
         '200': { description: Device disabled }
         '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
+  /media/catalogue/{id}:
+    get:
+      summary: Redirect to a temporary read URL for a verified image attached to a published menu item
+      description: >-
+        Only a VERIFIED private MERCHANT_IMAGE referenced by an active menu item
+        can be displayed. Other uploaded media and unlinked drafts remain private.
+        Redirect targets expire rapidly and must not be stored as permanent catalogue URLs.
+      tags: [Merchant]
+      operationId: media_catalogue_image
+      security: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '302': { description: Redirect to a short-lived signed private image URL }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '503': { description: Private object storage is not configured }
   /media/uploads:
     post:
       summary: Create a scoped private-media upload intent

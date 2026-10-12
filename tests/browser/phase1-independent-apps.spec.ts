@@ -84,10 +84,10 @@ test('Merchant menu availability writes scoped changes and rolls back rejected A
  const context=await browser.newContext(),page=await context.newPage();
  const menuId='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',categoryId='bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',itemId='cccccccc-cccc-4ccc-8ccc-cccccccccccc';
  let available=true,fail=false,writes=0;
- await page.route('**/api/v1/merchant/menus',route=>route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({data:[{id:menuId,name:'Lunch'}]})}));
+ await page.route('**/api/v1/merchant/menus?*',route=>route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({data:[{id:menuId,name:'Lunch',branch_id:'branch_westlands_01'}]})}));
  await page.route('**/api/v1/merchant/menus/*/categories',route=>route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({data:[{id:categoryId,name:'Mains',menu_id:menuId}]})}));
  await page.route('**/api/v1/merchant/menus/*/items',route=>route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({data:[{id:itemId,menu_id:menuId,category_id:categoryId,name:'Acceptance Burger',price_minor:85000,is_available:true}]})}));
- await page.route('**/api/v1/merchant/branches/*/catalogue',route=>route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({data:{menu:{id:menuId},categories:[{id:categoryId,items:[{id:itemId,effective_available:available}]}]}})}));
+ await page.route('**/api/v1/merchant/branches/*/catalogue?*',route=>route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({data:{menu:{id:menuId},categories:[{id:categoryId,items:[{id:itemId,effective_available:available}]}]}})}));
  await page.route('**/api/v1/merchant/items/*/availability',async route=>{
    writes++;const body=route.request().postDataJSON();
    expect(body.branch_id).toBe('branch_westlands_01'); // Shared browser fixture uses a stable non-UUID ID.
@@ -146,6 +146,86 @@ test('Merchant branch image reports missing object storage instead of claiming a
  await page.locator('.mp-p2-branch-image input[type="file"]').setInputFiles({name:'branch.png',mimeType:'image/png',buffer:Buffer.from([137,80,78,71,13,10,26,10])});
  await expect(page.getByRole('alert').filter({hasText:'Image upload unavailable'})).toContainText('OBJECT_STORAGE_BUCKET');
  await expect(page.getByRole('alert').filter({hasText:'Image upload unavailable'})).not.toContainText('[object Object]');
+ await context.close();
+});
+
+test('Merchant Owner can open a real Add branch workflow from the branch switcher',async({browser})=>{
+ const context=await browser.newContext(),page=await context.newPage();
+ let created:any=null;
+ await page.route('**/api/v1/merchant/branches?*',async route=>{
+  if(route.request().method()==='POST'){
+   created=route.request().postDataJSON();
+   await route.fulfill({status:201,contentType:'application/json',body:JSON.stringify({data:{id:'99999999-9999-4999-8999-999999999999',merchant_id:'merchant_burger_01',...created}})});
+  }else await route.continue();
+ });
+ await page.goto('http://127.0.0.1:5174');
+ await page.locator('.mp-live-auth input[autocomplete="username"]').fill('merchant@deetoo.ke');
+ await page.locator('.mp-live-auth input[type="password"]').fill('MerchantPass123!');
+ await page.getByRole('button',{name:'Sign in',exact:true}).click();
+ await expect(page.locator('.mp-sidebar')).toBeVisible({timeout:20000});
+ await page.locator('.mp-sidebar .mp-branch').click();
+ await expect(page.getByRole('button',{name:'Add branch',exact:true})).toBeVisible();
+ await page.getByRole('button',{name:'Add branch',exact:true}).click();
+ await page.getByRole('textbox',{name:'Branch name *'}).fill('New Kitchen Branch');
+ await page.getByRole('textbox',{name:'Street address *'}).fill('Westlands Road');
+ await page.getByRole('textbox',{name:'Town / city *'}).fill('Nairobi');
+ await page.getByRole('spinbutton',{name:'Latitude *'}).fill('-1.267');
+ await page.getByRole('spinbutton',{name:'Longitude *'}).fill('36.803');
+ await page.getByRole('button',{name:'Create branch',exact:true}).click();
+ await expect.poll(()=>created).toBeTruthy();
+ expect(created.name).toBe('New Kitchen Branch');
+ expect(created.country_code).toBe('KE');
+ expect(created.latitude).toBe(-1.267);
+ await context.close();
+});
+
+test('Merchant live Advanced settings shows real branch controls, never demo reset',async({browser})=>{
+ const context=await browser.newContext(),page=await context.newPage();
+ await page.goto('http://127.0.0.1:5174?screen=branch');
+ await page.locator('.mp-live-auth input[autocomplete="username"]').fill('merchant@deetoo.ke');
+ await page.locator('.mp-live-auth input[type="password"]').fill('MerchantPass123!');
+ await page.getByRole('button',{name:'Sign in',exact:true}).click();
+ await expect(page.getByRole('heading',{name:'Branch settings'})).toBeVisible({timeout:20000});
+ await page.getByRole('navigation',{name:'Branch settings sections'}).getByRole('button',{name:'Advanced'}).click();
+ await expect(page.getByText('Manage advanced, live branch controls for',{exact:false})).toBeVisible();
+ await expect(page.getByRole('button',{name:'Edit ordering rules'})).toBeVisible();
+ await expect(page.getByRole('button',{name:'Reset demo settings'})).toHaveCount(0);
+ await page.getByRole('button',{name:'Edit ordering rules'}).click();
+ await expect(page.getByRole('spinbutton',{name:'Minimum basket amount (Ksh)'})).toBeVisible();
+ await context.close();
+});
+
+test('Merchant food editor verifies private photo before saving a public catalogue reference',async({browser})=>{
+ const context=await browser.newContext(),page=await context.newPage();
+ const mediaId='88888888-8888-4888-8888-888888888888';
+ let foodSaved:any=null,uploadPurpose:string|null=null;
+ await page.route('**/api/v1/media/uploads',route=>{uploadPurpose=route.request().postDataJSON()?.reference_type;return route.fulfill({status:201,contentType:'application/json',body:JSON.stringify({data:{
+   media_id:mediaId,upload_url:'http://127.0.0.1:5174/api/v1/mock-food-storage-put',upload_headers:{'content-type':'image/png'}
+ }})});});
+ await page.route('**/api/v1/mock-food-storage-put',route=>route.fulfill({status:200,body:''}));
+ await page.route('**/api/v1/media/uploads/*/complete',route=>route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({data:{status:'VERIFIED',media_id:mediaId}})}));
+ await page.route('**/api/v1/merchant/menus/*/items?*',route=>{
+  if(route.request().method()==='POST'){
+   foodSaved=route.request().postDataJSON();return route.fulfill({status:201,contentType:'application/json',body:JSON.stringify({data:{id:'99999999-9999-4999-8999-999999999998',...foodSaved}})});
+  }
+  return route.continue();
+ });
+ await page.goto('http://127.0.0.1:5174?screen=menu');
+ await page.locator('.mp-live-auth input[autocomplete="username"]').fill('merchant@deetoo.ke');
+ await page.locator('.mp-live-auth input[type="password"]').fill('MerchantPass123!');
+ await page.getByRole('button',{name:'Sign in',exact:true}).click();
+ await expect(page.getByRole('heading',{name:'Menu & availability',exact:true}).first()).toBeVisible({timeout:20000});
+ await page.getByRole('button',{name:'Add food item'}).click();
+ const modal=page.getByRole('dialog',{name:'food'});
+ await modal.getByRole('textbox',{name:'Food name'}).fill('Fresh chapati');
+ await modal.getByRole('textbox',{name:'Description'}).fill('Freshly prepared');
+ await modal.getByRole('spinbutton',{name:'Price (KES)'}).fill('120');
+ await modal.locator('.mp-food-photo-upload input[type=file]').setInputFiles({name:'chapati.png',mimeType:'image/png',buffer:Buffer.from([137,80,78,71,13,10,26,10])});
+ await expect(modal.getByText('The image is verified privately first')).toBeVisible();
+ await modal.getByRole('button',{name:'Save food item'}).click();
+ await expect.poll(()=>foodSaved).toBeTruthy();
+ expect(uploadPurpose).toBe('MENU_DRAFT');
+ expect(foodSaved.image_url).toBe('/api/v1/media/catalogue/'+mediaId);
  await context.close();
 });
 
