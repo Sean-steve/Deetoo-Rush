@@ -53,7 +53,7 @@ function Workspace(){
  useEffect(()=>{if(toast){const timer=setTimeout(()=>setToast(""),3500);return()=>clearTimeout(timer);}},[toast]);
  const navigate=(id:string)=>{
    if(!["command","dispatch","orders","riders","incidents","support","merchants","customers","geography","payments","settlements","financial","analytics","notifications","security","system"].includes(id)){const p=groups.flatMap(g=>g.items).find(x=>x.id===id);setToast((p?.label||"This area")+" is planned for Phase "+(p?.phase||2)+".");return;}
-   const view=id as Screen;location.hash="/"+view;setScreen(view);window.scrollTo({top:0,behavior:"smooth"});
+   const view=id as Screen;clearNotice();location.hash="/"+view;setScreen(view);window.scrollTo({top:0,behavior:"smooth"});
  };
  const search=(e:React.FormEvent)=>{e.preventDefault();const text=quickSearch.trim();if(!text)return;setSearchText(text);navigate(/^RDR/i.test(text)||/rider/i.test(text)?"riders":/^INC/i.test(text)||/incident/i.test(text)?"incidents":/^SUP/i.test(text)||/support/i.test(text)?"support":/^MER/i.test(text)||/merchant/i.test(text)?"merchants":/^CUS/i.test(text)||/customer/i.test(text)?"customers":"orders");};
  const countyName=selectedCounty==="all"?"Kenya (All Counties)":selectedCounty+" County";
