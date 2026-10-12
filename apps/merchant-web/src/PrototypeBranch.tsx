@@ -31,7 +31,7 @@ export function PrototypeBranch({store,setStore,notify,live}:{store:"Open"|"Paus
  // a different authorized manager uploaded the image.
  }).catch(e=>{if(active)setLoadError(merchantErrorMessage(e));});return()=>{active=false};},[live?.branchId,live?.branch?.updated_at]);
 
- useEffect(()=>{if(live?.coverUrl)setBranch(prev=>({...prev,image:live.coverUrl!}));},[live?.coverUrl,live?.branchId]);
+ useEffect(()=>{if(live?.branchCoverUrl)setBranch(prev=>({...prev,image:live.branchCoverUrl!}));},[live?.branchCoverUrl,live?.branchId]);
  const update=(key:keyof BranchData,value:string)=>setBranch(prev=>({...prev,[key]:value}));
  const save=async()=>{if(!branch.name.trim()||!branch.display.trim()||!branch.street.trim()||!branch.city.trim()||!branch.latitude.trim()||!branch.longitude.trim()||!Number.isFinite(Number(branch.latitude))||Math.abs(Number(branch.latitude))>90||!Number.isFinite(Number(branch.longitude))||Math.abs(Number(branch.longitude))>180){notify("Check required branch names, address and location coordinates.");return;}
  if((branch.phone.trim()&&branch.phone.trim().length<8)||(branch.email.trim()&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(branch.email.trim()))||branch.description.length>1000||branch.display.length>255){notify("Check the phone number, email, display name and business description.");return;}
@@ -60,7 +60,7 @@ export function PrototypeBranch({store,setStore,notify,live}:{store:"Open"|"Paus
  }catch(e){const message="Image upload unavailable: "+merchantErrorMessage(e);setLoadError(message);notify(message);}finally{event.target.value="";}return;}
  const reader=new FileReader();reader.onload=()=>{update("image",String(reader.result));setDialog(null);notify("Branch image updated locally. Save branch settings to keep changes.");};reader.readAsDataURL(file);};
  return <div className="mp-p2">
-   <DemoHeading eyebrow="BRANCH SETTINGS" title="Branch settings" description="Manage your branch information, location, operating hours and preparation settings." action={<BranchBanner store={store} onAction={()=>setDialog("location")} name={live?.branch?.display_name||live?.branch?.name||branch.display} city={live?.branch?.city||branch.city} coverUrl={live?.coverUrl||(!live?branch.image:null)}/>} />
+   <DemoHeading eyebrow="BRANCH SETTINGS" title="Branch settings" description="Manage your branch information, location, operating hours and preparation settings." action={<BranchBanner store={store} onAction={()=>setDialog("location")} name={live?.branch?.display_name||live?.branch?.name||branch.display} city={live?.branch?.city||branch.city} coverUrl={live?.branchCoverUrl||(!live?branch.image:null)}/>} />
    <nav className="mp-p2-section-tabs" aria-label="Branch settings sections">{[["General",Store],["Location",MapPin],["Operating hours",Clock3],["Preparation",ChefHat],["Delivery & service",Truck],["Ordering rules",Settings2],["Advanced",Settings2]].map(([name,Icon]:any)=><button key={name} aria-current={tab===name?"page":undefined} className={tab===name?"active":""} onClick={()=>navigate(name)}><Icon size={19}/>{name}</button>)}</nav>
    <div className="mp-p2-branch-grid">
      <DemoCard className="mp-p2-branch-general" ><div id="mp-branch-general"/><h2><Store/>General information</h2><p>Basic details about this branch. This information is shown to customers.</p>
