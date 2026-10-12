@@ -100,13 +100,46 @@ The Merchant experience needs migrations **035–038**, and the approved branch
 display-name/description save workflow additionally uses **047**. Do not run migrations
 against another environment or erase Docker/PostgreSQL volumes to fix a schema mismatch.
 
-**Photos:** Branch images are private media, not local preview files. Configure the
-API's `OBJECT_STORAGE_BUCKET`, `OBJECT_STORAGE_REGION` and appropriate cloud
-credentials, or an explicitly configured S3-compatible local store using
-`OBJECT_STORAGE_ENDPOINT` and `OBJECT_STORAGE_FORCE_PATH_STYLE`, with correct
-bucket CORS for direct browser PUT uploads. A successful presigned upload must be
-verified by the API before it can be published. Without private object storage the
-portal reports a configuration error and **does not pretend to save a photo**.
+**Merchant media — local development:** Branch photos are private S3-compatible
+media, not images saved directly in PostgreSQL. An optional local S3 service is
+included in Docker Compose behind the `media` profile; it leaves PostgreSQL and
+Redis unchanged. Configure **your existing local `.env`** with:
+
+```dotenv
+OBJECT_STORAGE_BUCKET=deetoo-local-private
+OBJECT_STORAGE_REGION=us-east-1
+OBJECT_STORAGE_ENDPOINT=http://127.0.0.1:9000
+OBJECT_STORAGE_ACCESS_KEY_ID=deetoo_local
+OBJECT_STORAGE_SECRET_ACCESS_KEY=<choose_a_unique_local_password_at_least_8_chars>
+OBJECT_STORAGE_FORCE_PATH_STYLE=true
+```
+
+Then start **only** the media service and create the private bucket:
+
+```sh
+docker compose --profile media up -d minio
+pnpm media:setup:local
+```
+
+Restart `pnpm dev:api` so it loads the new environment, and keep
+`pnpm dev:merchant` running at `http://localhost:5174`. The `miniodata` Docker
+volume persists images; do **not** run `docker compose down -v`. The service
+listens only on loopback `127.0.0.1:9000` (S3 API) and `:9001` (console).
+The Community MinIO image uses `MINIO_API_CORS_ALLOW_ORIGIN` configured in
+Compose to restrict browser origins. It does **not** support the standard
+per-bucket `PutBucketCors` API. The bucket remains private; uploaded images
+are accessed through short-lived, user-authorized URLs.
+
+The pinned community image is only for **local development**; it is not a
+recommendation for production object storage. In staging/production use a
+maintained private S3-compatible provider with scoped service credentials,
+HTTPS and managed access/CORS policies. A successful presigned PUT still must
+be verified by the DeeToo API before the image can be published.
+
+**Notifications:** Earlier portal builds compared a VARCHAR notification
+recipient to a UUID viewer. Pull the latest API change and restart
+`pnpm dev:api` after updating; no data migration or database reset is needed
+for this specific SQL type mismatch.
 
 The catalogue availability switch writes a **branch-specific availability override**
 and reloads the effective branch catalogue; it does not globally remove the menu

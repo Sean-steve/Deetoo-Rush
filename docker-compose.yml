@@ -34,6 +34,28 @@ services:
       timeout: 5s
       retries: 5
 
+  # Opt-in local S3-compatible private media. Existing postgres/redis are untouched
+  # when starting just this service via: docker compose --profile media up -d minio
+  minio:
+    profiles: ["media"]
+    image: quay.io/minio/minio:RELEASE.2025-09-07T16-13-09Z
+    container_name: deetoo-minio
+    restart: unless-stopped
+    command: server /data --address ":9000" --console-address ":9001"
+    environment:
+      # Only reachable on the laptop loopback interface. Override in .env.
+      MINIO_ROOT_USER: ${OBJECT_STORAGE_ACCESS_KEY_ID:-deetoo_local}
+      MINIO_ROOT_PASSWORD: ${OBJECT_STORAGE_SECRET_ACCESS_KEY:-deetoo_local_change_this_password}
+      # Community MinIO supports global (not per-bucket) browser CORS.
+      # Only local application origins are allowed; the bucket remains private.
+      MINIO_API_CORS_ALLOW_ORIGIN: "http://localhost:5173,http://127.0.0.1:5173,http://localhost:5174,http://127.0.0.1:5174,http://localhost:5175,http://127.0.0.1:5175,http://localhost:5178,http://127.0.0.1:5178"
+    ports:
+      - "127.0.0.1:9000:9000"
+      - "127.0.0.1:9001:9001"
+    volumes:
+      - miniodata:/data
+
 volumes:
   pgdata:
   redisdata:
+  miniodata:

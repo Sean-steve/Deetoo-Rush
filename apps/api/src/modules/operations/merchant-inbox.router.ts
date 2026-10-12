@@ -23,18 +23,19 @@ function categorySql(alias:string){
    WHEN ${alias}.template_code ILIKE '%MERCHANT%' OR ${alias}.template_code ILIKE '%BRANCH%' THEN 'BUSINESS'
    ELSE 'SYSTEM' END`;
 }
+// notifications.recipient_id is VARCHAR, whereas viewer.user_id is UUID.
+// Explicit casts keep one bound user identifier safe in both comparisons.
 async function viewers(req:AuthenticatedRequest){
  const merchantId=await ownMerchant(req);
  return {merchantId,recipientIds:[merchantId,req.user!.id]};
 }
-merchantInboxRouter.get('/',run(async(req,res)=>{
- const db=durable(),q=inboxFilter.parse(req.query),v=await viewers(req);
- const r=await db.query(`WITH inbox AS (
+// Shared with PostgreSQL foundation regression tests to execute the exact routed query.
+export const merchantInboxListSql = `WITH inbox AS (
    SELECT n.id,n.template_code,n.subject,n.payload,n.status,n.created_at,n.recipient_id,
-     COALESCE(viewer.read_at,CASE WHEN n.recipient_id=$2 THEN n.read_at ELSE NULL END) AS read_at,
+     COALESCE(viewer.read_at,CASE WHEN n.recipient_id=$2::text THEN n.read_at ELSE NULL END) AS read_at,
      viewer.archived_at,${categorySql('n')} AS category
    FROM notifications n LEFT JOIN merchant_notification_views viewer
-     ON viewer.notification_id=n.id AND viewer.user_id=$2
+     ON viewer.notification_id=n.id AND viewer.user_id=$2::uuid
    WHERE n.recipient_type='MERCHANT' AND n.channel='IN_APP'
      AND n.recipient_id=ANY($1::text[])
  )
@@ -44,7 +45,10 @@ merchantInboxRouter.get('/',run(async(req,res)=>{
   AND ($5::timestamptz IS NULL OR created_at>=$5::timestamptz)
  ORDER BY CASE WHEN $6='newest' THEN created_at END DESC,
           CASE WHEN $6='oldest' THEN created_at END ASC,id DESC
- LIMIT $7 OFFSET $8`,[v.recipientIds,req.user!.id,q.category||null,q.state,q.from||null,q.sort,q.limit,q.offset]);
+ LIMIT $7 OFFSET $8`;
+merchantInboxRouter.get('/',run(async(req,res)=>{
+ const db=durable(),q=inboxFilter.parse(req.query),v=await viewers(req);
+ const r=await db.query(merchantInboxListSql,[v.recipientIds,req.user!.id,q.category||null,q.state,q.from||null,q.sort,q.limit,q.offset]);
  res.json({data:r.rows,meta:{limit:q.limit,offset:q.offset,has_more:r.rows.length===q.limit}});
 }));
 async function authorizedNotification(req:AuthenticatedRequest,id:string){
