@@ -209,3 +209,37 @@ See `src/preview/README.md` for the detailed interaction and
 Android visual acceptance checklist. Production support, safety, messaging,
 identity updates, real uploads, emergency calling, financial changes, account
 closure and notifications remain separate backend integration work.
+
+
+## Go Online troubleshooting — live Rider
+
+If the Rider app shows **Durable storage is unavailable** or an availability
+error, do not enable demo/memory mode. The live API requires PostgreSQL for
+approved profiles, availability sessions and audits, and Redis for fresh GPS,
+heartbeats and shared rider discovery.
+
+From the repository root, with the same `.env` as `pnpm dev:api`:
+
+```bash
+docker compose up -d redis
+docker exec deetoo-redis redis-cli ping  # must return PONG
+pnpm rider:doctor                       # read-only PostgreSQL + Redis probes
+pnpm db:status                          # reports missing migrations
+```
+
+For the API running directly with `pnpm dev:api`, `REDIS_URL` should ordinarily
+be `redis://127.0.0.1:6379`. If the API itself runs inside Docker, use the
+Docker service hostname instead. A Redis service can be **running but
+unreachable from the API**, so always run `pnpm rider:doctor` in the same
+environment/network as the API.
+
+After dependencies recover, try Go Online again. The API now reconnects to
+Redis automatically on subsequent requests and identifies Redis connectivity
+as `RIDER_REDIS_UNAVAILABLE`, rather than incorrectly suggesting a database
+migration. Going online still requires Admin approval, an active vehicle,
+eligible coverage and fresh accurate GPS. Nothing in this repair bypasses those
+checks or changes persisted rider availability.
+
+Note: do not interpret a previous Go Online failure as success; confirm
+`GET /api/v1/rider/availability` reports `ONLINE_AVAILABLE` and an active
+session before dispatching.
