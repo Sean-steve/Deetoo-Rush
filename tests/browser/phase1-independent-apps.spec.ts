@@ -90,7 +90,7 @@ test('Merchant menu availability writes scoped changes and rolls back rejected A
  await page.route('**/api/v1/merchant/branches/*/catalogue',route=>route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({data:{menu:{id:menuId},categories:[{id:categoryId,items:[{id:itemId,effective_available:available}]}]}})}));
  await page.route('**/api/v1/merchant/items/*/availability',async route=>{
    writes++;const body=route.request().postDataJSON();
-   expect(body.branch_id).toMatch(/^[0-9a-f-]{36}$/);
+   expect(body.branch_id).toBe('branch_westlands_01'); // Shared browser fixture uses a stable non-UUID ID.
    expect(body.is_available).toBe(!available);
    if(fail){await route.fulfill({status:403,contentType:'application/json',body:JSON.stringify({error:{code:'ACCESS_DENIED',message:'Cannot edit menu from this account',request_id:'req_availability_denied'}})});return;}
    available=body.is_available;
@@ -126,7 +126,7 @@ test('Merchant notification errors remain visible and support retry after databa
  await page.locator('.mp-live-auth input[autocomplete="username"]').fill('merchant@deetoo.ke');
  await page.locator('.mp-live-auth input[type="password"]').fill('MerchantPass123!');
  await page.getByRole('button',{name:'Sign in',exact:true}).click();
- await expect(page.getByRole('heading',{name:'Notifications'})).toBeVisible({timeout:20000});
+ await expect(page.getByRole('heading',{name:'Notifications',exact:true})).toBeVisible({timeout:20000});
  await expect(page.getByRole('alert').filter({hasText:'Unable to load notifications'})).toContainText('pnpm db:migrate');
  await expect(page.getByRole('alert').filter({hasText:'Unable to load notifications'})).not.toContainText('[object Object]');
  unavailable=false;await page.getByRole('button',{name:'Retry notifications'}).click();
