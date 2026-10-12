@@ -88,6 +88,33 @@ Source integration is not production release sign-off. Provider sandbox evidence
 
 ---
 
+## Merchant portal operational setup
+
+The Merchant portal runs at `http://localhost:5174` with `pnpm dev:merchant`.
+The Overview is a separate operational dashboard; Kitchen Orders retains its own navigation entry.
+
+**Database:** When an API shows `MERCHANT_SCHEMA_MIGRATION_REQUIRED` or the Merchant
+portal reports a missing notification/policy table, use the same `DATABASE_URL` as
+the running DeeToo API, and run `pnpm db:status` followed by `pnpm db:migrate`.
+The Merchant experience needs migrations **035–038**, and the approved branch
+display-name/description save workflow additionally uses **047**. Do not run migrations
+against another environment or erase Docker/PostgreSQL volumes to fix a schema mismatch.
+
+**Photos:** Branch images are private media, not local preview files. Configure the
+API's `OBJECT_STORAGE_BUCKET`, `OBJECT_STORAGE_REGION` and appropriate cloud
+credentials, or an explicitly configured S3-compatible local store using
+`OBJECT_STORAGE_ENDPOINT` and `OBJECT_STORAGE_FORCE_PATH_STYLE`, with correct
+bucket CORS for direct browser PUT uploads. A successful presigned upload must be
+verified by the API before it can be published. Without private object storage the
+portal reports a configuration error and **does not pretend to save a photo**.
+
+The catalogue availability switch writes a **branch-specific availability override**
+and reloads the effective branch catalogue; it does not globally remove the menu
+item. Branch settings saves report partial success if a later independent endpoint
+fails. Failed notification reads remain visible with Retry and never substitute demo data.
+
+---
+
 ## Architecture Documentation
 - [ADR-001: Monorepo Structure](docs/architecture/ADR-001-monorepo-structure.md)
 - [ADR-002: Modular Monolith](docs/architecture/ADR-002-modular-monolith.md)
