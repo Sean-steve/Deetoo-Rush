@@ -1,4 +1,5 @@
 import { branchScope, merchantScope } from "../auth/scope";
+import { merchantRepository } from "./merchant.repository";
 /**
  * DEETOO - Merchant Catalogue API Router
  * Endpoints for menus, categories, items, prices, modifier groups, options, and branch availability
