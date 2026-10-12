@@ -34,7 +34,10 @@ export function PrototypeBranch({store,setStore,notify,live}:{store:"Open"|"Paus
  }).catch(e=>{if(active)setLoadError(merchantErrorMessage(e));});return()=>{active=false};},[live?.branchId,live?.branch?.updated_at]);
 
  const update=(key:keyof BranchData,value:string)=>setBranch(prev=>({...prev,[key]:value}));
- const save=async()=>{if(!branch.name.trim()||!branch.street.trim()||!branch.city.trim()||!Number.isFinite(Number(branch.latitude))||Math.abs(Number(branch.latitude))>90||!Number.isFinite(Number(branch.longitude))||Math.abs(Number(branch.longitude))>180){notify("Check required branch details and coordinates.");return;}
+ const save=async()=>{if(!branch.name.trim()||!branch.display.trim()||!branch.street.trim()||!branch.city.trim()||!branch.latitude.trim()||!branch.longitude.trim()||!Number.isFinite(Number(branch.latitude))||Math.abs(Number(branch.latitude))>90||!Number.isFinite(Number(branch.longitude))||Math.abs(Number(branch.longitude))>180){notify("Check required branch names, address and location coordinates.");return;}
+ if((branch.phone.trim()&&branch.phone.trim().length<8)||(branch.email.trim()&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(branch.email.trim()))||branch.description.length>1000||branch.display.length>255){notify("Check the phone number, email, display name and business description.");return;}
+ if(!Number.isInteger(Number(branch.prep))||Number(branch.prep)<1||Number(branch.prep)>180||!Number.isFinite(Number(branch.minOrder))||Number(branch.minOrder)<0||!Number.isInteger(Number(maxConcurrent))||Number(maxConcurrent)<1||Number(maxConcurrent)>500){notify("Preparation time must be 1–180 minutes, minimum order non-negative and capacity 1–500.");return;}
+ if(hours.some(h=>h.active&&(!h.open||!h.close||h.open>=h.close))){notify("Opening hours must be valid; closing time must be later than opening time.");return;}
  if(live){setBusy(true);setLoadError("");const savedSections:string[]=[];try{const u=`/merchant/branches/${live.branchId}`;
  await live.api.request(u,{method:"PATCH",body:JSON.stringify({name:branch.name,display_name:branch.display||branch.name,description:branch.description,address_line1:branch.street,city:branch.city,phone:branch.phone||undefined,email:branch.email||undefined,latitude:Number(branch.latitude),longitude:Number(branch.longitude),prep_default_min:Number(branch.prep),min_order_minor:Math.round(Number(branch.minOrder)*100)})});
  savedSections.push("Branch profile");
@@ -55,7 +58,7 @@ export function PrototypeBranch({store,setStore,notify,live}:{store:"Open"|"Paus
  const completed=(await live.api.request<any>(`/media/uploads/${grant.media_id}/complete`,{method:"POST"})).data;
  if(completed.status!=="VERIFIED")throw new Error("Image verification is incomplete. The current branch image has not changed.");
  setCoverMedia(grant.media_id);notify("Image uploaded; save branch settings to publish.");const reader=new FileReader();reader.onload=()=>update("image",String(reader.result));reader.readAsDataURL(file);
- }catch(e){notify("Image upload unavailable: "+merchantErrorMessage(e));}return;}
+ }catch(e){const message="Image upload unavailable: "+merchantErrorMessage(e);setLoadError(message);notify(message);}finally{event.target.value="";}return;}
  const reader=new FileReader();reader.onload=()=>{update("image",String(reader.result));setDialog(null);notify("Branch image updated locally. Save branch settings to keep changes.");};reader.readAsDataURL(file);};
  return <div className="mp-p2">
    <DemoHeading eyebrow="BRANCH SETTINGS" title="Branch settings" description="Manage your branch information, location, operating hours and preparation settings." action={<BranchBanner store={store} onAction={()=>setDialog("location")}/>} />
