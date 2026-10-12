@@ -229,6 +229,31 @@ test('Merchant food editor verifies private photo before saving a public catalog
  await context.close();
 });
 
+test('Merchant saved branch cover is shared across sidebar, overview, settings, operations and team',async({browser})=>{
+ const context=await browser.newContext(),page=await context.newPage();
+ const cover='data:image/svg+xml;base64,'+Buffer.from('<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40"><rect width="40" height="40" fill="green"/></svg>').toString('base64');
+ let coverRequests=0;
+ await page.route('**/api/v1/merchant/experience/branches/*/cover-url',route=>{
+  coverRequests++;
+  return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({data:{url:cover,cover_media_id:'99999999-9999-4999-8999-999999999999'}})});
+ });
+ await page.goto('http://127.0.0.1:5174?screen=overview');
+ await page.locator('.mp-live-auth input[autocomplete="username"]').fill('merchant@deetoo.ke');
+ await page.locator('.mp-live-auth input[type="password"]').fill('MerchantPass123!');
+ await page.getByRole('button',{name:'Sign in',exact:true}).click();
+ await expect(page.getByRole('heading',{name:'Business overview'})).toBeVisible({timeout:20000});
+ await expect(page.locator('.mp-sidebar .mp-branch-image img')).toHaveAttribute('src',cover);
+ await expect(page.locator('.mp-overview-brand .mp-branch-image img')).toHaveAttribute('src',cover);
+ await page.locator('.mp-sidebar nav').getByRole('button',{name:'Kitchen orders',exact:true}).click();
+ await expect(page.locator('.mp-head .mp-branch-banner .mp-branch-image img')).toHaveAttribute('src',cover);
+ await page.locator('.mp-sidebar nav').getByRole('button',{name:'Branch settings',exact:true}).click();
+ await expect(page.locator('.mp-head .mp-branch-banner .mp-branch-image img')).toHaveAttribute('src',cover);
+ await page.locator('.mp-sidebar nav').getByRole('button',{name:'Business & team',exact:true}).click();
+ await expect(page.locator('.mp-business-cover-wrap .mp-branch-image img')).toHaveAttribute('src',cover);
+ expect(coverRequests).toBeGreaterThan(0);
+ await context.close();
+});
+
 test('Merchant background refresh preserves the selected screen and in-progress input on temporary branch outage', async ({ browser }) => {
   const context=await browser.newContext();
   const page=await context.newPage();
