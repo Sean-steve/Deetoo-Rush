@@ -46,6 +46,9 @@ services:
       # Only reachable on the laptop loopback interface. Override in .env.
       MINIO_ROOT_USER: ${OBJECT_STORAGE_ACCESS_KEY_ID:-deetoo_local}
       MINIO_ROOT_PASSWORD: ${OBJECT_STORAGE_SECRET_ACCESS_KEY:-deetoo_local_change_this_password}
+      # Community MinIO supports global (not per-bucket) browser CORS.
+      # Only local application origins are allowed; the bucket remains private.
+      MINIO_API_CORS_ALLOW_ORIGIN: "http://localhost:5173,http://127.0.0.1:5173,http://localhost:5174,http://127.0.0.1:5174,http://localhost:5175,http://127.0.0.1:5175,http://localhost:5178,http://127.0.0.1:5178"
     ports:
       - "127.0.0.1:9000:9000"
       - "127.0.0.1:9001:9001"
