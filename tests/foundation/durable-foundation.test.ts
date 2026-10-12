@@ -592,6 +592,22 @@ test('durable approved Rider requires assigned coverage, then goes online and of
   await assert.rejects(riderService.goOnline(uid,gps),{code:'RIDER_ZONE_REQUIRED'});
   await getDbPool().query("INSERT INTO service_zones(id,name,status,boundary) VALUES($1,'Test Kenya coverage','ACTIVE',ST_Multi(ST_SetSRID(ST_GeomFromGeoJSON($2),4326))::geography)", [zone,await readFile('docs/configuration/kenya-boundary.geojson','utf8')]);
   await riderRepository.assignZones(profile.id,[zone]);
+  // Simulate Redis loss after onboarding/vehicle/zone checks succeed. A
+  // failed Go Online request must not commit ONLINE_AVAILABLE or a session.
+  const redis=await import('../../apps/api/src/db/redis');
+  const previousRedisUrl=config.redis.url;
+  redis.closeRedisClient();
+  try {
+    config.redis.url='redis://127.0.0.1:1';
+    await assert.rejects(riderService.goOnline(uid,gps),{
+      statusCode:503,code:'RIDER_REDIS_UNAVAILABLE',
+    });
+    assert.equal((await riderRepository.findProfileById(profile.id))?.workStatus,'OFFLINE');
+    assert.equal(await riderRepository.getActiveSession(profile.id),null);
+  } finally {
+    config.redis.url=previousRedisUrl;
+    redis.closeRedisClient();
+  }
   try {
     const online = await riderService.goOnline(uid,gps);
     assert.equal(online.workStatus,'ONLINE_AVAILABLE');
