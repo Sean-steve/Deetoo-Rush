@@ -84,10 +84,10 @@ test('Merchant menu availability writes scoped changes and rolls back rejected A
  const context=await browser.newContext(),page=await context.newPage();
  const menuId='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',categoryId='bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',itemId='cccccccc-cccc-4ccc-8ccc-cccccccccccc';
  let available=true,fail=false,writes=0;
- await page.route('**/api/v1/merchant/menus',route=>route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({data:[{id:menuId,name:'Lunch'}]})}));
+ await page.route('**/api/v1/merchant/menus?*',route=>route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({data:[{id:menuId,name:'Lunch',branch_id:'branch_westlands_01'}]})}));
  await page.route('**/api/v1/merchant/menus/*/categories',route=>route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({data:[{id:categoryId,name:'Mains',menu_id:menuId}]})}));
  await page.route('**/api/v1/merchant/menus/*/items',route=>route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({data:[{id:itemId,menu_id:menuId,category_id:categoryId,name:'Acceptance Burger',price_minor:85000,is_available:true}]})}));
- await page.route('**/api/v1/merchant/branches/*/catalogue',route=>route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({data:{menu:{id:menuId},categories:[{id:categoryId,items:[{id:itemId,effective_available:available}]}]}})}));
+ await page.route('**/api/v1/merchant/branches/*/catalogue?*',route=>route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({data:{menu:{id:menuId},categories:[{id:categoryId,items:[{id:itemId,effective_available:available}]}]}})}));
  await page.route('**/api/v1/merchant/items/*/availability',async route=>{
    writes++;const body=route.request().postDataJSON();
    expect(body.branch_id).toBe('branch_westlands_01'); // Shared browser fixture uses a stable non-UUID ID.
