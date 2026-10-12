@@ -139,7 +139,7 @@ export function RiderConnectedApp() {
         case 21:{const r=await api.supportCases();setCases(entries(r?.cases));break;}
         case 22:if(id(form.caseId))setCaseDetail(await api.supportCase(form.caseId));break;
         case 23:{const r=await api.incidents();setIncidents(r.incidents);break;}
-        case 24:setPrefs(await api.preferences());break;
+        case 25:setPrefs(await api.preferences());break;
       }
     }catch(e){setError(parseRiderServerError(e));}
   },[api,user,form.caseId]);
@@ -326,12 +326,11 @@ export function RiderConnectedApp() {
       <Button outline label="Documents" onPress={()=>go(3)}/><Button outline label="Equipment & Vehicle" onPress={()=>go(4)}/>
       <Button outline label="Back to Home" onPress={()=>go(6)}/>
     </Page>;break;
-    case 6:body=<Page title={'Good day, '+name+' 👋'} subtitle="Screen 6 • Live Rider dashboard">
-      <Panel title="Availability">
-        <Row title="Server work status" value={<Tag label={status?.profile?.workStatus||'OFFLINE'} tone={online?'green':'orange'}/>}/>
-        <Row title="Service zones" value={entries(status?.assignedZones).length+' assigned'}/>
-        <Button label={online?'Go offline':'Go online & receive orders'} onPress={()=>void availability()} disabled={busy||status?.profile?.workStatus==='BUSY'} />
-        {!pushReady?<Button outline label="Enable push notifications" onPress={()=>void run(async()=>{await registerRiderPushDevice(session.client);setPushReady(true);},'Push subscription registered.')}/>:null}
+    case 6:body=<Page title={'Good day, '+name+' 👋'} subtitle="Your delivery workspace">
+      <Panel title="Shift availability">
+        <View style={[S.split,{paddingBottom:10}]}><Text style={S.sub}>Your current status</Text><Tag label={status?.profile?.workStatus||'OFFLINE'} tone={online?'green':'orange'}/></View>
+        <Button label={online?'Finish shift · Go offline':'Start shift · Go online'} onPress={()=>void availability()} disabled={busy||status?.profile?.workStatus==='BUSY'} />
+        <Text style={[S.meta,{marginTop:9}]}>{entries(status?.assignedZones).length} assigned service zone(s) · Online requires approved documents, a vehicle and accurate GPS.</Text>
       </Panel>
       <View style={{flexDirection:'row',gap:9,flexWrap:'wrap'}}>
         <Metric title="Available earnings" value={toKes(wallet?.available_earnings_minor)}/>
@@ -339,13 +338,18 @@ export function RiderConnectedApp() {
       </View>
       <Panel title="Operational summary">
         <Row title="Onboarding" value={status?.profile?.onboardingStatus||'—'}/>
-        <Row title="Active delivery" value={a?.order_number||a?.id||'None'}/>
-        <Row title="Waiting offer" value={offer?.offer?.id?'Available':'None'}/>
+        <Row title="Active delivery" value={a?shortReference(a.id,a.order_number||detail?.orderNumber):'None'}/>
+        <Row title="Waiting offer" value={offer?.offer?.id?'Offer available':'None'}/>
         <Row title="Customer rating" value={performance?.average_rating??'—'}/>
-        <Button label="Open delivery operations" onPress={()=>go(offer?.offer?.id?7:8)}/>
-        <Button outline label="Verification & onboarding" onPress={()=>go(5)}/>
       </Panel>
-      <Panel title="Service zone"><MapPreview/><Text style={S.meta}>Reference map only; live GPS is transmitted only for authorized availability and delivery events.</Text></Panel>
+      <Panel title="Quick actions">
+        <ActionLink icon="◈" title={offer?.offer?.id?'Review incoming offer':'Delivery operations'} hint="Offers, stops and handover" onPress={()=>go(offer?.offer?.id?7:8)}/>
+        <ActionLink icon="✓" title="Verification & onboarding" hint="Documents, vehicle and account review" onPress={()=>go(5)}/>
+        <ActionLink icon="⚙" title="Settings & notifications" hint="Push alerts, sounds and app preferences" onPress={()=>go(25)}/>
+      </Panel>
+      <Panel title="My service zones">
+        <RiderLiveMap rider={geoPoint({latitude:status?.profile?.lastKnownLatitude,longitude:status?.profile?.lastKnownLongitude})} zones={entries(status?.assignedZones)}/>
+      </Panel>
     </Page>;break;
     case 7:body=<Page title="Incoming Delivery Request" subtitle="Screen 7 • Server-issued offer and expiry">
       {!offer?.offer?.id?<Notice title="No live offers" body="DeeToo dispatch has not issued an offer to this Rider. Remain online within an assigned zone." tone="blue"/>:
@@ -377,14 +381,14 @@ export function RiderConnectedApp() {
     case 9:case 11:{
       const pickup=view===9;
       const address=pickup?detail?.pickup?.address:detail?.dropoff?.address;
-      const maps=pickup?detail?.navigation?.pickupMapsUrl:detail?.navigation?.dropoffMapsUrl;
-      body=<Page title={pickup?'Navigate to Merchant':'Navigate to Customer'} subtitle={pickup?'Screen 9 • Live pickup milestone':'Screen 11 • Live drop-off milestone'}>
+      body=<Page title={pickup?'Navigate to Merchant':'Navigate to Customer'} subtitle={pickup?'Live pickup milestone':'Live drop-off milestone'}>
         <Panel title={pickup?'Merchant pickup':'Customer drop-off'}>
           <Row title="Destination" value={address||'Awaiting active delivery'}/>
           <Row title="Live state" value={deliveryStatus||'—'}/>
-          <Text style={S.sub}>Use your preferred navigation provider. Any map illustration below is not turn-by-turn traffic guidance.</Text>
-          <MapPreview/>
-          {maps?<Button outline label="Open navigation" onPress={()=>void Linking.openURL(maps).catch(e=>setError(parseRiderServerError(e)))}/>:<Notice title="Route unavailable" body="DeeToo did not provide a navigation link for this active delivery." tone="orange"/>}
+          <RiderLiveMap route rider={geoPoint({latitude:status?.profile?.lastKnownLatitude,longitude:status?.profile?.lastKnownLongitude})}
+            zones={entries(status?.assignedZones)} destination={geoPoint(pickup?detail?.pickup?.location:detail?.dropoff?.location)}
+            destinationLabel={pickup?'Merchant':'Customer'} height={290}/>
+          <Text style={S.meta}>Route and instructions stay inside DeeToo. Road guidance needs internet; the Rider must follow road signs and current conditions.</Text>
         </Panel>
         <Button label={pickup?'Arrived at Merchant':'Arrived at Customer'} disabled={!safeRiderDeliveryAction(deliveryStatus,pickup?'arrivePickup':'arriveDropoff')||busy} onPress={()=>performDelivery(pickup?'arrivePickup':'arriveDropoff')}/>
         <Button outline label="View delivery details" onPress={()=>go(8)}/>
