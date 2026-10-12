@@ -59,6 +59,22 @@ merchantExperienceRouter.get('/branches/:branchId/policies',run(async(req,res)=>
   const r=await db.query('SELECT * FROM merchant_branch_policies WHERE branch_id=$1',[id]);
   res.json({data:r.rows[0]||{branch_id:id,delivery_enabled:true,pickup_enabled:false,dine_in_enabled:false,table_qr_enabled:false,max_concurrent_orders:30,cover_media_id:null}});
 }));
+// A branch cover is a shared operational asset, not merely the original uploader's
+// private media. Branch authorization and verified branch binding are checked
+// before issuing the short-lived read URL.
+merchantExperienceRouter.get('/branches/:branchId/cover-url',run(async(req,res)=>{
+ const db=durable(),{id}=await ownBranch(req);
+ const media=await db.query(`SELECT m.id FROM merchant_branch_policies p
+  JOIN media_objects m ON m.id=p.cover_media_id
+  WHERE p.branch_id=$1 AND m.purpose='MERCHANT_IMAGE'
+    AND m.reference_type='BRANCH' AND m.reference_id=$1
+    AND m.status='VERIFIED' AND m.content_type LIKE 'image/%' LIMIT 1`,[id]);
+ if(!media.rowCount){res.json({data:{url:null,cover_media_id:null}});return;}
+ const {mediaService}=await import('../media/media.service');
+ const url=await mediaService.getReadUrl(media.rows[0].id,req.user!.id,['MERCHANT_IMAGE']);
+ res.setHeader('Cache-Control','no-store');
+ res.json({data:{url,cover_media_id:media.rows[0].id}});
+}));
 merchantExperienceRouter.put('/branches/:branchId/policies',run(async(req,res)=>{
   const db=durable(),{id,merchantId}=await ownBranch(req,true);
   await requireMerchantCapability(req.user!.id,merchantId,'BRANCH_WRITE');
@@ -67,9 +83,17 @@ merchantExperienceRouter.put('/branches/:branchId/policies',run(async(req,res)=>
     cover_media_id:z.string().uuid().nullable().optional()
   }).refine(v=>!v.table_qr_enabled||v.dine_in_enabled,{message:'QR tables require dine-in enabled'}).parse(req.body);
   if(q.cover_media_id){
-    const media=await db.query(`SELECT 1 FROM media_objects WHERE id=$1 AND owner_user_id=$2
-       AND purpose='MERCHANT_IMAGE' AND status='VERIFIED'`,[q.cover_media_id,req.user!.id]);
-    if(!media.rowCount)throw new AppError(403,'MEDIA_ACCESS_DENIED','Only verified merchant images uploaded by you may be attached');
+    // A manager saving other settings must not lose a cover uploaded earlier
+    // by another authorized branch manager. Only branch-bound verified media
+    // that is already attached, OR media uploaded by this actor, is accepted.
+    const media=await db.query(`SELECT 1 FROM media_objects m
+      LEFT JOIN merchant_branch_policies p ON p.branch_id=$3 AND p.cover_media_id=m.id
+      WHERE m.id=$1 AND m.purpose='MERCHANT_IMAGE' AND m.status='VERIFIED'
+        AND m.reference_type='BRANCH' AND m.reference_id=$3
+        AND m.content_type LIKE 'image/%'
+        AND (m.owner_user_id=$2 OR p.cover_media_id=m.id)`,
+      [q.cover_media_id,req.user!.id,id]);
+    if(!media.rowCount)throw new AppError(403,'MEDIA_ACCESS_DENIED','A verified image uploaded for this branch by you, or its existing cover, is required');
   }
   const r=await db.query(`INSERT INTO merchant_branch_policies(branch_id,delivery_enabled,pickup_enabled,dine_in_enabled,table_qr_enabled,max_concurrent_orders,cover_media_id,updated_by)
   VALUES($1,$2,$3,$4,$5,$6,$7,$8) ON CONFLICT(branch_id) DO UPDATE
