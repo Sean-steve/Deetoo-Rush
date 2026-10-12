@@ -1,5 +1,6 @@
 import { branchScope, merchantScope } from "../auth/scope";
 import { merchantRepository } from "./merchant.repository";
+import { AppError } from "../../middleware/error-handler";
 /**
  * DEETOO - Merchant Catalogue API Router
  * Endpoints for menus, categories, items, prices, modifier groups, options, and branch availability
@@ -56,11 +57,11 @@ catalogueRouter.use(async (req: AuthenticatedRequest, _res, next) => {
       // The active branch, not the first membership returned by the database,
       // determines which merchant owns a branch-scoped availability request.
       const branch = isAvailability && branchId ? await merchantRepository.findBranchById(branchId) : null;
-      if (isAvailability && branchId && !branch) return next(new Error("Branch not found"));
+      if (isAvailability && branchId && !branch) throw new AppError(404,"BRANCH_NOT_FOUND","Branch not found");
       const merchantId = branch?.merchant_id || await resolveMerchantId(req);
       await merchantScope(req.user!, merchantId, !isAvailability, !isAvailability, false);
       if (isAvailability && !branchId && req.user!.roles.some(r=>String(r)==="merchant_staff")) {
-        return next(new Error("Staff availability changes must be scoped to a branch"));
+        throw new AppError(400,"BRANCH_REQUIRED","Staff availability changes must be scoped to an assigned branch");
       }
       if (!req.user!.roles.some(r=>["admin","ops"].includes(String(r))))
         await requireMerchantCapability(req.user!.id,merchantId,isAvailability ? "MENU_AVAILABILITY_WRITE" : "MENU_WRITE");
