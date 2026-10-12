@@ -1,4 +1,3 @@
-import { allowMemoryAdapter } from '../../db/storage-policy';
 import { transactionalService } from '../../db/transaction';
 /**
  * DEETOO - Authoritative Rider Domain Service
@@ -42,9 +41,13 @@ async function publishRiderEvent(channel: string, type: string, data: any) {
       timestamp: new Date().toISOString(),
       data,
     });
-  } catch {
-    allowMemoryAdapter();
-    // Non-blocking
+  } catch (error) {
+    // Realtime fan-out is best-effort; do not change rider availability or
+    // turn an outbox delivery failure into a fabricated storage-mode error.
+    logger.warn('Unable to enqueue Rider realtime notification', {
+      service: 'rider',
+      metadata: { channel, type, error: error instanceof Error ? error.message : String(error) },
+    });
   }
 }
 
@@ -455,7 +458,6 @@ export class RiderService {
       await publishRiderEvent('admin:riders', 'rider.online', eventPayload);
       await publishRiderEvent('admin:riders', 'rider.available', eventPayload);
     } catch {
-    allowMemoryAdapter();
       // Non-blocking event publish
     }
 
@@ -514,7 +516,6 @@ export class RiderService {
       await publishRiderEvent(`rider:${profile.id}`, 'rider.offline', eventPayload);
       await publishRiderEvent('admin:riders', 'rider.offline', eventPayload);
     } catch {
-    allowMemoryAdapter();
       // Non-blocking
     }
 
@@ -666,7 +667,6 @@ export class RiderService {
               occurredAt: receivedAt,
             });
           } catch {
-    allowMemoryAdapter();
             // Non-blocking
           }
         }
@@ -687,7 +687,6 @@ export class RiderService {
               occurredAt: receivedAt,
             });
           } catch {
-    allowMemoryAdapter();
             // Non-blocking
           }
         }
@@ -954,7 +953,6 @@ export class RiderService {
           occurredAt: now,
         });
       } catch {
-    allowMemoryAdapter();
         // Non-blocking
       }
     }
