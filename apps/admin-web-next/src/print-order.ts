@@ -15,8 +15,9 @@ export function printableOrderHtml(order:Order):string{
  <footer><small>Generated from the selected DeeToo order record. Not a payment receipt or tax invoice.</small></footer></body></html>`;
 }
 export function printSelectedOrder(order:Order):boolean{
- const win=window.open("","_blank","noopener,noreferrer,width=870,height=780");
+ const win=window.open("","_blank","width=870,height=780");
  if(!win)return false;
+ win.opener=null;
  win.document.open();win.document.write(printableOrderHtml(order));win.document.close();
  win.addEventListener("load",()=>win.print(),{once:true});
  return true;
