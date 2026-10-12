@@ -136,6 +136,27 @@ maintained private S3-compatible provider with scoped service credentials,
 HTTPS and managed access/CORS policies. A successful presigned PUT still must
 be verified by the DeeToo API before the image can be published.
 
+**Local image source notice (October 2026):** Anonymous pulls from the
+original `quay.io/minio/minio` repository now return HTTP 401. The optional
+Compose `media` profile defaults to `dappros/minio:RELEASE.2025-09-07T16-13-09Z`,
+a **third-party mirror** listed as an unmodified copy of the historical
+community release. This is **local development only**. If you do not trust this
+mirror, set `DEETOO_LOCAL_MEDIA_IMAGE` to an independently verified image
+you control before running Compose. Do not deploy the mirror to production.
+`pnpm media:setup:local` must only run after the container starts and port
+9000 is accepting connections. No database reset is required.
+
+**Merchant roles and branches:** Authorized Merchant Staff can now toggle
+an item’s availability for their assigned branch (separate
+`MENU_AVAILABILITY_WRITE` capability). They cannot change prices, delete
+items or create menus. Owners and Managers retain existing catalogue editing
+permissions. Apply migration **048** via `pnpm db:migrate` to enable the new
+capability in the merchant role policy table. The sidebar branch selector
+contains **Add branch** for authorized owners; branch creation starts closed.
+The `Menu & availability` screen can initialize a menu for a newly created
+branch. Food item Add/Edit now supports verified photos; a short-lived signed
+storage read is made available only after a photo is linked to an active menu.
+
 **Notifications:** Earlier portal builds compared a VARCHAR notification
 recipient to a UUID viewer. Pull the latest API change and restart
 `pnpm dev:api` after updating; no data migration or database reset is needed
