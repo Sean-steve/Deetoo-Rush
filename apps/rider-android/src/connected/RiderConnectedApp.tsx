@@ -221,7 +221,8 @@ export function RiderConnectedApp() {
       else if(method==='pickup'){
         // The server must accept the merchant's pickup code before the
         // Rider transitions to customer navigation. Invalid codes stay here.
-        await api.confirmPickup(d,form.pickupCode||'');
+        const confirmed=await api.confirmPickup(d,form.pickupCode||'');
+        if(confirmed?.status!=='PICKED_UP')throw new Error('DeeToo has not confirmed collection yet. Check the pickup code and try again.');
         setForm(previous=>({...previous,pickupCode:''}));
         go(11);
       }
