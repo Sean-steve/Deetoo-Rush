@@ -34,9 +34,30 @@ return <div className="dn-ring-wrap"><div className="dn-ring" style={{background
 }
 const minLat=-1.36,maxLat=-1.18,minLng=36.65,maxLng=36.97;
 type Marker = {id:string;lat:number;lng:number;type:"rider"|"merchant"|"order"|"delay";label:string;click:()=>void};
-export function DemoMap({orders=[],riders=[],height=370,onSelectOrder,onSelectRider,layers}:{orders?:Order[];riders?:Rider[];height?:number;onSelectOrder?:(id:string)=>void;onSelectRider?:(id:string)=>void;layers?:{riders:boolean;orders:boolean;merchants:boolean}}){
+export function DemoMap({orders=[],riders=[],height=370,onSelectOrder,onSelectRider,layers,live=false}:{orders?:Order[];riders?:Rider[];height?:number;onSelectOrder?:(id:string)=>void;onSelectRider?:(id:string)=>void;layers?:{riders:boolean;orders:boolean;merchants:boolean};live?:boolean}){
+ const [mapOptIn,setMapOptIn]=useState(false);
  const [zoom,setZoom]=useState(1);
  const show=layers||{riders:true,orders:true,merchants:true};
+ if(live){
+  // No mocked Nairobi pins and no coordinate jitter in the operational view.
+  // Map is loaded only when an admin opts into sending a rounded viewport to OSM.
+  // Customer addresses and individual rider GPS are not forwarded to the map provider.
+  const valid=(lat:number,lng:number)=>Number.isFinite(lat)&&Number.isFinite(lng)&&lat>=-5&&lat<=6&&lng>=33&&lng<=42;
+  const points=[...(show.merchants?orders.map(o=>o.pickup):[]),...(show.orders?orders.map(o=>o.destination):[]),...(show.riders?riders.map(r=>r.area):[])].filter(p=>valid(p.lat,p.lng));
+  const center=points.length?{lat:points.reduce((n,p)=>n+p.lat,0)/points.length,lng:points.reduce((n,p)=>n+p.lng,0)/points.length}:null;
+  const lat=center?Math.round(center.lat*100)/100:0,lng=center?Math.round(center.lng*100)/100:0;
+  const width=points.length>1?Math.max(.07,Math.min(3.2,Math.max(...points.map(p=>p.lng))-Math.min(...points.map(p=>p.lng))+.04)):.07;
+  const breadth=points.length>1?Math.max(.05,Math.min(2.4,Math.max(...points.map(p=>p.lat))-Math.min(...points.map(p=>p.lat))+.04)):.05;
+  const bbox=[lng-width/2,lat-breadth/2,lng+width/2,lat+breadth/2].map(n=>n.toFixed(3)).join(",");
+  const url="https://www.openstreetmap.org/export/embed.html?bbox="+encodeURIComponent(bbox)+"&layer=mapnik";
+  return <div className="dn-real-map" style={{minHeight:height}} role="group" aria-label="Real OpenStreetMap geographic basemap">
+    {center&&mapOptIn?<iframe title="OpenStreetMap geographic area" src={url} loading="lazy" referrerPolicy="strict-origin-when-cross-origin" style={{height:Math.max(230,height-78),width:"100%",border:0,borderRadius:12}}/>:
+     <div className="dn-real-map-placeholder"><MapPin size={27}/><strong>{center?"Geographic map ready":"No verified location coordinates available"}</strong><p>{center?"Load a real street map of the approximate operating area. The viewport is shared with OpenStreetMap; customer addresses and rider coordinates are not sent.":"Real map coordinates must come from live orders and rider location records. No sample Nairobi pins will be shown."}</p>{center&&<button className="dn-btn primary" onClick={()=>setMapOptIn(true)}>Load OpenStreetMap</button>}</div>}
+    <div className="dn-real-map-footer"><span>© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap contributors</a> · Basemap only, not live GPS</span>{center&&mapOptIn&&<button className="dn-text-btn" onClick={()=>setMapOptIn(false)}>Hide external map</button>}</div>
+    <div className="dn-real-map-entries">{show.orders&&orders.filter(o=>valid(o.pickup.lat,o.pickup.lng)).slice(0,4).map(o=><button key={o.id} onClick={()=>onSelectOrder?.(o.id)} title={o.id}>Order {orderDisplayId(o)} · {o.pickup.name}</button>)}{show.riders&&riders.filter(r=>valid(r.area.lat,r.area.lng)).slice(0,4).map(r=><button key={r.id} onClick={()=>onSelectRider?.(r.id)}>{r.name} · last reported area</button>)}</div>
+   </div>;
+ }
+
  const markers:Marker[]=[];
  if(show.merchants)orders.slice(0,10).forEach(o=>markers.push({id:"m"+o.id,lat:o.pickup.lat,lng:o.pickup.lng,type:"merchant",label:o.merchant+" — "+o.pickup.name,click:()=>onSelectOrder?.(o.id)}));
  if(show.orders)orders.slice(0,25).forEach(o=>markers.push({id:"o"+o.id,lat:o.destination.lat,lng:o.destination.lng,type:o.status==="DELAYED"?"delay":"order",label:orderDisplayId(o)+" — "+o.customer,click:()=>onSelectOrder?.(o.id)}));
