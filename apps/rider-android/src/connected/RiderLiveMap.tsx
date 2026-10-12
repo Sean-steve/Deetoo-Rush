@@ -6,32 +6,8 @@ import {type MapPoint,type MapZone,mapCenter,tilePoint,validPoint,zoneRings,have
 
 type Route={points:MapPoint[];meters:number;seconds:number;steps:Array<{instruction:string;meters:number}>};
 const toText=(meters:number)=>meters>=1000?(meters/1000).toFixed(1)+' km':meters+' m';
-const timeout=(ms:number)=>new Promise<never>((_,reject)=>setTimeout(()=>reject(new Error('Routing request timed out')),ms));
-/** Route provider is opt-in in deployed builds. The public OSRM demo is ONLY for local testing. */
-export async function loadRiderRoadRoute(start:MapPoint,end:MapPoint):Promise<Route>{
- const configured=process.env.EXPO_PUBLIC_RIDER_ROUTING_BASE_URL?.trim();
- const base=configured||(__DEV__?'https://router.project-osrm.org':'');
- if(!base)throw new Error('In-app road directions need EXPO_PUBLIC_RIDER_ROUTING_BASE_URL set to an approved routing provider.');
- if(!base.startsWith('https://'))throw new Error('Road routing must use HTTPS.');
- const path='/route/v1/driving/'+start.longitude+','+start.latitude+';'+end.longitude+','+end.latitude+'?overview=full&geometries=geojson&steps=true';
- const response=await Promise.race([fetch(base.replace(/\/$/,'')+path),timeout(9000)]);
- if(!response.ok)throw new Error('Road route service is temporarily unavailable');
- const payload=await response.json();
- const route=payload?.routes?.[0];
- if(!route||!Array.isArray(route.geometry?.coordinates))throw new Error('No road route found for these locations');
- return {
-  points:route.geometry.coordinates.map((p:any)=>({latitude:Number(p[1]),longitude:Number(p[0])})).filter(validPoint),
-  meters:Math.round(route.distance),seconds:Math.round(route.duration),
-  steps:(route.legs||[]).flatMap((leg:any)=>leg.steps||[]).slice(0,24).map((step:any)=>{
-   const action=String(step.maneuver?.type||'Continue').replace(/_/g,' ');
-   const modifier=String(step.maneuver?.modifier||'');
-   const street=String(step.name||'').trim();
-   return {instruction:action.charAt(0).toUpperCase()+action.slice(1)+(modifier?' '+modifier:'')+(street?' onto '+street:''),meters:Math.round(step.distance)};
-  }),
- };
-}
-type Props={rider?:MapPoint|null;zones?:MapZone[];destination?:MapPoint|null;destinationLabel?:string;route?:boolean;height?:number};
-export function RiderLiveMap({rider=null,zones=[],destination=null,destinationLabel='Destination',route=false,height=255}:Props){
+type Props={rider?:MapPoint|null;zones?:MapZone[];destination?:MapPoint|null;destinationLabel?:string;route?:boolean;height?:number;loadRoute?:()=>Promise<Route>};
+export function RiderLiveMap({rider=null,zones=[],destination=null,destinationLabel='Destination',route=false,height=255,loadRoute}:Props){
  const [gps,setGps]=useState<MapPoint|null>(null),[zoomAdjust,setZoomAdjust]=useState(0);
  const [width,setWidth]=useState(330),[road,setRoad]=useState<Route|null>(null);
  const [routingError,setRoutingError]=useState(''),[routing,setRouting]=useState(false);
@@ -51,8 +27,9 @@ export function RiderLiveMap({rider=null,zones=[],destination=null,destinationLa
  },[route]);
  useEffect(()=>{
   if(!route||!validPoint(start)||!validPoint(destination)){setRoad(null);return;}
-  let active=true;setRouting(true);setRoutingError('');
-  void loadRiderRoadRoute(start,destination).then(result=>{if(active)setRoad(result);})
+  if(!loadRoute){setRoad(null);setRoutingError('DeeToo road guidance is unavailable for this delivery');return;}
+  let active=true;setRoad(null);setRouting(true);setRoutingError('');
+  void loadRoute().then(result=>{if(active)setRoad(result);})
    .catch(e=>{if(active){setRoad(null);setRoutingError(e instanceof Error?e.message:String(e));}})
    .finally(()=>{if(active)setRouting(false);});
   return()=>{active=false;};
@@ -105,7 +82,7 @@ export function RiderLiveMap({rider=null,zones=[],destination=null,destinationLa
    <View onLayout={e=>setWidth(Math.max(200,Math.round(e.nativeEvent.layout.width)))} accessibilityLabel="Interactive Rider map with live location and DeeToo service boundaries" style={{height,overflow:'hidden',borderRadius:18,backgroundColor:'#E2EDE5',borderWidth:1,borderColor:C.border}}>
     {frame?.tiles.map(t=><Image key={t.x+':'+t.y+':'+t.z} source={{uri:`https://tile.openstreetmap.org/${t.z}/${t.wrappedX}/${t.y}.png`}} resizeMode="stretch" style={{position:'absolute',width:256,height:256,left:t.xpos,top:t.ypos}} />)}
     {boundarySegments.map(([a,d],i)=>segment(a,d,'zone-'+i,'rgba(0,126,76,0.76)',3))}
-    {road?.points.slice(1).map((q,i)=>segment(road.points[i],q,'route-'+i,'#1266EA',5))}
+    {road?.points.slice(1).filter((_,i)=>i%Math.max(1,Math.ceil(road.points.length/350))===0).map((q,i,a)=>segment(i===0?road.points[0]:a[i-1],q,'route-'+i,'#1266EA',5))}
     {pin(start,'You','#12A057')}{pin(destination,destinationLabel,'#1768DF')}
     <View style={{position:'absolute',right:7,top:8,gap:6}}>
      <Pressable accessibilityLabel="Zoom in map" onPress={()=>setZoomAdjust(v=>Math.min(3,v+1))} style={{backgroundColor:'white',padding:10,borderRadius:9}}><Text style={S.h2}>+</Text></Pressable>
