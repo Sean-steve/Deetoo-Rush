@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Linking, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, BackHandler, Pressable, Text, View } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import type { AuthUser } from '@deetoo/types';
 import { createRiderAndroidSession } from '../index';
@@ -11,7 +11,9 @@ import { uploadDeliveryPhoto } from '../media';
 import { uploadRiderImage } from './media';
 import { createRiderBackend, parseRiderServerError, parseWithdrawalKes, safeRiderDeliveryAction, toKes, type RiderHistory, type RiderIncident } from './rider-backend';
 import { validKenyanPhone } from '../preview/phase1-model';
-import { Button, C, Field, HeroRider, MapPreview, Metric, Notice, OnboardingTracker, Panel, PrototypeShell, S, Tag } from '../preview/ui';
+import { Button, C, Field, HeroRider, Metric, Notice, OnboardingTracker, Panel, PrototypeShell, S, Tag } from '../preview/ui';
+import { RiderLiveMap } from './RiderLiveMap';
+import {geoPoint,shortReference} from './rider-map-model';
 import type { RiderTab } from '../preview/phase1-model';
 
 type CameraJob = { kind: 'document'|'incident'|'support'|'delivery'; ref?: string; documentType?: string } | null;
@@ -39,6 +41,8 @@ export function RiderConnectedApp() {
   const [view,setView]=useState(1);
   const [tab,setTab]=useState<RiderTab>('Home');
   const [busy,setBusy]=useState(false);
+  const [refreshing,setRefreshing]=useState(false);
+  const screenHistory=useRef<number[]>([]);
   const [error,setError]=useState('');
   const [notice,setNotice]=useState('');
   const [identifier,setIdentifier]=useState('');
@@ -81,7 +85,28 @@ export function RiderConnectedApp() {
   const setField=(k:string,v:string)=>setForm(x=>({...x,[k]:v}));
   const field=(k:string,label:string,placeholder='',keyboardType:any='default',multiline=false)=>
     <Field label={label} value={form[k]||''} onChangeText={(v)=>setField(k,v)} placeholder={placeholder} keyboardType={keyboardType} multiline={multiline} autoCapitalize={k.includes('email')?'none':'sentences'} />;
-  const go=(n:number)=>{setView(n);setError('');setNotice(''); if(n===6)setTab('Home');else if(n>=7&&n<=15)setTab('Deliveries');else if(n>=16&&n<=18)setTab('Earnings');else if(n>=20&&n<=22)setTab('Inbox');else if(n===19||n>=23)setTab('Profile');};
+  const showView=(n:number)=>{
+    setView(n);setError('');setNotice('');
+    if(n===6)setTab('Home');else if(n>=7&&n<=15)setTab('Deliveries');
+    else if(n>=16&&n<=18)setTab('Earnings');else if(n>=20&&n<=22)setTab('Inbox');
+    else if(n===19||n>=23)setTab('Profile');
+  };
+  const go=(n:number)=>{if(n!==view)screenHistory.current.push(view);showView(n);};
+  const back=()=>{
+    const previous=screenHistory.current.pop();
+    if(previous!==undefined){showView(previous);return;}
+    if(user&&view!==6){showView(6);return;}
+    // At the dashboard root Android Back must not terminate an active Rider shift.
+  };
+  useEffect(()=>{
+    const subscription=BackHandler.addEventListener('hardwareBackPress',()=>{
+      if(cameraJob){setCameraJob(null);return true;}
+      back();return true;
+    });
+    return()=>subscription.remove();
+  },[view,user,cameraJob]);
+  useEffect(()=>{if(!notice)return;const timer=setTimeout(()=>setNotice(''),4300);return()=>clearTimeout(timer);},[notice]);
+  useEffect(()=>{if(!error)return;const timer=setTimeout(()=>setError(''),10000);return()=>clearTimeout(timer);},[error]);
   const applyTab=(t:RiderTab)=>{setTab(t);go(t==='Home'?6:t==='Deliveries'?8:t==='Earnings'?16:t==='Inbox'?20:24);};
   const run=async(action:()=>Promise<unknown>,success?:string,refreshAfter=true)=>{
     if(busy)return false;
@@ -118,6 +143,13 @@ export function RiderConnectedApp() {
       }
     }catch(e){setError(parseRiderServerError(e));}
   },[api,user,form.caseId]);
+  const pullToRefresh=async()=>{
+    if(refreshing||busy||!user)return;
+    setRefreshing(true);setError('');
+    try{await refresh();await extra(view);}
+    catch(e){setError(parseRiderServerError(e));}
+    finally{setRefreshing(false);}
+  };
   useEffect(()=>{let mounted=true;void session.restore().then(u=>{if(mounted){setUser(u);if(u)setView(6);}}).catch(e=>{if(mounted)setError(parseRiderServerError(e));}).finally(()=>{if(mounted)setRestoring(false);});return()=>{mounted=false;};},[session]);
   useEffect(()=>{if(!user)return;void refresh().catch(e=>setError(parseRiderServerError(e)));const timer=setInterval(()=>void refresh().catch(e=>setError(parseRiderServerError(e))),8000);return()=>clearInterval(timer);},[refresh,user]);
   useEffect(()=>{if(user)void extra(view);},[view,user,extra]);
@@ -128,7 +160,7 @@ export function RiderConnectedApp() {
     setUser(u);go(6);
   },undefined,false);
   const logout=()=>run(async()=>{
-    await stopRiderLocationService().catch(()=>undefined);await session.logout();setUser(null);setView(1);setStatus(null);setOffer(null);setActive(null);
+    await stopRiderLocationService().catch(()=>undefined);await session.logout();screenHistory.current=[];setUser(null);setView(1);setStatus(null);setOffer(null);setActive(null);
     setWallet(null);setCases([]);setNotifications([]);setForm({});setPushReady(false);
   },undefined,false);
   const register=()=>run(async()=>{
@@ -202,7 +234,7 @@ export function RiderConnectedApp() {
 
   let body:React.ReactNode=null;
   const a=active?.delivery,deliveryId=id(a?.id),deliveryStatus=id(a?.status);
-  const online=['ONLINE','AVAILABLE','BUSY'].includes(status?.profile?.workStatus);
+  const online=['ONLINE_AVAILABLE','ONLINE_UNAVAILABLE','ON_DELIVERY'].includes(status?.profile?.workStatus);
   const name=status?.profile?.firstName||user?.name||'Rider';
 
   if(!user && view===1)body=<Page title="Welcome back, Rider" subtitle="Log in securely to your DeeToo delivery workspace.">
