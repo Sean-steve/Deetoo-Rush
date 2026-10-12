@@ -1969,6 +1969,8 @@ export interface RiderDeliveryDetail {
   dropoff: {
     recipientName: string;
     address: string;
+    /** Verified destination area if present; never an unverified reverse geocode. */
+    areaName?: string;
     location: GeoPoint;
     instructions?: string | null;
     phoneProxy?: string;
