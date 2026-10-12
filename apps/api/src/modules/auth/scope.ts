@@ -49,7 +49,8 @@ export async function branchScope(user: AuthUser, branchId: string) {
       (m) =>
         m.status === "ACTIVE" &&
         m.merchant_id === branch!.merchant_id &&
-        (m.role_code === "merchant_owner" || m.branch_ids.includes(branchId)),
+        // Empty branch_ids means all branches, matching /merchant/branches listing.
+        (m.role_code === "merchant_owner" || m.branch_ids.length === 0 || m.branch_ids.includes(branchId)),
     )
   )
     deny();
