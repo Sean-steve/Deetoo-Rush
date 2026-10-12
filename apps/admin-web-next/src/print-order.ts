@@ -18,7 +18,9 @@ export function printSelectedOrder(order:Order):boolean{
  const win=window.open("","_blank","width=870,height=780");
  if(!win)return false;
  win.opener=null;
- win.document.open();win.document.write(printableOrderHtml(order));win.document.close();
- win.addEventListener("load",()=>win.print(),{once:true});
+ win.document.open();win.document.write(printableOrderHtml(order));
+ // Attach before close(): about:blank can emit its load event synchronously.
+ win.addEventListener("load",()=>{win.focus();win.print();},{once:true});
+ win.document.close();
  return true;
 }
