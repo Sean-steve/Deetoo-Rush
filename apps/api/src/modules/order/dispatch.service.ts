@@ -1302,10 +1302,13 @@ export class DispatchService {
       customerAddress?.suburb,customerAddress?.locality,customerAddress?.ward]
       .find(v=>typeof v==='string'&&v.trim().length>0);
     const formatted = String(customerAddress?.formatted_address||delivery.dropoff_address_text||'');
-    const fragments = formatted.split(',').map(v=>v.trim()).filter(Boolean);
+    const fragments = formatted.split(',').map(v=>v.trim()).filter(Boolean)
+      .filter((part,i,all)=>i!==all.length-1||!/^(kenya|ke)$/i.test(part));
     const areaName = typeof locality==='string'?locality.trim()
       : fragments.length>=3?fragments[fragments.length-2]
-      : fragments.length===2?fragments[0]:'';
+      : fragments.length===2?fragments[0]
+      : fragments.length===1&&!/\d|\b(road|street|avenue|plot|house|building)\b/i.test(fragments[0])
+        ?fragments[0]:'';
 
     const pickupLat = delivery.pickup_location.latitude ?? delivery.pickup_location.lat;
     const pickupLng = delivery.pickup_location.longitude ?? delivery.pickup_location.lng;
