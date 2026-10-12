@@ -805,6 +805,22 @@ paths:
         '200': { description: Device disabled }
         '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
+  /media/branches/{id}/cover:
+    get:
+      summary: Redirect to a temporary image URL for an approved restaurant branch's verified cover
+      description: Only published, verified, branch-bound images of active and approved restaurants are accessible. Unlinked private media remains private.
+      tags: [Merchant]
+      operationId: media_public_branch_cover
+      security: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '302': { description: Redirect to a short-lived signed read URL for the published branch cover }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '503': { description: Private media service is unavailable }
   /media/catalogue/{id}:
     get:
       summary: Redirect to a temporary read URL for a verified image attached to a published menu item
