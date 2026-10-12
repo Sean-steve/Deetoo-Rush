@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import type { MerchantLiveBridge } from "./MerchantLiveApp";
+import { merchantErrorMessage } from "./merchant-branch-errors";
 import { CalendarClock, Check, ChefHat, Clock3, ImagePlus, LocateFixed, MapPin, Settings2, Store, Truck, Utensils, Plus, Save, Navigation } from "lucide-react";
 
 type BranchData = { name: string; display: string; description: string; street: string; city: string; phone: string; email: string; latitude: string; longitude: string; prep: string; minOrder: string; image: string };
@@ -21,7 +22,7 @@ export function PrototypeBranch({store,setStore,notify,live}:{store:"Open"|"Paus
  const [dineIn,setDineIn]=useState(false),[coverMedia,setCoverMedia]=useState<string|null>(null);
  const [busy,setBusy]=useState(false),[loadError,setLoadError]=useState("");
  useEffect(()=>{if(!live)return;let active=true;const b=live.branch;
- setBranch({name:b.name||"",display:b.name||"",description:b.description||"",street:b.address_line1||b.address_text||"",city:b.city||"",phone:b.phone||"",email:b.email||"",latitude:String(b.latitude??""),longitude:String(b.longitude??""),prep:String(b.prep_default_min??20),minOrder:String(Number(b.min_order_minor||0)/100),image:""});
+ setBranch({name:b.name||"",display:b.display_name||b.name||"",description:b.description||"",street:b.address_line1||b.address_text||"",city:b.city||"",phone:b.phone||"",email:b.email||"",latitude:String(b.latitude??""),longitude:String(b.longitude??""),prep:String(b.prep_default_min??20),minOrder:String(Number(b.min_order_minor||0)/100),image:""});
  Promise.all([live.api.request<any[]>(`/merchant/branches/${live.branchId}/opening-hours`),live.api.request<any>(`/merchant/experience/branches/${live.branchId}/policies`)]).then(([response,policy])=>{if(!active)return;const days=["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
  setHours(days.slice(1).concat(days[0]).map(day=>{const h=response.data.find((x:any)=>Number(x.day_of_week)===days.indexOf(day));return {day,active:h?!h.is_closed:false,open:String(h?.open_time||"08:00").slice(0,5),close:String(h?.close_time||"23:00").slice(0,5)}}));
  setDelivery(Boolean(policy.data.delivery_enabled));setPickup(Boolean(policy.data.pickup_enabled));setDineIn(Boolean(policy.data.dine_in_enabled));setTableService(Boolean(policy.data.table_qr_enabled));setMaxConcurrent(String(policy.data.max_concurrent_orders||30));setMinBasket(String(Number(b.min_order_minor||0)/100));setCoverMedia(policy.data.cover_media_id||null);
@@ -30,12 +31,15 @@ export function PrototypeBranch({store,setStore,notify,live}:{store:"Open"|"Paus
     if(active)setBranch(prev=>({...prev,image:r.data.url}));
   }).catch(()=>{/* Image remains visible as a placeholder if private media access is unavailable. */});
  }
- }).catch(e=>{if(active)setLoadError(e instanceof Error?e.message:String(e));});return()=>{active=false};},[live?.branchId,live?.branch?.updated_at]);
+ }).catch(e=>{if(active)setLoadError(merchantErrorMessage(e));});return()=>{active=false};},[live?.branchId,live?.branch?.updated_at]);
 
  const update=(key:keyof BranchData,value:string)=>setBranch(prev=>({...prev,[key]:value}));
- const save=async()=>{if(!branch.name.trim()||!branch.street.trim()||!branch.city.trim()||!Number.isFinite(Number(branch.latitude))||Math.abs(Number(branch.latitude))>90||!Number.isFinite(Number(branch.longitude))||Math.abs(Number(branch.longitude))>180){notify("Check required branch details and coordinates.");return;}
+ const save=async()=>{if(!branch.name.trim()||!branch.display.trim()||!branch.street.trim()||!branch.city.trim()||!branch.latitude.trim()||!branch.longitude.trim()||!Number.isFinite(Number(branch.latitude))||Math.abs(Number(branch.latitude))>90||!Number.isFinite(Number(branch.longitude))||Math.abs(Number(branch.longitude))>180){notify("Check required branch names, address and location coordinates.");return;}
+ if((branch.phone.trim()&&branch.phone.trim().length<8)||(branch.email.trim()&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(branch.email.trim()))||branch.description.length>1000||branch.display.length>255){notify("Check the phone number, email, display name and business description.");return;}
+ if(!Number.isInteger(Number(branch.prep))||Number(branch.prep)<1||Number(branch.prep)>180||!Number.isFinite(Number(branch.minOrder))||Number(branch.minOrder)<0||!Number.isInteger(Number(maxConcurrent))||Number(maxConcurrent)<1||Number(maxConcurrent)>500){notify("Preparation time must be 1–180 minutes, minimum order non-negative and capacity 1–500.");return;}
+ if(hours.some(h=>h.active&&(!h.open||!h.close||h.open>=h.close))){notify("Opening hours must be valid; closing time must be later than opening time.");return;}
  if(live){setBusy(true);setLoadError("");const savedSections:string[]=[];try{const u=`/merchant/branches/${live.branchId}`;
- await live.api.request(u,{method:"PATCH",body:JSON.stringify({name:branch.name,address_line1:branch.street,city:branch.city,phone:branch.phone||undefined,email:branch.email||undefined,latitude:Number(branch.latitude),longitude:Number(branch.longitude),prep_default_min:Number(branch.prep),min_order_minor:Math.round(Number(branch.minOrder)*100)})});
+ await live.api.request(u,{method:"PATCH",body:JSON.stringify({name:branch.name,display_name:branch.display||branch.name,description:branch.description,address_line1:branch.street,city:branch.city,phone:branch.phone||undefined,email:branch.email||undefined,latitude:Number(branch.latitude),longitude:Number(branch.longitude),prep_default_min:Number(branch.prep),min_order_minor:Math.round(Number(branch.minOrder)*100)})});
  savedSections.push("Branch profile");
  const days=["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
  await live.api.request(u+"/opening-hours",{method:"PUT",body:JSON.stringify(hours.map(h=>({day_of_week:days.indexOf(h.day),open_time:h.open,close_time:h.close,is_closed:!h.active})))});
@@ -43,16 +47,18 @@ export function PrototypeBranch({store,setStore,notify,live}:{store:"Open"|"Paus
  await live.api.request(`/merchant/experience/branches/${live.branchId}/policies`,{method:"PUT",body:JSON.stringify({delivery_enabled:delivery,pickup_enabled:pickup,dine_in_enabled:dineIn||tableService,table_qr_enabled:tableService,max_concurrent_orders:Number(maxConcurrent),cover_media_id:coverMedia})});
  savedSections.push("Service and ordering policies");
  notify("Branch settings saved to DeeToo");live.refresh();
- }catch(e){const details=e instanceof Error?e.message:String(e);const message=savedSections.length?`Partially saved: ${savedSections.join(", ")}. Later sections failed (${details}). Review server values before retrying; saving is not an atomic transaction.`:`No branch changes were saved: ${details}`;setLoadError(message);notify(message);if(savedSections.length)live.refresh();}finally{setBusy(false);}return;}
+ }catch(e){const details=merchantErrorMessage(e);const message=savedSections.length?`Partially saved: ${savedSections.join(", ")}. Later sections failed (${details}). Review server values before retrying; saving is not an atomic transaction.`:`No branch changes were saved: ${details}`;setLoadError(message);notify(message);if(savedSections.length)live.refresh();}finally{setBusy(false);}return;}
  try { const persistable={...branch,image:branch.image.length<450000?branch.image:""}; localStorage.setItem("mp-demo-branch",JSON.stringify(persistable));localStorage.setItem("mp-demo-hours",JSON.stringify(hours));notify(persistable.image!==branch.image?"Branch settings saved; large image preview remains in this tab only.":"Branch settings saved in frontend prototype"); } catch {notify("Branch updated in this tab, but browser storage is full.");}};
  const navigate=(section:string)=>{setTab(section);if(section==="Ordering rules")setDialog("rules");else if(section==="Advanced")setDialog("advanced");else document.getElementById("mp-branch-"+section.toLowerCase().replace(/\s+/g,"-"))?.scrollIntoView({behavior:"smooth",block:"center"});};
  const updateHour=(day:string,patch:Partial<Hours>)=>setHours(prev=>prev.map(row=>row.day===day?{...row,...patch}:row));
  const onImage=async(event:React.ChangeEvent<HTMLInputElement>)=>{const file=event.target.files?.[0];if(!file)return;if(!file.type.startsWith("image/")||file.size>5*1024*1024){notify("Choose a JPG, PNG or WebP image under 5 MB");return;}if(live){try{const grant=(await live.api.request<any>("/media/uploads",{method:"POST",body:JSON.stringify({purpose:"MERCHANT_IMAGE",content_type:file.type,reference_type:"BRANCH",reference_id:live.branchId})})).data;
+ if(!grant?.upload_url||!grant?.media_id)throw new Error("The upload service did not provide a valid upload destination.");
+ if(!/^https?:\/\//.test(grant.upload_url))throw new Error("Private object storage must be configured before uploading branch photos. The current image has not changed.");
  const uploaded=await fetch(grant.upload_url,{method:"PUT",headers:grant.upload_headers||{"Content-Type":file.type},body:file});if(!uploaded.ok)throw new Error("Object storage rejected upload");
  const completed=(await live.api.request<any>(`/media/uploads/${grant.media_id}/complete`,{method:"POST"})).data;
- if(completed.status!=="VERIFIED")throw new Error("Image verification pending");
+ if(completed.status!=="VERIFIED")throw new Error("Image verification is incomplete. The current branch image has not changed.");
  setCoverMedia(grant.media_id);notify("Image uploaded; save branch settings to publish.");const reader=new FileReader();reader.onload=()=>update("image",String(reader.result));reader.readAsDataURL(file);
- }catch(e){notify("Image upload unavailable: "+(e instanceof Error?e.message:String(e)));}return;}
+ }catch(e){const message="Image upload unavailable: "+merchantErrorMessage(e);setLoadError(message);notify(message);}finally{event.target.value="";}return;}
  const reader=new FileReader();reader.onload=()=>{update("image",String(reader.result));setDialog(null);notify("Branch image updated locally. Save branch settings to keep changes.");};reader.readAsDataURL(file);};
  return <div className="mp-p2">
    <DemoHeading eyebrow="BRANCH SETTINGS" title="Branch settings" description="Manage your branch information, location, operating hours and preparation settings." action={<BranchBanner store={store} onAction={()=>setDialog("location")}/>} />

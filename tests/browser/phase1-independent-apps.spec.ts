@@ -63,6 +63,92 @@ test('Merchant Web authenticates independently and reaches merchant-scoped APIs'
   await context.close();
 });
 
+test('Merchant Overview is distinct from Kitchen orders and links to approved workflows',async({browser})=>{
+ const context=await browser.newContext(),page=await context.newPage();
+ await page.goto('http://127.0.0.1:5174');
+ await page.locator('.mp-live-auth input[autocomplete="username"]').fill('merchant@deetoo.ke');
+ await page.locator('.mp-live-auth input[type="password"]').fill('MerchantPass123!');
+ await page.getByRole('button',{name:'Sign in',exact:true}).click();
+ await expect(page.locator('.mp-sidebar')).toBeVisible({timeout:20000});
+ await page.locator('.mp-sidebar nav').getByRole('button',{name:'Overview',exact:true}).click();
+ await expect(page.getByRole('heading',{name:'Business overview'})).toBeVisible();
+ await expect(page).toHaveURL(/screen=overview/);
+ await expect(page.getByRole('heading',{name:'Kitchen pipeline'})).toBeVisible();
+ await page.getByRole('button',{name:/Manage kitchen orders/}).click();
+ await expect(page.getByRole('heading',{name:'Kitchen orders',exact:true})).toBeVisible();
+ await expect(page).toHaveURL(/screen=orders/);
+ await context.close();
+});
+
+test('Merchant menu availability writes scoped changes and rolls back rejected API mutations',async({browser})=>{
+ const context=await browser.newContext(),page=await context.newPage();
+ const menuId='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',categoryId='bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',itemId='cccccccc-cccc-4ccc-8ccc-cccccccccccc';
+ let available=true,fail=false,writes=0;
+ await page.route('**/api/v1/merchant/menus',route=>route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({data:[{id:menuId,name:'Lunch'}]})}));
+ await page.route('**/api/v1/merchant/menus/*/categories',route=>route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({data:[{id:categoryId,name:'Mains',menu_id:menuId}]})}));
+ await page.route('**/api/v1/merchant/menus/*/items',route=>route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({data:[{id:itemId,menu_id:menuId,category_id:categoryId,name:'Acceptance Burger',price_minor:85000,is_available:true}]})}));
+ await page.route('**/api/v1/merchant/branches/*/catalogue',route=>route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({data:{menu:{id:menuId},categories:[{id:categoryId,items:[{id:itemId,effective_available:available}]}]}})}));
+ await page.route('**/api/v1/merchant/items/*/availability',async route=>{
+   writes++;const body=route.request().postDataJSON();
+   expect(body.branch_id).toBe('branch_westlands_01'); // Shared browser fixture uses a stable non-UUID ID.
+   expect(body.is_available).toBe(!available);
+   if(fail){await route.fulfill({status:403,contentType:'application/json',body:JSON.stringify({error:{code:'ACCESS_DENIED',message:'Cannot edit menu from this account',request_id:'req_availability_denied'}})});return;}
+   available=body.is_available;
+   await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({data:{item_id:itemId,is_available:available}})});
+ });
+ await page.goto('http://127.0.0.1:5174?screen=menu');
+ await page.locator('.mp-live-auth input[autocomplete="username"]').fill('merchant@deetoo.ke');
+ await page.locator('.mp-live-auth input[type="password"]').fill('MerchantPass123!');
+ await page.getByRole('button',{name:'Sign in',exact:true}).click();
+ const toggle=page.getByRole('switch',{name:'Acceptance Burger availability'});
+ await expect(toggle).toBeVisible({timeout:20000});
+ await expect(toggle).toHaveAttribute('aria-checked','true');
+ await toggle.click();
+ await expect.poll(()=>writes).toBe(1);
+ await expect(toggle).toHaveAttribute('aria-checked','false');
+ await page.reload();
+ await expect(toggle).toHaveAttribute('aria-checked','false',{timeout:20000});
+ fail=true;await toggle.click();
+ await expect.poll(()=>writes).toBe(2);
+ await expect(page.locator('.mp-toast')).toContainText('not authorized');
+ await expect(page.locator('.mp-toast')).not.toContainText('[object Object]');
+ await expect(toggle).toHaveAttribute('aria-checked','false');
+ await context.close();
+});
+
+test('Merchant notification errors remain visible and support retry after database recovery',async({browser})=>{
+ const context=await browser.newContext(),page=await context.newPage();
+ let unavailable=true;
+ await page.route('**/api/v1/merchant/inbox?*',route=>unavailable?
+  route.fulfill({status:500,contentType:'application/json',body:JSON.stringify({error:{code:'MERCHANT_SCHEMA_MIGRATION_REQUIRED',message:'Notification viewer table missing',request_id:'req_inbox_upgrade'}})}):
+  route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({data:[]})}));
+ await page.goto('http://127.0.0.1:5174?screen=notifications');
+ await page.locator('.mp-live-auth input[autocomplete="username"]').fill('merchant@deetoo.ke');
+ await page.locator('.mp-live-auth input[type="password"]').fill('MerchantPass123!');
+ await page.getByRole('button',{name:'Sign in',exact:true}).click();
+ await expect(page.getByRole('heading',{name:'Notifications',exact:true})).toBeVisible({timeout:20000});
+ await expect(page.getByRole('alert').filter({hasText:'Unable to load notifications'})).toContainText('pnpm db:migrate');
+ await expect(page.getByRole('alert').filter({hasText:'Unable to load notifications'})).not.toContainText('[object Object]');
+ unavailable=false;await page.getByRole('button',{name:'Retry notifications'}).click();
+ await expect(page.getByRole('alert').filter({hasText:'Unable to load notifications'})).toHaveCount(0);
+ await expect(page.getByText('Notifications (0)')).toBeVisible();
+ await context.close();
+});
+
+test('Merchant branch image reports missing object storage instead of claiming an upload',async({browser})=>{
+ const context=await browser.newContext(),page=await context.newPage();
+ await page.route('**/api/v1/media/uploads',route=>route.fulfill({status:503,contentType:'application/json',body:JSON.stringify({error:{code:'PRIVATE_STORAGE_UNCONFIGURED',message:'Private object storage is not configured',request_id:'req_no_storage'}})}));
+ await page.goto('http://127.0.0.1:5174?screen=branch');
+ await page.locator('.mp-live-auth input[autocomplete="username"]').fill('merchant@deetoo.ke');
+ await page.locator('.mp-live-auth input[type="password"]').fill('MerchantPass123!');
+ await page.getByRole('button',{name:'Sign in',exact:true}).click();
+ await expect(page.getByRole('heading',{name:'Branch settings'})).toBeVisible({timeout:20000});
+ await page.locator('.mp-p2-branch-image input[type="file"]').setInputFiles({name:'branch.png',mimeType:'image/png',buffer:Buffer.from([137,80,78,71,13,10,26,10])});
+ await expect(page.getByRole('alert').filter({hasText:'Image upload unavailable'})).toContainText('OBJECT_STORAGE_BUCKET');
+ await expect(page.getByRole('alert').filter({hasText:'Image upload unavailable'})).not.toContainText('[object Object]');
+ await context.close();
+});
+
 test('Merchant background refresh preserves the selected screen and in-progress input on temporary branch outage', async ({ browser }) => {
   const context=await browser.newContext();
   const page=await context.newPage();

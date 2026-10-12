@@ -10,7 +10,26 @@ export type MerchantBranchError = {
 
 /** DeeToo's API client rejects {error:{code,message,request_id}}, not Error instances. */
 export function merchantErrorMessage(error: unknown): string {
-  return normalizeUXError(error).message;
+  const ux = normalizeUXError(error);
+  const raw = typeof (error as any)?.error?.message === "string"
+    ? (error as any).error.message
+    : typeof (error as any)?.message === "string" ? (error as any).message : "";
+  const code = ux.code || "";
+  let message = ux.message;
+  // Local databases created before the Merchant migrations need to be upgraded.
+  // Never render SQL or JavaScript objects in the interface.
+  if (code === "MERCHANT_SCHEMA_MIGRATION_REQUIRED" ||
+      (/relation ["']merchant_(?:notification_views|notification_preferences|branch_policies)["'] does not exist/i.test(raw) ||
+       /column ["'](?:display_name|description)["'] of relation ["']merchant_branches["'] does not exist/i.test(raw))) {
+    message = "Merchant database upgrade required. Run pnpm db:migrate against the database used by DeeToo API, then retry.";
+  } else if (code === "PRIVATE_STORAGE_UNCONFIGURED") {
+    message = "Image uploads require private object storage. Ask an operator to configure OBJECT_STORAGE_BUCKET, OBJECT_STORAGE_REGION and storage credentials, then retry. Your current image has not changed.";
+  } else if (code === "MEDIA_PURPOSE_FORBIDDEN" || code === "MEDIA_ACCESS_DENIED") {
+    message = "Your Merchant role does not permit this image change. Contact the merchant owner or manager.";
+  } else if (code === "ACCESS_DENIED" || code === "FORBIDDEN_SCOPE") {
+    message = "Your Merchant account is not authorized to change this resource. Contact the merchant owner or manager.";
+  }
+  return message + (ux.referenceId ? " · Support reference: " + ux.referenceId : "");
 }
 
 /** Do not confuse an unassigned account with a temporary server outage. */

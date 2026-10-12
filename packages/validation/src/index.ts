@@ -216,6 +216,8 @@ export const AdminRejectMerchantSchema = z.object({
 
 export const CreateBranchSchema = z.object({
   name: z.string().min(2, 'Branch name must be at least 2 characters').max(255),
+  display_name: z.string().min(2).max(255).optional(),
+  description: z.string().max(1000).optional(),
   slug: z.string().min(2).max(100).regex(/^[a-z0-9-]+$/).optional(),
   phone: z.string().min(8).max(30).optional(),
   email: z.string().email('Invalid email address').optional(),

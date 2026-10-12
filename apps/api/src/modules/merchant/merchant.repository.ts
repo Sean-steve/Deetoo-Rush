@@ -591,6 +591,8 @@ export class MerchantRepository {
             id: row.id,
             merchant_id: row.merchant_id,
             name: row.name,
+            display_name: row.display_name || row.name,
+            description: row.description || "",
             slug: row.slug || undefined,
             email: row.email || undefined,
             phone: row.phone || undefined,
@@ -643,6 +645,8 @@ export class MerchantRepository {
             id: row.id,
             merchant_id: row.merchant_id,
             name: row.name,
+            display_name: row.display_name || row.name,
+            description: row.description || "",
             slug: row.slug || undefined,
             email: row.email || undefined,
             phone: row.phone || undefined,
@@ -714,8 +718,8 @@ export class MerchantRepository {
              id, merchant_id, name, slug, email, phone, address_line1, address_line2, landmark,
              city, region, country_code, postal_code, address_text, latitude, longitude,
              status, operational_status, timezone, currency, min_order_minor, prep_default_min,
-             created_at, updated_at
-           ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24)`,
+             created_at, updated_at, display_name, description
+           ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26)`,
           [
             branch.id,
             branch.merchant_id,
@@ -741,6 +745,8 @@ export class MerchantRepository {
             branch.prep_default_min,
             branch.created_at,
             branch.updated_at,
+            branch.display_name || branch.name,
+            branch.description || null,
           ]
         );
       } catch (err: any) {
@@ -775,7 +781,8 @@ export class MerchantRepository {
            SET name = $1, slug = $2, email = $3, phone = $4, address_line1 = $5, address_line2 = $6,
                landmark = $7, city = $8, region = $9, country_code = $10, postal_code = $11,
                address_text = $12, latitude = $13, longitude = $14, status = $15, operational_status = $16,
-               timezone = $17, currency = $18, min_order_minor = $19, prep_default_min = $20, updated_at = $21
+               timezone = $17, currency = $18, min_order_minor = $19, prep_default_min = $20, updated_at = $21,
+               display_name = $23, description = $24
            WHERE id = $22`,
           [
             updated.name,
@@ -800,6 +807,8 @@ export class MerchantRepository {
             updated.prep_default_min,
             updated.updated_at,
             id,
+            updated.display_name || updated.name,
+            updated.description || null,
           ]
         );
       } catch (err: any) {

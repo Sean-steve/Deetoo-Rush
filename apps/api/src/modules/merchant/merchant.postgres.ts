@@ -2,7 +2,7 @@ import { rows,one,insert,identifier } from '../../db/adapter';
 import { withTransaction } from '../../db/transaction';
 import { postgresMemberships } from './membership.postgres';
 const merchantFields=['id','legal_name','display_name','slug','description','phone','email','logo_url','status','approval_status','rejection_reason','commission_bps','settlement_schedule'];
-const branchFields=['id','merchant_id','name','slug','email','phone','address_line1','address_line2','landmark','city','region','country_code','postal_code','address_text','latitude','longitude','status','operational_status','timezone','currency','min_order_minor','prep_default_min'];
+const branchFields=['id','merchant_id','name','display_name','description','slug','email','phone','address_line1','address_line2','landmark','city','region','country_code','postal_code','address_text','latitude','longitude','status','operational_status','timezone','currency','min_order_minor','prep_default_min'];
 const branchQuery=`SELECT b.*,COALESCE((SELECT jsonb_agg(service_zone_id) FROM branch_service_zones WHERE branch_id=b.id AND status='ACTIVE'),'[]'::jsonb) AS service_zones FROM merchant_branches b`;
 const zoneQuery='SELECT z.*,ST_AsGeoJSON(boundary)::jsonb AS boundary FROM service_zones z';
 async function update(table:string,id:string,data:any,fields:string[]) {

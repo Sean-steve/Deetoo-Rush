@@ -12,6 +12,7 @@ export type LiveResource = {
   menus: any[];
   categories: any[];
   items: any[];
+  branchCatalogue: any | null;
   inventory: any[];
   team: { members: any[]; invitations: any[] };
   profile: any | null;
@@ -20,7 +21,7 @@ export type LiveResource = {
   roleMatrix: any | null;
   documents: any[];
 };
-const empty:LiveResource={orders:[],history:[],metrics:null,menus:[],categories:[],items:[],inventory:[],
+const empty:LiveResource={orders:[],history:[],metrics:null,menus:[],categories:[],items:[],branchCatalogue:null,inventory:[],
   team:{members:[],invitations:[]},profile:null,finance:null,transactions:[],roleMatrix:null,documents:[]};
 export type MerchantLiveBridge={
   api:DeetooApiClient;
@@ -91,6 +92,7 @@ function MerchantLiveGate(){
     history:apiClient.request<any[]>(url("/merchant/experience/orders/history")+"\u0026limit=100\u0026sort=newest"),
     metrics:apiClient.request(url("/merchant/experience/orders/metrics")),
     menus:apiClient.request<any[]>("/merchant/menus"),
+     branchCatalogue:apiClient.request(`/merchant/branches/${encode(branchId)}/catalogue`),
     inventory:apiClient.request<any[]>(`/merchant/experience/branches/${encode(branchId)}/inventory`),
     team:apiClient.request("/merchant/team"),
     profile:apiClient.request("/merchant/profile"),
