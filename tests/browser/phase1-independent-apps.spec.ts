@@ -187,11 +187,11 @@ test('Merchant live Advanced settings shows real branch controls, never demo res
  await page.getByRole('button',{name:'Sign in',exact:true}).click();
  await expect(page.getByRole('heading',{name:'Branch settings'})).toBeVisible({timeout:20000});
  await page.getByRole('navigation',{name:'Branch settings sections'}).getByRole('button',{name:'Advanced'}).click();
- await expect(page.getByText('Advanced branch controls',{exact:false})).toBeVisible().catch(()=>{});
+ await expect(page.getByText('Manage advanced, live branch controls for',{exact:false})).toBeVisible();
  await expect(page.getByRole('button',{name:'Edit ordering rules'})).toBeVisible();
  await expect(page.getByRole('button',{name:'Reset demo settings'})).toHaveCount(0);
  await page.getByRole('button',{name:'Edit ordering rules'}).click();
- await expect(page.getByRole('textbox',{name:'Minimum basket amount (Ksh)'})).toBeVisible();
+ await expect(page.getByRole('spinbutton',{name:'Minimum basket amount (Ksh)'})).toBeVisible();
  await context.close();
 });
 
