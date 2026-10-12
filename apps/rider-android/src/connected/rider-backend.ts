@@ -65,6 +65,7 @@ export function createRiderBackend(client: DeetooApiClient) {
     declineOffer: (id: string) => post<any>('/rider/offers/'+enc(id)+'/reject', {reason_code:'RIDER_DECLINED',note:'Rider declined offer'}),
     activeDelivery: () => get<any>('/rider/deliveries/active'),
     delivery: (id: string) => get<any>('/rider/deliveries/'+enc(id)),
+    route: (id: string, stop: 'pickup'|'dropoff') => get<any>('/rider/deliveries/'+enc(id)+'/route?stop='+stop),
     arrivePickup: (id: string, loc: object) => post<any>('/rider/deliveries/'+enc(id)+'/arrive-pickup',loc),
     confirmPickup: (id: string, code: string) => post<any>('/rider/deliveries/'+enc(id)+'/confirm-pickup',{pickup_verification_code:code}),
     startTrip: (id: string) => post<any>('/rider/deliveries/'+enc(id)+'/start-trip'),

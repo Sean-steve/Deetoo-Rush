@@ -1,6 +1,6 @@
 import React from 'react';
 import {
-  Pressable, SafeAreaView, ScrollView, StyleSheet, Text, TextInput,
+  Pressable, RefreshControl, SafeAreaView, ScrollView, StyleSheet, Text, TextInput,
   TextInputProps, View,
 } from 'react-native';
 import type { RiderTab, RiderScreen } from './phase1-model';
@@ -158,13 +158,15 @@ export function BottomNav({ active, onChange }: { active: RiderTab; onChange: (n
     </Pressable>)}
   </View>;
 }
-export function PrototypeShell({ children, activeTab, onTab, currentScreen, viewKey, title, subtitle, onBack, right }: {
+export function PrototypeShell({ children, activeTab, onTab, currentScreen, viewKey, title, subtitle, onBack, right, onRefresh, refreshing=false }: {
   children: React.ReactNode; activeTab?: RiderTab; onTab?: (value: RiderTab) => void;
   currentScreen: RiderScreen; viewKey?: string; title?: string; subtitle?: string; onBack?: () => void; right?: React.ReactNode;
+  onRefresh?: () => void; refreshing?: boolean;
 }) {
   return <SafeAreaView style={S.page}>
     <Header title={title} subtitle={subtitle} onBack={onBack} right={right} />
-    <ScrollView key={viewKey || currentScreen + (activeTab || '')} keyboardShouldPersistTaps="handled" contentContainerStyle={S.body}>
+    <ScrollView key={viewKey || currentScreen + (activeTab || '')} keyboardShouldPersistTaps="handled" contentContainerStyle={S.body}
+      refreshControl={onRefresh?<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[C.darkGreen]} tintColor={C.darkGreen}/>:undefined}>
       {children}
     </ScrollView>
     {activeTab && onTab ? <BottomNav active={activeTab} onChange={onTab} /> : null}

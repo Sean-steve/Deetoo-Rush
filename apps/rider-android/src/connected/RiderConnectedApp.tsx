@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Linking, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, BackHandler, Pressable, Text, View } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import type { AuthUser } from '@deetoo/types';
 import { createRiderAndroidSession } from '../index';
@@ -11,7 +11,9 @@ import { uploadDeliveryPhoto } from '../media';
 import { uploadRiderImage } from './media';
 import { createRiderBackend, parseRiderServerError, parseWithdrawalKes, safeRiderDeliveryAction, toKes, type RiderHistory, type RiderIncident } from './rider-backend';
 import { validKenyanPhone } from '../preview/phase1-model';
-import { Button, C, Field, HeroRider, MapPreview, Metric, Notice, OnboardingTracker, Panel, PrototypeShell, S, Tag } from '../preview/ui';
+import { Button, C, Field, HeroRider, Metric, Notice, OnboardingTracker, Panel, PrototypeShell, S, Tag } from '../preview/ui';
+import { RiderLiveMap } from './RiderLiveMap';
+import {geoPoint,shortReference} from './rider-map-model';
 import type { RiderTab } from '../preview/phase1-model';
 
 type CameraJob = { kind: 'document'|'incident'|'support'|'delivery'; ref?: string; documentType?: string } | null;
@@ -25,7 +27,24 @@ const id = (v:unknown) => typeof v==='string' ? v : '';
 const num = (v:unknown) => Number(v)||0;
 const entries = (value:any): any[] => Array.isArray(value)?value:Array.isArray(value?.items)?value.items:[];
 function Row({title,value}: {title:string;value:React.ReactNode}) {
-  return <View style={[S.split,{minHeight:42,gap:12,borderBottomWidth:1,borderBottomColor:C.border,paddingVertical:8}]}><Text style={[S.sub,{flex:1}]}>{title}</Text><Text style={[S.text,{fontWeight:'800',flex:1,textAlign:'right'}]}>{value}</Text></View>;
+  // Values may be badges/Views, not only strings. Never nest a View inside
+  // React Native Text (it can crash or render incorrectly on Android).
+  return <View style={[S.split,{minHeight:42,gap:12,borderBottomWidth:1,borderBottomColor:C.border,paddingVertical:8}]}>
+    <Text style={[S.sub,{flex:1}]}>{title}</Text>
+    <View style={{flex:1,alignItems:'flex-end',justifyContent:'center'}}>
+      {typeof value==='string'||typeof value==='number'?<Text style={[S.text,{fontWeight:'800',textAlign:'right'}]}>{value}</Text>:value}
+    </View>
+  </View>;
+}
+function ActionLink({icon,title,hint,onPress}:{icon:string;title:string;hint:string;onPress:()=>void}){
+  return <Pressable accessibilityRole="button" accessibilityLabel={title} onPress={onPress} style={({pressed})=>[
+    S.row,{gap:12,paddingVertical:12,minHeight:59,borderBottomWidth:1,borderColor:C.border,opacity:pressed?0.7:1}]}>
+    <View style={{width:40,height:40,backgroundColor:C.mint,borderRadius:12,alignItems:'center',justifyContent:'center'}}>
+      <Text style={{fontSize:20,color:C.darkGreen}}>{icon}</Text>
+    </View>
+    <View style={{flex:1,gap:2}}><Text style={[S.text,{fontWeight:'800'}]}>{title}</Text><Text style={S.meta}>{hint}</Text></View>
+    <Text style={{fontSize:22,color:C.muted}}>›</Text>
+  </Pressable>;
 }
 function Page({title,subtitle,children}:{title:string;subtitle?:string;children:React.ReactNode}) {
   return <View style={{gap:15}}><Text style={S.h1}>{title}</Text>{subtitle?<Text style={S.sub}>{subtitle}</Text>:null}{children}</View>;
@@ -39,12 +58,13 @@ export function RiderConnectedApp() {
   const [view,setView]=useState(1);
   const [tab,setTab]=useState<RiderTab>('Home');
   const [busy,setBusy]=useState(false);
+  const [refreshing,setRefreshing]=useState(false);
+  const screenHistory=useRef<number[]>([]);
   const [error,setError]=useState('');
   const [notice,setNotice]=useState('');
   const [identifier,setIdentifier]=useState('');
   const [password,setPassword]=useState('');
   const [showPassword,setShowPassword]=useState(false);
-  const [phone,setPhone]=useState('');
   const [form,setForm]=useState<Record<string,string>>({});
   const [status,setStatus]=useState<any>(null);
   const [offer,setOffer]=useState<any>(null);
@@ -74,14 +94,34 @@ export function RiderConnectedApp() {
   const payoutIntent=useRef<{amount:number;key:string}|null>(null);
   const [pushReady,setPushReady]=useState(false);
   const [completedDelivery,setCompletedDelivery]=useState<string|null>(null);
-  const [otpMode,setOtpMode]=useState<'forgot'|'reset'|'phone'>('forgot');
   const [acceptTerms,setAcceptTerms]=useState(false);
   const [showSafetyHelp,setShowSafetyHelp]=useState(false);
 
   const setField=(k:string,v:string)=>setForm(x=>({...x,[k]:v}));
   const field=(k:string,label:string,placeholder='',keyboardType:any='default',multiline=false)=>
     <Field label={label} value={form[k]||''} onChangeText={(v)=>setField(k,v)} placeholder={placeholder} keyboardType={keyboardType} multiline={multiline} autoCapitalize={k.includes('email')?'none':'sentences'} />;
-  const go=(n:number)=>{setView(n);setError('');setNotice(''); if(n===6)setTab('Home');else if(n>=7&&n<=15)setTab('Deliveries');else if(n>=16&&n<=18)setTab('Earnings');else if(n>=20&&n<=22)setTab('Inbox');else if(n===19||n>=23)setTab('Profile');};
+  const showView=(n:number)=>{
+    setView(n);setError('');setNotice('');
+    if(n===6)setTab('Home');else if(n>=7&&n<=15)setTab('Deliveries');
+    else if(n>=16&&n<=18)setTab('Earnings');else if(n>=20&&n<=22)setTab('Inbox');
+    else if(n===19||n>=23)setTab('Profile');
+  };
+  const go=(n:number)=>{if(n!==view)screenHistory.current.push(view);showView(n);};
+  const back=()=>{
+    const previous=screenHistory.current.pop();
+    if(previous!==undefined){showView(previous);return;}
+    if(user&&view!==6){showView(6);return;}
+    // At the dashboard root Android Back must not terminate an active Rider shift.
+  };
+  useEffect(()=>{
+    const subscription=BackHandler.addEventListener('hardwareBackPress',()=>{
+      if(cameraJob){setCameraJob(null);return true;}
+      back();return true;
+    });
+    return()=>subscription.remove();
+  },[view,user,cameraJob]);
+  useEffect(()=>{if(!notice)return;const timer=setTimeout(()=>setNotice(''),4300);return()=>clearTimeout(timer);},[notice]);
+  useEffect(()=>{if(!error)return;const timer=setTimeout(()=>setError(''),10000);return()=>clearTimeout(timer);},[error]);
   const applyTab=(t:RiderTab)=>{setTab(t);go(t==='Home'?6:t==='Deliveries'?8:t==='Earnings'?16:t==='Inbox'?20:24);};
   const run=async(action:()=>Promise<unknown>,success?:string,refreshAfter=true)=>{
     if(busy)return false;
@@ -114,11 +154,18 @@ export function RiderConnectedApp() {
         case 21:{const r=await api.supportCases();setCases(entries(r?.cases));break;}
         case 22:if(id(form.caseId))setCaseDetail(await api.supportCase(form.caseId));break;
         case 23:{const r=await api.incidents();setIncidents(r.incidents);break;}
-        case 24:setPrefs(await api.preferences());break;
+        case 25:setPrefs(await api.preferences());break;
       }
     }catch(e){setError(parseRiderServerError(e));}
   },[api,user,form.caseId]);
-  useEffect(()=>{let mounted=true;void session.restore().then(u=>{if(mounted){setUser(u);if(u)setView(6);}}).catch(e=>{if(mounted)setError(parseRiderServerError(e));}).finally(()=>{if(mounted)setRestoring(false);});return()=>{mounted=false;};},[session]);
+  const pullToRefresh=async()=>{
+    if(refreshing||busy||!user)return;
+    setRefreshing(true);setError('');
+    try{await refresh();await extra(view);}
+    catch(e){setError(parseRiderServerError(e));}
+    finally{setRefreshing(false);}
+  };
+  useEffect(()=>{let mounted=true;void session.restore().then(u=>{if(mounted){setUser(u);if(u){screenHistory.current=[];setView(6);}}}).catch(e=>{if(mounted)setError(parseRiderServerError(e));}).finally(()=>{if(mounted)setRestoring(false);});return()=>{mounted=false;};},[session]);
   useEffect(()=>{if(!user)return;void refresh().catch(e=>setError(parseRiderServerError(e)));const timer=setInterval(()=>void refresh().catch(e=>setError(parseRiderServerError(e))),8000);return()=>clearInterval(timer);},[refresh,user]);
   useEffect(()=>{if(user)void extra(view);},[view,user,extra]);
   useEffect(()=>{if(!user||!pushReady)return;return subscribeToOfferNotifications(()=>void refresh());},[user,pushReady,refresh]);
@@ -128,7 +175,7 @@ export function RiderConnectedApp() {
     setUser(u);go(6);
   },undefined,false);
   const logout=()=>run(async()=>{
-    await stopRiderLocationService().catch(()=>undefined);await session.logout();setUser(null);setView(1);setStatus(null);setOffer(null);setActive(null);
+    await stopRiderLocationService().catch(()=>undefined);await session.logout();screenHistory.current=[];setUser(null);setView(1);setStatus(null);setOffer(null);setActive(null);
     setWallet(null);setCases([]);setNotifications([]);setForm({});setPushReady(false);
   },undefined,false);
   const register=()=>run(async()=>{
@@ -202,7 +249,7 @@ export function RiderConnectedApp() {
 
   let body:React.ReactNode=null;
   const a=active?.delivery,deliveryId=id(a?.id),deliveryStatus=id(a?.status);
-  const online=['ONLINE','AVAILABLE','BUSY'].includes(status?.profile?.workStatus);
+  const online=['ONLINE_AVAILABLE','ONLINE_UNAVAILABLE','ON_DELIVERY'].includes(status?.profile?.workStatus);
   const name=status?.profile?.firstName||user?.name||'Rider';
 
   if(!user && view===1)body=<Page title="Welcome back, Rider" subtitle="Log in securely to your DeeToo delivery workspace.">
@@ -212,7 +259,7 @@ export function RiderConnectedApp() {
       <Field label="Password" value={password} onChangeText={setPassword} secureTextEntry={!showPassword} placeholder="Your password" />
       <Button outline label={showPassword?'Hide password':'Show password'} onPress={()=>setShowPassword(x=>!x)} />
       <Button label="Log In →" onPress={()=>void login()} disabled={busy} />
-      <Button outline label="Forgot password?" onPress={()=>{setOtpMode('forgot');go(1);setField('recoverStep','1');}}/>
+      <Button outline label="Forgot password?" onPress={()=>{go(1);setField('recoverStep','1');}}/>
       <Button outline label="Register as a Rider" onPress={()=>go(2)} />
     </View></Panel>
     {form.recoverStep? <Panel title="Secure password recovery"><View style={{gap:10}}>
@@ -231,7 +278,7 @@ export function RiderConnectedApp() {
         },'Password updated. Sign in.',false)} /></>}
     </View></Panel>:null}
   </Page>;
-  else if(!user && view===2)body=<Page title="Rider Registration" subtitle="Screen 2 • Create a pending, unapproved Rider application.">
+  else if(!user && view===2)body=<Page title="Rider Registration" subtitle="Create a pending, unapproved Rider application.">
     <HeroRider title="Start your Rider journey" sub="Identity checks and verification will follow registration."/>
     <Panel title="Personal & contact details"><View style={{gap:12}}>
       {field('name','Full name','As on your National ID')}
@@ -248,7 +295,7 @@ export function RiderConnectedApp() {
   </Page>;
   else if(!user)body=<Button label="Back to Login" onPress={()=>go(1)}/>;
   else switch(view){
-    case 3: body=<Page title="Document Verification" subtitle="Screen 3 • Secure uploads and administrator review">
+    case 3: body=<Page title="Document Verification" subtitle="Secure uploads and administrator review">
       <Panel><OnboardingTracker step={2} /></Panel>
       <Notice title={checklist?.ready?'Verification ready':'Verification required'} body={checklist?.missing?.join(', ')||'Documents are reviewed by an authorized administrator.'} tone={checklist?.ready?'green':'orange'} />
       <Panel title="Required documents">{['NATIONAL_ID_FRONT','NATIONAL_ID_BACK','SELFIE','DRIVING_LICENCE','VEHICLE_INSURANCE','VEHICLE_LOGBOOK'].map(t=>{
@@ -262,7 +309,7 @@ export function RiderConnectedApp() {
       <Button label="Refresh verification status" onPress={()=>void extra(3)} />
       <Button outline label="Next: Vehicle & Equipment" onPress={()=>go(4)}/>
     </Page>;break;
-    case 4:body=<Page title="Vehicle & Equipment" subtitle="Screen 4 • Transport and mandatory safety equipment">
+    case 4:body=<Page title="Vehicle & Equipment" subtitle="Transport and mandatory safety equipment">
       <Panel title="Vehicle registration"><View style={{gap:10}}>
         <Text style={S.label}>Vehicle type</Text>
         <View style={{flexDirection:'row',flexWrap:'wrap',gap:8}}>{['MOTORBIKE','BICYCLE','CAR'].map(t=><Button key={t} outline={form.vehicleType!==t} label={t} onPress={()=>setField('vehicleType',t)}/>)}</View>
@@ -275,7 +322,7 @@ export function RiderConnectedApp() {
       </View></Panel>
       <Button outline label="Review onboarding status →" onPress={()=>go(5)}/>
     </Page>;break;
-    case 5:body=<Page title="Onboarding Status" subtitle="Screen 5 • Authoritative account status and verification checklist">
+    case 5:body=<Page title="Onboarding Status" subtitle="Authoritative account status and verification checklist">
       <HeroRider title="Your Rider application" sub="Approval comes from DeeToo administration, not the device."/>
       <Panel title="Account and eligibility">
         <Row title="Onboarding" value={status?.profile?.onboardingStatus||'Not available'}/>
@@ -294,12 +341,11 @@ export function RiderConnectedApp() {
       <Button outline label="Documents" onPress={()=>go(3)}/><Button outline label="Equipment & Vehicle" onPress={()=>go(4)}/>
       <Button outline label="Back to Home" onPress={()=>go(6)}/>
     </Page>;break;
-    case 6:body=<Page title={'Good day, '+name+' 👋'} subtitle="Screen 6 • Live Rider dashboard">
-      <Panel title="Availability">
-        <Row title="Server work status" value={<Tag label={status?.profile?.workStatus||'OFFLINE'} tone={online?'green':'orange'}/>}/>
-        <Row title="Service zones" value={entries(status?.assignedZones).length+' assigned'}/>
-        <Button label={online?'Go offline':'Go online & receive orders'} onPress={()=>void availability()} disabled={busy||status?.profile?.workStatus==='BUSY'} />
-        {!pushReady?<Button outline label="Enable push notifications" onPress={()=>void run(async()=>{await registerRiderPushDevice(session.client);setPushReady(true);},'Push subscription registered.')}/>:null}
+    case 6:body=<Page title={'Good day, '+name+' 👋'} subtitle="Your delivery workspace">
+      <Panel title="Shift availability">
+        <View style={[S.split,{paddingBottom:10}]}><Text style={S.sub}>Your current status</Text><Tag label={status?.profile?.workStatus||'OFFLINE'} tone={online?'green':'orange'}/></View>
+        <Button label={online?'Finish shift · Go offline':'Start shift · Go online'} onPress={()=>void availability()} disabled={busy||status?.profile?.workStatus==='BUSY'} />
+        <Text style={[S.meta,{marginTop:9}]}>{entries(status?.assignedZones).length} assigned service zone(s) · Online requires approved documents, a vehicle and accurate GPS.</Text>
       </Panel>
       <View style={{flexDirection:'row',gap:9,flexWrap:'wrap'}}>
         <Metric title="Available earnings" value={toKes(wallet?.available_earnings_minor)}/>
@@ -307,15 +353,20 @@ export function RiderConnectedApp() {
       </View>
       <Panel title="Operational summary">
         <Row title="Onboarding" value={status?.profile?.onboardingStatus||'—'}/>
-        <Row title="Active delivery" value={a?.order_number||a?.id||'None'}/>
-        <Row title="Waiting offer" value={offer?.offer?.id?'Available':'None'}/>
+        <Row title="Active delivery" value={a?shortReference(a.id,a.order_number||detail?.orderNumber):'None'}/>
+        <Row title="Waiting offer" value={offer?.offer?.id?'Offer available':'None'}/>
         <Row title="Customer rating" value={performance?.average_rating??'—'}/>
-        <Button label="Open delivery operations" onPress={()=>go(offer?.offer?.id?7:8)}/>
-        <Button outline label="Verification & onboarding" onPress={()=>go(5)}/>
       </Panel>
-      <Panel title="Service zone"><MapPreview/><Text style={S.meta}>Reference map only; live GPS is transmitted only for authorized availability and delivery events.</Text></Panel>
+      <Panel title="Quick actions">
+        <ActionLink icon="◈" title={offer?.offer?.id?'Review incoming offer':'Delivery operations'} hint="Offers, stops and handover" onPress={()=>go(offer?.offer?.id?7:8)}/>
+        <ActionLink icon="✓" title="Verification & onboarding" hint="Documents, vehicle and account review" onPress={()=>go(5)}/>
+        <ActionLink icon="⚙" title="Settings & notifications" hint="Push alerts, sounds and app preferences" onPress={()=>go(25)}/>
+      </Panel>
+      <Panel title="My service zones">
+        <RiderLiveMap rider={geoPoint({latitude:status?.profile?.lastKnownLatitude,longitude:status?.profile?.lastKnownLongitude})} zones={entries(status?.assignedZones)}/>
+      </Panel>
     </Page>;break;
-    case 7:body=<Page title="Incoming Delivery Request" subtitle="Screen 7 • Server-issued offer and expiry">
+    case 7:body=<Page title="Incoming Delivery Request" subtitle="Server-issued offer and expiry">
       {!offer?.offer?.id?<Notice title="No live offers" body="DeeToo dispatch has not issued an offer to this Rider. Remain online within an assigned zone." tone="blue"/>:
         <><Panel title="Delivery offer">
           <Text style={S.h2}>{offer.restaurantName||'Merchant pickup'}</Text>
@@ -329,7 +380,7 @@ export function RiderConnectedApp() {
         <View style={{flexDirection:'row',gap:9}}><View style={{flex:1}}><Button outline label="Decline" onPress={()=>void run(()=>api.declineOffer(id(offer.offer.id)),'Offer declined.')}/></View><View style={{flex:2}}><Button label="Accept" onPress={()=>void run(async()=>{await api.acceptOffer(id(offer.offer.id));go(8);},'DeeToo assigned the delivery.')}/></View></View></>}
       <Button outline label="Refresh offer" onPress={()=>void refresh()}/>
     </Page>;break;
-    case 8:body=<Page title="Active Delivery Details" subtitle="Screen 8 • Server-controlled delivery milestones">
+    case 8:body=<Page title="Active Delivery Details" subtitle="Server-controlled delivery milestones">
       {!a?<Notice title="No assigned delivery" body="An accepted offer will appear here. Assignment is authoritative; no order can be created from this screen." tone="blue"/>:
       <Panel title={'Order '+(a.order_number||a.id)}>
         <Row title="Delivery status" value={deliveryStatus}/>
@@ -345,20 +396,20 @@ export function RiderConnectedApp() {
     case 9:case 11:{
       const pickup=view===9;
       const address=pickup?detail?.pickup?.address:detail?.dropoff?.address;
-      const maps=pickup?detail?.navigation?.pickupMapsUrl:detail?.navigation?.dropoffMapsUrl;
-      body=<Page title={pickup?'Navigate to Merchant':'Navigate to Customer'} subtitle={pickup?'Screen 9 • Live pickup milestone':'Screen 11 • Live drop-off milestone'}>
+      body=<Page title={pickup?'Navigate to Merchant':'Navigate to Customer'} subtitle={pickup?'Live pickup milestone':'Live drop-off milestone'}>
         <Panel title={pickup?'Merchant pickup':'Customer drop-off'}>
           <Row title="Destination" value={address||'Awaiting active delivery'}/>
           <Row title="Live state" value={deliveryStatus||'—'}/>
-          <Text style={S.sub}>Use your preferred navigation provider. Any map illustration below is not turn-by-turn traffic guidance.</Text>
-          <MapPreview/>
-          {maps?<Button outline label="Open navigation" onPress={()=>void Linking.openURL(maps).catch(e=>setError(parseRiderServerError(e)))}/>:<Notice title="Route unavailable" body="DeeToo did not provide a navigation link for this active delivery." tone="orange"/>}
+          <RiderLiveMap route rider={geoPoint({latitude:status?.profile?.lastKnownLatitude,longitude:status?.profile?.lastKnownLongitude})}
+            zones={entries(status?.assignedZones)} destination={geoPoint(pickup?detail?.pickup?.location:detail?.dropoff?.location)}
+            destinationLabel={pickup?'Merchant':'Customer'} loadRoute={()=>api.route(deliveryId,pickup?'pickup':'dropoff')} height={290}/>
+          <Text style={S.meta}>Route and instructions stay inside DeeToo. Road guidance needs internet; the Rider must follow road signs and current conditions.</Text>
         </Panel>
         <Button label={pickup?'Arrived at Merchant':'Arrived at Customer'} disabled={!safeRiderDeliveryAction(deliveryStatus,pickup?'arrivePickup':'arriveDropoff')||busy} onPress={()=>performDelivery(pickup?'arrivePickup':'arriveDropoff')}/>
         <Button outline label="View delivery details" onPress={()=>go(8)}/>
       </Page>;break;
     }
-    case 10:body=<Page title="Merchant Pickup Confirmation" subtitle="Screen 10 • Merchant-confirmed items and server pickup code">
+    case 10:body=<Page title="Merchant Pickup Confirmation" subtitle="Merchant-confirmed items and server pickup code">
       <Panel title="Pickup details">
         <Row title="Order" value={a?.order_number||'—'}/>
         <Row title="Status" value={deliveryStatus||'No active delivery'}/>
@@ -370,7 +421,7 @@ export function RiderConnectedApp() {
       <Button outline label="Missing items / merchant delay? Report issue" onPress={()=>go(23)}/>
       <Button outline label="Navigate to Customer" onPress={()=>go(11)}/>
     </Page>;break;
-    case 12:body=<Page title="Customer Handover" subtitle="Screen 12 • Verified delivery proof and failure escalation">
+    case 12:body=<Page title="Customer Handover" subtitle="Verified delivery proof and failure escalation">
       <Panel title="Handover">
         <Row title="Delivery" value={a?.order_number||'—'}/>
         <Row title="Status" value={deliveryStatus||'—'}/>
@@ -384,17 +435,17 @@ export function RiderConnectedApp() {
       </Panel>
       <Notice title="DeeToo controls final outcome" body="A reported failure does not clear Rider custody or directly resolve the order. Follow Operations instructions." tone="orange"/>
     </Page>;break;
-    case 13:body=<Page title="Delivery Completion Summary" subtitle="Screen 13 • Authoritative completed-order reference">
+    case 13:body=<Page title="Delivery Completion Summary" subtitle="Authoritative completed-order reference">
       <Notice title="Delivery update recorded" body={completedDelivery?'The backend accepted a verified handover.':'Select a completed delivery from your own history to view its verified receipt.'}/>
       <Panel title="Receipt details">
-        <Row title="Delivery ID" value={selectedHistory?.delivery_id||completedDelivery||'—'}/>
+        <Row title="Delivery ID" value={shortReference(selectedHistory?.delivery_id||completedDelivery,null,'DLV')}/>
         <Row title="Status" value={selectedHistory?.status||'DELIVERED'}/>
         <Row title="Ledger posting" value={selectedHistory?.earning?.status||'Loading from DeeToo'}/>
         {selectedHistory?.earning?<><Row title="Base pay" value={toKes(selectedHistory.earning.base_minor)}/><Row title="Distance" value={toKes(selectedHistory.earning.distance_minor)}/><Row title="Bonus" value={toKes(selectedHistory.earning.bonus_minor)}/><Row title="Total Rider pay" value={toKes(selectedHistory.earning.total_minor)}/></>:null}
       </Panel>
       <Button label="View delivery history" onPress={()=>go(15)}/><Button outline label="Next available offers" onPress={()=>go(7)}/>
     </Page>;break;
-    case 14:body=<Page title="Active Deliveries & Multiple Orders" subtitle="Screen 14 • Capability-gated dispatch">
+    case 14:body=<Page title="Active Deliveries & Multiple Orders" subtitle="Capability-gated dispatch">
       <Panel title="Concurrent delivery capability">
         <Tag label={capabilities?.multi_order?.enabled?'Enabled':'Unavailable'} tone={capabilities?.multi_order?.enabled?'green':'orange'}/>
         <Text style={[S.sub,{marginTop:12}]}>{capabilities?.multi_order?.message||'Waiting for DeeToo dispatch capability status.'}</Text>
@@ -403,10 +454,10 @@ export function RiderConnectedApp() {
       <Notice title="Server-authoritative route order" body="Multiple-order acceptance, stop reordering and custody changes are not offered while dispatch stacking is uncertified." tone="blue"/>
       <Button label="View active delivery" onPress={()=>go(8)}/>
     </Page>;break;
-    case 15:body=<Page title="Delivery History" subtitle="Screen 15 • Your completed, cancelled and failed delivery records">
+    case 15:body=<Page title="Delivery History" subtitle="Your completed, cancelled and failed delivery records">
       <View style={{flexDirection:'row',flexWrap:'wrap',gap:8}}>{['','DELIVERED','FAILED','CANCELLED'].map(x=><Button key={x||'all'} outline={filter!==x} label={x||'All'} onPress={()=>{setFilter(x);void api.history(x||undefined).then(r=>setHistory(r.history)).catch(e=>setError(parseRiderServerError(e)));}}/>)}</View>
       {history.length===0?<Notice title="No history yet" body="Only deliveries assigned to your account will appear here." tone="blue"/>:history.map(x=><Panel key={x.delivery_id}>
-        <Row title="Order" value={x.order_number||x.order_id}/>
+        <Row title="Order" value={shortReference(x.order_id,x.order_number)}/>
         <Row title="Status" value={<Tag label={x.status} tone={x.status==='DELIVERED'?'green':'orange'}/>}/>
         <Row title="Delivery date" value={String(x.delivered_at||x.created_at).slice(0,16)}/>
         <Row title="Recorded earnings" value={x.earning?toKes(x.earning.total_minor):'Pending backend review'}/>
@@ -414,7 +465,7 @@ export function RiderConnectedApp() {
       </Panel>)}
       <Button outline label="Refresh records" onPress={()=>void extra(15)}/>
     </Page>;break;
-    case 16:body=<Page title="Earnings Dashboard" subtitle="Screen 16 • Authoritative earnings, bonuses and time series">
+    case 16:body=<Page title="Earnings Dashboard" subtitle="Authoritative earnings, bonuses and time series">
       <View style={{flexDirection:'row',flexWrap:'wrap',gap:9}}>
         <Metric title="Earnings in period" value={toKes(trends?.total_minor)}/>
         <Metric title="Deliveries" value={String(trends?.deliveries??0)} tone="blue"/>
@@ -430,7 +481,7 @@ export function RiderConnectedApp() {
       <Panel title="Wallet & payouts"><Row title="Wallet available" value={toKes(wallet?.available_earnings_minor)}/><Row title="Cash owed" value={toKes(wallet?.cash_owed_minor)}/>
         <Button label="View wallet" onPress={()=>go(17)}/><View style={{height:8}}/><Button outline label="Payout requests" onPress={()=>go(18)}/></Panel>
     </Page>;break;
-    case 17:body=<Page title="Rider Wallet & Cash Management" subtitle="Screen 17 • Ledger-owned funds and cash obligations">
+    case 17:body=<Page title="Rider Wallet & Cash Management" subtitle="Ledger-owned funds and cash obligations">
       <View style={{flexDirection:'row',flexWrap:'wrap',gap:8}}>
         <Metric title="Available to withdraw" value={toKes(wallet?.available_earnings_minor)}/>
         <Metric title="Pending earnings" value={toKes(wallet?.pending_earnings_minor)} tone="blue"/>
@@ -446,7 +497,7 @@ export function RiderConnectedApp() {
       <Notice title="Cash is not payout balance" body="Rider cash collected, money owed to DeeToo and earnings eligible for payout remain distinct backend records." tone="blue"/>
       <Button label="Request M-PESA payout" onPress={()=>go(18)}/>
     </Page>;break;
-    case 18:body=<Page title="Payouts & Transactions" subtitle="Screen 18 • Finance-reviewed M-PESA requests">
+    case 18:body=<Page title="Payouts & Transactions" subtitle="Finance-reviewed M-PESA requests">
       <Panel title="Available funds"><Text style={[S.h1,{color:C.darkGreen}]}>{toKes(wallet?.available_earnings_minor)}</Text>
         {field('withdrawal','Requested amount (KSh)','e.g. 500','decimal-pad')}
         <Text style={S.meta}>Minimum KSh 100. Destination must be verified separately by Finance. Requests do not move money.</Text>
@@ -469,7 +520,7 @@ export function RiderConnectedApp() {
       <Notice title="Provider-owned payout status" body="Only Finance can approve a payout, and DeeToo verifies provider callbacks before marking money paid. The Rider cannot trigger these privileged actions." tone="blue"/>
       <Button outline label="Request M-PESA destination change" onPress={()=>{setField('changeCategory','PAYOUT_DESTINATION');go(24);}}/>
     </Page>;break;
-    case 19:body=<Page title="Performance & Ratings" subtitle="Screen 19 • Backend ratings, delivery KPIs and customer comments">
+    case 19:body=<Page title="Performance & Ratings" subtitle="Backend ratings, delivery KPIs and customer comments">
       <Panel title="Delivery performance">
         {['average_rating','completion_rate','acceptance_rate','on_time_rate','completed_deliveries'].map(key=><Row key={key} title={key.replace(/_/g,' ')} value={performance?.[key]??'—'}/>)}
       </Panel>
@@ -480,7 +531,7 @@ export function RiderConnectedApp() {
           <Text style={S.meta}>{String(x.created_at).slice(0,10)}</Text></View>)}
       </Panel>
     </Page>;break;
-    case 20:body=<Page title="Notifications Center" subtitle="Screen 20 • Recipient-scoped persistent DeeToo alerts">
+    case 20:body=<Page title="Notifications Center" subtitle="Recipient-scoped persistent DeeToo alerts">
       <Panel title="Your notifications">
         {notifications.length===0?<Notice title="Inbox is clear" body="No server notifications yet." tone="blue"/>:notifications.map((n:any)=><Pressable key={n.id} accessibilityRole="button" onPress={()=>void run(async()=>{await api.markRead(n.id);const x=await api.notifications();setNotifications(x.notifications);},undefined,false)} style={{paddingVertical:12,borderBottomWidth:1,borderColor:C.border}}>
           <Text style={[S.text,{fontWeight:'800'}]}>{n.read_at?'':'● '}{n.title||n.type||'Update'}</Text>
@@ -489,31 +540,31 @@ export function RiderConnectedApp() {
         </Pressable>)}
       </Panel>
       <Button outline label="Support cases" onPress={()=>go(21)}/>
-      <Button outline label="Notification preferences" onPress={()=>go(24)}/>
+      <ActionLink icon="⚙" title="Notification settings" hint="Push, categories, sound and vibration" onPress={()=>go(25)}/>
     </Page>;break;
-    case 21:body=<Page title="Rider Support Center" subtitle="Screen 21 • Admin-governed cases and verified participants">
+    case 21:body=<Page title="Rider Support Center" subtitle="Admin-governed cases and verified participants">
       <Panel title="Open a support case"><View style={{gap:11}}>
         {field('supportSubject','Subject')}
         {field('supportCategory','Category','e.g. DELIVERY, PAYMENT, ACCOUNT_UPDATE')}
         {field('supportDescription','Describe your issue','','default',true)}
         {field('supportOrderId','Related order ID (optional; must belong to you)')}
-        <Button label="Create support case" onPress={()=>void run(async()=>{
+        <Button label="Create support case" disabled={busy||!(form.supportSubject||'').trim()||!(form.supportDescription||'').trim()} onPress={()=>void run(async()=>{
           const created=await api.createSupportCase({category:form.supportCategory||'OTHER',subject:form.supportSubject||'Rider support request',description:form.supportDescription||'',...(form.supportOrderId?{order_id:form.supportOrderId}: {})});
-          setField('caseId',created.id);go(22);
+          setForm(prev=>({...prev,caseId:created.id,supportSubject:'',supportCategory:'',supportDescription:'',supportOrderId:''}));go(22);
         },'Support case created with authorized participants.')}/>
       </View></Panel>
       <Panel title="Your cases">
         {cases.length===0?<Notice title="No cases" body="Contact support above to open a new conversation." tone="blue"/>:cases.map((c:any)=><Pressable key={c.id} accessibilityRole="button" onPress={()=>{setField('caseId',c.id);setCaseDetail(null);go(22);}} style={{paddingVertical:12,borderBottomWidth:1,borderColor:C.border}}>
-          <Text style={[S.text,{fontWeight:'800'}]}>{c.subject}</Text><Text style={S.meta}>{c.case_number||c.id} · {c.status}</Text>
+          <Text style={[S.text,{fontWeight:'800'}]}>{c.subject}</Text><Text style={S.meta}>{shortReference(c.id,c.case_number,'CASE')} · {c.status}</Text>
         </Pressable>)}
       </Panel>
       <Button outline label="Report safety incident" onPress={()=>go(23)}/>
     </Page>;break;
-    case 22:body=<Page title="Support Conversation" subtitle="Screen 22 • Authorized full case history and Rider satisfaction">
+    case 22:body=<Page title="Support Conversation" subtitle="Authorized full case history and Rider satisfaction">
       {!caseDetail?<Notice title="Loading case" body="Choose a case from Support Center or retry loading." tone="blue"/>:<>
         <Panel title={caseDetail.case?.subject||'Support case'}>
           <Row title="Case status" value={<Tag label={caseDetail.case?.status||'—'} tone="orange"/>}/>
-          <Row title="Reference" value={caseDetail.case?.case_number||caseDetail.case?.id}/>
+          <Row title="Reference" value={shortReference(caseDetail.case?.id,caseDetail.case?.case_number,'CASE')}/>
           {entries(caseDetail.notes).map((n:any)=><View key={n.id} style={{padding:12,borderRadius:12,backgroundColor:String(n.author_role).toLowerCase()==='rider'?C.mint:C.paleBlue,marginVertical:7}}>
             <Text style={[S.meta,{fontWeight:'800'}]}>{n.author_name||n.author_role||'Support'} · {String(n.created_at).slice(0,16)}</Text>
             <Text style={S.text}>{n.body}</Text></View>)}
@@ -531,7 +582,7 @@ export function RiderConnectedApp() {
       </>}
       <Button outline label="Back to Support Center" onPress={()=>go(21)}/>
     </Page>;break;
-    case 23:body=<Page title="Safety & Incident Reporting" subtitle="Screen 23 • Rider-created reports and Admin-owned investigation">
+    case 23:body=<Page title="Safety & Incident Reporting" subtitle="Rider-created reports and Admin-owned investigation">
       <Pressable accessibilityRole="button" onPress={()=>setShowSafetyHelp(!showSafetyHelp)} style={{padding:16,backgroundColor:C.paleRed,borderRadius:16,minHeight:65}}>
         <Text style={{color:C.red,fontWeight:'900',fontSize:18}}>☎ Emergency assistance information</Text>
         <Text style={S.meta}>Open safety instructions. No emergency call is initiated.</Text>
@@ -543,9 +594,11 @@ export function RiderConnectedApp() {
         {field('incidentSummary','Short summary')}
         {field('incidentDetails','Incident details','','default',true)}
         {field('incidentLocation','Where did it happen?')}
-        <Button label="Submit incident for investigation" onPress={()=>void run(async()=>{
+        <Button label="Submit incident for investigation" disabled={busy||!(form.incidentSummary||'').trim()||!(form.incidentDetails||'').trim()} onPress={()=>void run(async()=>{
+          if(!(form.incidentSummary||'').trim()||!(form.incidentDetails||'').trim())throw new Error('Provide a summary and incident details before submitting.');
           const created=await api.createIncident({type:form.incidentType||'OTHER',summary:form.incidentSummary||'',details:form.incidentDetails||'',location_text:form.incidentLocation||''});
-          setField('incidentId',created.id);const r=await api.incidents();setIncidents(r.incidents);
+          setForm(prev=>({...prev,incidentType:'',incidentSummary:'',incidentDetails:'',incidentLocation:'',incidentId:created.id}));
+          const r=await api.incidents();setIncidents(r.incidents);
         },'Incident submitted. Investigation is controlled by authorized DeeToo staff.')}/>
       </View></Panel>
       <Panel title="Your incident reports">
@@ -554,7 +607,7 @@ export function RiderConnectedApp() {
         {form.incidentId?<Button outline label="Add camera evidence to selected incident" onPress={()=>void startCamera({kind:'incident',ref:form.incidentId})}/>:null}
       </Panel>
     </Page>;break;
-    case 24:body=<Page title="Rider Profile & Settings" subtitle="Screen 24 • Protected account controls and persisted preferences">
+    case 24:body=<Page title="Rider Profile" subtitle="Verified identity and protected account requests">
       <Panel title="Verified account">
         <Row title="Name" value={[status?.profile?.firstName,status?.profile?.lastName].filter(Boolean).join(' ')||'—'}/>
         <Row title="Onboarding" value={status?.profile?.onboardingStatus||'—'}/>
@@ -566,28 +619,47 @@ export function RiderConnectedApp() {
         {field('changeDescription','Describe your requested change','','default',true)}
         <Button label="Submit request to authorized Admin" onPress={()=>void run(()=>api.changeRequest((form.changeCategory||'PERSONAL') as any,form.changeDescription||''),'Change submitted for administrator review. The profile was not modified.')}/>
       </Panel>
+      <Panel title="Account links">
+        <ActionLink icon="✓" title="Verification & documents" hint="Identification, vehicle and equipment" onPress={()=>go(3)}/>
+        <ActionLink icon="★" title="Performance & ratings" hint="Completed jobs and customer feedback" onPress={()=>go(19)}/>
+        <ActionLink icon="⌘" title="Help & support" hint="Conversations with DeeToo support" onPress={()=>go(21)}/>
+      </Panel>
+      <Panel title="Sign out"><Button outline label="Log out securely" onPress={()=>void logout()} disabled={busy}/></Panel>
+    </Page>;break;
+    case 25:body=<Page title="App Settings" subtitle="Personalize DeeToo without changing your verified rider profile">
+      <Panel title="Push notifications">
+        <Text style={S.sub}>Delivery offers and important updates arrive through DeeToo push when your device permits notifications.</Text>
+        <View style={{height:12}}/>
+        <Row title="Device registration" value={<Tag label={pushReady?'Enabled':'Not registered'} tone={pushReady?'green':'orange'}/>}/>
+        <Button outline label={pushReady?'Register this device again':'Enable push notifications'} disabled={busy} onPress={()=>void run(async()=>{
+          await registerRiderPushDevice(session.client);setPushReady(true);
+        },'Push notifications registered for this device.')}/>
+      </Panel>
       {prefs?<Panel title="App preferences">
         {['payouts','support','promotions','updates','sounds','vibration'].map(k=><Pressable key={k} accessibilityRole="switch" accessibilityState={{checked:!!prefs[k]}} onPress={()=>setPrefs((p:any)=>({...p,[k]:!p[k]}))} style={[S.split,{minHeight:48,borderBottomWidth:1,borderColor:C.border}]}>
-          <Text style={S.text}>{k}</Text><Text style={{fontSize:22,color:C.darkGreen}}>{prefs[k]?'☑':'□'}</Text></Pressable>)}
+          <Text style={S.text}>{({payouts:'Payout alerts',support:'Support updates',promotions:'Offers & promotions',updates:'Platform announcements',sounds:'Notification sounds',vibration:'Vibration'} as Record<string,string>)[k]}</Text><Text style={{fontSize:22,color:C.darkGreen}}>{prefs[k]?'☑':'□'}</Text></Pressable>)}
+        <View style={{height:9}}/><Text style={S.label}>App language</Text>
+        <View style={[S.row,{gap:8}]}>{(['English','Kiswahili'] as const).map(language=><View key={language} style={{flex:1}}><Button outline={prefs.language!==language} label={language} onPress={()=>setPrefs((p:any)=>({...p,language}))}/></View>)}</View>
+        <Text style={[S.meta,{marginTop:8}]}>The map uses a real OpenStreetMap basemap. Satellite imagery is not available until a licensed provider is configured.</Text>
         <Text style={S.meta}>Essential delivery, security and safety alerts remain mandatory.</Text>
         <Button label="Save preferences" onPress={()=>void run(async()=>{
           const p=await api.updatePreferences({payouts:!!prefs.payouts,support:!!prefs.support,promotions:!!prefs.promotions,updates:!!prefs.updates,sounds:!!prefs.sounds,vibration:!!prefs.vibration,language:prefs.language==='Kiswahili'?'Kiswahili':'English',map_style:prefs.map_style==='Satellite'?'Satellite':'Standard'});
           setPrefs(p);
         },'Preferences securely saved.')}/>
       </Panel>:null}
-      <Panel title="Account tools"><Button outline label="Verification & documents" onPress={()=>go(3)}/><View style={{height:7}}/><Button outline label="Performance & ratings" onPress={()=>go(19)}/><View style={{height:7}}/><Button outline label="Contact support" onPress={()=>go(21)}/></Panel>
+      <Panel title="Account vs. app settings">
+        <Text style={S.sub}>Language, alerts and display preferences belong here. Identity, vehicle records, payouts and sign-out remain in Rider Profile.</Text>
+        <View style={{height:10}}/><Button outline label="Open my profile" onPress={()=>go(24)}/>
+      </Panel>
     </Page>;break;
     default:body=<Notice title="Screen unavailable" body="Return to the five-tab navigation." tone="orange"/>;
   }
   return <PrototypeShell currentScreen={user?'dashboard':'login'} activeTab={user?tab:undefined} onTab={user?applyTab:undefined}
-    viewKey={String(view)} right={user?<Pressable accessibilityRole="button" accessibilityLabel="Log out securely" onPress={()=>void logout()} style={{minHeight:44,justifyContent:'center'}}><Text style={{color:'#fff',fontWeight:'800'}}>Log out</Text></Pressable>:undefined}>
-    {error?<Notice title="Request could not be completed" body={error} tone="red"/>:null}
-    {notice?<Notice title="DeeToo" body={notice} tone="green"/>:null}
+    viewKey={String(view)} onBack={user&&view!==6||screenHistory.current.length>0?back:undefined}
+    onRefresh={user?()=>void pullToRefresh():undefined} refreshing={refreshing}
+    right={user?<Pressable accessibilityRole="button" accessibilityLabel={view===25?'Open Rider Profile':'Open Settings'} onPress={()=>go(view===25?24:25)} style={{minHeight:44,justifyContent:'center',paddingHorizontal:10,borderRadius:10,backgroundColor:'#194056'}}><Text style={{color:'#fff',fontWeight:'800',fontSize:15}}>{view===25?'Profile':'⚙ Settings'}</Text></Pressable>:undefined}>
+    {error?<Pressable accessibilityRole="button" accessibilityLabel="Dismiss error" onPress={()=>setError('')}><Notice title="Request could not be completed · Dismiss ×" body={error} tone="red"/></Pressable>:null}
+    {notice?<Pressable accessibilityRole="button" accessibilityLabel="Dismiss confirmation" onPress={()=>setNotice('')}><Notice title="DeeToo · Dismiss ×" body={notice} tone="green"/></Pressable>:null}
     {body}
-    {user?<View style={{flexDirection:'row',gap:7,flexWrap:'wrap',marginTop:6}}>
-      {view>=3&&view<=5?<Button outline label="Onboarding" onPress={()=>go(5)}/>:null}
-      {view>=7&&view<=15?<Button outline label="Delivery history" onPress={()=>go(15)}/>:null}
-      <Button outline label="Refresh from DeeToo" onPress={()=>void run(async()=>{await refresh();await extra(view);},'Latest server state loaded.',false)} disabled={busy}/>
-    </View>:null}
   </PrototypeShell>;
 }
