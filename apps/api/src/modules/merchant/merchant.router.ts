@@ -347,6 +347,8 @@ merchantRouter.post(
         id: branchId,
         merchant_id: merchantId,
         name: validated.name,
+        display_name: validated.display_name || validated.name,
+        description: validated.description,
         slug:
           validated.slug ||
           validated.name.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
@@ -488,7 +490,12 @@ merchantRouter.patch(
       const validated = UpdateBranchSchema.parse(req.body);
       const updated = await merchantRepository.updateBranch(
         branchId,
-        validated,
+        {
+          ...validated,
+          address_text: validated.address_line1 !== undefined || validated.city !== undefined
+            ? `${validated.address_line1 ?? branch!.address_line1}, ${validated.city ?? branch!.city}`
+            : branch!.address_text,
+        },
       );
       if (!updated) {
         throw new AppError(404, "BRANCH_NOT_FOUND", "Branch not found");
