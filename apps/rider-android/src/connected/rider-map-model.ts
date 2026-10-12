@@ -48,3 +48,15 @@ export function bearing(a:MapPoint,b:MapPoint){
  dx=Math.cos(a.latitude*rad)*Math.sin(b.latitude*rad)-Math.sin(a.latitude*rad)*Math.cos(b.latitude*rad)*Math.cos((b.longitude-a.longitude)*rad);
  return (Math.atan2(dy,dx)*180/Math.PI+360)%360;
 }
+
+/** Prefer the assigned order's verified area rather than generic "Customer". */
+export function deliveryAreaName(area:unknown,address:unknown):string{
+ const clean=(x:unknown)=>typeof x==='string'?x.trim().replace(/\s+/g,' '):'';
+ const selected=clean(area);
+ if(selected&&!/^(home|work|other|customer drop.?off|delivery address)$/i.test(selected))return selected;
+ const parts=clean(address).split(',').map(x=>x.trim()).filter(Boolean);
+ if(parts.length>=3)return parts[parts.length-2];
+ if(parts.length===2)return parts[0];
+ // A single unstructured address cannot reliably establish a neighborhood.
+ return '';
+}
