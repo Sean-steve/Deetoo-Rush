@@ -82,7 +82,7 @@ export function RiderLiveMap({rider=null,zones=[],destination=null,destinationLa
   </View>;
  return <View style={{gap:10}}>
    <View onLayout={e=>setWidth(Math.max(200,Math.round(e.nativeEvent.layout.width)))} accessibilityLabel="Interactive Rider map with live location and DeeToo service boundaries" style={{height,overflow:'hidden',borderRadius:18,backgroundColor:'#E2EDE5',borderWidth:1,borderColor:C.border}}>
-    {riderTileTemplate&&!tileFailed?frame?.tiles.map(t=><Image key={t.x+':'+t.y+':'+t.z} source={{uri:rasterTileUrl(riderTileTemplate,t)}} onError={()=>setTileFailed(true)} resizeMode="stretch" style={{position:'absolute',width:256,height:256,left:t.xpos,top:t.ypos}} />):null}
+    {riderTileTemplate&&!tileFailed?frame?.tiles.map(t=><Image key={t.x+':'+t.y+':'+t.z} source={{uri:rasterTileUrl(riderTileTemplate!,t)}} onError={()=>setTileFailed(true)} resizeMode="stretch" style={{position:'absolute',width:256,height:256,left:t.xpos,top:t.ypos}} />):null}
     {!riderTileTemplate||tileFailed?<View pointerEvents="none" style={{position:'absolute',top:12,left:10,right:62,padding:10,backgroundColor:'#FFF8E9',borderRadius:11,borderWidth:1,borderColor:C.border}}><Text style={{color:C.ink,fontWeight:'800',fontSize:12}}>{tileFailed?'Basemap provider unavailable':'Map tiles need provider setup'}</Text><Text style={{color:C.muted,fontSize:11}}>DeeToo retains the assigned route and GPS, but street tiles require a licensed map provider configured in the Rider build.</Text></View>:null}
     {boundarySegments.map(([a,d],i)=>segment(a,d,'zone-'+i,'rgba(0,126,76,0.76)',3))}
     {road?.points.slice(1).filter((_,i)=>i%Math.max(1,Math.ceil(road.points.length/350))===0).map((q,i,a)=>segment(i===0?road.points[0]:a[i-1],q,'route-'+i,'#1266EA',5))}
