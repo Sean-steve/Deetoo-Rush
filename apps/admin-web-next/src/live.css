@@ -16,3 +16,23 @@
 .dn-live-resources p{font-size:10px;color:#866b45;line-height:1.6;margin:5px 0}
 .dn-live-resources .dn-btn{white-space:nowrap}
 @media(max-width:740px){.dn-live-banner,.dn-live-resources{flex-wrap:wrap}.dn-live-banner .dn-btn,.dn-live-resources .dn-btn{margin-left:auto}}
+
+
+/* Compact production admin status and opt-in real geographic basemap */
+.dn-admin-connected{display:flex;align-items:center;gap:16px;justify-content:flex-end;flex-wrap:wrap;margin:0 0 12px;color:#587368;font-size:12px}
+.dn-admin-connected>span{display:flex;align-items:center;gap:6px}
+.dn-live-diagnostics{border:1px solid #ead7ac;border-radius:10px;background:#fffaf0;color:#655126;margin:8px 0 14px;padding:0 12px;font-size:12px}
+.dn-live-diagnostics summary{display:flex;align-items:center;gap:8px;padding:10px 0;cursor:pointer;font-weight:650;list-style:none}
+.dn-live-diagnostics summary::-webkit-details-marker{display:none}
+.dn-live-diagnostics[open] summary{border-bottom:1px solid #f0e3c5}
+.dn-live-diagnostics>div{padding:8px 0 12px}
+.dn-live-diagnostics p{line-height:1.5;overflow-wrap:anywhere}
+.dn-live-feedback{display:flex;justify-content:space-between;align-items:center;gap:10px;margin:8px 0;padding:10px 15px;border-radius:10px;border:1px solid #d8e8de;background:#f6fbf8;color:#28513b;font-size:12px}
+.dn-real-map{background:#f2f7f4;border:1px solid #d3e6d9;border-radius:12px;display:flex;flex-direction:column;overflow:hidden}
+.dn-real-map-placeholder{flex:1;min-height:220px;padding:28px;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:9px;text-align:center;color:#4b6757}
+.dn-real-map-placeholder strong{font-size:15px;color:#294c39}
+.dn-real-map-placeholder p{font-size:12px;max-width:420px;margin:0 0 7px;line-height:1.55}
+.dn-real-map-footer{display:flex;justify-content:space-between;gap:8px;padding:7px 12px;align-items:center;color:#536f63;font-size:10px}
+.dn-real-map-footer a{color:inherit;text-decoration:underline}
+.dn-real-map-entries{display:flex;flex-wrap:wrap;gap:5px;padding:6px 12px 11px}
+.dn-real-map-entries button{border:1px solid #d7e5dd;background:white;color:#2f5e46;padding:5px 9px;border-radius:6px;font-size:10px;cursor:pointer}
