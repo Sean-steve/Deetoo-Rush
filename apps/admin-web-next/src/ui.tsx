@@ -1,6 +1,7 @@
 import React, {useState} from "react";
 import {AlertTriangle, Bike, Check, ChevronDown, ChevronRight, CircleAlert, Clock3, MapPin, Minus, Package, Plus, Search, Shield, Truck, X} from "lucide-react";
 import {areas, Order, Rider, RiderStatus, OrderStatus, formatMoney, displayTime} from "./data";
+import {orderDisplayId} from "./record-display";
 export {formatMoney,displayTime};
 export type Screen = "command"|"dispatch"|"orders"|"riders"|"incidents"|"support"|"merchants"|"customers"|"geography"|"payments"|"settlements"|"financial"|"analytics"|"notifications"|"security"|"system";
 export function Chip({value}:{value:string|undefined|null}) {
@@ -38,7 +39,7 @@ export function DemoMap({orders=[],riders=[],height=370,onSelectOrder,onSelectRi
  const show=layers||{riders:true,orders:true,merchants:true};
  const markers:Marker[]=[];
  if(show.merchants)orders.slice(0,10).forEach(o=>markers.push({id:"m"+o.id,lat:o.pickup.lat,lng:o.pickup.lng,type:"merchant",label:o.merchant+" — "+o.pickup.name,click:()=>onSelectOrder?.(o.id)}));
- if(show.orders)orders.slice(0,25).forEach(o=>markers.push({id:"o"+o.id,lat:o.destination.lat+.001*(Number(o.id.slice(-2))%5),lng:o.destination.lng+.003*(Number(o.id.slice(-2))%5),type:o.status==="DELAYED"?"delay":"order",label:o.id+" — "+o.customer,click:()=>onSelectOrder?.(o.id)}));
+ if(show.orders)orders.slice(0,25).forEach(o=>markers.push({id:"o"+o.id,lat:o.destination.lat,lng:o.destination.lng,type:o.status==="DELAYED"?"delay":"order",label:orderDisplayId(o)+" — "+o.customer,click:()=>onSelectOrder?.(o.id)}));
  if(show.riders)riders.slice(0,26).forEach((r,i)=>markers.push({id:r.id,lat:r.area.lat+.002*(i%4),lng:r.area.lng+.003*(i%3),type:"rider",label:r.name+" — "+r.status,click:()=>onSelectRider?.(r.id)}));
  return <div className="dn-map" style={{height}} aria-label="Illustrative Nairobi demo location map" role="group">
  <div className="dn-map-content" style={{transform:"scale("+zoom+")"}}>
@@ -69,6 +70,6 @@ export function DemoMap({orders=[],riders=[],height=370,onSelectOrder,onSelectRi
 }
 function StoreGlyph(){return <span style={{fontWeight:900,fontSize:14}}>▣</span>;}
 export function Journey({order}:{order:Order}){const steps=["Placed","Accepted","Preparing","Rider Assigned","Picked Up","Delivered"];const indexes:Record<string,number>={PREPARING:2,RIDER_ASSIGNED:3,PICKED_UP:4,IN_TRANSIT:4,DELIVERED:5,DELAYED:order.riderId?3:2,CANCELLED:-1};const active=indexes[order.status]??0;return <div className="dn-journey">{steps.map((s,i)=><div className={i<=active?"done":""} key={s}><span>{i<=active?<Check size={13}/>:i+1}</span><small>{s}</small></div>)}</div>;}
-export function DeliveryOrderRow({order,selected,onClick,riderName}:{order:Order;selected:boolean;onClick:()=>void;riderName:string}){return <button className={"dn-list-order "+(selected?"on":"")} onClick={onClick}><div><b>#{order.id}</b><Chip value={order.status}/></div><strong>{order.merchant} <span>— {order.area}</span></strong><small>{order.customer} · {order.destination.name} · {riderName}</small><ChevronRight size={16} className="dn-row-arrow"/></button>;}
+export function DeliveryOrderRow({order,selected,onClick,riderName}:{order:Order;selected:boolean;onClick:()=>void;riderName:string}){return <button className={"dn-list-order "+(selected?"on":"")} onClick={onClick}><div><b title={order.id}>{orderDisplayId(order)}</b><Chip value={order.status}/></div><strong>{order.merchant} <span>— {order.area}</span></strong><small>{order.customer} · {order.destination.name} · {riderName}</small><ChevronRight size={16} className="dn-row-arrow"/></button>;}
 export function DetailLine({label,children}:{label:string;children:React.ReactNode}){return <div className="dn-detail-line"><span>{label}</span><strong>{children}</strong></div>;}
 export function DemoNotice(){return <span className="dn-demo-tag">FRONTEND DEMO · changes saved in this browser</span>;}
