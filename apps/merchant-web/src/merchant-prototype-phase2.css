@@ -233,3 +233,30 @@
 @media(max-width:470px){.mp-p2-support-stats{grid-template-columns:1fr}.mp-p2-security-stat{padding:13px}.mp-p2-hours-row{grid-template-columns:1fr 41px;gap:6px}.mp-p2-hours-row .mp-p2-hour-inputs,.mp-p2-hours-row>em{grid-column:1/3}.mp-p2-status-options{grid-template-columns:1fr}.mp-p2-notice-delivery>p{max-width:100%;padding-bottom:95px}.mp-p2-mini-map{top:auto;bottom:3px;left:0}.mp-p2-notice-row{flex-wrap:wrap}.mp-p2-notice-detail-top{flex-wrap:wrap}}
 
 .mp-live-gate{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#f6faf8;color:#173f31;gap:12px;padding:24px}.mp-live-auth{width:min(440px,100%);background:white;border:1px solid #e2efe8;border-radius:22px;padding:36px;box-shadow:0 20px 55px rgba(8,60,40,.09)}.mp-live-brand{font-size:27px;font-weight:900;color:#00553c}.mp-live-brand small{font-size:14px;font-weight:500;margin-left:8px}.mp-live-auth h1{font-size:25px;margin:18px 0 8px}.mp-live-auth p{color:#697d75}.mp-live-auth form{display:grid;gap:15px;margin-top:20px}.mp-live-auth label{display:grid;gap:8px;font-size:13px;font-weight:700}.mp-live-auth input{padding:12px;border-radius:9px;border:1px solid #cadbd3}.mp-live-auth .mp-primary{padding:13px;justify-content:center}.mp-live-notice{padding:13px 18px;border-radius:12px;margin-bottom:12px;border:1px solid #d9e9e1;background:#eff8f3;font-size:13px;color:#285844}.mp-live-notice[role=alert]{border-color:#ebc6bf;background:#fff6f4;color:#923b36}.mp-live-disabled{opacity:.65;cursor:not-allowed}.mp-live-loading{font-size:13px;color:#678176;margin:12px 0}.mp-live-empty{padding:24px;color:#587367;text-align:center}.mp-live-error{border:1px solid #e9bab2;background:#fff2ef;color:#8a322f;padding:12px;border-radius:9px;margin:12px 0}
+
+
+/* Merchant overview: a distinct operational dashboard, not a second Kitchen Orders link. */
+.mp-overview-grid{display:grid;grid-template-columns:minmax(0,1.45fr) minmax(290px,1fr);gap:16px}
+.mp-overview .mp-head{margin-bottom:20px}
+.mp-overview-grid .mp-card-title{align-items:center}
+.mp-overview-pipeline{display:grid;gap:22px;margin-top:28px}
+.mp-overview-stage{display:grid;grid-template-columns:45px minmax(0,1fr) 36px;align-items:center;gap:12px}
+.mp-overview-stage .mp-summary-icon{width:42px;height:42px}
+.mp-overview-stage strong{font-size:13px;display:block;margin-bottom:9px}
+.mp-overview-stage b{font-size:19px;text-align:right}
+.mp-overview-track{height:9px;border-radius:12px;background:#eef3f6;overflow:hidden}
+.mp-overview-track span{display:block;min-width:0;height:100%;border-radius:12px;background:#00b96b;transition:width .2s}
+.mp-overview-actions{display:grid;gap:8px;margin-top:20px}
+.mp-overview-actions button{display:flex;align-items:center;text-align:left;gap:14px;background:#f7faf9;border:1px solid #edf3f0;border-radius:11px;padding:13px 15px;color:#203e38}
+.mp-overview-actions button:hover{background:#e7f9ef}
+.mp-overview-actions button span{flex:1;font-size:13px;font-weight:700}
+.mp-overview-actions button>svg:last-child{color:#00a967}
+@media(max-width:1000px){.mp-overview-grid{grid-template-columns:1fr}}
+
+/* Food action popover: intentionally vertical, with comfortable tappable actions.
+   Override the generic two-button footer layout without altering other modals. */
+.mp .mp-modal:has(.mp-food-actions){width:min(480px,calc(100vw - 30px));padding:26px}
+.mp .mp-modal .mp-food-actions{display:flex;flex-direction:column;align-items:stretch;gap:12px;width:100%}
+.mp .mp-modal .mp-food-actions>button{width:100%;min-height:48px;justify-content:flex-start;white-space:normal;text-align:left}
+.mp .mp-modal .mp-food-actions>div{min-width:0;max-width:100%}
+.mp .mp-modal .mp-food-actions .mp-outline,.mp .mp-modal .mp-food-actions .mp-danger-light{font-size:13px}
