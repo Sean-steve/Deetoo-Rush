@@ -164,7 +164,7 @@ export default function MerchantPrototype({live}:{live?:MerchantLiveBridge}={}){
      live.refresh();
    }catch(error){notify("Unable to set up branch menu: "+merchantErrorMessage(error));}
  };
- const startEdit=(i?:Item)=>{setFoodImageUrl("");setUploadingFoodImage(false);setEditing(i?.id??null);setForm({name:i?.name||"",description:i?.desc||"",category:i?.category||"Burgers",price:i?String(i.price):"",email:"",role:"Staff",branch:"Juja Branch"});setDialog("food");};
+ const startEdit=(i?:Item)=>{setFoodImageUrl("");setUploadingFoodImage(false);setEditing(i?.id??null);setForm({name:i?.name||"",description:i?.desc||"",category:i?.category||(live?categoryLabels[1]||"":"Burgers"),price:i?String(i.price):"",email:"",role:"Staff",branch:"Juja Branch"});setDialog("food");};
  const saveFood=(e:React.FormEvent)=>{e.preventDefault();
   if(uploadingFoodImage){notify("Finish uploading the food photo before saving.");return;}
   if(live){const item=items.find(i=>i.id===editing),menuId=item?.menuId||branchMenus[0]?.id;
