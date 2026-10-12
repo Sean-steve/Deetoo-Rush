@@ -19,7 +19,8 @@ export function merchantErrorMessage(error: unknown): string {
   // Local databases created before the Merchant migrations need to be upgraded.
   // Never render SQL or JavaScript objects in the interface.
   if (code === "MERCHANT_SCHEMA_MIGRATION_REQUIRED" ||
-      /relation ["']merchant_(?:notification_views|notification_preferences|branch_policies)["'] does not exist/i.test(raw)) {
+      (/relation ["']merchant_(?:notification_views|notification_preferences|branch_policies)["'] does not exist/i.test(raw) ||
+       /column ["'](?:display_name|description)["'] of relation ["']merchant_branches["'] does not exist/i.test(raw))) {
     message = "Merchant database upgrade required. Run pnpm db:migrate against the database used by DeeToo API, then retry.";
   } else if (code === "PRIVATE_STORAGE_UNCONFIGURED") {
     message = "Image uploads require private object storage. Ask an operator to configure OBJECT_STORAGE_BUCKET, OBJECT_STORAGE_REGION and storage credentials, then retry. Your current image has not changed.";
