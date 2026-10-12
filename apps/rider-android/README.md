@@ -256,8 +256,7 @@ and top-left back button follow Rider screen history instead of closing the
 shift from a nested page.
 
 The Home service-zone map renders **actual assigned PostGIS zone GeoJSON** and
-the Rider's last recorded GPS position using OpenStreetMap raster tiles (an
-internet connection is required). It does not draw example locations. Tile
+the Rider's last recorded GPS position using a configured, authorized raster tile provider and OpenStreetMap geographic data (an\ninternet connection is required). It does not draw example locations. Tile
 usage must meet [OpenStreetMap's tile policy](https://operations.osmfoundation.org/policies/tiles/);
 use a contracted tile provider for significant production traffic.
 
@@ -280,3 +279,47 @@ Road instructions are estimates rather than a voice-guided driving system,
 and drivers should follow posted restrictions and current traffic rules.
 Android build updates require rebuilding or restarting Expo; an existing
 installed APK does not magically gain new native UI code from a server restart.
+
+### Rider map tile blocking: provider setup
+
+OpenStreetMap Foundation's volunteer-run `tile.openstreetmap.org` is **not**
+a production tile CDN. It blocked the earlier native direct-image requests.
+The Rider app **no longer makes requests to that host**. Set one of these
+variables in the **Rider Android build environment** before restarting Expo
+or rebuilding the APK:
+
+```env
+# Preferred: your own MapTiler cloud public/restricted key
+EXPO_PUBLIC_RIDER_MAPTILER_KEY=<your_maptiler_public_key>
+# OR a licensed XYZ raster provider template with {z}, {x}, {y}
+EXPO_PUBLIC_RIDER_TILE_TEMPLATE=https://your-licensed-provider.example/tiles/{z}/{x}/{y}.png
+```
+
+DeeToo's built-in MapTiler template uses MapTiler streets-v4 256px raster
+tiles. A public mobile key must be restricted and quota-controlled by its
+provider. Keys prefixed `EXPO_PUBLIC_` are included in client bundles and
+**must not be treated as secrets**. The external tile provider observes tile
+viewport requests; avoid sending customer names or street addresses. DeeToo's
+route service remains server-authorized.
+
+Without a configured provider, or if the provider denies requests, DeeToo
+shows the actual Rider/location overlays and a **map tiles unavailable**
+message rather than blocked OpenStreetMap tiles. To fix missing street maps,
+configure an authorized provider and restart/rebuild the Rider app. Real
+routing still requires GOOGLE_ROUTES_API_KEY (or a local approved OSRM test
+server); basemap hosting and road directions are separate services.
+
+### Merchant pickup → customer map
+
+After the backend accepts the merchant pickup code and confirms `PICKED_UP`,
+the Rider moves directly to **Navigate to Customer**. The delivery address
+and available locality/area label are read from the assigned delivery record,
+never guessed from arbitrary map searches. `Start trip to customer` remains
+an explicit DeeToo lifecycle action: when the delivery is `PICKED_UP`, the
+Rider can start the trip and then confirm arrival at the customer. An invalid
+code never advances the screen.
+
+Riders **can self-register** on the Rider login screen via
+`POST /api/v1/auth/register/rider`. The resulting application is unapproved
+until phone, document, vehicle and equipment verification and authorized Admin
+approval are completed. A newly registered Rider cannot self-approve.
