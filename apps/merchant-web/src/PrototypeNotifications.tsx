@@ -2,6 +2,7 @@ import type { MerchantLiveBridge } from "./MerchantLiveApp";
 import React, { useEffect, useMemo, useState } from "react";
 import { Bell, Check, ChevronDown, CircleCheck, Clock3, CreditCard, FileText, Filter, MapPin, MessageSquare, Phone, Search, Settings, ShieldCheck, Store, TriangleAlert, Utensils, Wallet, X } from "lucide-react";
 import { DemoBadge, DemoCard, DemoHeading } from "./PrototypeBranch";
+import { merchantErrorMessage } from "./merchant-branch-errors";
 
 export type NoticeGroup="Orders"|"Payments"|"Payouts & settlements"|"Menu & availability"|"Business updates"|"System notifications"|"Support messages";
 export type DemoNotice={id:number|string;kind:NoticeGroup;title:string;description:string;date:string;minutes:number;read:boolean;order?:string;customer?:string;amount?:number;item?:string;phone?:string;address?:string};
@@ -35,6 +36,7 @@ const groups:NoticeGroup[]=["Orders","Payments","Payouts & settlements","Menu & 
 function NoticeIcon({kind}:{kind:NoticeGroup}){const i=kind==="Orders"?<Utensils/>:kind==="Payments"?<CreditCard/>:kind==="Payouts & settlements"?<Wallet/>:kind==="Menu & availability"?<TriangleAlert/>:kind==="Support messages"?<MessageSquare/>:kind==="Business updates"?<Store/>:<Settings/>;return <span className={"mp-p2-notice-icon mp-p2-notice-"+kind.split(" ")[0].toLowerCase()}>{i}</span>;}
 export function PrototypeNotifications({search,onNavigate,notify,onUnreadChange,onPrepareOrder,live}:{search:string;onNavigate:(s:string)=>void;notify:(s:string)=>void;onUnreadChange?:(n:number)=>void;onPrepareOrder?:(orderId:string)=>void;live?:MerchantLiveBridge}){
  const [notices,setNotices]=useState<DemoNotice[]>(()=>live?[]:saved("mp-demo-notices",seed));
+ const [loadError,setLoadError]=useState(""),[retry,setRetry]=useState(0);
  const [category,setCategory]=useState("All notifications");
  const [status,setStatus]=useState("All");
  const [period,setPeriod]=useState("All time");
@@ -47,7 +49,9 @@ export function PrototypeNotifications({search,onNavigate,notify,onUnreadChange,
   try{
    const inbox=(await live.api.request<any[]>("/merchant/inbox?limit=100")).data;
    if(!active)return;
-   const kinds:Record<string,NoticeGroup>={ORDERS:"Orders",PAYMENTS:"Payments",PAYOUTS:"Payouts & settlements",MENU:"Menu & availability",BUSINESS:"Business updates",SYSTEM:"System notifications",SUPPORT:"Support messages"};
+   if(!Array.isArray(inbox))throw new Error("DeeToo returned an invalid notification list. Retry or contact support.");
+    setLoadError("");
+    const kinds:Record<string,NoticeGroup>={ORDERS:"Orders",PAYMENTS:"Payments",PAYOUTS:"Payouts & settlements",MENU:"Menu & availability",BUSINESS:"Business updates",SYSTEM:"System notifications",SUPPORT:"Support messages"};
    const normalized:DemoNotice[]=inbox.map((n:any)=>({
       id:n.id,kind:kinds[n.category]||"System notifications",
       title:n.subject||n.template_code||"Notification",
@@ -60,15 +64,15 @@ export function PrototypeNotifications({search,onNavigate,notify,onUnreadChange,
    }));
    setNotices(normalized);
    setSelected(old=>normalized.some(n=>n.id===old)?old:normalized[0]?.id||0);
-  }catch(e){if(active)notify("Unable to load notifications: "+(e instanceof Error?e.message:String(e)));}
+  }catch(e){if(active)setLoadError(merchantErrorMessage(e));}
  };
  const preferences=async()=>{try{const r=(await live.api.request<any>("/merchant/inbox/preferences")).data;if(!active)return;
    setPrefEmail(Boolean(r.email_enabled));setPrefPush(Boolean(r.push_enabled));setPrefSound(Boolean(r.sound_enabled));
- }catch(e){if(active)notify("Notification preferences unavailable: "+(e instanceof Error?e.message:String(e)));}};
+ }catch(e){if(active)notify("Notification preferences unavailable: "+merchantErrorMessage(e));}};
  void load();void preferences();
  const timer=window.setInterval(()=>void load(),30000);
  return()=>{active=false;window.clearInterval(timer);};
- },[live?.branchId]);
+ },[live?.branchId,retry]);
 
  useEffect(()=>{onUnreadChange?.(countUnread);},[countUnread,onUnreadChange]);
  const mutate=(updater:(all:DemoNotice[])=>DemoNotice[])=>{setNotices(prev=>{const next=updater(prev);if(!live)localStorage.setItem("mp-demo-notices",JSON.stringify(next));return next;});};
@@ -76,7 +80,7 @@ export function PrototypeNotifications({search,onNavigate,notify,onUnreadChange,
    void live.api.request(id==null?"/merchant/inbox/read-all":`/merchant/inbox/${id}/read`,{method:"POST"})
    .then(()=>{mutate(ns=>ns.map(n=>id==null||n.id===id?{...n,read:true}:n));
      notify("Notification read status saved");})
-   .catch(e=>notify("Unable to mark read: "+(e instanceof Error?e.message:String(e))));return;
+   .catch(e=>notify("Unable to mark read: "+merchantErrorMessage(e)));return;
  }
  mutate(ns=>ns.map(n=>id==null||n.id===id?{...n,read:true}:n));notify(id==null?"All notifications marked as read":"Notification marked as read");};
  const filtered=useMemo(()=>notices.filter(n=>(category==="All notifications"||n.kind===category)&&(status==="All"||(status==="Unread"?!n.read:n.read))&&(period==="All time"||(period==="Today"?n.minutes<1440:period==="This week"?n.minutes<10080:n.minutes<43200))&&[n.title,n.description,n.kind,n.order||""].join(" ").toLowerCase().includes(search.toLowerCase())).sort((a,b)=>sort==="Newest first"?a.minutes-b.minutes:b.minutes-a.minutes),[notices,category,status,period,sort,search]);
@@ -84,7 +88,8 @@ export function PrototypeNotifications({search,onNavigate,notify,onUnreadChange,
  const trigger=(kind:NoticeGroup)=>{if(kind==="Orders"){onNavigate("orders");return;}if(kind==="Menu & availability"){onNavigate("menu");return;}if(kind==="Support messages"){onNavigate("support");return;}if(kind==="Payments"||kind==="Payouts & settlements"){onNavigate("finance");return;}if(kind==="Business updates"){onNavigate("team");return;}notify("System update details are displayed above.");};
  return <div className="mp-p2">
   <DemoHeading eyebrow="ACCOUNT" title="Notifications" description="Stay updated with orders, payments, support messages and important updates." action={<div className="mp-p2-notification-actions"><button className="mp-outline" onClick={()=>mark()}><Check size={18}/>Mark all as read</button><button className="mp-outline" onClick={()=>setDialog("prefs")}><Settings size={18}/>Notification settings</button></div>}/>
-  <div className="mp-p2-notify-grid">
+  {loadError&&<div role="alert" className="mp-live-error mp-p2-notification-error"><strong>Unable to load notifications</strong><p>{loadError}</p><button type="button" className="mp-outline" onClick={()=>setRetry(v=>v+1)}>Retry notifications</button></div>}
+   <div className="mp-p2-notify-grid">
     <DemoCard className="mp-p2-notify-filters"><h2>Filters</h2><div className="mp-p2-filter-list">{["All notifications",...groups].map(kind=><button className={category===kind?"active":""} onClick={()=>setCategory(kind)} key={kind}><span>{kind}</span><em>{kind==="All notifications"?notices.length:notices.filter(n=>n.kind===kind).length}</em></button>)}</div><h2>Status</h2><div className="mp-p2-filter-list">{["All","Unread","Read"].map(val=><button className={status===val?"active":""} onClick={()=>setStatus(val)} key={val}>◻ &nbsp; {val}<em>{val==="All"?notices.length:val==="Unread"?countUnread:notices.length-countUnread}</em></button>)}</div><h2>Time</h2><div className="mp-p2-filter-list">{["All time","Today","This week","This month"].map(val=><button className={period===val?"active":""} onClick={()=>setPeriod(val)} key={val}>◷ &nbsp; {val}<em>{notices.filter(n=>val==="All time"||val==="This month"&&n.minutes<43200||val==="Today"&&n.minutes<1440||val==="This week"&&n.minutes<10080).length}</em></button>)}</div></DemoCard>
     <DemoCard className="mp-p2-notify-list"><div className="mp-p2-card-head"><h2>Notifications ({filtered.length})</h2><select aria-label="Sort notifications" value={sort} onChange={e=>setSort(e.target.value)}><option>Newest first</option><option>Oldest first</option></select></div>{filtered.length?filtered.map(n=><button key={n.id} className={"mp-p2-notice-row "+(active?.id===n.id?"active":"")} onClick={()=>setSelected(n.id)}><NoticeIcon kind={n.kind}/><span><strong>{n.title}</strong><small>{n.description}</small></span><em>{n.minutes<60?n.minutes+" minutes ago":n.minutes<1440?Math.round(n.minutes/60)+" hours ago":Math.floor(n.minutes/1440)+" days ago"}</em>{!n.read&&<i className="mp-p2-unread-dot"/>}</button>):<div className="mp-p2-empty">No notifications match these filters. <button onClick={()=>{setCategory("All notifications");setStatus("All");setPeriod("All time");}}>Clear filters</button></div>}</DemoCard>
     <DemoCard className="mp-p2-notice-detail">{active?<><div className="mp-p2-notice-detail-top"><NoticeIcon kind={active.kind}/><div><h2>{active.title}</h2><small>{active.date}</small></div><DemoBadge kind={active.read?"blue":"red"}>{active.read?"Read":"Unread"}</DemoBadge><button className="mp-p2-more-button" aria-label="More notification options" onClick={()=>{setSelected(active.id);setDialog("more");}}>⋮</button></div><p className="mp-p2-notice-description">{active.description}</p>{active.order&&<section className="mp-p2-order-detail"><div className="mp-p2-card-head"><h3>Order details</h3><button className="mp-outline" onClick={()=>onNavigate("orders")}>View order</button></div><div className="mp-p2-data-row"><small>Order ID</small><strong>{active.order}</strong></div><div className="mp-p2-data-row"><small>Customer</small><strong>{active.customer||"Customer"}</strong></div><div className="mp-p2-data-row"><small>Items</small><strong>🍔 &nbsp; {active.item||"Order items"}</strong></div><div className="mp-p2-data-row"><small>Total amount</small><strong>Ksh {(active.amount||0).toFixed(2)}</strong></div></section>}
@@ -92,13 +97,13 @@ export function PrototypeNotifications({search,onNavigate,notify,onUnreadChange,
       <div className="mp-p2-notice-ctas"><button className="mp-primary" onClick={()=>active.kind==="Orders"&&active.title==="New order received"&&active.order&&onPrepareOrder?onPrepareOrder(active.order):trigger(active.kind)}>{active.kind==="Orders"&&active.title==="New order received"?"▷ Mark as preparing":active.kind==="Orders"?"▷ View kitchen orders":active.kind==="Support messages"?"Open conversation":"View details"}</button>{active.phone&&<button className="mp-outline" onClick={()=>setDialog("contact")}><Phone size={16}/>Contact customer</button>}{!active.read&&<button className="mp-outline" onClick={()=>mark(active.id)}><Check size={16}/>Mark read</button>}</div>
     </>:<div className="mp-p2-empty">Select a notification to view its details.</div>}</DemoCard>
   </div>
-  {dialog&&<div className="mp-modal-overlay" onMouseDown={e=>e.target===e.currentTarget&&setDialog(null)}><section className="mp-modal" role="dialog" aria-modal="true" aria-label={dialog}><div className="mp-modal-head"><h2>{dialog==="prefs"?"Notification settings":dialog==="contact"?"Contact customer":"Notification actions"}</h2><button aria-label="Close" onClick={()=>setDialog(null)}><X/></button></div>{dialog==="prefs"?<><p>Choose how example notifications are presented. {live?"Security-critical notices remain mandatory.":"These preferences are local to your prototype."}</p>{[["Email notifications",prefEmail,setPrefEmail],["Browser push alerts",prefPush,setPrefPush],["New order sound",prefSound,setPrefSound]].map(([label,val,setter]:any)=><div className="mp-p2-toggle-row" key={label}><strong>{label}</strong><button role="switch" className={"mp-switch "+(val?"on":"")} aria-label={label} aria-checked={val} onClick={()=>setter(!val)}><span/></button></div>)}<button className="mp-primary mp-full" onClick={()=>{if(live){void live.api.request("/merchant/inbox/preferences",{method:"PUT",body:JSON.stringify({
+  {dialog&&<div className="mp-modal-overlay" onMouseDown={e=>e.target===e.currentTarget&&setDialog(null)}><section className="mp-modal" role="dialog" aria-modal="true" aria-label={dialog}><div className="mp-modal-head"><h2>{dialog==="prefs"?"Notification settings":dialog==="contact"?"Contact customer":"Notification actions"}</h2><button aria-label="Close" onClick={()=>setDialog(null)}><X/></button></div>{dialog==="prefs"?<><p>Choose how notifications reach you. {live?"Security-critical notices remain mandatory.":"These preferences are local to your prototype."}</p>{[["Email notifications",prefEmail,setPrefEmail],["Browser push alerts",prefPush,setPrefPush],["New order sound",prefSound,setPrefSound]].map(([label,val,setter]:any)=><div className="mp-p2-toggle-row" key={label}><strong>{label}</strong><button role="switch" className={"mp-switch "+(val?"on":"")} aria-label={label} aria-checked={val} onClick={()=>setter(!val)}><span/></button></div>)}<button className="mp-primary mp-full" onClick={()=>{if(live){void live.api.request("/merchant/inbox/preferences",{method:"PUT",body:JSON.stringify({
   email_enabled:prefEmail,push_enabled:prefPush,sound_enabled:prefSound})}).then(()=>{
     setDialog(null);notify("Notification preferences saved");
-  }).catch(e=>notify("Unable to save preferences: "+(e instanceof Error?e.message:String(e))));return;}
+  }).catch(e=>notify("Unable to save preferences: "+merchantErrorMessage(e)));return;}
  setDialog(null);notify("Notification preferences saved locally");}}>Save notification settings</button></>:dialog==="more"?<div className="mp-p2-menu-actions"><button onClick={()=>{if(active)mark(active.id);setDialog(null);}}><Check/>Mark as read</button><button onClick={()=>{if(active)trigger(active.kind);setDialog(null);}}>Open related screen</button><button onClick={()=>{if(active){if(live){void live.api.request(`/merchant/inbox/${active.id}/dismiss`,{method:"POST"})
   .then(()=>{mutate(all=>all.filter(n=>n.id!==active.id));setDialog(null);notify("Notification archived");})
-  .catch(e=>notify("Unable to archive: "+(e instanceof Error?e.message:String(e))));}
+  .catch(e=>notify("Unable to archive: "+merchantErrorMessage(e)));}
  else {mutate(all=>all.filter(n=>n.id!==active.id));setDialog(null);notify("Demo notification dismissed");}}}}>Dismiss notification</button></div>:<><p>{live?"Customer contact is available through the authorized Kitchen Order contact workflow. Personal telephone numbers are not shown.":"Demo customer contact: "+(active?.customer||"")}</p><p>{live?"Open the related order to request a message.":active?.phone||"Contact information not provided"}</p><button className="mp-primary mp-full" onClick={()=>setDialog(null)}>Close</button></>}</section></div>}
  </div>;
 }
