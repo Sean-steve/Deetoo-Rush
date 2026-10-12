@@ -31,5 +31,7 @@ test('Rider navigation opens only after server confirms merchant pickup code',()
  assert.ok(confirmation>=0&&guarded>confirmation&&navigate>guarded);
  assert.ok(screen.includes('Start trip to customer'));
  const map=readFileSync('apps/rider-android/src/connected/RiderLiveMap.tsx','utf8');
- assert.ok(!map.includes('tile.openstreetmap.org'));
+ // The component must use the validated provider URL factory rather than
+ // any inline native Image tile host. Host rejection is tested above.
+ assert.match(map,/rasterTileUrl\(riderTileTemplate/);
 });
