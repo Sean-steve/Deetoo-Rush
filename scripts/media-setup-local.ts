@@ -64,6 +64,7 @@ export async function setupLocalMedia(env: NodeJS.ProcessEnv = process.env) {
 }
 
 // Do not connect to S3 when imported from a unit test.
-if (process.argv[1] && /media-setup-local\\.(?:ts|js)$/.test(process.argv[1])) {
+if (process.argv[1]?.endsWith("media-setup-local.ts") ||
+    process.argv[1]?.endsWith("media-setup-local.js")) {
   setupLocalMedia().catch(err=>{process.stderr.write("Local media setup failed: "+String(err?.message||err)+"\n");process.exitCode=1;});
 }
