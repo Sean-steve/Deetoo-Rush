@@ -30,6 +30,7 @@ import {
 import { DeliveryStatus, DeliveryOfferStatus } from "@deetoo/types";
 import { AppError } from "../../middleware/error-handler";
 import { dispatchService } from "../order/dispatch.service";
+import { riderRouteForDelivery } from "../maps/rider-navigation.service";
 import { deliveryRepository } from "../order/delivery.repository";
 import { orderRepository } from "../order/order.repository";
 import { riderEarningsService } from "../finance/rider-earnings.service";
@@ -788,6 +789,21 @@ riderRouter.get(
     }
   },
 );
+
+/**
+ * GET /api/v1/rider/deliveries/:id/route?stop=pickup|dropoff
+ * Live Rider-only geometry and turn instructions. Delivery ownership is
+ * checked by the existing router param and the dispatch detail service.
+ */
+riderRouter.get("/deliveries/:id/route",async(req:AuthenticatedRequest,res:Response,next:NextFunction)=>{
+ try{
+  const stop=req.query.stop;
+  if(stop!=="pickup"&&stop!=="dropoff")
+   throw new AppError(400,"RIDER_ROUTE_STOP_REQUIRED","Select pickup or dropoff for Rider navigation");
+  const result=await riderRouteForDelivery(req.params.id,req.user!.id,stop);
+  res.json({data:result,requestId:(req as any).requestId});
+ }catch(error){next(error);}
+});
 
 /**
  * POST /api/v1/rider/deliveries/:id/arrive-pickup
