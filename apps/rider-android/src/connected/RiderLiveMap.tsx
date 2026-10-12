@@ -3,12 +3,14 @@ import {ActivityIndicator,Image,Pressable,Text,View} from 'react-native';
 import * as Location from 'expo-location';
 import {C,S} from '../preview/ui';
 import {type MapPoint,type MapZone,mapCenter,tilePoint,validPoint,zoneRings,haversineMeters,heading,bearing} from './rider-map-model';
+import {riderTileTemplate,rasterTileUrl} from './rider-tile-provider';
 
 type Route={points:MapPoint[];meters:number;seconds:number;steps:Array<{instruction:string;meters:number}>};
 const toText=(meters:number)=>meters>=1000?(meters/1000).toFixed(1)+' km':meters+' m';
 type Props={rider?:MapPoint|null;zones?:MapZone[];destination?:MapPoint|null;destinationLabel?:string;route?:boolean;height?:number;loadRoute?:()=>Promise<Route>};
 export function RiderLiveMap({rider=null,zones=[],destination=null,destinationLabel='Destination',route=false,height=255,loadRoute}:Props){
  const [gps,setGps]=useState<MapPoint|null>(null),[zoomAdjust,setZoomAdjust]=useState(0);
+ const [tileFailed,setTileFailed]=useState(false);
  const [width,setWidth]=useState(330),[road,setRoad]=useState<Route|null>(null);
  const [routingError,setRoutingError]=useState(''),[routing,setRouting]=useState(false);
  const start=gps||rider||null;
@@ -80,7 +82,8 @@ export function RiderLiveMap({rider=null,zones=[],destination=null,destinationLa
   </View>;
  return <View style={{gap:10}}>
    <View onLayout={e=>setWidth(Math.max(200,Math.round(e.nativeEvent.layout.width)))} accessibilityLabel="Interactive Rider map with live location and DeeToo service boundaries" style={{height,overflow:'hidden',borderRadius:18,backgroundColor:'#E2EDE5',borderWidth:1,borderColor:C.border}}>
-    {frame?.tiles.map(t=><Image key={t.x+':'+t.y+':'+t.z} source={{uri:`https://tile.openstreetmap.org/${t.z}/${t.wrappedX}/${t.y}.png`}} resizeMode="stretch" style={{position:'absolute',width:256,height:256,left:t.xpos,top:t.ypos}} />)}
+    {riderTileTemplate&&!tileFailed?frame?.tiles.map(t=><Image key={t.x+':'+t.y+':'+t.z} source={{uri:rasterTileUrl(riderTileTemplate!,t)}} onError={()=>setTileFailed(true)} resizeMode="stretch" style={{position:'absolute',width:256,height:256,left:t.xpos,top:t.ypos}} />):null}
+    {!riderTileTemplate||tileFailed?<View pointerEvents="none" style={{position:'absolute',top:12,left:10,right:62,padding:10,backgroundColor:'#FFF8E9',borderRadius:11,borderWidth:1,borderColor:C.border}}><Text style={{color:C.ink,fontWeight:'800',fontSize:12}}>{tileFailed?'Basemap provider unavailable':'Map tiles need provider setup'}</Text><Text style={{color:C.muted,fontSize:11}}>DeeToo retains the assigned route and GPS, but street tiles require a licensed map provider configured in the Rider build.</Text></View>:null}
     {boundarySegments.map(([a,d],i)=>segment(a,d,'zone-'+i,'rgba(0,126,76,0.76)',3))}
     {road?.points.slice(1).filter((_,i)=>i%Math.max(1,Math.ceil(road.points.length/350))===0).map((q,i,a)=>segment(i===0?road.points[0]:a[i-1],q,'route-'+i,'#1266EA',5))}
     {pin(start,'You','#12A057')}{pin(destination,destinationLabel,'#1768DF')}
@@ -88,7 +91,7 @@ export function RiderLiveMap({rider=null,zones=[],destination=null,destinationLa
      <Pressable accessibilityLabel="Zoom in map" onPress={()=>setZoomAdjust(v=>Math.min(3,v+1))} style={{backgroundColor:'white',padding:10,borderRadius:9}}><Text style={S.h2}>+</Text></Pressable>
      <Pressable accessibilityLabel="Zoom out map" onPress={()=>setZoomAdjust(v=>Math.max(-5,v-1))} style={{backgroundColor:'white',padding:10,borderRadius:9}}><Text style={S.h2}>−</Text></Pressable>
     </View>
-    <Text style={{position:'absolute',bottom:5,right:7,fontSize:9,backgroundColor:'rgba(255,255,255,0.9)',color:C.ink,padding:4}}>© OpenStreetMap contributors</Text>
+    {riderTileTemplate&&!tileFailed?<Text style={{position:'absolute',bottom:5,right:7,fontSize:9,backgroundColor:'rgba(255,255,255,0.9)',color:C.ink,padding:4}}>© MapTiler / tile provider · © OpenStreetMap contributors</Text>:null}
    </View>
    {route&&validPoint(destination)&&validPoint(start)?<View style={{gap:7}}>
      {routing?<View style={{flexDirection:'row',gap:8}}><ActivityIndicator color={C.darkGreen}/><Text style={S.sub}>Calculating road route…</Text></View>:null}

@@ -13,7 +13,7 @@ import { createRiderBackend, parseRiderServerError, parseWithdrawalKes, safeRide
 import { validKenyanPhone } from '../preview/phase1-model';
 import { Button, C, Field, HeroRider, Metric, Notice, OnboardingTracker, Panel, PrototypeShell, S, Tag } from '../preview/ui';
 import { RiderLiveMap } from './RiderLiveMap';
-import {geoPoint,shortReference} from './rider-map-model';
+import {deliveryAreaName,geoPoint,shortReference} from './rider-map-model';
 import type { RiderTab } from '../preview/phase1-model';
 
 type CameraJob = { kind: 'document'|'incident'|'support'|'delivery'; ref?: string; documentType?: string } | null;
@@ -218,7 +218,14 @@ export function RiderConnectedApp() {
     if(!d||!safeRiderDeliveryAction(state,method)){setError('The server delivery state does not permit that action. Refresh and retry.');return;}
     void run(async()=>{
       if(method==='arrivePickup'||method==='arriveDropoff')await atLocation(method);
-      else if(method==='pickup')await api.confirmPickup(d,form.pickupCode||'');
+      else if(method==='pickup'){
+        // The server must accept the merchant's pickup code before the
+        // Rider transitions to customer navigation. Invalid codes stay here.
+        const confirmed=await api.confirmPickup(d,form.pickupCode||'');
+        if(confirmed?.status!=='PICKED_UP')throw new Error('DeeToo has not confirmed collection yet. Check the pickup code and try again.');
+        setForm(previous=>({...previous,pickupCode:''}));
+        go(11);
+      }
       else if(method==='startTrip')await api.startTrip(d);
       else if(method==='complete'){await api.completeOtp(d,form.deliveryOtp||'');setCompletedDelivery(d);go(13);}
       else if(method==='fail')await api.reportFailedDelivery(d,'CUSTOMER_UNREACHABLE',form.issue||'');
@@ -396,15 +403,17 @@ export function RiderConnectedApp() {
     case 9:case 11:{
       const pickup=view===9;
       const address=pickup?detail?.pickup?.address:detail?.dropoff?.address;
-      body=<Page title={pickup?'Navigate to Merchant':'Navigate to Customer'} subtitle={pickup?'Live pickup milestone':'Live drop-off milestone'}>
-        <Panel title={pickup?'Merchant pickup':'Customer drop-off'}>
-          <Row title="Destination" value={address||'Awaiting active delivery'}/>
+      const dropoffArea=deliveryAreaName(detail?.dropoff?.areaName,detail?.dropoff?.address);
+      body=<Page title={pickup?'Navigate to Merchant':'Navigate to Customer'} subtitle={pickup?'Live pickup milestone':dropoffArea?'Customer drop-off · '+dropoffArea:'Customer drop-off'}>
+        <Panel title={pickup?'Merchant pickup':dropoffArea?'Customer drop-off · '+dropoffArea:'Customer drop-off'}>
+          <Row title={pickup?'Merchant address':'Customer drop-off address'} value={address||'Awaiting active delivery'}/>
           <Row title="Live state" value={deliveryStatus||'—'}/>
           <RiderLiveMap route rider={geoPoint({latitude:status?.profile?.lastKnownLatitude,longitude:status?.profile?.lastKnownLongitude})}
             zones={entries(status?.assignedZones)} destination={geoPoint(pickup?detail?.pickup?.location:detail?.dropoff?.location)}
             destinationLabel={pickup?'Merchant':'Customer'} loadRoute={()=>api.route(deliveryId,pickup?'pickup':'dropoff')} height={290}/>
           <Text style={S.meta}>Route and instructions stay inside DeeToo. Road guidance needs internet; the Rider must follow road signs and current conditions.</Text>
         </Panel>
+        {!pickup&&deliveryStatus==='PICKED_UP'?<Button label="Start trip to customer" disabled={busy} onPress={()=>performDelivery('startTrip')}/>:null}
         <Button label={pickup?'Arrived at Merchant':'Arrived at Customer'} disabled={!safeRiderDeliveryAction(deliveryStatus,pickup?'arrivePickup':'arriveDropoff')||busy} onPress={()=>performDelivery(pickup?'arrivePickup':'arriveDropoff')}/>
         <Button outline label="View delivery details" onPress={()=>go(8)}/>
       </Page>;break;
@@ -419,7 +428,7 @@ export function RiderConnectedApp() {
         <Button label="Confirm Collection" disabled={!safeRiderDeliveryAction(deliveryStatus,'pickup')||!form.pickupCode?.trim()||busy} onPress={()=>performDelivery('pickup')}/>
       </Panel>
       <Button outline label="Missing items / merchant delay? Report issue" onPress={()=>go(23)}/>
-      <Button outline label="Navigate to Customer" onPress={()=>go(11)}/>
+      {deliveryStatus==='PICKED_UP'||deliveryStatus==='EN_ROUTE'?<Button outline label="Navigate to Customer" onPress={()=>go(11)}/>:null}
     </Page>;break;
     case 12:body=<Page title="Customer Handover" subtitle="Verified delivery proof and failure escalation">
       <Panel title="Handover">
