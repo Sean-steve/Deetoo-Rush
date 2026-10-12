@@ -1,10 +1,11 @@
 import React from "react";
+import { MerchantBranchImage } from "./MerchantBranchImage";
 import {ArrowRight, Bell, ChefHat, CircleCheck, Clock3, LayoutGrid, Package, Store, Utensils, Wallet} from "lucide-react";
 
 type Order = {status:"new"|"preparing"|"ready"|"completed";amount:number};
 type Item = {available:boolean};
-export function MerchantOverview({orders,items,branchName,loading=false,live,onNavigate}:{
-  orders:Order[];items:Item[];branchName:string;loading?:boolean;live:boolean;onNavigate:(screen:string)=>void;
+export function MerchantOverview({orders,items,branchName,coverUrl,loading=false,live,onNavigate}:{
+  orders:Order[];items:Item[];branchName:string;coverUrl?:string|null;loading?:boolean;live:boolean;onNavigate:(screen:string)=>void;
 }){
  const stages=[
   {key:"new",label:"New orders",icon:Utensils,tone:"red"},
@@ -16,8 +17,8 @@ export function MerchantOverview({orders,items,branchName,loading=false,live,onN
  const pending=orders.filter(o=>o.status!=="completed").length;
  const total=orders.length||1;
  return <div className="mp-overview">
-  <div className="mp-head"><div><span className="mp-eyebrow">MERCHANT OVERVIEW</span><h1>Business overview</h1>
-    <p>Live operational snapshot for {branchName}. Use the shortcuts to manage orders, menus and branch settings.</p></div>
+  <div className="mp-head"><div className="mp-overview-brand"><MerchantBranchImage src={coverUrl} name={branchName}/><div><span className="mp-eyebrow">MERCHANT OVERVIEW</span><h1>Business overview</h1>
+    <p>Live operational snapshot for {branchName}. Use the shortcuts to manage orders, menus and branch settings.</p></div></div>
     <button className="mp-outline" onClick={()=>onNavigate("branch")}><Store size={17}/> Branch settings <ArrowRight size={16}/></button>
   </div>
   {loading&&<p role="status">Refreshing your merchant overview…</p>}
