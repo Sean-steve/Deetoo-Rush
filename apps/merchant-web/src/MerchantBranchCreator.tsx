@@ -17,7 +17,7 @@ export function MerchantBranchCreator({live,onClose,notify}:{
   }
   setBusy(true);
   try{
-    const result=await live.api.request<any>("/merchant/branches",{method:"POST",body:JSON.stringify({
+    const result=await live.api.request<any>("/merchant/branches?merchant_id="+encodeURIComponent(live.merchantId),{method:"POST",body:JSON.stringify({
       name:form.name.trim(),display_name:(form.display_name||form.name).trim(),
       description:form.description,address_line1:form.address_line1.trim(),
       city:form.city.trim(),region:(form.region||form.city).trim(),
