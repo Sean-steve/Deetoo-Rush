@@ -37,8 +37,8 @@ POSTGRES_PASSWORD=USE_A_UNIQUE_URL_SAFE_DB_PASSWORD
 Start infrastructure under the administrator account:
 
 ```bash
-sudo docker compose -f /srv/deetoo/infra/compose.yml up -d
-sudo docker compose -f /srv/deetoo/infra/compose.yml ps
+sudo docker compose --env-file /srv/deetoo/infra/.env -f /srv/deetoo/infra/compose.yml up -d
+sudo docker compose --env-file /srv/deetoo/infra/.env -f /srv/deetoo/infra/compose.yml ps
 ```
 
 Create `/srv/deetoo/shared/.env` owned by deploy (mode 600), for example:
