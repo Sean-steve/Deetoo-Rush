@@ -9,7 +9,9 @@ async function startServer() {
   const app = createApp();
   const stopRealtime = startRealtimeListener();
   const bindHost =
-    config.localWorkflow && !config.localWorkflowAllowLan ? '127.0.0.1' : '0.0.0.0';
+    config.localWorkflow && !config.localWorkflowAllowLan
+      ? '127.0.0.1'
+      : (process.env.DEETOO_BIND_HOST?.trim() || '0.0.0.0');
   const server = app.listen(PORT, bindHost, () => {
     logger.info(`Deetoo Central API running on port ${PORT}`, {
       service: 'deetoo-api',
