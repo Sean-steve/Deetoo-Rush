@@ -1,0 +1,48 @@
+# Replace YOUR_DOMAIN, then install as /etc/nginx/sites-available/deetoo.
+# Certbot adds TLS listeners after DNS is correct. Only expose 80/443.
+# Each web origin reverse-proxies /api/ to preserve host-only sessions.
+server {
+    listen 80;
+    server_name YOUR_DOMAIN www.YOUR_DOMAIN;
+    root /srv/deetoo/current/dist/customer-web;
+    index index.html;
+    location /api/ {
+        include proxy_params;
+        proxy_pass http://127.0.0.1:3000;
+    }
+    location /health {
+        include proxy_params;
+        proxy_pass http://127.0.0.1:3000;
+    }
+    location / { try_files $uri $uri/ /index.html; }
+}
+server {
+    listen 80;
+    server_name merchant.YOUR_DOMAIN;
+    root /srv/deetoo/current/dist/merchant-web;
+    index index.html;
+    location /api/ {
+        include proxy_params;
+        proxy_pass http://127.0.0.1:3000;
+    }
+    location / { try_files $uri $uri/ /index.html; }
+}
+server {
+    listen 80;
+    server_name admin.YOUR_DOMAIN;
+    root /srv/deetoo/current/dist/admin-web;
+    index index.html;
+    location /api/ {
+        include proxy_params;
+        proxy_pass http://127.0.0.1:3000;
+    }
+    location / { try_files $uri $uri/ /index.html; }
+}
+server {
+    listen 80;
+    server_name api.YOUR_DOMAIN;
+    location / {
+        include proxy_params;
+        proxy_pass http://127.0.0.1:3000;
+    }
+}

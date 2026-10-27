@@ -1,0 +1,56 @@
+name: Deploy Deetoo to Contabo
+
+# Existing repository CI is "Deetoo CI Pipeline".
+# This workflow remains OFF until repo-level Actions variable
+# CONTABO_DEPLOY_ENABLED is explicitly set to 'true'.
+on:
+  workflow_run:
+    workflows: ["Deetoo CI Pipeline"]
+    types: [completed]
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deetoo-contabo-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    if: >-
+      ${{ vars.CONTABO_DEPLOY_ENABLED == 'true' &&
+          github.event.workflow_run.conclusion == 'success' &&
+          github.event.workflow_run.event == 'push' &&
+          github.event.workflow_run.head_branch == 'main' &&
+          github.event.workflow_run.head_repository.full_name == github.repository }}
+    runs-on: ubuntu-latest
+    environment: production
+    timeout-minutes: 35
+    steps:
+      - name: Load pinned SSH identity
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.CONTABO_SSH_KEY }}
+          SSH_KNOWN_HOSTS: ${{ secrets.CONTABO_KNOWN_HOSTS }}
+        run: |
+          set -euo pipefail
+          install -d -m 700 "$HOME/.ssh"
+          test -n "$SSH_PRIVATE_KEY" && test -n "$SSH_KNOWN_HOSTS"
+          printf '%s\n' "$SSH_PRIVATE_KEY" > "$HOME/.ssh/id_ed25519"
+          chmod 600 "$HOME/.ssh/id_ed25519"
+          printf '%s\n' "$SSH_KNOWN_HOSTS" > "$HOME/.ssh/known_hosts"
+          chmod 600 "$HOME/.ssh/known_hosts"
+
+      - name: Deploy only the verified main commit
+        env:
+          SERVER_HOST: ${{ secrets.CONTABO_HOST }}
+          DEPLOY_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          set -euo pipefail
+          test -n "$SERVER_HOST"
+          [[ "$DEPLOY_SHA" =~ ^[a-f0-9]{40}$ ]]
+          ssh -o BatchMode=yes -o StrictHostKeyChecking=yes \
+              -o IdentitiesOnly=yes -o ConnectTimeout=20 \
+              -i "$HOME/.ssh/id_ed25519" \
+              "deploy@$SERVER_HOST" \
+              "bash /srv/deetoo/shared/deploy.sh '$DEPLOY_SHA'"

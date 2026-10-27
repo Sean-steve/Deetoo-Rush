@@ -1,0 +1,37 @@
+# Host-managed production infrastructure. Run with /srv/deetoo/infra/.env.
+# Database and Redis never bind to a public network interface.
+services:
+  postgres:
+    image: postgis/postgis:16-3.4
+    container_name: deetoo-prod-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: deetoo
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in /srv/deetoo/infra/.env}
+      POSTGRES_DB: deetoo_prod
+    ports:
+      - "127.0.0.1:5433:5432"
+    volumes:
+      - deetoo_prod_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U deetoo -d deetoo_prod"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+  redis:
+    image: redis:7-alpine
+    container_name: deetoo-prod-redis
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "127.0.0.1:6379:6379"
+    volumes:
+      - deetoo_prod_redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+volumes:
+  deetoo_prod_pgdata:
+  deetoo_prod_redisdata:
