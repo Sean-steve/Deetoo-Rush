@@ -169,6 +169,13 @@ export const otpRateLimiter = createAuthRateLimiter({
   keyPrefix: "auth:otp",
   windowMs: 60000,
   max: 5,
+  useIdentifier: true,
+});
+
+export const passwordResetConfirmRateLimiter = createAuthRateLimiter({
+  keyPrefix: "auth:password-reset-confirm",
+  windowMs: 60000,
+  max: 5,
 });
 
 export const refreshRateLimiter = createAuthRateLimiter({
