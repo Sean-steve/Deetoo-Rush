@@ -159,7 +159,7 @@ function MerchantLiveGate(){
     try{await login(identifier,password);}catch(e){setAuthError(message(e));}finally{setSigning(false);}}}>
     <label>Email or phone<input autoComplete="username" required value={identifier} onChange={e=>setIdentifier(e.target.value)}/></label>
     <label>Password<input type={showPassword?"text":"password"} autoComplete="current-password" required value={password} onChange={e=>setPassword(e.target.value)}/></label>
-    <label><input type="checkbox" checked={showPassword} onChange={e=>setShowPassword(e.target.checked)}/> Show password</label>
+    <label><input type="checkbox" checked={showPassword} onChange={e=>setShowPassword(e.target.checked)}/> Reveal characters</label>
     {authError&&<p role="alert">{authError}</p>}
     <button disabled={signing} className="mp-primary">{signing?"Signing in…":"Sign in"}</button>
    </form><button type="button" className="dt-recovery-text" style={{background:"transparent",border:0,textDecoration:"underline",color:"inherit",cursor:"pointer",marginTop:14}} onClick={()=>setRecovering(true)}>Forgot password?</button></>}</div></main>;
