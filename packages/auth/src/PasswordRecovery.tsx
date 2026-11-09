@@ -8,10 +8,17 @@ import './password-recovery.css';
 async function authPost(path: string, body: Record<string, string>): Promise<void> {
   let response: Response;
   try {
+    const csrf = document.cookie.split(';').map(value => value.trim())
+      .find(value => value.startsWith('deetoo_csrf='))?.slice('deetoo_csrf='.length);
     response = await fetch('/api/v1/auth' + path, {
       method: 'POST',
       credentials: 'same-origin',
-      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        'X-Auth-Transport': 'cookie',
+        ...(csrf ? { 'X-CSRF-Token': decodeURIComponent(csrf) } : {}),
+      },
       body: JSON.stringify(body),
     });
   } catch {
