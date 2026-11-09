@@ -4,8 +4,8 @@ Branch: feat/privacy-phase3-cookie-consent-20261109 (independent of auth PRs #76
 
 ## Implementation
 
-- A single reusable component appears in canonical Customer/public, Merchant and Admin web entry points, including standalone design previews and explicit legacy rollback shells.
-- First visit: equally available Reject optional / Customize / Accept all; optional categories default OFF.
+- A single reusable component appears in the canonical Customer/public, Merchant and Admin web entry points, including explicit legacy rollback shells. Isolated visual-preview entry points intentionally retain the approved screenshot reference geometry; cookie consent is attached to the deployable canonical portals.
+- First visit: equally available Reject optional / Customize / Accept all in a non-overlapping in-flow notice; optional categories default OFF.
 - Essential session, CSRF and checkout security remain required; never presented as an opt-out checkbox.
 - Optional purposes: functional convenience, analytics and marketing tracking. Marketing-site cookies DO NOT authorize direct-marketing SMS/email campaigns or admin broadcasts.
 - A minimal first-party consent cookie (`deetoo_privacy_consent`) stores policy version `2026-11-09`, receipt ID, recorded date, expiry, source and boolean preferences for 180 days, host-only, Path=/, SameSite=Lax, HTTPS Secure.
