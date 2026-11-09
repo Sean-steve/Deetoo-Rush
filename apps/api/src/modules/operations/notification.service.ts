@@ -200,7 +200,11 @@ export class NotificationService {
       return updated || record;
     } catch (err: any) {
       const nextRetry = record.retry_count + 1;
-      const isFinalFailure = nextRetry >= record.max_retries;
+      // A provider timeout can mean the SMS was already accepted. Never
+      // automatically resend an uncertain SMS without a verified idempotency key
+      // or delivery-status lookup; send it to manual review instead.
+      const uncertainSms = record.channel === 'SMS' && err?.code === 'SMS_PROVIDER_UNCONFIRMED';
+      const isFinalFailure = uncertainSms || nextRetry >= record.max_retries;
 
       const retryDelaySeconds = Math.min(
         300,
@@ -209,8 +213,10 @@ export class NotificationService {
       const failureUpdate: Partial<NotificationRecord> = {
         status: 'FAILED',
         failed_at: now,
-        failure_code: 'PROVIDER_ERROR',
-        failure_reason: err.message,
+        failure_code: uncertainSms ? 'SMS_ACCEPTANCE_UNKNOWN' : 'PROVIDER_ERROR',
+        failure_reason: uncertainSms
+          ? 'SMS acceptance could not be verified; manual provider review required before retry'
+          : err.message,
         retry_count: nextRetry,
         scheduled_at: isFinalFailure
           ? undefined
