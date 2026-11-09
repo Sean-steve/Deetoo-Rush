@@ -25,6 +25,19 @@ export function CookieConsentManager({policyUrl,placement='bottom-left'}:Props) 
   const dialogRef = useRef<HTMLDivElement|null>(null);
   const returnFocus = useRef<HTMLElement|null>(null);
   const gpc = globalPrivacySignal();
+  // Confirmation is temporary; never leave a toast covering app controls.
+  useEffect(()=>{
+    if(!notice)return;
+    const timer=window.setTimeout(()=>setNotice(''),4200);
+    return ()=>window.clearTimeout(timer);
+  },[notice]);
+  useEffect(()=>{
+    const refresh=()=>setSaved(readCookieReceipt());
+    window.addEventListener('pageshow',refresh);
+    window.addEventListener('focus',refresh);
+    return ()=>{window.removeEventListener('pageshow',refresh);window.removeEventListener('focus',refresh);};
+  },[]);
+
 
   useEffect(()=>{
     const open=()=> {
