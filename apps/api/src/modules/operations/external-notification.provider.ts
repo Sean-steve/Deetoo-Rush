@@ -1,4 +1,5 @@
 import { createSign } from 'node:crypto';
+import { sendSmsMessage } from '../auth/sms-provider';
 import { getDbPool } from '../../db/client';
 import { config } from '@deetoo/config';
 import { deviceRegistrationRepository } from './device-registration.repository';
@@ -137,32 +138,10 @@ class ExternalNotificationProvider {
   }
 
   async sendSms(userId: string, message: string): Promise<string> {
-    const apiKey = process.env.AFRICASTALKING_API_KEY;
-    const username = process.env.AFRICASTALKING_USERNAME;
-    const sender = process.env.AUTH_SMS_FROM;
-    if (!apiKey || !username) throw new Error("Africa's Talking is not configured");
-
     const contact = await this.resolveUserContact(userId);
-    if (!contact.phone) throw new Error('Recipient has no verified phone number');
-
-    const body = new URLSearchParams({
-      username,
-      to: contact.phone,
-      message,
-      ...(sender ? { from: sender } : {}),
-    });
-    const response = await fetch('https://api.africastalking.com/version1/messaging', {
-      method: 'POST',
-      headers: {
-        apiKey,
-        accept: 'application/json',
-        'content-type': 'application/x-www-form-urlencoded',
-      },
-      body,
-    });
-    const payload = (await response.json().catch(() => ({}))) as any;
-    if (!response.ok) throw new Error(`SMS provider failed with HTTP ${response.status}`);
-    return payload?.SMSMessageData?.Recipients?.[0]?.messageId || `at:${Date.now()}`;
+    if (!contact.phone) throw new Error('Recipient has no registered phone number');
+    const accepted = await sendSmsMessage(contact.phone, message);
+    return accepted.reference;
   }
 
   async sendEmail(userId: string, subject: string, text: string): Promise<string> {
