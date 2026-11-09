@@ -2316,6 +2316,84 @@ paths:
           $ref: '#/components/responses/Unauthorized'
       operationId: auth_post_auth_password_reset
       security: []
+  /auth/privacy-consent:
+    get:
+      summary: Retrieve the current user's last twenty website cookie-consent receipts
+      description: Authentication required; no access to another account's preferences.
+      tags:
+      - Auth
+      operationId: auth_get_cookie_privacy_consent
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          description: Versioned cookie consent receipt history
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseGeneric'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '503':
+          description: Durable consent storage unavailable
+    post:
+      summary: Record a signed-in user's cookie preference choice
+      description: Append-only, self-service consent history. This does not authorize marketing messages or disable essential cookies.
+      tags:
+      - Auth
+      operationId: auth_record_cookie_privacy_consent
+      security:
+      - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [receiptId,version,recordedAt,expiresAt,source,preferences]
+              properties:
+                receiptId:
+                  type: string
+                  format: uuid
+                version:
+                  type: string
+                  enum: ['2026-11-09']
+                recordedAt:
+                  type: string
+                  format: date-time
+                expiresAt:
+                  type: string
+                  format: date-time
+                source:
+                  type: string
+                  enum: [banner, customize, settings]
+                preferences:
+                  type: object
+                  additionalProperties: false
+                  required: [functional,analytics,marketing]
+                  properties:
+                    functional:
+                      type: boolean
+                    analytics:
+                      type: boolean
+                    marketing:
+                      type: boolean
+      responses:
+        '201':
+          description: Receipt saved or idempotently repeated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseGeneric'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '409':
+          description: Receipt collision or modification attempt
+        '503':
+          description: Durable consent storage unavailable
   /auth/verify/otp-request:
     post:
       summary: STUB - POST /auth/verify/otp-request (registered, not yet individually specified)
