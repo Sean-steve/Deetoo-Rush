@@ -66,7 +66,7 @@ export async function requestDurableIdentity(kind: IdentityRequest, rawIdentifie
     if (kind !== 'RESET') {
       const latest = await authRepository.getLatestVerificationToken(user.id, type);
       // Server-side resend cooldown protects provider quotas across multiple API instances.
-      if (latest && !latest.verified_at && new Date(latest.expires_at).getTime() > Date.now()
+      if (latest && latest.attempts < 5 && !latest.verified_at && new Date(latest.expires_at).getTime() > Date.now()
         && Date.now() - new Date(latest.created_at).getTime() < 60000) return null;
     }
     const id = randomUUID();
