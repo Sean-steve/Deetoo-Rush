@@ -1,7 +1,7 @@
 import { randomInt, randomUUID } from 'node:crypto';
 import { generateSecureToken, hashToken } from '@deetoo/auth';
 import { UserStatus } from '@deetoo/types';
-import { normalizeEmail } from '@deetoo/validation';
+import { normalizeEmail, normalizePhoneE164 } from '@deetoo/validation';
 import { AppError } from '../../middleware/error-handler';
 import { outsideTransaction, withTransaction } from '../../db/transaction';
 import { authRepository } from './auth.repository';
@@ -55,7 +55,7 @@ type IdentityRequest = 'RESET' | 'OTP' | 'EMAIL_OTP';
 
 export async function requestDurableIdentity(kind: IdentityRequest, rawIdentifier: string, requestId?: string) {
   const channel: 'EMAIL' | 'SMS' = kind === 'EMAIL_OTP' || (kind === 'RESET' && rawIdentifier.includes('@')) ? 'EMAIL' : 'SMS';
-  const identifier = channel === 'EMAIL' ? normalizeEmail(rawIdentifier) : rawIdentifier.trim();
+  const identifier = channel === 'EMAIL' ? normalizeEmail(rawIdentifier) : normalizePhoneE164(rawIdentifier);
   identityDeliveryConfig(channel); // Same configuration response for unknown accounts.
   const delivery = await outsideTransaction(() => withTransaction(async () => {
     const user = await authRepository.findUserByIdentifier(identifier);
