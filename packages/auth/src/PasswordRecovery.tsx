@@ -33,9 +33,10 @@ async function authPost(path: string, body: Record<string, string>): Promise<voi
   }
 }
 
-export function PasswordRecovery({ initialIdentifier = '', onBack }: {
+export function PasswordRecovery({ initialIdentifier = '', onBack, onComplete }: {
   initialIdentifier?: string;
   onBack: () => void;
+  onComplete?: () => void;
 }) {
   const [step, setStep] = useState<'request' | 'reset' | 'complete'>('request');
   const [identifier, setIdentifier] = useState(initialIdentifier);
@@ -80,6 +81,7 @@ export function PasswordRecovery({ initialIdentifier = '', onBack }: {
       setPassword('');
       setConfirmation('');
       setStep('complete');
+      onComplete?.();
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Unable to reset the password.');
     } finally {
