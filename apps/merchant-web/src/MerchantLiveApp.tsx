@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
+import {PasswordRecovery} from "../../../packages/auth/src/PasswordRecovery";
 import { AuthProvider, useAuth } from "../../../packages/auth/src/react";
 import type { DeetooApiClient } from "../../../packages/api-client/src";
 import MerchantPrototype from "./MerchantPrototype";
@@ -49,6 +50,7 @@ export function MerchantLiveApp(){
 function MerchantLiveGate(){
  const {apiClient,user,isAuthenticated,isLoading,login,logout}=useAuth();
  const [identifier,setIdentifier]=useState(""),[password,setPassword]=useState(""),
+       [showPassword,setShowPassword]=useState(false),[recovering,setRecovering]=useState(false),
        [authError,setAuthError]=useState(""),[signing,setSigning]=useState(false);
  const [branches,setBranches]=useState<any[]>([]),[branchId,setBranchId]=useState(""),
        [branchBusy,setBranchBusy]=useState(true),[branchError,setBranchError]=useState<MerchantBranchError|null>(null),
@@ -153,13 +155,14 @@ function MerchantLiveGate(){
  if(!isAuthenticated)return <main className="mp-live-gate"><div className="mp-live-auth">
    <div className="mp-live-brand">▰ DeeToo <small>Merchant</small></div>
    <h1>Sign in to your restaurant</h1><p>Use your authorized merchant account to manage your kitchen and business.</p>
-   <form onSubmit={async e=>{e.preventDefault();setAuthError("");setSigning(true);
+   {recovering?<PasswordRecovery initialIdentifier={identifier} onBack={()=>{setRecovering(false);setAuthError("");}}/>:<><form onSubmit={async e=>{e.preventDefault();setAuthError("");setSigning(true);
     try{await login(identifier,password);}catch(e){setAuthError(message(e));}finally{setSigning(false);}}}>
     <label>Email or phone<input autoComplete="username" required value={identifier} onChange={e=>setIdentifier(e.target.value)}/></label>
-    <label>Password<input type="password" autoComplete="current-password" required value={password} onChange={e=>setPassword(e.target.value)}/></label>
+    <label>Password<input type={showPassword?"text":"password"} autoComplete="current-password" required value={password} onChange={e=>setPassword(e.target.value)}/></label>
+    <label><input type="checkbox" checked={showPassword} onChange={e=>setShowPassword(e.target.checked)}/> Reveal characters</label>
     {authError&&<p role="alert">{authError}</p>}
     <button disabled={signing} className="mp-primary">{signing?"Signing in…":"Sign in"}</button>
-   </form></div></main>;
+   </form><button type="button" className="dt-recovery-text" style={{background:"transparent",border:0,textDecoration:"underline",color:"inherit",cursor:"pointer",marginTop:14}} onClick={()=>setRecovering(true)}>Forgot password?</button></>}</div></main>;
  if(!authorized)return <main className="mp-live-gate"><h1>Merchant access required</h1>
    <p>Your account does not have an authorized Merchant role.</p><button onClick={()=>void logout()}>Sign out</button></main>;
  if(branchBusy)return <main className="mp-live-gate" role="status">Loading authorized branches…</main>;

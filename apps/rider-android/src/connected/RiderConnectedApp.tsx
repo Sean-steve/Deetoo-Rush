@@ -65,6 +65,7 @@ export function RiderConnectedApp() {
   const [identifier,setIdentifier]=useState('');
   const [password,setPassword]=useState('');
   const [showPassword,setShowPassword]=useState(false);
+  const [showRecoveryPassword,setShowRecoveryPassword]=useState(false);
   const [form,setForm]=useState<Record<string,string>>({});
   const [status,setStatus]=useState<any>(null);
   const [offer,setOffer]=useState<any>(null);
@@ -181,7 +182,7 @@ export function RiderConnectedApp() {
   const register=()=>run(async()=>{
     if(!acceptTerms)throw new Error('Confirm your Rider application details before registering.');
     if(!validKenyanPhone(form.phone||'')||!validKenyanPhone(form.emergency||''))throw new Error('A valid Kenyan Rider and emergency contact phone are required.');
-    if((form.password||'').length<8)throw new Error('Use a stronger password of at least eight characters.');
+    if((form.password||'').length<8||(form.password||'').length>128)throw new Error('Use a password between 8 and 128 characters.');
     const response=await fetch(origin+'/api/v1/auth/register/rider',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
       name:form.name,email:form.email||undefined,phone_e164:normalPhone(form.phone),
       password:form.password,address:form.address,emergency_contact_name:form.emergencyName,
@@ -189,7 +190,7 @@ export function RiderConnectedApp() {
     })});
     const value=await response.json();
     if(!response.ok)throw new Error(value?.error?.message||'Rider registration failed.');
-    setIdentifier(normalPhone(form.phone));setPassword(form.password);setNotice('Rider application created. Sign in to continue verification.');
+    setIdentifier(normalPhone(form.phone));setPassword('');setField('password','');setNotice('Rider application created. Sign in to continue verification.');
     setView(1);
   },undefined,false);
   const availability=()=>run(async()=>{
@@ -278,10 +279,18 @@ export function RiderConnectedApp() {
           if(!r.ok)throw new Error('Recovery request could not be completed.');
           setField('recoverStep','2');
         },'Check your registered recovery channel.',false)} /></>:
-        <>{field('resetToken','Recovery token')}{field('resetPassword','New password')}
+        <>{field('resetToken','Recovery token')}
+        <Field label="New password" value={form.resetPassword||''} onChangeText={v=>setField('resetPassword',v)}
+          secureTextEntry={!showRecoveryPassword} autoCapitalize="none" placeholder="At least 8 characters"/>
+        <Field label="Confirm new password" value={form.resetConfirm||''} onChangeText={v=>setField('resetConfirm',v)}
+          secureTextEntry={!showRecoveryPassword} autoCapitalize="none" placeholder="Repeat new password"/>
+        <Button outline label={showRecoveryPassword?'Hide passwords':'Show passwords'} onPress={()=>setShowRecoveryPassword(x=>!x)} />
         <Button label="Reset password" onPress={()=>void run(async()=>{
-          const r=await fetch(origin+'/api/v1/auth/password/reset',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:form.resetToken,new_password:form.resetPassword})});
-          if(!r.ok)throw new Error('Reset token invalid or expired.');setField('recoverStep','');
+          if((form.resetPassword||'').length<8||(form.resetPassword||'').length>128)throw new Error('Use a password between 8 and 128 characters.');
+           if(form.resetPassword!==form.resetConfirm)throw new Error('The new passwords do not match.');
+           if((form.resetToken||'').trim().length<10)throw new Error('Enter the recovery token from your message.');
+           const r=await fetch(origin+'/api/v1/auth/password/reset',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:form.resetToken,new_password:form.resetPassword})});
+          if(!r.ok)throw new Error('Reset token invalid or expired.');setForm(previous=>({...previous,recoverStep:'',resetToken:'',resetPassword:'',resetConfirm:''}));setPassword('');
         },'Password updated. Sign in.',false)} /></>}
     </View></Panel>:null}
   </Page>;
@@ -344,6 +353,20 @@ export function RiderConnectedApp() {
         {field('phoneOtp','Enter SMS verification code','','number-pad')}
         <Button label="Confirm phone code" disabled={!form.phoneOtp||busy} onPress={()=>void run(()=>api.confirmPhoneVerification(user?.phone_e164||'',form.phoneOtp||''),'Phone verification sent to DeeToo. Refresh status.')}/>
       </Panel>
+      {user?.email&&<Panel title="Verify your email address">
+        <Text style={S.sub}>Email verification is optional for Rider onboarding but helps secure account recovery.</Text>
+        <Row title="Email" value={user.email}/>
+        <Button outline label="Send email verification code" disabled={busy} onPress={()=>void run(async()=>{
+          const response=await fetch(origin+'/api/v1/auth/verify/email-otp-request',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:user.email})});
+          if(!response.ok)throw new Error('Unable to request email verification. Check your provider settings or connection.');
+        },'If eligible, a code was sent to your registered email.',false)}/>
+        {field('emailOtp','Six-digit email verification code','','number-pad')}
+        <Button label="Verify email" disabled={busy||!/^\d{6}$/.test(form.emailOtp||'')} onPress={()=>void run(async()=>{
+          const response=await fetch(origin+'/api/v1/auth/verify/email-otp-confirm',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:user.email,code:form.emailOtp||''})});
+          if(!response.ok)throw new Error('Invalid or expired email verification code.');
+          setField('emailOtp','');
+        },'Email verified successfully.',false)}/>
+      </Panel>}
       <Button label="Submit for administrative review" onPress={()=>void run(()=>api.submitOnboarding(),'Application submitted for review.')} disabled={busy}/>
       <Button outline label="Documents" onPress={()=>go(3)}/><Button outline label="Equipment & Vehicle" onPress={()=>go(4)}/>
       <Button outline label="Back to Home" onPress={()=>go(6)}/>

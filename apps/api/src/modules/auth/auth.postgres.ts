@@ -38,7 +38,7 @@ export const postgresAuth = {
   listUserSessions: (id:string)=>rows('SELECT * FROM sessions WHERE user_id=$1 ORDER BY created_at DESC',[id]),
   createPasswordResetToken: (data:any)=>insert('password_reset_tokens',data,['id','user_id','token_hash','expires_at']),
   findPasswordResetToken: (hash:string)=>one('SELECT * FROM password_reset_tokens WHERE token_hash=$1 FOR UPDATE',[hash]),
-  markPasswordResetTokenUsed: async(id:string)=>{await rows('UPDATE password_reset_tokens SET used_at=now() WHERE id=$1 AND used_at IS NULL',[id]);},
+  markPasswordResetTokenUsed: async(id:string)=>{await rows('UPDATE password_reset_tokens SET used_at=now() WHERE user_id=(SELECT user_id FROM password_reset_tokens WHERE id=$1) AND used_at IS NULL',[id]);},
   createVerificationToken: (data:any)=>insert('verification_tokens',data,['id','user_id','type','token_hash','expires_at']),
   getLatestVerificationToken: (id:string,type:string)=>one('SELECT * FROM verification_tokens WHERE user_id=$1 AND type=$2 ORDER BY created_at DESC LIMIT 1 FOR UPDATE',[id,type]),
   incrementVerificationAttempt: async(id:string)=>{

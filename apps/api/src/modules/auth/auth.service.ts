@@ -215,7 +215,8 @@ export class AuthService {
     ipAddress?: string;
     requestId?: string;
   }): Promise<LoginResponse & { refreshToken: string }> {
-    const identifier = params.identifier.trim();
+    const rawIdentifier = params.identifier.trim();
+    const identifier = rawIdentifier.includes('@') ? normalizeEmail(rawIdentifier) : normalizePhoneE164(rawIdentifier);
     const user = await authRepository.findUserByIdentifier(identifier);
 
     // Generic error to prevent identity enumeration

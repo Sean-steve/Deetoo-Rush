@@ -6,6 +6,7 @@ import {Badge,Button,Panel} from "../../../../packages/customer-ui/src/index";
 import type {CustomerGateway,CustomerDeviceSession} from "./customer-gateway";
 import {backendError,useBackendResource} from "./resource";
 import {ResourceView,StatusPanel} from "./LiveUtilities";
+import {PasswordRecovery} from "../../../../packages/auth/src/PasswordRecovery";
 
 type Destination="profile"|"security"|"notifications";
 type Props={screen:Destination;gateway:CustomerGateway;authenticated:boolean;requestSignIn:()=>void;onNavigate:(p:string)=>void;logout:()=>Promise<unknown>;userId:string;onAddressesChanged:()=>void};
@@ -112,21 +113,19 @@ function Security({gateway,logout}:{gateway:CustomerGateway;logout:()=>Promise<u
  const sessions=useBackendResource(()=>gateway.auth.sessions(),true,[]);
  const profile=useBackendResource(()=>gateway.account.profile(),true,[]);
  const [target,setTarget]=useState<CustomerDeviceSession|"all"|null>(null),[busy,setBusy]=useState(false),[error,setError]=useState(""),[notice,setNotice]=useState("");
- const [resetBusy,setResetBusy]=useState(false);
+ const [showRecovery,setShowRecovery]=useState(false);
  const active=(sessions.state.status==="ready"?sessions.state.data:[]).filter(s=>s.is_active);
  const revoke=async()=>{if(!target||busy)return;setBusy(true);setError("");try{
    if(target==="all"){await gateway.auth.revokeAllSessions();setTarget(null);await logout();return;}
    await gateway.auth.revokeSession(target.id);sessions.refresh();setTarget(null);setNotice("Session revoked by DeeToo.");
    if(target.current){await logout();return;}
   }catch(e){setError(backendError(e).message);}finally{setBusy(false);}};
- const forgot=async()=>{const email=profile.state.status==="ready"?profile.state.data.email:"";
-  if(!email){setError("A verified email is required to request a password reset.");return;}
-  setResetBusy(true);setError("");try{await gateway.auth.requestPasswordReset(email);setNotice("If this email is eligible, password reset instructions will be sent.");}
-  catch(e){setError(backendError(e).message);}finally{setResetBusy(false);}};
  return <section className="dt-security-page dt-screen-enter dt-live-account"><header className="dt-security-banner dt-parity-security-banner"><div><h1>Security & Devices</h1><p>Protect your DeeToo account and manage authenticated sessions.</p><Badge variant="mint"><ShieldCheck size={14}/> Secure account</Badge></div><div className="dt-security-banner-aside"><ShieldCheck size={42}/><div><h2>Your security matters</h2><p>Verified security information only.</p></div></div></header>
   {notice&&<p className="dt-live-success" role="status"><CheckCircle2 size={17}/>{notice}</p>}{inlineError(error)}
   <div className="dt-live-security-grid"><Panel className="dt-live-account-card"><div className="dt-account-section-head"><span className="dt-account-icon"><KeyRound/></span><div><h2>Password & recovery</h2><p>Reset your password using DeeToo's verified recovery process.</p></div></div>
-    <Button variant="outline" disabled={resetBusy} onClick={()=>void forgot()}>{resetBusy?"Requesting…":"Send password reset instructions"}</Button>
+    <Button variant="outline" onClick={()=>setShowRecovery(value=>!value)}>{showRecovery?"Close password recovery":"Send password reset instructions"}</Button>
+     {showRecovery&&<PasswordRecovery initialIdentifier={profile.state.status==="ready"?profile.state.data.email||"":""}
+       onBack={()=>setShowRecovery(false)} onComplete={()=>{void logout();}}/>}
     <p className="dt-live-account-note">We never display, store or ask for your current password here. Verification occurs through the dedicated recovery service.</p>
     <div className="dt-account-section-head"><span className="dt-account-icon"><LockKeyhole/></span><div><h2>Two-factor authentication</h2><p>Enrollment and verification require a separate secure step-up experience.</p></div></div>
     <p className="dt-live-account-note">MFA enrollment status is not reported by the authenticated sessions endpoint. This screen does not claim that MFA is enabled.</p></Panel>

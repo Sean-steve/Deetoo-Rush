@@ -2352,6 +2352,75 @@ paths:
           $ref: '#/components/responses/Unauthorized'
       operationId: auth_post_auth_verify_otp-confirm
       security: []
+  /auth/verify/email-otp-request:
+    post:
+      summary: Request a six-digit email contact verification code
+      tags:
+      - Auth
+      operationId: auth_request_email_verification
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - email
+              properties:
+                email:
+                  type: string
+                  format: email
+      responses:
+        '200':
+          description: Generic acknowledgment to prevent account enumeration
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseGeneric'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '429':
+          description: Too many requests
+        '503':
+          description: Verification or rate limiting unavailable
+  /auth/verify/email-otp-confirm:
+    post:
+      summary: Confirm email ownership with a six-digit one-time code
+      tags:
+      - Auth
+      operationId: auth_confirm_email_verification
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - email
+              - code
+              properties:
+                email:
+                  type: string
+                  format: email
+                code:
+                  type: string
+                  pattern: '^[0-9]{6}$'
+      responses:
+        '200':
+          description: Verification result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseGeneric'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '429':
+          description: Too many attempts
+        '503':
+          description: Rate limiting unavailable
+
   /auth/mfa/enroll:
     post:
       summary: STUB - POST /auth/mfa/enroll (registered, not yet individually specified)
