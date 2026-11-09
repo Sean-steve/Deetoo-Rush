@@ -35,3 +35,5 @@
 .dp-cookie-saved button{margin-left:10px;color:inherit;border:0;background:transparent;font-size:1rem}
 @media(max-width:600px){.dp-cookie-banner{left:8px;bottom:8px;width:calc(100vw - 16px);padding:15px}.dp-cookie-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}.dp-cookie-actions .dp-cookie-primary{grid-column:1/-1}.dp-cookie-dialog{padding:17px}.dp-cookie-backdrop{padding:8px;align-items:flex-end}.dp-cookie-dialog-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}.dp-cookie-dialog-actions .dp-cookie-primary{grid-column:1/-1}}
 @media(prefers-reduced-motion:reduce){.dp-privacy-root *{animation:none!important;transition:none!important}}
+.public-footer .public-cookie-choice{appearance:none;border:0;background:transparent;color:inherit;cursor:pointer;text-align:left;font:inherit;font-size:inherit;padding:0;display:block;text-decoration:none}
+.public-footer .public-cookie-choice:hover,.public-footer .public-cookie-choice:focus-visible{text-decoration:underline}
