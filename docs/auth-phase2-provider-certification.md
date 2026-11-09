@@ -17,6 +17,7 @@ This is a portal/dashboard link, not a verified SMS send API contract. It could 
 - DEETOO_SMS_PROVIDER=partner selects the client gateway but blocks delivery until SMS_PARTNER_CONTRACT_VERIFIED=true and all secret/contract fields are configured.
 - Security OTP, password recovery and operational SMS all call the same provider.
 - No silent fallback to a different gateway on network timeout: the original message may already have been sent.
+- Operational SMS with uncertain provider acceptance is quarantined for manual review rather than automatically resent by the notification worker.
 - Partner transport requires public HTTPS POST, either JSON or form body, with vendor-verified field names. No secrets in URL, redirect or query string.
 - HTTP 2xx alone is insufficient. Response must match the documented acceptance field/value AND a nonempty message reference.
 - A provider ACCEPTED status is not proof of handset receipt.
