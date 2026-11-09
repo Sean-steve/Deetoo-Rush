@@ -17,6 +17,7 @@ import '../../customer-web-next/src/account.css';
 import '../../customer-web-next/src/support.css';
 import '../../customer-web-next/src/integration/phase2-parity.css';
 import { installTheme } from '../../../packages/ui/src/theme';
+import { CookieConsentManager } from '../../../packages/privacy/src/CookieConsentManager';
 
 installTheme(document.documentElement);
 
@@ -26,4 +27,4 @@ function CustomerWebRoot() {
   return isCustomer ? <ConnectedCustomerShopping /> : <PublicSite path={path} />;
 }
 
-createRoot(document.getElementById('root')!).render(<StrictMode><CustomerWebRoot /></StrictMode>);
+createRoot(document.getElementById('root')!).render(<StrictMode><CookieConsentManager policyUrl="/cookies" placement="inline" /><CustomerWebRoot /></StrictMode>);

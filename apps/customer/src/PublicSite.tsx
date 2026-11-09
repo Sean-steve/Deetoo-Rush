@@ -5,6 +5,7 @@ import {
   WalletCards, Zap
 } from "lucide-react";
 import { DeetooLogo } from "../../../packages/ui/src/index";
+import { openCookiePreferences, COOKIE_POLICY_VERSION, COOKIE_RECEIPT_DAYS } from "../../../packages/privacy/src/consent";
 
 function portalUrl(envKey:"VITE_MERCHANT_PORTAL_URL"|"VITE_ADMIN_PORTAL_URL"|"VITE_RIDER_PORTAL_URL",localPort?:number,fallback="/"){
   const configured=(import.meta as any).env?.[envKey];
@@ -38,7 +39,8 @@ export function PublicSite({path}:{path:string}){
   if(path==="/business") return <BusinessPage/>;
   if(path==="/help") return <InfoPage title="How can we help?" eyebrow="Help centre" body="Find help for orders, payments, restaurant accounts, rider operations and account access. Signed-in users can open Support inside their DeeToo workspace for account-specific assistance."/>;
   if(path==="/contact") return <InfoPage title="Talk to DeeToo." eyebrow="Contact" body="For order help use your DeeToo account support area. Restaurants can use the Merchant support workspace, while riders should use the support tools in the Rider app. Business and partnership enquiries can be directed through your DeeToo commercial contact."/>;
-  if(path==="/privacy") return <InfoPage title="Privacy at DeeToo." eyebrow="Privacy" body="DeeToo uses the information required to operate accounts, fulfil orders, process payments, support riders and merchants, prevent abuse and meet applicable legal obligations. Detailed production policy text should remain governed by the approved legal document."/>;
+  if(path==="/privacy") return <InfoPage title="Privacy at DeeToo." eyebrow="Privacy" body="DeeToo processes the data needed to administer accounts, deliver orders, collect payments, operate support and prevent fraud. Optional web analytics and marketing tracking are off until consent. See the cookie notice for controls. The complete production privacy notice requires legal review before launch."/>;
+  if(path==="/cookies") return <CookieNotice/>;
   if(path==="/terms") return <InfoPage title="Using DeeToo." eyebrow="Terms" body="Orders, merchant services and rider services remain subject to the applicable DeeToo terms, payment conditions, refund rules and marketplace policies. This interface does not replace the approved legal terms."/>;
   if(path==="/restaurants") return <RestaurantEntry/>;
   return <Landing/>;
@@ -61,7 +63,7 @@ function Shell({children}:{children:React.ReactNode}){
       <div><DeetooLogo className="h-9 w-auto"/><p>Food, people and places — moving better together.</p></div>
       <div><strong>Discover</strong><a href="/restaurants">Restaurants</a><a href="/how-it-works">How it works</a><a href="/help">Help centre</a></div>
       <div><strong>Earn with DeeToo</strong><a href="/partner">Restaurant partners</a><a href="/riders">Riders</a><a href="/business">Business</a></div>
-      <div><strong>Company</strong><a href="/about">About</a><a href="/contact">Contact</a><a href="/privacy">Privacy</a><a href="/terms">Terms</a></div>
+      <div><strong>Company</strong><a href="/about">About</a><a href="/contact">Contact</a><a href="/privacy">Privacy</a><a href="/cookies">Cookies</a><button type="button" onClick={openCookiePreferences} className="public-cookie-choice">Cookie settings</button><a href="/terms">Terms</a></div>
     </footer>
   </div>;
 }
@@ -155,4 +157,24 @@ function BusinessPage(){
 
 function InfoPage({eyebrow,title,body}:{eyebrow:string;title:string;body:string}){
  return <Shell><main className="content-page narrow"><span className="landing-kicker">{eyebrow}</span><h1>{title}</h1><p className="lead">{body}</p><a href="/" className="text-link">Back to DeeToo <ArrowRight size={15}/></a></main></Shell>;
+}
+
+
+function CookieNotice(){
+  return <Shell><main className="content-page narrow" id="cookie-notice">
+    <span className="landing-kicker">Privacy controls · Version {COOKIE_POLICY_VERSION}</span>
+    <h1>Cookies and your choices.</h1>
+    <p className="lead">DeeToo uses first-party essential cookies for secure sign-in, protection against forged requests and account operations. A separate first-party cookie records whether you accept optional features for up to {COOKIE_RECEIPT_DAYS} days.</p>
+    <h2>What is always on?</h2>
+    <p>Authentication, security, anti-forgery, cart and checkout essentials are required to provide the service. These cannot be turned off within DeeToo without disrupting account and order functions.</p>
+    <h2>What you can choose</h2>
+    <p>Functional preferences (nonessential convenience), analytics (understanding aggregate website usage) and marketing (optional personalized advertising-related tracking) are OFF until you consent. Rejecting them does not prevent ordering or receiving necessary transactional updates.</p>
+    <h2>Change your mind</h2>
+    <p>Select “Cookie settings” here or “Privacy choices” on any DeeToo web page to withdraw or update your optional selections. A newer cookie policy requires a new choice. This choice is saved in this browser; other devices or domains may prompt you separately.</p>
+    <h2>Your privacy rights</h2>
+    <p>You can ask DeeToo about the handling of your personal data and exercise available rights under applicable Kenya data-protection law. Cookie permissions are separate from email/SMS campaign subscriptions and do not change those settings.</p>
+    <p>DeeToo's full privacy notice and production cookie inventory must be reviewed before public launch. This page explains the current technical cookie controls rather than replacing that legal review.</p>
+    <button type="button" className="public-cta" onClick={openCookiePreferences}>Manage cookie preferences</button>
+    <p><a href="/privacy" className="text-link">Privacy overview</a></p>
+  </main></Shell>;
 }

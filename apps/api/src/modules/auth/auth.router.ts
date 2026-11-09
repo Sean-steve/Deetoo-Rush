@@ -1,4 +1,5 @@
 import { enrollMfa, verifyMfa } from './mfa';
+import {recordUserCookieConsent,listUserCookieConsentHistory} from './privacy-consent.service';
 import { requestDurableIdentity, confirmDurableEmailOtp } from './identity-delivery';
 /**
  * DEETOO - Authentication Endpoints Router
@@ -419,4 +420,20 @@ authRouter.post('/mfa/enroll', requireAuth, mfaRateLimiter, async (req: Authenti
 });
 authRouter.post('/mfa/verify', requireAuth, mfaRateLimiter, async (req: AuthenticatedRequest, res, next) => {
   try { res.json(await verifyMfa(req.user!.id,req.session!.session_id,req.body.code)); } catch(error) { next(error); }
+});
+
+/** Self-service cookie privacy receipts; authenticated users only.
+ * Versioned history never grants SMS marketing permissions or affects essential auth.
+ * Mounted inside /auth to avoid requiring privileged Admin MFA for a user's own opt-out. */
+authRouter.get('/privacy-consent', requireAuth, async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  try {
+    const data=await listUserCookieConsentHistory(req.user!.id);
+    res.json({data,requestId:(req as any).requestId});
+  } catch(error) {next(error);}
+});
+authRouter.post('/privacy-consent', requireAuth, async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  try {
+    const data=await recordUserCookieConsent(req.user!.id,req.body);
+    res.status(201).json({data,requestId:(req as any).requestId});
+  } catch(error) {next(error);}
 });
