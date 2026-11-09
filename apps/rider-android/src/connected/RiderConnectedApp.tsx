@@ -190,7 +190,7 @@ export function RiderConnectedApp() {
     })});
     const value=await response.json();
     if(!response.ok)throw new Error(value?.error?.message||'Rider registration failed.');
-    setIdentifier(normalPhone(form.phone));setPassword(form.password);setNotice('Rider application created. Sign in to continue verification.');
+    setIdentifier(normalPhone(form.phone));setPassword('');setField('password','');setNotice('Rider application created. Sign in to continue verification.');
     setView(1);
   },undefined,false);
   const availability=()=>run(async()=>{
@@ -353,6 +353,20 @@ export function RiderConnectedApp() {
         {field('phoneOtp','Enter SMS verification code','','number-pad')}
         <Button label="Confirm phone code" disabled={!form.phoneOtp||busy} onPress={()=>void run(()=>api.confirmPhoneVerification(user?.phone_e164||'',form.phoneOtp||''),'Phone verification sent to DeeToo. Refresh status.')}/>
       </Panel>
+      {user?.email&&<Panel title="Verify your email address">
+        <Text style={S.sub}>Email verification is optional for Rider onboarding but helps secure account recovery.</Text>
+        <Row title="Email" value={user.email}/>
+        <Button outline label="Send email verification code" disabled={busy} onPress={()=>void run(async()=>{
+          const response=await fetch(origin+'/api/v1/auth/verify/email-otp-request',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:user.email})});
+          if(!response.ok)throw new Error('Unable to request email verification. Check your provider settings or connection.');
+        },'If eligible, a code was sent to your registered email.',false)}/>
+        {field('emailOtp','Six-digit email verification code','','number-pad')}
+        <Button label="Verify email" disabled={busy||!/^\d{6}$/.test(form.emailOtp||'')} onPress={()=>void run(async()=>{
+          const response=await fetch(origin+'/api/v1/auth/verify/email-otp-confirm',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:user.email,code:form.emailOtp||''})});
+          if(!response.ok)throw new Error('Invalid or expired email verification code.');
+          setField('emailOtp','');
+        },'Email verified successfully.',false)}/>
+      </Panel>}
       <Button label="Submit for administrative review" onPress={()=>void run(()=>api.submitOnboarding(),'Application submitted for review.')} disabled={busy}/>
       <Button outline label="Documents" onPress={()=>go(3)}/><Button outline label="Equipment & Vehicle" onPress={()=>go(4)}/>
       <Button outline label="Back to Home" onPress={()=>go(6)}/>
