@@ -23,7 +23,7 @@ test('password reset rejects weak or excessive passwords', () => {
 });
 
 test('authentication router exposes email OTP and both password recovery routes', () => {
-  const routes = authRouter.stack.flatMap((layer: any) =>
+  const routes = (authRouter as any).stack.flatMap((layer: any) =>
     layer.route ? Object.keys(layer.route.methods).map(method => method.toUpperCase() + ' ' + layer.route.path) : []);
   for (const route of [
     'POST /password/forgot','POST /password/reset',
