@@ -13,6 +13,8 @@ function setting(name: string): string {
     throw new AppError(503, 'BLOCKED_BY_CONFIGURATION', name + ' is required for identity verification');
   return value;
 }
+export function identityDeliveryConfig(channel: 'EMAIL'): {channel:'EMAIL';key:string;sender:string};
+export function identityDeliveryConfig(channel: 'SMS'): {channel:'SMS'};
 export function identityDeliveryConfig(channel: 'EMAIL' | 'SMS') {
   if (channel === 'SMS') {
     assertSmsConfigured();
