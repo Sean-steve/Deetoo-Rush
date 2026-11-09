@@ -27,4 +27,4 @@ function CustomerWebRoot() {
   return isCustomer ? <ConnectedCustomerShopping /> : <PublicSite path={path} />;
 }
 
-createRoot(document.getElementById('root')!).render(<StrictMode><CustomerWebRoot /><CookieConsentManager policyUrl="/cookies" /></StrictMode>);
+createRoot(document.getElementById('root')!).render(<StrictMode><CookieConsentManager policyUrl="/cookies" placement="inline" /><CustomerWebRoot /></StrictMode>);
