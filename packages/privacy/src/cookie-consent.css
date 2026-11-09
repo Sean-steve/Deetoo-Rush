@@ -38,22 +38,25 @@
 .public-footer .public-cookie-choice{appearance:none;border:0;background:transparent;color:inherit;cursor:pointer;text-align:left;font:inherit;font-size:inherit;padding:0;display:block;text-decoration:none}
 .public-footer .public-cookie-choice:hover,.public-footer .public-cookie-choice:focus-visible{text-decoration:underline}
 
-/* Merchant's busy operational surfaces have critical actions in the lower-left
- * and bottom edge. Keep the first-visit privacy panel visible near the top-right
- * instead of covering those buttons; no invisible pointer-catching overlay. */
-.dp-cookie-banner-side{left:auto;bottom:auto;top:78px;right:14px;width:min(385px,calc(100vw - 28px))}
-@media(max-width:600px){
- .dp-cookie-banner-side{left:auto;bottom:auto;top:75px;right:8px;width:min(290px,calc(100vw - 16px));max-height:52vh;overflow-y:auto}
- .dp-cookie-banner-side .dp-cookie-actions{grid-template-columns:repeat(2,minmax(0,1fr))}
+
+/* Merchant notice is in the document flow BELOW the fixed toolbar area.
+ * Never intercepts order controls, branch editor buttons or mobile navigation. */
+.dp-cookie-banner-inline{
+  position:relative;z-index:1;top:auto;right:auto;bottom:auto;left:auto;
+  width:100%;max-width:none;margin:65px 0 0;border-radius:0;
+  padding:12px 20px;box-shadow:0 2px 13px #17282316;
+  display:flex;justify-content:space-between;align-items:center;gap:15px;flex-wrap:wrap;
 }
-
-
-/* Compact Merchant banner on narrow screens: never cover mobile sidebar
- * navigation or sign-in submit controls in the centre/lower viewport. */
+.dp-cookie-banner-inline .dp-cookie-banner-title{flex:none}
+.dp-cookie-banner-inline p{margin:0;flex:1 1 280px;font-size:.78rem;max-width:530px}
+.dp-cookie-banner-inline .dp-cookie-actions{flex:none}
+@media(max-width:920px){
+ .dp-cookie-banner-inline{display:grid;gap:8px;padding:10px 13px}
+ .dp-cookie-banner-inline p{max-width:none}
+ .dp-cookie-banner-inline .dp-cookie-actions{display:flex;flex-wrap:wrap}
+}
 @media(max-width:600px){
-  .dp-cookie-banner-side{top:8px;right:8px;left:auto;bottom:auto;width:min(270px,calc(100vw - 78px));max-height:min(245px,32vh);padding:10px;overflow-y:auto}
-  .dp-cookie-banner-side h2{font-size:.94rem}
-  .dp-cookie-banner-side p{font-size:.73rem;margin:7px 0}
-  .dp-cookie-banner-side .dp-cookie-actions{gap:5px}
-  .dp-cookie-banner-side .dp-cookie-actions button{min-height:29px;padding:5px 6px;font-size:.73rem}
+ .dp-cookie-banner-inline{top:auto;left:auto;right:auto;bottom:auto;width:100%;padding:10px 11px;margin-top:61px;max-height:none;overflow:visible}
+ .dp-cookie-banner-inline .dp-cookie-actions{display:grid;grid-template-columns:1fr 1fr}
+ .dp-cookie-banner-inline .dp-cookie-actions .dp-cookie-primary{grid-column:1/-1}
 }
