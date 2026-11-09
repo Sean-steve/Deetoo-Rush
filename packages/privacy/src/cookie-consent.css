@@ -37,3 +37,12 @@
 @media(prefers-reduced-motion:reduce){.dp-privacy-root *{animation:none!important;transition:none!important}}
 .public-footer .public-cookie-choice{appearance:none;border:0;background:transparent;color:inherit;cursor:pointer;text-align:left;font:inherit;font-size:inherit;padding:0;display:block;text-decoration:none}
 .public-footer .public-cookie-choice:hover,.public-footer .public-cookie-choice:focus-visible{text-decoration:underline}
+
+/* Merchant's busy operational surfaces have critical actions in the lower-left
+ * and bottom edge. Keep the first-visit privacy panel visible near the top-right
+ * instead of covering those buttons; no invisible pointer-catching overlay. */
+.dp-cookie-banner-side{left:auto;bottom:auto;top:78px;right:14px;width:min(385px,calc(100vw - 28px))}
+@media(max-width:600px){
+ .dp-cookie-banner-side{left:auto;bottom:auto;top:75px;right:8px;width:min(290px,calc(100vw - 16px));max-height:52vh;overflow-y:auto}
+ .dp-cookie-banner-side .dp-cookie-actions{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
