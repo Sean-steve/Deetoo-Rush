@@ -7,7 +7,7 @@ import {
 } from './consent';
 import './cookie-consent.css';
 
-type Props = { policyUrl?: string };
+type Props = { policyUrl?: string; placement?: 'bottom-left' | 'top-right' };
 const rows: {id:CookiePurpose; title:string; text:string}[] = [
   {id:'functional', title:'Functional preferences',
     text:'Remember optional display and convenience choices. Essential order, security and account operations still work without this.'},
@@ -17,7 +17,7 @@ const rows: {id:CookiePurpose; title:string; text:string}[] = [
     text:'Allow optional personalized promotions and advertising-related tracking. This does not change transactional order messages.'},
 ];
 
-export function CookieConsentManager({policyUrl}:Props) {
+export function CookieConsentManager({policyUrl,placement='bottom-left'}:Props) {
   const [saved,setSaved] = useState<ConsentReceipt|null>(readCookieReceipt);
   const [details,setDetails] = useState(false);
   const [value,setValue] = useState<CookiePreferences>(()=>saved?.preferences || {...DEFAULT_COOKIE_PREFERENCES});
@@ -72,7 +72,7 @@ export function CookieConsentManager({policyUrl}:Props) {
   const defaultChoice: CookiePreferences = {...DEFAULT_COOKIE_PREFERENCES};
   const allChoice: CookiePreferences = {functional:true,analytics:true,marketing:true};
   return <div className="dp-privacy-root">
-    {!saved && !details && <section className="dp-cookie-banner" role="region" aria-label="Cookie consent">
+    {!saved && !details && <section className={"dp-cookie-banner"+(placement==="top-right"?" dp-cookie-banner-side":"")} role="region" aria-label="Cookie consent">
       <div className="dp-cookie-banner-title"><span aria-hidden="true">◈</span><h2>Your privacy, your choice</h2></div>
       <p>DeeToo uses essential cookies to keep accounts and orders secure. Optional preferences, analytics and marketing tracking are off until you choose.</p>
       {gpc && <p className="dp-cookie-gpc">Your browser’s Global Privacy Control blocks analytics and marketing tracking.</p>}
