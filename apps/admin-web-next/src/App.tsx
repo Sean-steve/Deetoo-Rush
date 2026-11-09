@@ -153,7 +153,7 @@ function LiveLogin({onLogin,notice}:{onLogin:(identifier:string,password:string)
    <form onSubmit={submit}>
     <label className="dn-field">Staff email or phone<input autoComplete="username" required value={identifier} onChange={e=>setIdentifier(e.target.value)}/></label>
     <label className="dn-field">Password<input type={showPassword?"text":"password"} autoComplete="current-password" required value={password} onChange={e=>setPassword(e.target.value)}/></label>
-    <label className="dn-field"><input type="checkbox" checked={showPassword} onChange={e=>setShowPassword(e.target.checked)}/> Show password</label>
+    <label className="dn-field"><input type="checkbox" checked={showPassword} onChange={e=>setShowPassword(e.target.checked)}/> Reveal characters</label>
     {(error||notice)&&<p role="alert" className="dn-login-error">{error||notice}</p>}
     <button className="dn-btn primary full" disabled={busy||!identifier||!password}>{busy?"Authenticating…":"Sign in securely"}</button>
    </form>
