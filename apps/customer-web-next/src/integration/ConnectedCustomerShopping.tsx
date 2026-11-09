@@ -12,6 +12,7 @@ import {LiveOrders} from "./LiveOrders";
 import {LiveAccount} from "./LiveAccount";
 import {LiveSupport} from "./LiveSupport";
 import {StatusPanel} from "./LiveUtilities";
+import {PasswordRecovery,ContactVerification} from "../../../../packages/auth/src/PasswordRecovery";
 
 const pathFor=(route:Route)=>({
  discover:"/",search:"/search",restaurant:"/restaurant",bag:"/bag",checkout:"/checkout",orders:"/orders",
@@ -32,7 +33,7 @@ const classify=(pathname:string):{screen:Route|"payment";branchId:string;orderId
 };
 function LoginPanel({onDismiss,initialMode="login"}:{onDismiss:()=>void;initialMode?:"login"|"register"}){
  const {login,registerCustomer,error}=useAuth();
- const [mode,setMode]=useState<"login"|"register">(initialMode);
+ const [mode,setMode]=useState<"login"|"register"|"recover"|"verify">(initialMode);
  const [identifier,setIdentifier]=useState(""),[password,setPassword]=useState(""),[name,setName]=useState("");
  const [busy,setBusy]=useState(false),[message,setMessage]=useState("");
  const submit=async(e:FormEvent)=>{
@@ -41,12 +42,14 @@ function LoginPanel({onDismiss,initialMode="login"}:{onDismiss:()=>void;initialM
    name,email:identifier.includes("@")?identifier:undefined,phone_e164:identifier.includes("@")?undefined:identifier,password
   });
    if(!user.roles.some(role=>String(role).toLowerCase()==="customer")){setMessage("This login does not have customer access.");return;}
+   if(mode==="register"){setMode("verify");return;}
    onDismiss();
   }catch(e){setMessage(backendError(e).code==="UNKNOWN"&&e instanceof Error?e.message:backendError(e).message);}
   finally{setBusy(false);}
  };
  return <dialog open aria-label="DeeToo customer sign in" className="dt-live-auth" onCancel={e=>{e.preventDefault();onDismiss();}}>
-  <div className="dt-live-auth-card"><header><h2>{mode==="login"?"Sign in to DeeToo":"Create a customer account"}</h2><IconButton label="Close sign in" onClick={onDismiss}><X size={19}/></IconButton></header>
+  <div className="dt-live-auth-card"><header><h2>{mode==="login"?"Sign in to DeeToo":mode==="register"?"Create a customer account":mode==="recover"?"Recover your account":"Verify your contact"}</h2><IconButton label="Close sign in" onClick={onDismiss}><X size={19}/></IconButton></header>
+  {mode==="recover"?<PasswordRecovery initialIdentifier={identifier} onBack={()=>{setMode("login");setMessage("");}}/>:mode==="verify"?<ContactVerification identifier={identifier} onDone={onDismiss}/>:<>
   <p>Shop using your DeeToo account. We never store passwords or access tokens in the browser.</p>
   <form onSubmit={e=>void submit(e)}>{mode==="register"&&<label>Full name<input required autoComplete="name" value={name} onChange={e=>setName(e.target.value)}/></label>}
    <label>Email or phone<input required autoComplete="username" value={identifier} onChange={e=>setIdentifier(e.target.value)}/></label>
@@ -54,6 +57,8 @@ function LoginPanel({onDismiss,initialMode="login"}:{onDismiss:()=>void;initialM
    <Button type="submit" disabled={busy}>{busy?"Please wait…":mode==="login"?"Sign in":"Create account"}</Button></form>
   {(message||error)&&<p role="alert" className="dt-live-error">{message||error}</p>}
   <button className="dt-live-auth-switch" onClick={()=>{setMode(mode==="login"?"register":"login");setMessage("");}}>{mode==="login"?"New customer? Create an account":"Have an account? Sign in"}</button>
+  {mode==="login"&&<button type="button" className="dt-live-auth-switch" onClick={()=>{setMode("recover");setMessage("");}}>Forgot password?</button>}
+  </>}
   </div>
  </dialog>;
 }
