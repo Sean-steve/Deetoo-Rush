@@ -1142,3 +1142,41 @@ test('Rider Phase 5 durable HTTP: KYC gate, per-user preferences, incident ACL, 
     server.closeAllConnections();await new Promise<void>(resolve=>server.close(()=>resolve()));
   }
 });
+
+
+test('cookie privacy receipts are append-only, account-scoped and survive PostgreSQL reconnect',async()=>{
+  const {recordUserCookieConsent,listUserCookieConsentHistory}=await import('../../apps/api/src/modules/auth/privacy-consent.service');
+  const a=await authService.registerCustomer({
+    name:'Privacy owner',email:'privacy-'+randomUUID()+'@foundation.test',password:'Privacy-test-Only-8432!'
+  });
+  const b=await authService.registerCustomer({
+    name:'Other account',email:'privacy-other-'+randomUUID()+'@foundation.test',password:'Privacy-test-Only-8432!'
+  });
+  const receiptId=randomUUID();
+  const choice={
+    receiptId,version:'2026-11-09',
+    recordedAt:new Date().toISOString(),expiresAt:new Date(Date.now()+180*86400000).toISOString(),
+    source:'settings',
+    preferences:{functional:false,analytics:false,marketing:false},
+  };
+  const recorded=await recordUserCookieConsent(a.user.id,choice);
+  assert.equal(recorded.receiptId,receiptId);
+  await recordUserCookieConsent(a.user.id,choice); // idempotent: no duplicate history
+  assert.equal((await listUserCookieConsentHistory(a.user.id)).records.length,1);
+  await assert.rejects(
+    recordUserCookieConsent(b.user.id,choice),{code:'PRIVACY_RECEIPT_CONFLICT'}
+  );
+  await assert.rejects(
+    recordUserCookieConsent(a.user.id,{
+      ...choice,preferences:{...choice.preferences,analytics:true},
+    }),{code:'PRIVACY_RECEIPT_CONFLICT'}
+  );
+  await assert.rejects(
+    recordUserCookieConsent(a.user.id,{...choice,version:'outdated-policy'}),{code:'PRIVACY_CONSENT_INVALID'}
+  );
+  await closeDbPool();
+  const after=await listUserCookieConsentHistory(a.user.id);
+  assert.equal(after.records[0].version,'2026-11-09');
+  assert.deepEqual(after.records[0].preferences,{functional:false,analytics:false,marketing:false});
+  assert.equal((await listUserCookieConsentHistory(b.user.id)).records.length,0);
+});
