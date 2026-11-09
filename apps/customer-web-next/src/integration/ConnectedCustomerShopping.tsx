@@ -143,7 +143,7 @@ function ConnectedInner(){
  if(branchId)remembered.current=branchId;
  const routeId=(route.screen==="payment"?"checkout":route.screen==="tracking"||route.screen==="delivered"?"orders":route.screen==="conversation"?"support":route.screen) as Route;
  const bagCount=cart.state.status==="ready"?cart.state.data?.total_quantity||0:0;
- if(isLoading)return <StatusPanel loading title="Checking DeeToo session…"/>;
+ if(isLoading&&!authOpen)return <StatusPanel loading title="Checking DeeToo session…"/>;
  if(isAuthenticated&&!isCustomer)return <StatusPanel title="Customer access required" description="This account does not have the customer role. DeeToo keeps merchant, rider and admin access separate."><Button onClick={()=>void logout()}>Sign out</Button></StatusPanel>;
  return <div className="dt-app">
   <Header goTo={goTo} bagCount={bagCount} query={query} onQueryChange={setQuery} notice={setNotice} userLabel={user?.name||"Sign in"} locationLabel={chosen?.label||"Choose address"} locationDistrict={chosen?.city||"Select delivery location"} onLocationClick={()=>{if(!isAuthenticated)setAuthOpen(true);else setLocationOpen(true);}} onProfileClick={()=>{if(!isAuthenticated)setAuthOpen(true);else goTo("profile");}}/>
