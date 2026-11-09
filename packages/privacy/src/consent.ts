@@ -15,6 +15,7 @@ export type ConsentSource = 'banner' | 'customize' | 'settings';
 export type CookiePreferences = Record<CookiePurpose, boolean>;
 
 export interface ConsentReceipt {
+  receiptId: string;
   version: string;
   recordedAt: string;
   expiresAt: string;
@@ -46,7 +47,7 @@ export function parseConsentReceipt(raw: string | null, now = Date.now()): Conse
     const value: unknown = JSON.parse(raw);
     if (!value || typeof value !== 'object') return null;
     const rec = value as Record<string, unknown>;
-    if (rec.version !== COOKIE_POLICY_VERSION || typeof rec.recordedAt !== 'string'
+    if (rec.version !== COOKIE_POLICY_VERSION || typeof rec.receiptId !== 'string' || !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(rec.receiptId) || typeof rec.recordedAt !== 'string'
       || typeof rec.expiresAt !== 'string' || !['banner','customize','settings'].includes(String(rec.source))) return null;
     const prefs = rec.preferences;
     if (!prefs || typeof prefs !== 'object') return null;
@@ -56,6 +57,7 @@ export function parseConsentReceipt(raw: string | null, now = Date.now()): Conse
     const created = Date.parse(rec.recordedAt);
     if (!Number.isFinite(expiry) || !Number.isFinite(created) || expiry <= now || created > now + 60_000) return null;
     return {
+      receiptId: rec.receiptId,
       version: COOKIE_POLICY_VERSION,
       recordedAt: rec.recordedAt,
       expiresAt: rec.expiresAt,
@@ -95,7 +97,7 @@ export function saveCookiePreferences(
   const recordedAt = new Date(now).toISOString();
   const expiresAt = new Date(now + COOKIE_RECEIPT_DAYS * 86400_000).toISOString();
   const receipt: ConsentReceipt = {
-    version: COOKIE_POLICY_VERSION, recordedAt, expiresAt, source,
+    receiptId: crypto.randomUUID(), version: COOKIE_POLICY_VERSION, recordedAt, expiresAt, source,
     preferences: effectivePreferences(value),
   };
   const secure = typeof location !== 'undefined' && location.protocol === 'https:' ? '; Secure' : '';
