@@ -1,7 +1,6 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { App } from "./App";
-import { CookieConsentManager } from "../../../packages/privacy/src/CookieConsentManager";
 import { ConnectedCustomerShopping } from "./integration/ConnectedCustomerShopping";
 import { resolveCustomerRuntime } from "./integration/mode";
 import "./integration/foundation.css";
@@ -20,5 +19,5 @@ const connected = import.meta.env.DEV
   : __DEETOO_CUSTOMER_RELEASE_CONNECTED__;
 
 createRoot(document.getElementById("root")!).render(
-  <StrictMode>{connected ? <ConnectedCustomerShopping /> : <App />}<CookieConsentManager policyUrl="/cookies" /></StrictMode>
+  <StrictMode>{connected ? <ConnectedCustomerShopping /> : <App />}</StrictMode>
 );
