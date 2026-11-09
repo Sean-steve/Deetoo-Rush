@@ -3,6 +3,7 @@ import { requireSimulationMode } from '../../db/storage-policy';
 import { config } from '@deetoo/config';
 import { getDbPool } from '../../db/client';
 import { externalNotificationProvider } from './external-notification.provider';
+import { selectedSmsProvider } from '../auth/sms-provider';
 /**
  * DEETOO - Multi-Channel Notification Service
  * Sprint 13: Transactional Notifications, Idempotency, Delivery Simulation, Retries & Dead-Letter Integration
@@ -154,7 +155,7 @@ export class NotificationService {
           : record.channel === 'PUSH'
             ? 'FCM'
             : record.channel === 'SMS'
-              ? 'AFRICASTALKING'
+              ? selectedSmsProvider()
               : record.channel === 'EMAIL'
                 ? 'RESEND'
                 : 'IN_APP';
