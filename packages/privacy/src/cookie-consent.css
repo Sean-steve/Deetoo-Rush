@@ -46,3 +46,14 @@
  .dp-cookie-banner-side{left:auto;bottom:auto;top:75px;right:8px;width:min(290px,calc(100vw - 16px));max-height:52vh;overflow-y:auto}
  .dp-cookie-banner-side .dp-cookie-actions{grid-template-columns:repeat(2,minmax(0,1fr))}
 }
+
+
+/* Compact Merchant banner on narrow screens: never cover mobile sidebar
+ * navigation or sign-in submit controls in the centre/lower viewport. */
+@media(max-width:600px){
+  .dp-cookie-banner-side{top:8px;right:8px;left:auto;bottom:auto;width:min(270px,calc(100vw - 78px));max-height:min(245px,32vh);padding:10px;overflow-y:auto}
+  .dp-cookie-banner-side h2{font-size:.94rem}
+  .dp-cookie-banner-side p{font-size:.73rem;margin:7px 0}
+  .dp-cookie-banner-side .dp-cookie-actions{gap:5px}
+  .dp-cookie-banner-side .dp-cookie-actions button{min-height:29px;padding:5px 6px;font-size:.73rem}
+}
