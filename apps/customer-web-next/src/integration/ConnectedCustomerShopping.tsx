@@ -55,7 +55,7 @@ function LoginPanel({onDismiss,initialMode="login"}:{onDismiss:()=>void;initialM
   <form onSubmit={e=>void submit(e)}>{mode==="register"&&<label>Full name<input required autoComplete="name" value={name} onChange={e=>setName(e.target.value)}/></label>}
    <label>Email or phone<input required autoComplete="username" value={identifier} onChange={e=>setIdentifier(e.target.value)}/></label>
    <label>Password<input type={showPassword?"text":"password"} required autoComplete={mode==="login"?"current-password":"new-password"} minLength={mode==="register"?8:undefined} maxLength={128} value={password} onChange={e=>setPassword(e.target.value)}/></label>
-   <label className="dt-recovery-inline"><input type="checkbox" checked={showPassword} onChange={e=>setShowPassword(e.target.checked)}/> Show password</label>
+   <label className="dt-recovery-inline"><input type="checkbox" checked={showPassword} onChange={e=>setShowPassword(e.target.checked)}/> Reveal characters</label>
    <Button type="submit" disabled={busy}>{busy?"Please wait…":mode==="login"?"Sign in":"Create account"}</Button></form>
   {(message||error)&&<p role="alert" className="dt-live-error">{message||error}</p>}
   <button className="dt-live-auth-switch" onClick={()=>{setMode(mode==="login"?"register":"login");setMessage("");}}>{mode==="login"?"New customer? Create an account":"Have an account? Sign in"}</button>
