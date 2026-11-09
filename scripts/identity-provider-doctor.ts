@@ -19,10 +19,24 @@ async function main() {
     throw new Error('Unsupported test flag. Use --help.');
   const provider=selectedSmsProvider();
   process.stdout.write('SMS provider selected: '+provider+' (configuration only)\n');
-  assertSmsConfigured();
-  process.stdout.write('SMS provider contract/configuration: accepted for testing; no live message sent by this check.\n');
-  identityDeliveryConfig('EMAIL');
-  process.stdout.write('Resend recovery email configuration: present; no live email sent by this check.\n');
+  let smsReady=false, emailReady=false;
+  try {
+    assertSmsConfigured();
+    smsReady=true;
+    process.stdout.write('SMS provider contract/configuration: ready for controlled testing.\n');
+  } catch {
+    process.stdout.write('SMS provider: NOT CONFIGURED or contract not verified.\n');
+  }
+  try {
+    identityDeliveryConfig('EMAIL');
+    emailReady=true;
+    process.stdout.write('Resend email: ready for controlled testing.\n');
+  } catch {
+    process.stdout.write('Resend email: NOT CONFIGURED.\n');
+  }
+  if (!args.length && (!smsReady || !emailReady)) process.exitCode=1;
+  if (smsIndex>=0 && !smsReady) throw new Error('SMS configuration not ready');
+  if (emailIndex>=0 && !emailReady) throw new Error('Email configuration not ready');
 
   if (smsIndex >= 0) {
     const phone=args[smsIndex+1];
