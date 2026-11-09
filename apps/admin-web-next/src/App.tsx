@@ -1,5 +1,6 @@
 import React, {useEffect,useState} from "react";
 import {PasswordRecovery} from "../../../packages/auth/src/PasswordRecovery";
+import {apiMutation} from "./live-api";
 import {Activity, AlertTriangle, BarChart3, Bell, Bike, ChevronDown, ChevronLeft, ChevronRight, CircleDollarSign, ClipboardList, Download, Headphones, Home, LogOut, MapPin, MessageSquare, Package, Radio, RotateCcw, Search, Settings, ShieldCheck, Store, Truck, Users, Wallet, X} from "lucide-react";
 import {DemoProvider, useDemo, canAct} from "./store";
 import {AdminRole} from "./data";
@@ -49,6 +50,7 @@ function Workspace(){
  const [showAlerts,setShowAlerts]=useState(false);
  const [profileMenu,setProfileMenu]=useState(false);
  const [mfaOpen,setMfaOpen]=useState(false),[mfaCode,setMfaCode]=useState(""),[mfaError,setMfaError]=useState(""),[mfaBusy,setMfaBusy]=useState(false);
+ const [enrollOpen,setEnrollOpen]=useState(false),[enrollPassword,setEnrollPassword]=useState(""),[enrollUri,setEnrollUri]=useState(""),[enrollCode,setEnrollCode]=useState(""),[enrollError,setEnrollError]=useState(""),[enrollBusy,setEnrollBusy]=useState(false);
  const [previewState,setPreviewState]=useState<"normal"|"loading"|"error">("normal");
  useEffect(()=>{const change=()=>setScreen(routeFromHash());addEventListener("hashchange",change);return()=>removeEventListener("hashchange",change);},[]);
  useEffect(()=>{if(toast){const timer=setTimeout(()=>setToast(""),3500);return()=>clearTimeout(timer);}},[toast]);
@@ -77,7 +79,7 @@ function Workspace(){
    <div className="dn-top-actions">
     <label className="dn-county"><MapPin size={15}/><select aria-label={mode==="demo"?"Demo county filter":"County filter"} value={selectedCounty} onChange={e=>setSelectedCounty(e.target.value)}><option value="all">Kenya (All Counties)</option><option value="Nairobi">Nairobi County</option><option value="Kiambu">Kiambu County</option><option value="Kajiado">Kajiado County</option></select><ChevronDown size={13}/></label>
     <div className="dn-alerts-container"><button className="dn-notification" aria-label="Open operational alerts" onClick={()=>setShowAlerts(v=>!v)}><Bell size={19}/><span>{data.phase2.incidents.filter(x=>!["RESOLVED","CLOSED"].includes(x.status)).length+data.phase2.support.filter(x=>!["RESOLVED","CLOSED"].includes(x.status)).length+data.phase4.notifications.filter(x=>!x.read).length}</span></button>{showAlerts&&<div className="dn-popover"><b>Attention required</b>{data.phase2.incidents.slice(0,3).map(i=><p key={i.id}>{i.title} <small>{i.status}</small></p>)}<button onClick={()=>{setShowAlerts(false);navigate("notifications");}}>Open Notification Center</button></div>}</div>
-    <div className="dn-profile-container"><button className="dn-profile" onClick={()=>setProfileMenu(v=>!v)}><span className="dn-face">AD</span><span>{mode==="live"?String(identity?.name||identity?.email||"DeeToo Administrator"):"Admin User"}<small>{role==="SUPER_ADMIN"?"Super Admin":role==="OPERATIONS"?"Operations Manager":role==="FINANCE"?"Finance Controller":role==="SUPPORT"?"Support Viewer":"Read-only Viewer"}</small></span><ChevronDown size={14}/></button>{profileMenu&&<div className="dn-popover dn-account-pop">{mode==="live"?<><b>Authenticated DeeToo staff</b><p>{String(identity?.email||"")}</p><p>Role and permissions are enforced by the API.</p><button onClick={()=>{setProfileMenu(false);void refresh();}}>Refresh records</button><button onClick={()=>{setProfileMenu(false);setMfaOpen(true);setMfaCode("");setMfaError("");}}><ShieldCheck size={14}/> Verify MFA for privileged actions</button><button onClick={()=>{setProfileMenu(false);void logout();}}><LogOut size={14}/> Sign out</button></>:<><b>Demo identity</b><label>Simulated role<select value={role} onChange={e=>setRole(e.target.value as AdminRole)}><option value="SUPER_ADMIN">Super Admin</option><option value="OPERATIONS">Operations Manager</option><option value="SUPPORT">Support Viewer</option><option value="FINANCE">Finance Controller</option><option value="VIEWER">Read-only Viewer</option></select></label><label>Preview state<select aria-label="Preview state" value={previewState} onChange={e=>setPreviewState(e.target.value as "normal"|"loading"|"error")}><option value="normal">Normal data</option><option value="loading">Loading records</option><option value="error">Simulated load failure</option></select></label><button onClick={()=>{setResetConfirm(true);setProfileMenu(false);}}><RotateCcw size={14}/> Reset all demo changes</button><p>No login or real backend is connected.</p></>}</div>}</div>
+    <div className="dn-profile-container"><button className="dn-profile" onClick={()=>setProfileMenu(v=>!v)}><span className="dn-face">AD</span><span>{mode==="live"?String(identity?.name||identity?.email||"DeeToo Administrator"):"Admin User"}<small>{role==="SUPER_ADMIN"?"Super Admin":role==="OPERATIONS"?"Operations Manager":role==="FINANCE"?"Finance Controller":role==="SUPPORT"?"Support Viewer":"Read-only Viewer"}</small></span><ChevronDown size={14}/></button>{profileMenu&&<div className="dn-popover dn-account-pop">{mode==="live"?<><b>Authenticated DeeToo staff</b><p>{String(identity?.email||"")}</p><p>Role and permissions are enforced by the API.</p><button onClick={()=>{setProfileMenu(false);void refresh();}}>Refresh records</button><button onClick={()=>{setProfileMenu(false);setEnrollOpen(true);setEnrollPassword("");setEnrollUri("");setEnrollCode("");setEnrollError("");}}><ShieldCheck size={14}/> Set up authenticator</button><button onClick={()=>{setProfileMenu(false);setMfaOpen(true);setMfaCode("");setMfaError("");}}><ShieldCheck size={14}/> Verify MFA for privileged actions</button><button onClick={()=>{setProfileMenu(false);void logout();}}><LogOut size={14}/> Sign out</button></>:<><b>Demo identity</b><label>Simulated role<select value={role} onChange={e=>setRole(e.target.value as AdminRole)}><option value="SUPER_ADMIN">Super Admin</option><option value="OPERATIONS">Operations Manager</option><option value="SUPPORT">Support Viewer</option><option value="FINANCE">Finance Controller</option><option value="VIEWER">Read-only Viewer</option></select></label><label>Preview state<select aria-label="Preview state" value={previewState} onChange={e=>setPreviewState(e.target.value as "normal"|"loading"|"error")}><option value="normal">Normal data</option><option value="loading">Loading records</option><option value="error">Simulated load failure</option></select></label><button onClick={()=>{setResetConfirm(true);setProfileMenu(false);}}><RotateCcw size={14}/> Reset all demo changes</button><p>No login or real backend is connected.</p></>}</div>}</div>
    </div>
   </header>
   <main className="dn-main">
@@ -107,6 +109,33 @@ function Workspace(){
   </main>
  </div>
  {toast&&<div className="dn-toast" role="status">{toast}<button onClick={()=>setToast("")} aria-label="Dismiss notification"><X size={14}/></button></div>}
+ {mode==="live"&&enrollOpen&&<Modal title="Set up DeeToo authenticator"
+    subtitle="Verify your current password, then enroll a private authenticator code"
+    onClose={()=>{setEnrollOpen(false);setEnrollPassword("");setEnrollUri("");setEnrollCode("");setEnrollError("");}}
+    onConfirm={()=>{setEnrollBusy(true);setEnrollError("");
+      void (async()=>{
+        if(!enrollUri){
+          const result=await apiMutation("/auth/mfa/enroll","POST",{password:enrollPassword}) as {uri?:string};
+          if(!result?.uri||!result.uri.startsWith("otpauth://"))throw new Error("The identity service did not return an authenticator setup link.");
+          setEnrollUri(result.uri);setEnrollPassword("");
+        }else{
+          await verifyMfa(enrollCode);setEnrollOpen(false);setEnrollUri("");setEnrollCode("");void refresh();
+        }
+      })().catch(e=>setEnrollError(e instanceof Error?e.message:"Authenticator setup failed")).finally(()=>setEnrollBusy(false));
+    }}
+    confirmText={enrollBusy?"Working…":enrollUri?"Activate authenticator":"Start setup"}
+    disabled={enrollBusy||(enrollUri?!/^\d{6}$/.test(enrollCode):!enrollPassword)}>
+    {!enrollUri?<label className="dn-field">Current password
+      <input type="password" autoComplete="current-password" value={enrollPassword}
+        onChange={e=>setEnrollPassword(e.target.value)} required/></label>:<>
+      <p>Add an account in your authenticator app with this setup key. Keep it private. DeeToo never saves it in browser storage.</p>
+      <p style={{overflowWrap:"anywhere"}}><strong>Setup key:</strong> <code>{new URL(enrollUri).searchParams.get("secret")||"Unavailable"}</code></p>
+      <label className="dn-field">Six-digit authenticator code<input inputMode="numeric" autoComplete="one-time-code"
+        value={enrollCode} onChange={e=>setEnrollCode(e.target.value.replace(/\D/g,"").slice(0,6))}
+        maxLength={6} placeholder="6-digit code"/></label>
+    </>}
+    {enrollError&&<p role="alert">{enrollError}</p>}
+  </Modal>}
  {mode==="live"&&mfaOpen&&<Modal title="Verify your DeeToo MFA" subtitle="Recent verification is required for privileged API mutations" onClose={()=>setMfaOpen(false)} onConfirm={()=>{setMfaBusy(true);setMfaError("");void verifyMfa(mfaCode).then(()=>{setMfaOpen(false);void refresh();}).catch(e=>setMfaError(e instanceof Error?e.message:"MFA verification failed")).finally(()=>setMfaBusy(false));}} confirmText={mfaBusy?"Verifying…":"Verify session"} disabled={mfaBusy||!/^\d{6}$/.test(mfaCode)}><label className="dn-field">Authenticator code<input value={mfaCode} onChange={e=>setMfaCode(e.target.value.replace(/\D/g,"").slice(0,6))} autoComplete="one-time-code" inputMode="numeric" maxLength={6} placeholder="6-digit code"/></label>{mfaError&&<p role="alert">{mfaError}</p>}<p>Only DeeToo's identity service can validate this code. No MFA secrets or codes are stored in this browser.</p></Modal>}
   {mode==="demo"&&resetConfirm&&<Modal title="Reset demo workspace?" subtitle="This only affects the local frontend preview. It does not access DeeToo backend." onClose={()=>setResetConfirm(false)} onConfirm={()=>{if(canAct(role,"reset")){reset();setToast("Demo restored to the original data.");}else setToast("Only the simulated Super Admin can reset this demo.");setResetConfirm(false);}} confirmText="Reset local demo" danger><p>This restores every phase, including orders, finance, messaging, security and configuration, to the original frontend fixtures.</p><p>Switch to the Super Admin demo role to perform a reset.</p></Modal>}
  </div>;
