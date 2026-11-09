@@ -6,5 +6,6 @@ import MerchantPrototype from './MerchantPrototype';
 import { MerchantLiveApp } from './MerchantLiveApp';
 import '../../../src/index.css';
 import { installTheme } from '../../../packages/ui/src/theme';
+import { CookieConsentManager } from '../../../packages/privacy/src/CookieConsentManager';
 installTheme(document.documentElement);
-createRoot(document.getElementById('root')!).render(<StrictMode>{new URLSearchParams(window.location.search).get("merchant-prototype") === "1" ? <MerchantPrototype /> : new URLSearchParams(window.location.search).get("merchant-legacy") === "1" ? <MerchantApp /> : <MerchantLiveApp />}</StrictMode>);
+createRoot(document.getElementById('root')!).render(<StrictMode>{new URLSearchParams(window.location.search).get("merchant-prototype") === "1" ? <MerchantPrototype /> : new URLSearchParams(window.location.search).get("merchant-legacy") === "1" ? <MerchantApp /> : <MerchantLiveApp />}<CookieConsentManager /></StrictMode>);
