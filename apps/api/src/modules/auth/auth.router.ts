@@ -1,5 +1,6 @@
 import { enrollMfa, verifyMfa } from './mfa';
 import {recordUserCookieConsent,listUserCookieConsentHistory} from './privacy-consent.service';
+import { requestDurableIdentity, confirmDurableEmailOtp } from './identity-delivery';
 /**
  * DEETOO - Authentication Endpoints Router
  * Implements /api/v1/auth routes complying with DEE-API-001 & Sprint 2 specs
@@ -15,6 +16,8 @@ import {
   ResetPasswordSchema,
   OtpRequestSchema,
   OtpConfirmSchema,
+  EmailOtpRequestSchema,
+  EmailOtpConfirmSchema,
 } from '@deetoo/validation';
 import { AppError } from '../../middleware/error-handler';
 import {
@@ -30,6 +33,7 @@ import {
   loginRateLimiter,
   registerRateLimiter,
   passwordResetRateLimiter,
+  passwordResetConfirmRateLimiter,
   otpRateLimiter,
   refreshRateLimiter,
 } from './rate-limit.middleware';
@@ -309,6 +313,7 @@ authRouter.post(
  */
 authRouter.post(
   '/password/reset',
+  passwordResetConfirmRateLimiter,
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const parsed = ResetPasswordSchema.safeParse(req.body);
@@ -389,6 +394,25 @@ authRouter.post(
   }
 );
 
+
+/** Email verification for newly registered Customer/Rider accounts. */
+authRouter.post('/verify/email-otp-request', otpRateLimiter, async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const parsed = EmailOtpRequestSchema.safeParse(req.body);
+    if (!parsed.success) throw new AppError(400, 'VALIDATION_FAILED', 'Invalid email address');
+    const data = await requestDurableIdentity('EMAIL_OTP', parsed.data.email, (req as any).requestId);
+    res.json({ data, requestId: (req as any).requestId });
+  } catch (error) { next(error); }
+});
+
+authRouter.post('/verify/email-otp-confirm', otpRateLimiter, async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const parsed = EmailOtpConfirmSchema.safeParse(req.body);
+    if (!parsed.success) throw new AppError(400, 'VALIDATION_FAILED', 'Invalid email verification code');
+    const data = await confirmDurableEmailOtp(parsed.data.email, parsed.data.code, (req as any).requestId);
+    res.json({ data, requestId: (req as any).requestId });
+  } catch (error) { next(error); }
+});
 
 const mfaRateLimiter=createAuthRateLimiter({keyPrefix:'auth:mfa',windowMs:60000,max:30});
 authRouter.post('/mfa/enroll', requireAuth, mfaRateLimiter, async (req: AuthenticatedRequest, res, next) => {

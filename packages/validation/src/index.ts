@@ -91,6 +91,14 @@ export const ResetPasswordSchema = z.object({
   new_password: PasswordSchema,
 });
 
+export const EmailOtpRequestSchema = z.object({
+  email: z.string().trim().email('A valid email address is required'),
+});
+
+export const EmailOtpConfirmSchema = EmailOtpRequestSchema.extend({
+  code: z.string().regex(/^\d{6}$/, 'A six-digit verification code is required'),
+});
+
 export const OtpRequestSchema = z.object({
   phone_e164: PhoneE164Schema,
   purpose: z.enum(['VERIFICATION', 'LOGIN', 'RESET']).optional().default('VERIFICATION'),

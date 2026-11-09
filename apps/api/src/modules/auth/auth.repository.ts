@@ -836,10 +836,10 @@ export class AuthRepository {
   public async markPasswordResetTokenUsed(id: string): Promise<void> {
     allowMemoryAdapter();
     const now = new Date().toISOString();
-    for (const rec of ephemeralStore.passwordResets.values()) {
-      if (rec.id === id) {
-        rec.used_at = now;
-      }
+    const target = Array.from(ephemeralStore.passwordResets.values()).find(record => record.id === id);
+    if (!target) return;
+    for (const record of ephemeralStore.passwordResets.values()) {
+      if (record.user_id === target.user_id && !record.used_at) record.used_at = now;
     }
   }
 
