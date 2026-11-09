@@ -1,4 +1,5 @@
 import React, {useEffect,useState} from "react";
+import {PasswordRecovery} from "../../../packages/auth/src/PasswordRecovery";
 import {Activity, AlertTriangle, BarChart3, Bell, Bike, ChevronDown, ChevronLeft, ChevronRight, CircleDollarSign, ClipboardList, Download, Headphones, Home, LogOut, MapPin, MessageSquare, Package, Radio, RotateCcw, Search, Settings, ShieldCheck, Store, Truck, Users, Wallet, X} from "lucide-react";
 import {DemoProvider, useDemo, canAct} from "./store";
 import {AdminRole} from "./data";
@@ -113,6 +114,22 @@ function Workspace(){
 
 function LiveLogin({onLogin,notice}:{onLogin:(identifier:string,password:string)=>Promise<void>;notice:string}){
  const [identifier,setIdentifier]=useState(""),[password,setPassword]=useState(""),[busy,setBusy]=useState(false),[error,setError]=useState("");
+ const [showPassword,setShowPassword]=useState(false),[recovering,setRecovering]=useState(false);
  const submit=async(e:React.FormEvent)=>{e.preventDefault();setBusy(true);setError("");try{await onLogin(identifier,password);}catch(e){setError(e instanceof Error?e.message:"Unable to sign in.");}finally{setBusy(false);}};
- return <div className="dn-live-auth"><form className="dn-live-login" onSubmit={submit}><div className="dn-logo"><span className="dn-logo-mark"><span/></span><strong>DeeToo<small>Rush</small></strong></div><h1>Admin sign in</h1><p>Use your authorized DeeToo staff account. Actions are governed by live permissions and may require recent MFA verification.</p><label className="dn-field">Staff email or phone<input autoComplete="username" required value={identifier} onChange={e=>setIdentifier(e.target.value)}/></label><label className="dn-field">Password<input type="password" autoComplete="current-password" required value={password} onChange={e=>setPassword(e.target.value)}/></label>{(error||notice)&&<p role="alert" className="dn-login-error">{error||notice}</p>}<button className="dn-btn primary full" disabled={busy||!identifier||!password}>{busy?"Authenticating…":"Sign in securely"}</button><small>Credentials are transmitted to DeeToo through the configured cookie-auth API. Browser demo data is never used in live mode.</small></form></div>;
+ return <div className="dn-live-auth"><div className="dn-live-login">
+  <div className="dn-logo"><span className="dn-logo-mark"><span/></span><strong>DeeToo<small>Rush</small></strong></div>
+  <h1>{recovering?"Recover your staff account":"Admin sign in"}</h1>
+  {recovering?<PasswordRecovery initialIdentifier={identifier} onBack={()=>{setRecovering(false);setError("");}}/>:<>
+   <p>Use your authorized DeeToo staff account. Privileged actions require recent MFA verification.</p>
+   <form onSubmit={submit}>
+    <label className="dn-field">Staff email or phone<input autoComplete="username" required value={identifier} onChange={e=>setIdentifier(e.target.value)}/></label>
+    <label className="dn-field">Password<input type={showPassword?"text":"password"} autoComplete="current-password" required value={password} onChange={e=>setPassword(e.target.value)}/></label>
+    <label className="dn-field"><input type="checkbox" checked={showPassword} onChange={e=>setShowPassword(e.target.checked)}/> Show password</label>
+    {(error||notice)&&<p role="alert" className="dn-login-error">{error||notice}</p>}
+    <button className="dn-btn primary full" disabled={busy||!identifier||!password}>{busy?"Authenticating…":"Sign in securely"}</button>
+   </form>
+   <button type="button" className="dn-text-btn" onClick={()=>setRecovering(true)}>Forgot password?</button>
+   <small>Credentials are transmitted through DeeToo's cookie-auth API.</small>
+  </>}
+ </div></div>;
 }
