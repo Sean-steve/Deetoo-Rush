@@ -15,6 +15,7 @@ function setting(name: string): string {
 }
 export function identityDeliveryConfig(channel: 'EMAIL'): {channel:'EMAIL';key:string;sender:string};
 export function identityDeliveryConfig(channel: 'SMS'): {channel:'SMS'};
+export function identityDeliveryConfig(channel: 'EMAIL' | 'SMS'): {channel:'SMS'} | {channel:'EMAIL';key:string;sender:string};
 export function identityDeliveryConfig(channel: 'EMAIL' | 'SMS') {
   if (channel === 'SMS') {
     assertSmsConfigured();
