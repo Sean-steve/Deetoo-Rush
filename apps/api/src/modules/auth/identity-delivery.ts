@@ -5,6 +5,7 @@ import { normalizeEmail, normalizePhoneE164 } from '@deetoo/validation';
 import { AppError } from '../../middleware/error-handler';
 import { outsideTransaction, withTransaction } from '../../db/transaction';
 import { authRepository } from './auth.repository';
+import { assertSmsConfigured,sendSmsMessage } from './sms-provider';
 
 function setting(name: string): string {
   const value = process.env[name]?.trim();
@@ -13,40 +14,39 @@ function setting(name: string): string {
   return value;
 }
 export function identityDeliveryConfig(channel: 'EMAIL' | 'SMS') {
-  return channel === 'EMAIL'
-    ? { key: setting('RESEND_API_KEY'), sender: setting('AUTH_EMAIL_FROM') }
-    : { key: setting('AFRICASTALKING_API_KEY'), username: setting('AFRICASTALKING_USERNAME'), sender: setting('AUTH_SMS_FROM') };
+  if (channel === 'SMS') {
+    assertSmsConfigured();
+    return {channel: 'SMS' as const};
+  }
+  return {channel: 'EMAIL' as const,key: setting('RESEND_API_KEY'),sender: setting('AUTH_EMAIL_FROM')};
 }
 export async function sendIdentityMessage(
   channel: 'EMAIL' | 'SMS', recipient: string, content: string, requestId: string, subject = 'DeeToo account recovery',
 ): Promise<void> {
-  const options = identityDeliveryConfig(channel);
-  let response: Response;
+  if (channel === 'SMS') {
+    try {
+      await sendSmsMessage(recipient, content);
+      return;
+    } catch (error) {
+      if (error instanceof AppError && error.statusCode === 503) throw error;
+      throw new AppError(502,'IDENTITY_DELIVERY_UNCONFIRMED','Message delivery could not be confirmed. Please try again later.');
+    }
+  }
+  const options = identityDeliveryConfig('EMAIL');
   try {
-    response = channel === 'EMAIL'
-      ? await fetch('https://api.resend.com/emails', {
-          method: 'POST',
-          headers: { Authorization: 'Bearer ' + options.key, 'Content-Type': 'application/json', 'Idempotency-Key': requestId },
-          body: JSON.stringify({ from: options.sender, to: [recipient], subject, text: content }),
-          signal: AbortSignal.timeout(15000),
-        })
-      : await fetch('https://api.africastalking.com/version1/messaging', {
-          method: 'POST',
-          headers: { apiKey: options.key, Accept: 'application/json', 'Content-Type': 'application/x-www-form-urlencoded' },
-          body: new URLSearchParams({ username: options.username!, from: options.sender, to: recipient, message: content }),
-          signal: AbortSignal.timeout(15000),
-        });
-    if (!response.ok) throw new Error('Provider rejected delivery');
+    const response = await fetch('https://api.resend.com/emails',{
+      method:'POST',
+      redirect:'error',
+      headers:{Authorization:'Bearer ' + options.key,'Content-Type':'application/json','Idempotency-Key':requestId},
+      body:JSON.stringify({from:options.sender,to:[recipient],subject,text:content}),
+      signal:AbortSignal.timeout(15000),
+    });
+    if (!response.ok) throw new Error('Provider rejected email');
     const result = await response.json();
-    const recipients = result.SMSMessageData?.Recipients;
-    if (channel === 'EMAIL'
-      ? typeof result.id !== 'string' || !result.id
-      : !Array.isArray(recipients) || recipients.length !== 1 || recipients[0].statusCode !== 101 || !recipients[0].messageId)
-      throw new Error('Provider acceptance missing');
+    if (typeof result?.id !== 'string' || !result.id) throw new Error('Provider acceptance missing');
   } catch {
-    // Never log account identifiers, recipient addresses, provider payloads or secrets.
-    // A timeout is not blindly retried: the provider may have delivered.
-    throw new AppError(502, 'IDENTITY_DELIVERY_UNCONFIRMED', 'Message delivery could not be confirmed. Please try again later.');
+    // Resend acceptance means handed to provider, not inbox delivery.
+    throw new AppError(502,'IDENTITY_DELIVERY_UNCONFIRMED','Message delivery could not be confirmed. Please try again later.');
   }
 }
 const genericReset = { message: 'If an eligible account exists, recovery instructions have been requested. Open Reset Password and enter the token from your message.' };
