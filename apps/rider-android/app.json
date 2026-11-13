@@ -18,7 +18,7 @@
         "CAMERA"
       ],
       "adaptiveIcon": {
-        "foregroundImage": "./assets/deetoo-logo.png",
+        "foregroundImage": "./assets/deetoo-logo-adaptive.png",
         "backgroundColor": "#FFFFFF"
       }
     },
