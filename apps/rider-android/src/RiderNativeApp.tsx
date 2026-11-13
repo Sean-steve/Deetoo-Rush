@@ -3,6 +3,7 @@ import {
   ActivityIndicator,
   Alert,
   Linking,
+  Image,
   Pressable,
   SafeAreaView,
   ScrollView,
@@ -480,7 +481,7 @@ export function RiderNativeApp() {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.loginCard}>
-          <Text style={styles.loginBrand}>DeeToo Rider</Text>
+          <View style={{flexDirection:'row',alignItems:'center',gap:12}}><Image source={require('../assets/deetoo-logo.png')} style={{width:52,height:52}} resizeMode="contain" accessibilityLabel="DeeToo logo"/><Text style={styles.loginBrand}>Rider</Text></View>
           <Text style={styles.muted}>Sign in with your approved Rider account.</Text>
           <Text style={styles.muted}>API: {apiOrigin}</Text>
           <TextInput

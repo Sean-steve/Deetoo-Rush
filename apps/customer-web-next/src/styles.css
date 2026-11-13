@@ -49,7 +49,7 @@ h1,h2,h3,p { margin:0; }
 .dt-header { grid-column:1/-1;grid-row:1;display:flex;align-items:center;gap:clamp(15px,2vw,38px);padding:0 23px 0 22px;background:#fff;border-bottom:1px solid #eaf0ed;position:sticky;top:0;z-index:40;min-width:0; }
 .dt-brand { display:flex;align-items:center;gap:11px;flex:0 0 242px;min-width:0; }
 .dt-brand-symbol { width:45px;height:45px;flex:none;filter:drop-shadow(0 2px 4px rgba(0,150,89,.15)); }
-.dt-brand-symbol svg { width:100%;height:100%; }
+.dt-brand-symbol img { display:block;width:100%;height:100%;object-fit:contain; }
 .dt-brand-title { display:flex;flex-direction:column;gap:1px; }
 .dt-brand-title strong { color:#080e1e;font-weight:900;font-size:23px;line-height:1.03;letter-spacing:-1.3px; }
 .dt-brand-title small { color:#314783;font-size:10px;font-weight:700;white-space:nowrap; }

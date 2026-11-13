@@ -35,36 +35,13 @@ export function DeetooLogo({
   className?: string;
   showText?: boolean;
 }) {
-  return (
-    <svg
-      className={className}
-      viewBox={showText ? "0 0 178 48" : "0 0 48 48"}
-      role="img"
-      aria-label="DeeToo"
-      xmlns="http://www.w3.org/2000/svg"
-      fill="none"
-    >
-      <circle cx="24" cy="24" r="21" fill="#00BF62" />
-      <path d="M13 22.5 24 13l11 9.5H13Z" fill="white" />
-      <path d="M13 27.5h22" stroke="white" strokeWidth="2.2" strokeLinecap="round" opacity=".35" />
-      {showText && (
-        <>
-          <text
-            x="54"
-            y="31.5"
-            fontFamily="Epilogue, ui-sans-serif, system-ui, sans-serif"
-            fontWeight="900"
-            fontSize="25"
-            letterSpacing="-.045em"
-            fill="#10231A"
-          >
-            DeeToo
-          </text>
-          <circle cx="161" cy="27" r="3" fill="#00BF62" />
-        </>
-      )}
-    </svg>
-  );
+  // The owner-approved circular mark already includes the Deetoo wordmark.
+  return <img
+    className={className}
+    src={new URL("../assets/deetoo-logo.svg", import.meta.url).href}
+    alt={showText ? "DeeToo" : "DeeToo logo"}
+    decoding="async"
+  />;
 }
 
 // ==========================================
