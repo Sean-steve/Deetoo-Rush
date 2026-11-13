@@ -16,7 +16,11 @@
         "FOREGROUND_SERVICE_LOCATION",
         "POST_NOTIFICATIONS",
         "CAMERA"
-      ]
+      ],
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/deetoo-logo.png",
+        "backgroundColor": "#FFFFFF"
+      }
     },
     "plugins": [
       [
@@ -44,6 +48,7 @@
         }
       ]
     ],
-    "extra": {}
+    "extra": {},
+    "icon": "./assets/deetoo-logo.png"
   }
 }
