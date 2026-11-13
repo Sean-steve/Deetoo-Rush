@@ -1,5 +1,6 @@
 import React, {useEffect,useState} from "react";
 import {PasswordRecovery} from "../../../packages/auth/src/PasswordRecovery";
+import {DeetooLogo} from "../../../packages/ui/src/index";
 import {apiMutation} from "./live-api";
 import {Activity, AlertTriangle, BarChart3, Bell, Bike, ChevronDown, ChevronLeft, ChevronRight, CircleDollarSign, ClipboardList, Download, Headphones, Home, LogOut, MapPin, MessageSquare, Package, Radio, RotateCcw, Search, Settings, ShieldCheck, Store, Truck, Users, Wallet, X} from "lucide-react";
 import {DemoProvider, useDemo, canAct} from "./store";
@@ -69,7 +70,7 @@ function Workspace(){
 
  return <div className={"dn-app "+(collapsed?"dn-collapsed":"")}>
  <aside className="dn-sidebar">
-  <div className="dn-logo"><span className="dn-logo-mark"><span/></span><strong>DeeToo<small>Rush</small></strong></div>
+  <div className="dn-logo"><DeetooLogo className="dn-approved-logo"/><strong>Rush</strong></div>
   <div className="dn-sidebar-links">{groups.map(group=><div key={group.name} className="dn-nav-group"><div className="dn-nav-head">{group.name}</div>{group.items.map(item=><button key={item.id} title={item.label+(item.phase>1?" · Phase "+item.phase:"")} className={"dn-nav-link "+(screen===item.id?"active ":"")+(item.phase>4?"future":"")} onClick={()=>navigate(item.id)} aria-current={screen===item.id?"page":undefined}><item.icon size={18}/><span>{item.label}</span></button>)}</div>)}</div>
   <button className="dn-sidebar-collapse" onClick={()=>setCollapsed(v=>!v)}><ChevronLeft size={17}/><span>{collapsed?"Expand":"Collapse"} Sidebar</span></button>
  </aside>
@@ -146,7 +147,7 @@ function LiveLogin({onLogin,notice}:{onLogin:(identifier:string,password:string)
  const [showPassword,setShowPassword]=useState(false),[recovering,setRecovering]=useState(false);
  const submit=async(e:React.FormEvent)=>{e.preventDefault();setBusy(true);setError("");try{await onLogin(identifier,password);}catch(e){setError(e instanceof Error?e.message:"Unable to sign in.");}finally{setBusy(false);}};
  return <div className="dn-live-auth"><div className="dn-live-login">
-  <div className="dn-logo"><span className="dn-logo-mark"><span/></span><strong>DeeToo<small>Rush</small></strong></div>
+  <div className="dn-logo"><DeetooLogo className="dn-approved-logo"/><strong>Rush</strong></div>
   <h1>{recovering?"Recover your staff account":"Admin sign in"}</h1>
   {recovering?<PasswordRecovery initialIdentifier={identifier} onBack={()=>{setRecovering(false);setError("");}}/>:<>
    <p>Use your authorized DeeToo staff account. Privileged actions require recent MFA verification.</p>
