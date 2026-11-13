@@ -6,6 +6,7 @@ import {
   UserRound, UtensilsCrossed, X, Zap,
 } from "lucide-react";
 import { Badge, Button, IconButton, Panel, classNames } from "../../../packages/customer-ui/src/index";
+import { DeetooLogo } from "../../../packages/ui/src/index";
 import { categories, heroBurger, previewLocation, previewRestaurants, type Cuisine, type PreviewRestaurant } from "./data/preview";
 import { FoodArt } from "./components/FoodArt";
 import { ShoppingPreview, type CartLine } from "./components/ShoppingPreview";
@@ -40,10 +41,8 @@ const routeFromPath = (path:string):Route =>
 function BrandLogo() {
   return (
     <div className="dt-brand" aria-label="DeeToo food delivery">
-      <div className="dt-brand-symbol" aria-hidden="true">
-        <svg viewBox="0 0 40 40"><circle cx="20" cy="20" r="20" fill="url(#deeGradient)"/><defs><linearGradient id="deeGradient" x1="0" x2="1" y1="0" y2="1"><stop stopColor="#00D78B"/><stop offset="1" stopColor="#009C5F"/></linearGradient></defs><path d="M8 26L20 10l13 16c-6-3.2-11.2-4.7-13-4.7C17 21.3 13 23 8 26Z" fill="#fff"/></svg>
-      </div>
-      <div className="dt-brand-title"><strong>DeeToo</strong><small>Food delivery, made for you</small></div>
+      <div className="dt-brand-symbol"><DeetooLogo className="dt-brand-logo-image" /></div>
+      <div className="dt-brand-title"><strong>Food delivery</strong><small>Made for you</small></div>
     </div>
   );
 }
