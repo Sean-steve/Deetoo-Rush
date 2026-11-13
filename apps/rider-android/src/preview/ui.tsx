@@ -1,6 +1,6 @@
 import React from 'react';
 import {
-  Pressable, RefreshControl, SafeAreaView, ScrollView, StyleSheet, Text, TextInput,
+  Image, Pressable, RefreshControl, SafeAreaView, ScrollView, StyleSheet, Text, TextInput,
   TextInputProps, View,
 } from 'react-native';
 import type { RiderTab, RiderScreen } from './phase1-model';
@@ -75,11 +75,11 @@ export function Notice({ title, body, tone = 'green' }: { title: string; body: s
 }
 export function Brand({ light = false }: { light?: boolean }) {
   return <View accessible accessibilityLabel="DeeToo Rush" style={{ alignSelf: 'flex-start' }}>
-    <View style={{ flexDirection: 'row', alignItems: 'baseline' }}>
-      <Text style={{ fontSize: 29, fontWeight: '900', letterSpacing: -1.4, color: light ? '#fff' : C.ink }}>DeeToo</Text>
-      <Text style={{ fontSize: 29, fontWeight: '900', letterSpacing: -1.4, color: C.green }}>Rush</Text>
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 9 }}>
+      <Image source={require('../../assets/deetoo-logo.png')} style={{ width: 47, height: 47 }} resizeMode="contain" accessibilityLabel="DeeToo logo" />
+      <Text style={{ fontSize: 25, fontWeight: '900', letterSpacing: -0.7, color: light ? '#fff' : C.ink }}>Rider</Text>
     </View>
-    <Text style={{ fontSize: 11, fontStyle: 'italic', marginTop: -3, fontWeight: '700', color: light ? '#EAF7EE' : C.muted }}>▰▰▰ Faster. Closer. Together.</Text>
+    <Text style={{ fontSize: 10, fontWeight: '700', marginTop: 2, color: light ? '#EAF7EE' : C.muted }}>Faster. Closer. Together.</Text>
   </View>;
 }
 export function Header({ title, subtitle, onBack, right }: { title?: string; subtitle?: string; onBack?: () => void; right?: React.ReactNode }) {
