@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { DeetooLogo } from "../../../packages/ui/src/index";
 import type { MerchantLiveBridge } from "./MerchantLiveApp";
 import { Bell, ChevronDown, ChevronRight, ChevronsLeft, Clock3, CreditCard, Download, Ellipsis, FilePlus2, Filter, Home, LayoutGrid, List, MapPin, Menu as MenuIcon, Minus, Plus, Search, Settings, ShieldCheck, Store, Trash2, Users, Utensils, Wallet, X, Check, ChefHat, CircleCheck, Package, Phone, Pencil, CalendarDays } from "lucide-react";
 import "./merchant-prototype.css";
@@ -187,7 +188,7 @@ export default function MerchantPrototype({live}:{live?:MerchantLiveBridge}={}){
   setStaff(s=>selectedMember?s.map(x=>x.id===selectedMember?{...x,role:form.role as Staff["role"],branch:form.branch}:x):[...s,{id:Date.now(),name:form.email.split("@")[0],email:form.email,role:form.role as Staff["role"],branch:form.branch,status:"Pending"}]);setDialog(null);notify(selectedMember?"Team access updated":"Invitation created");};
  return <div className="mp">
   <aside className={"mp-sidebar "+(navOpen?"mp-sidebar-open":"")}>
-   <div className="mp-logo"><span className="mp-brand-mark">▰</span><span><strong>DeeToo</strong><small>Merchant</small></span><button aria-label="Collapse sidebar" onClick={()=>setNavOpen(false)}><ChevronsLeft size={19}/></button></div>
+   <div className="mp-logo"><DeetooLogo className="mp-approved-logo"/><span><strong>Merchant</strong><small>Portal</small></span><button aria-label="Collapse sidebar" onClick={()=>setNavOpen(false)}><ChevronsLeft size={19}/></button></div>
    <button className="mp-branch" onClick={()=>live?setDialog("branch-switch"):go("branch")}><MerchantBranchImage className="mp-branch-emblem" src={live?.branchCoverUrl} name={live?.branch?.name}/><span><b>{live?.branch?.name||"Juja Branch"}</b><small>{live?.branch?.city||"Kalimoni, Juja"}</small></span><ChevronDown size={15}/></button>
    <nav>{navigation.map(section=><div key={section.section}>{section.section&&<p className="mp-nav-label">{section.section}</p>}{section.links.map(([label,key,Icon])=><button className={screen===key?"active":""} key={label} onClick={()=>go(key)}><Icon size={20}/>{label}{label==="Notifications"&&unreadCount>0&&<span className="mp-count">{unreadCount}</span>}</button>)}</div>)}</nav>
    <button className="mp-sidebar-user" onClick={()=>setDialog("account")}><span className="mp-avatar">TM</span><span><strong>{live?.user?.email||"test.merchant@deetoo.test"}</strong><small>{live?(live.user?.roles?.includes("merchant_owner")?"Merchant Owner":live.user?.roles?.includes("merchant_manager")?"Merchant Manager":"Merchant Staff"):"Merchant Owner"}</small></span><ChevronRight size={16}/></button>
