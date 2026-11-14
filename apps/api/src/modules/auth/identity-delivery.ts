@@ -6,50 +6,44 @@ import { AppError } from '../../middleware/error-handler';
 import { outsideTransaction, withTransaction } from '../../db/transaction';
 import { authRepository } from './auth.repository';
 import { assertSmsConfigured,sendSmsMessage } from './sms-provider';
+import { assertEmailConfigured, sendPlatformEmail, type EmailProvider } from './email-provider';
 
-function setting(name: string): string {
-  const value = process.env[name]?.trim();
-  if (!value || /placeholder|change.?me/i.test(value))
-    throw new AppError(503, 'BLOCKED_BY_CONFIGURATION', name + ' is required for identity verification');
-  return value;
-}
-export function identityDeliveryConfig(channel: 'EMAIL'): {channel:'EMAIL';key:string;sender:string};
+export function identityDeliveryConfig(channel: 'EMAIL'): {channel:'EMAIL';provider:EmailProvider;sender:string};
 export function identityDeliveryConfig(channel: 'SMS'): {channel:'SMS'};
-export function identityDeliveryConfig(channel: 'EMAIL' | 'SMS'): {channel:'SMS'} | {channel:'EMAIL';key:string;sender:string};
+export function identityDeliveryConfig(channel: 'EMAIL' | 'SMS'): {channel:'SMS'} | {channel:'EMAIL';provider:EmailProvider;sender:string};
 export function identityDeliveryConfig(channel: 'EMAIL' | 'SMS') {
   if (channel === 'SMS') {
     assertSmsConfigured();
-    return {channel: 'SMS' as const};
+    return {channel:'SMS' as const};
   }
-  return {channel: 'EMAIL' as const,key: setting('RESEND_API_KEY'),sender: setting('AUTH_EMAIL_FROM')};
+  try {
+    const ready = assertEmailConfigured('identity');
+    return {channel:'EMAIL' as const,provider:ready.provider,sender:ready.from};
+  } catch {
+    throw new AppError(503,'BLOCKED_BY_CONFIGURATION','Identity email delivery is not configured');
+  }
 }
 export async function sendIdentityMessage(
-  channel: 'EMAIL' | 'SMS', recipient: string, content: string, requestId: string, subject = 'DeeToo account recovery',
-): Promise<void> {
+  channel:'EMAIL' | 'SMS', recipient:string, content:string, requestId:string,
+  subject = 'DeeToo account recovery',
+):Promise<void> {
   if (channel === 'SMS') {
     try {
-      await sendSmsMessage(recipient, content);
+      await sendSmsMessage(recipient,content);
       return;
     } catch (error) {
       if (error instanceof AppError && error.statusCode === 503) throw error;
-      throw new AppError(502,'IDENTITY_DELIVERY_UNCONFIRMED','Message delivery could not be confirmed. Please try again later.');
+      throw new AppError(502,'IDENTITY_DELIVERY_UNCONFIRMED',
+        'Message delivery could not be confirmed. Please try again later.');
     }
   }
-  const options = identityDeliveryConfig('EMAIL');
+  identityDeliveryConfig('EMAIL');
   try {
-    const response = await fetch('https://api.resend.com/emails',{
-      method:'POST',
-      redirect:'error',
-      headers:{Authorization:'Bearer ' + options.key,'Content-Type':'application/json','Idempotency-Key':requestId},
-      body:JSON.stringify({from:options.sender,to:[recipient],subject,text:content}),
-      signal:AbortSignal.timeout(15000),
-    });
-    if (!response.ok) throw new Error('Provider rejected email');
-    const result = await response.json();
-    if (typeof result?.id !== 'string' || !result.id) throw new Error('Provider acceptance missing');
+    await sendPlatformEmail({kind:'identity',to:recipient,subject,text:content,requestId});
   } catch {
-    // Resend acceptance means handed to provider, not inbox delivery.
-    throw new AppError(502,'IDENTITY_DELIVERY_UNCONFIRMED','Message delivery could not be confirmed. Please try again later.');
+    // SMTP/Resend acceptance is not evidence of inbox delivery; never leak token data.
+    throw new AppError(502,'IDENTITY_DELIVERY_UNCONFIRMED',
+      'Message delivery could not be confirmed. Please try again later.');
   }
 }
 const genericReset = { message: 'If an eligible account exists, recovery instructions have been requested. Open Reset Password and enter the token from your message.' };
