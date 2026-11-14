@@ -1,5 +1,6 @@
 import { createSign } from 'node:crypto';
 import { sendSmsMessage } from '../auth/sms-provider';
+import { sendPlatformEmail } from '../auth/email-provider';
 import { getDbPool } from '../../db/client';
 import { config } from '@deetoo/config';
 import { deviceRegistrationRepository } from './device-registration.repository';
@@ -145,26 +146,12 @@ class ExternalNotificationProvider {
   }
 
   async sendEmail(userId: string, subject: string, text: string): Promise<string> {
-    const apiKey = process.env.RESEND_API_KEY;
-    const from = process.env.AUTH_EMAIL_FROM;
-    if (!apiKey || !from) throw new Error('Resend is not configured');
-
     const contact = await this.resolveUserContact(userId);
     if (!contact.email) throw new Error('Recipient has no verified email address');
-
-    const response = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: {
-        authorization: `Bearer ${apiKey}`,
-        'content-type': 'application/json',
-      },
-      body: JSON.stringify({ from, to: [contact.email], subject, text }),
+    const result = await sendPlatformEmail({
+      kind:'notification',to:contact.email,subject,text,
     });
-    const payload = (await response.json().catch(() => ({}))) as any;
-    if (!response.ok || !payload.id) {
-      throw new Error(`Email provider failed with HTTP ${response.status}`);
-    }
-    return payload.id;
+    return result.reference;
   }
 }
 

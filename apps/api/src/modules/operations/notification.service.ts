@@ -3,6 +3,7 @@ import { requireSimulationMode } from '../../db/storage-policy';
 import { config } from '@deetoo/config';
 import { getDbPool } from '../../db/client';
 import { externalNotificationProvider } from './external-notification.provider';
+import { selectedEmailProvider } from '../auth/email-provider';
 import { selectedSmsProvider } from '../auth/sms-provider';
 /**
  * DEETOO - Multi-Channel Notification Service
@@ -157,7 +158,7 @@ export class NotificationService {
             : record.channel === 'SMS'
               ? selectedSmsProvider()
               : record.channel === 'EMAIL'
-                ? 'RESEND'
+                ? selectedEmailProvider()
                 : 'IN_APP';
 
       // External-provider acceptance is SENT, not proof of device delivery.
